@@ -1,0 +1,252 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum ProductStatus {
+  active
+  inactive
+}
+
+enum OrderStatus {
+  pending
+  confirmed
+  processing
+  shipping
+  completed
+  cancelled
+}
+
+enum PaymentMethod {
+  COD
+  PAYOS
+}
+
+enum PaymentStatus {
+  unpaid
+  pending
+  deposit_pending
+  deposit_paid
+  paid
+  failed
+  cancelled
+  refunded
+}
+
+enum ShippingStatus {
+  pending
+  preparing
+  shipping
+  delivered
+  cancelled
+}
+
+enum PaymentType {
+  full_payment
+  cod_deposit
+}
+
+model Admin {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  name         String?
+  role         String   @default("admin")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Product {
+  id          String        @id @default(uuid())
+  name        String
+  slug        String        @unique
+  description String?
+  basePrice   Int
+  images      String[]      @default([])
+  status      ProductStatus @default(active)
+  featured    Boolean       @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  orderItems OrderItem[]
+}
+
+model TemplateCategory {
+  id        String     @id @default(uuid())
+  name      String
+  slug      String     @unique
+  templates Template[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Template {
+  id         String        @id @default(uuid())
+  name       String
+  imageUrl   String?
+  configJson Json?
+  status     ProductStatus @default(active)
+
+  categoryId String?
+  category   TemplateCategory? @relation(fields: [categoryId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model AccessoryCategory {
+  id          String      @id @default(uuid())
+  name        String
+  slug        String      @unique
+  accessories Accessory[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Accessory {
+  id       String        @id @default(uuid())
+  name     String
+  imageUrl String?
+  iconUrl  String?
+  status   ProductStatus @default(active)
+
+  categoryId String?
+  category   AccessoryCategory? @relation(fields: [categoryId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Banner {
+  id        String        @id @default(uuid())
+  title     String?
+  imageUrl  String
+  linkUrl   String?
+  sortOrder Int           @default(0)
+  status    ProductStatus @default(active)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Collection {
+  id          String        @id @default(uuid())
+  name        String
+  slug        String        @unique
+  description String?
+  imageUrl    String?
+  status      ProductStatus @default(active)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Order {
+  id        String @id @default(uuid())
+  orderCode String @unique
+
+  customerName String
+  phone        String
+  email        String?
+  address      String
+  receiveDate  DateTime?
+
+  paymentMethod  PaymentMethod
+  paymentStatus  PaymentStatus  @default(unpaid)
+  orderStatus    OrderStatus    @default(pending)
+  shippingStatus ShippingStatus @default(pending)
+
+  totalAmount     Int
+  depositRequired Boolean   @default(false)
+  depositPercent  Int       @default(0)
+  depositAmount   Int       @default(0)
+  remainingAmount Int       @default(0)
+  depositStatus   String    @default("not_required")
+  depositPaidAt   DateTime?
+
+  paymentProvider    String?
+  payosOrderCode     BigInt? @unique
+  payosPaymentLinkId String?
+  payosCheckoutUrl   String?
+
+  paidAt      DateTime?
+  cancelledAt DateTime?
+
+  items    OrderItem[]
+  payments Payment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model OrderItem {
+  id String @id @default(uuid())
+
+  orderId String
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  productId String?
+  product   Product? @relation(fields: [productId], references: [id])
+
+  productName String
+  quantity    Int
+  price       Int
+
+  designData Json?
+  previewUrl String?
+
+  createdAt DateTime @default(now())
+}
+
+model PaymentSetting {
+  id                String  @id @default(uuid())
+  codEnabled        Boolean @default(true)
+  payosEnabled      Boolean @default(true)
+  codDepositEnabled Boolean @default(false)
+  codDepositPercent Int     @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Payment {
+  id String @id @default(uuid())
+
+  orderId String
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  provider              String
+  type                  PaymentType
+  providerOrderCode     BigInt?
+  providerPaymentLinkId String?
+
+  amount      Int
+  status      String  @default("pending")
+  checkoutUrl String?
+
+  rawResponse Json?
+  rawWebhook  Json?
+
+  paidAt    DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model BusinessInquiry {
+  id          String @id @default(uuid())
+  companyName String
+  contactName String
+  email       String
+  phone       String
+  message     String
+  status      String @default("new")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

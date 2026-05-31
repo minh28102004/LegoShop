@@ -1,0 +1,53 @@
+# dependencies
+node_modules/
+.pnpm-store/
+
+# next
+.next/
+out/
+.vercel/
+
+# nest / build
+dist/
+build/
+coverage/
+
+# env files
+.env
+.env.*
+!.env.example
+
+# app env files
+apps/web/.env
+apps/web/.env.*
+!apps/web/.env.example
+
+apps/admin/.env
+apps/admin/.env.*
+!apps/admin/.env.example
+
+apps/backend/.env
+apps/backend/.env.*
+!apps/backend/.env.example
+
+# local config that may contain tokens
+.npmrc
+
+# logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# turbo
+.turbo/
+
+# prisma local db if any
+*.db
+*.db-journal

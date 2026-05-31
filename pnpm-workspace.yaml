@@ -1,0 +1,13 @@
+packages:
+  - "apps/*"
+  - "packages/*"
+
+verifyDepsBeforeRun: false
+strictDepBuilds: false
+dangerouslyAllowAllBuilds: true
+
+allowBuilds:
+  sharp: true
+  unrs-resolver: true
+  "@nestjs/core": true
+  "@scarf/scarf": true

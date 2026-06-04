@@ -1,6 +1,7 @@
 import { PropsWithChildren } from 'react';
-import AdminShell from '@/components/admin/admin-shell';
+import AdminLayout from '@/modules/admin/components/AdminLayout';
 
 export default function ProtectedLayout({ children }: PropsWithChildren) {
-  return <AdminShell>{children}</AdminShell>;
+  return <AdminLayout>{children}</AdminLayout>;
 }
+

@@ -1,5 +1,6 @@
-import DashboardView from '@/components/admin/dashboard-view';
+import DashboardStats from '@/modules/dashboard/components/DashboardStats';
 
 export default function DashboardPage() {
-  return <DashboardView />;
+  return <DashboardStats />;
 }
+

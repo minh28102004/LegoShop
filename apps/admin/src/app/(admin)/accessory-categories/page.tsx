@@ -1,16 +1,25 @@
-import EntityManager, { type EntityField } from '@/components/admin/entity-manager';
+'use client';
 
-const ACCESSORY_CATEGORY_FIELDS: EntityField[] = [
-  { key: 'name', label: 'Name', type: 'text', required: true },
-  { key: 'slug', label: 'Slug', type: 'text' },
-];
+import EntityManager, { type EntityField } from '@/modules/admin/components/entity-manager';
+import { useI18n } from '@/lib/i18n/useI18n';
 
 export default function AccessoryCategoriesPage() {
+  const { t } = useI18n();
+
+  const fields: EntityField[] = [
+    { key: 'name', label: t('accessoryCategoriesPage.name'), type: 'text', required: true },
+    { key: 'slug', label: t('accessoryCategoriesPage.slug'), type: 'text' },
+  ];
+
   return (
     <EntityManager
-      title='Accessory Category'
+      title={t('accessoryCategoriesPage.singularTitle')}
       resource='accessory-categories'
-      fields={ACCESSORY_CATEGORY_FIELDS}
+      fields={fields}
+      pageTitle={t('accessoryCategoriesPage.title')}
+      pageDescription={t('accessoryCategoriesPage.description')}
+      createButtonLabel={t('accessoryCategoriesPage.createCategory')}
     />
   );
 }
+

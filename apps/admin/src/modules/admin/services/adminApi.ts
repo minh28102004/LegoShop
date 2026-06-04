@@ -16,7 +16,7 @@ import type {
   ShippingStatus,
   Template,
   TemplateCategory,
-} from '@/types/admin';
+} from '@/modules/admin/types/admin.types';
 
 export type ResourceKey =
   | 'products'
@@ -46,14 +46,6 @@ export type ResourceDataMap = {
   banners: Banner;
   collections: Collection;
 };
-
-export async function login(email: string, password: string) {
-  return apiRequest<{ accessToken: string; admin: AdminProfile }>('auth/login', {
-    method: 'POST',
-    auth: false,
-    body: JSON.stringify({ email, password }),
-  });
-}
 
 export async function me() {
   return apiRequest<AdminProfile>('auth/me');
@@ -181,3 +173,4 @@ export async function updatePaymentSettings(payload: Partial<PaymentSettings>) {
 export async function getDashboardStats() {
   return apiRequest<DashboardStats>('admin-dashboard/stats');
 }
+

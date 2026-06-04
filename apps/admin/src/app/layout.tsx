@@ -1,11 +1,6 @@
 import type { Metadata } from 'next';
-import { Sora } from 'next/font/google';
+import { I18nProvider } from '@/lib/i18n/I18nProvider';
 import './globals.css';
-
-const sora = Sora({
-  subsets: ['latin'],
-  variable: '--font-sora',
-});
 
 export const metadata: Metadata = {
   title: 'Lego Shop Admin',
@@ -18,8 +13,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang='en' className={`${sora.variable} h-full antialiased`}>
-      <body className='min-h-full'>{children}</body>
+    <html lang='vi' className='h-full antialiased'>
+      <body className='min-h-full'>
+        <I18nProvider>{children}</I18nProvider>
+      </body>
     </html>
   );
 }

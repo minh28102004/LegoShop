@@ -1,21 +1,36 @@
-import EntityManager, { type EntityField } from '@/components/admin/entity-manager';
+'use client';
 
-const BANNER_FIELDS: EntityField[] = [
-  { key: 'title', label: 'Title', type: 'text' },
-  { key: 'imageUrl', label: 'Image', type: 'image', required: true },
-  { key: 'linkUrl', label: 'Link URL', type: 'text' },
-  { key: 'sortOrder', label: 'Sort Order', type: 'number' },
-  {
-    key: 'status',
-    label: 'Status',
-    type: 'select',
-    options: [
-      { label: 'active', value: 'active' },
-      { label: 'inactive', value: 'inactive' },
-    ],
-  },
-];
+import EntityManager, { type EntityField } from '@/modules/admin/components/entity-manager';
+import { useI18n } from '@/lib/i18n/useI18n';
 
 export default function BannersPage() {
-  return <EntityManager title='Banner' resource='banners' fields={BANNER_FIELDS} />;
+  const { t } = useI18n();
+
+  const fields: EntityField[] = [
+    { key: 'title', label: t('bannersPage.titleField'), type: 'text' },
+    { key: 'sortOrder', label: t('bannersPage.sortOrder'), type: 'number' },
+    {
+      key: 'status',
+      label: t('bannersPage.status'),
+      type: 'select',
+      options: [
+        { label: t('status.active'), value: 'active' },
+        { label: t('status.inactive'), value: 'inactive' },
+      ],
+    },
+    { key: 'linkUrl', label: t('bannersPage.linkUrl'), type: 'text' },
+    { key: 'imageUrl', label: t('bannersPage.image'), type: 'image', required: true },
+  ];
+
+  return (
+    <EntityManager
+      title={t('bannersPage.singularTitle')}
+      resource='banners'
+      fields={fields}
+      pageTitle={t('bannersPage.title')}
+      pageDescription={t('bannersPage.description')}
+      createButtonLabel={t('bannersPage.createBanner')}
+    />
+  );
 }
+

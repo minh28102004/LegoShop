@@ -1,5 +1,6 @@
-import OrdersManager from '@/components/admin/orders-manager';
+import OrdersManager from '@/modules/admin/components/orders-manager';
 
 export default function OrdersPage() {
   return <OrdersManager />;
 }
+

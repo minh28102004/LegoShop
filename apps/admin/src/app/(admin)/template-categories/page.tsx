@@ -1,10 +1,25 @@
-import EntityManager, { type EntityField } from '@/components/admin/entity-manager';
+'use client';
 
-const CATEGORY_FIELDS: EntityField[] = [
-  { key: 'name', label: 'Name', type: 'text', required: true },
-  { key: 'slug', label: 'Slug', type: 'text' },
-];
+import EntityManager, { type EntityField } from '@/modules/admin/components/entity-manager';
+import { useI18n } from '@/lib/i18n/useI18n';
 
 export default function TemplateCategoriesPage() {
-  return <EntityManager title='Template Category' resource='template-categories' fields={CATEGORY_FIELDS} />;
+  const { t } = useI18n();
+
+  const fields: EntityField[] = [
+    { key: 'name', label: t('templateCategoriesPage.name'), type: 'text', required: true },
+    { key: 'slug', label: t('templateCategoriesPage.slug'), type: 'text' },
+  ];
+
+  return (
+    <EntityManager
+      title={t('templateCategoriesPage.singularTitle')}
+      resource='template-categories'
+      fields={fields}
+      pageTitle={t('templateCategoriesPage.title')}
+      pageDescription={t('templateCategoriesPage.description')}
+      createButtonLabel={t('templateCategoriesPage.createCategory')}
+    />
+  );
 }
+

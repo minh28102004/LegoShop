@@ -2,13 +2,18 @@ import { Injectable, BadRequestException } from '@nestjs/common';
 import { existsSync, mkdirSync, writeFileSync } from 'fs';
 import { join, extname } from 'path';
 import { randomUUID } from 'crypto';
-import type { Express } from 'express';
+
+export type UploadedImageFile = {
+	mimetype: string;
+	originalname: string;
+	buffer: Buffer;
+};
 
 @Injectable()
 export class UploadsService {
 	private readonly uploadDir = join(process.cwd(), 'public', 'uploads');
 
-	saveImage(file: Express.Multer.File, baseUrl: string) {
+	saveImage(file: UploadedImageFile | undefined, baseUrl: string) {
 		if (!file) {
 			throw new BadRequestException('File is required');
 		}

@@ -1,11 +1,11 @@
-import { getAccessToken } from '@/lib/auth';
+import { env } from '@/config/env';
+import { clearAccessToken, getAccessToken } from '@/modules/auth/services/authStorage';
 
 type RequestOptions = RequestInit & {
   auth?: boolean;
 };
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, '') ?? 'http://localhost:3002';
+const API_BASE_URL = env.apiUrl;
 
 export class ApiError extends Error {
   status: number;
@@ -42,6 +42,10 @@ export async function apiRequest<T>(
   const payload = isJson ? await response.json() : await response.text();
 
   if (!response.ok) {
+    if (response.status === 401 && auth) {
+      clearAccessToken();
+    }
+
     const message =
       typeof payload === 'object' && payload && 'message' in payload
         ? String((payload as { message?: unknown }).message)
@@ -61,3 +65,4 @@ export function toQueryString(params: Record<string, string | number | undefined
   const query = searchParams.toString();
   return query ? `?${query}` : '';
 }
+

@@ -1,5 +1,6 @@
-import InquiriesManager from '@/components/admin/inquiries-manager';
+import InquiriesManager from '@/modules/admin/components/inquiries-manager';
 
 export default function BusinessInquiriesPage() {
   return <InquiriesManager />;
 }
+

@@ -1,11 +1,13 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import EntityManager, { type EntityField } from '@/components/admin/entity-manager';
-import { listResource } from '@/lib/admin-api';
-import type { TemplateCategory } from '@/types/admin';
+import EntityManager, { type EntityField } from '@/modules/admin/components/entity-manager';
+import { listResource } from '@/modules/admin/services/adminApi';
+import type { TemplateCategory } from '@/modules/admin/types/admin.types';
+import { useI18n } from '@/lib/i18n/useI18n';
 
 export default function TemplatesPage() {
+  const { t } = useI18n();
   const [categories, setCategories] = useState<TemplateCategory[]>([]);
 
   useEffect(() => {
@@ -16,32 +18,42 @@ export default function TemplatesPage() {
 
   const fields = useMemo<EntityField[]>(
     () => [
-      { key: 'name', label: 'Name', type: 'text', required: true },
-      { key: 'imageUrl', label: 'Image', type: 'image' },
-      {
-        key: 'configJson',
-        label: 'Config JSON',
-        type: 'json',
-        placeholder: '{ "elements": [] }',
-      },
+      { key: 'name', label: t('templatesPage.name'), type: 'text', required: true },
       {
         key: 'status',
-        label: 'Status',
+        label: t('templatesPage.status'),
         type: 'select',
         options: [
-          { label: 'active', value: 'active' },
-          { label: 'inactive', value: 'inactive' },
+          { label: t('status.active'), value: 'active' },
+          { label: t('status.inactive'), value: 'inactive' },
         ],
       },
       {
         key: 'categoryId',
-        label: 'Category',
+        label: t('templatesPage.category'),
         type: 'select',
         options: categories.map((item) => ({ label: item.name, value: item.id })),
       },
+      { key: 'imageUrl', label: t('templatesPage.image'), type: 'image' },
+      {
+        key: 'configJson',
+        label: t('templatesPage.configJson'),
+        type: 'json',
+        placeholder: t('templatesPage.configJsonPlaceholder'),
+      },
     ],
-    [categories],
+    [categories, t],
   );
 
-  return <EntityManager title='Template' resource='templates' fields={fields} />;
+  return (
+    <EntityManager
+      title={t('templatesPage.singularTitle')}
+      resource='templates'
+      fields={fields}
+      pageTitle={t('templatesPage.title')}
+      pageDescription={t('templatesPage.description')}
+      createButtonLabel={t('templatesPage.createTemplate')}
+    />
+  );
 }
+

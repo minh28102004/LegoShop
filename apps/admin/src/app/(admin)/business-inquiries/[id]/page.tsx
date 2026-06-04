@@ -1,4 +1,4 @@
-import InquiryDetail from '@/components/admin/inquiry-detail';
+import InquiryDetail from '@/modules/admin/components/inquiry-detail';
 
 export default async function BusinessInquiryDetailPage({
   params,
@@ -9,3 +9,4 @@ export default async function BusinessInquiryDetailPage({
 
   return <InquiryDetail inquiryId={id} />;
 }
+

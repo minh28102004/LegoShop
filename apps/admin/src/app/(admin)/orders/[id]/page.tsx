@@ -1,4 +1,4 @@
-import OrderDetail from '@/components/admin/order-detail';
+import OrderDetail from '@/modules/admin/components/order-detail';
 
 export default async function OrderDetailPage({
   params,
@@ -9,3 +9,4 @@ export default async function OrderDetailPage({
 
   return <OrderDetail orderId={id} />;
 }
+

@@ -25,7 +25,9 @@ export type ResourceKey =
   | 'accessories'
   | 'accessory-categories'
   | 'banners'
-  | 'collections';
+  | 'collections'
+  | 'frame-sizes'
+  | 'frame-colors';
 
 const ADMIN_RESOURCE_ENDPOINTS: Record<ResourceKey, string> = {
   products: 'admin/products',
@@ -35,6 +37,8 @@ const ADMIN_RESOURCE_ENDPOINTS: Record<ResourceKey, string> = {
   'accessory-categories': 'admin/accessory-categories',
   banners: 'admin/banners',
   collections: 'admin/collections',
+  'frame-sizes': 'admin/frame-sizes',
+  'frame-colors': 'admin/frame-colors',
 };
 
 export type ResourceDataMap = {
@@ -45,6 +49,8 @@ export type ResourceDataMap = {
   'accessory-categories': AccessoryCategory;
   banners: Banner;
   collections: Collection;
+  'frame-sizes': any;
+  'frame-colors': any;
 };
 
 export async function me() {

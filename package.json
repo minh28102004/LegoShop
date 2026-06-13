@@ -17,5 +17,11 @@
     "prettier": "latest",
     "turbo": "latest",
     "typescript": "latest"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "sharp",
+      "unrs-resolver"
+    ]
   }
 }

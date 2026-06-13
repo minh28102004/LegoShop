@@ -147,6 +147,27 @@ model Collection {
   updatedAt DateTime @updatedAt
 }
 
+model FrameSize {
+  id        String        @id @default(uuid())
+  label     String
+  price     Int
+  popular   Boolean       @default(false)
+  status    ProductStatus @default(active)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model FrameColor {
+  id        String        @id @default(uuid())
+  name      String
+  colorHex  String?
+  status    ProductStatus @default(active)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 model Order {
   id        String @id @default(uuid())
   orderCode String @unique

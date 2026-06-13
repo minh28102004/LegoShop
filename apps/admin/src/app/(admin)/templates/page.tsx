@@ -37,9 +37,9 @@ export default function TemplatesPage() {
       { key: 'imageUrl', label: t('templatesPage.image'), type: 'image' },
       {
         key: 'configJson',
-        label: t('templatesPage.configJson'),
+        label: t('templatesPage.configJson') + ' (Tuỳ chọn - Bỏ trống nếu không cần)',
         type: 'json',
-        placeholder: t('templatesPage.configJsonPlaceholder'),
+        placeholder: 'Không bắt buộc. Để trống nếu chỉ muốn tải ảnh nền...',
       },
     ],
     [categories, t],

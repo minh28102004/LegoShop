@@ -33,14 +33,16 @@ function AdminShell({
   const pageTitle = useMemo(() => {
     const titleMap: Array<{ href: string; label: string }> = [
       { href: ADMIN_ROUTES.dashboard, label: t('sidebar.dashboard') },
-      { href: ADMIN_ROUTES.products, label: t('sidebar.products') },
+      { href: ADMIN_ROUTES.orders, label: t('sidebar.orders') },
+      { href: ADMIN_ROUTES.frameSizes, label: t('sidebar.frameSizes') },
+      { href: ADMIN_ROUTES.frameColors, label: t('sidebar.frameColors') },
       { href: ADMIN_ROUTES.templates, label: t('sidebar.templates') },
       { href: ADMIN_ROUTES.templateCategories, label: t('sidebar.templateCategories') },
       { href: ADMIN_ROUTES.accessories, label: t('sidebar.accessories') },
       { href: ADMIN_ROUTES.accessoryCategories, label: t('sidebar.accessoryCategories') },
-      { href: ADMIN_ROUTES.banners, label: t('sidebar.banners') },
+      { href: ADMIN_ROUTES.products, label: t('sidebar.products') },
       { href: ADMIN_ROUTES.collections, label: t('sidebar.collections') },
-      { href: ADMIN_ROUTES.orders, label: t('sidebar.orders') },
+      { href: ADMIN_ROUTES.banners, label: t('sidebar.banners') },
       { href: ADMIN_ROUTES.businessInquiries, label: t('sidebar.businessInquiries') },
       { href: ADMIN_ROUTES.paymentSettings, label: t('sidebar.paymentSettings') },
     ];

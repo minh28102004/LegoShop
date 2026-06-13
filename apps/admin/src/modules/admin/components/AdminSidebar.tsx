@@ -107,6 +107,21 @@ function Icon({ name, className }: { name: AdminNavIcon; className?: string }) {
           />
         </svg>
       );
+    case 'frameSizes':
+      return (
+        <svg viewBox='0 0 24 24' fill='none' className={iconClass} aria-hidden='true'>
+          <rect x='3' y='3' width='18' height='18' rx='2' stroke='currentColor' strokeWidth='1.8' />
+          <path d='M3 9H21' stroke='currentColor' strokeWidth='1.8' />
+          <path d='M9 21V9' stroke='currentColor' strokeWidth='1.8' />
+        </svg>
+      );
+    case 'frameColors':
+      return (
+        <svg viewBox='0 0 24 24' fill='none' className={iconClass} aria-hidden='true'>
+          <circle cx='12' cy='12' r='10' stroke='currentColor' strokeWidth='1.8' />
+          <path d='M12 2A10 10 0 0 0 2 12C2 12 5 13 8 12C11 11 12 8 12 8C12 8 13 11 16 12C19 13 22 12 22 12A10 10 0 0 0 12 2Z' fill='currentColor' />
+        </svg>
+      );
     default:
       return null;
   }

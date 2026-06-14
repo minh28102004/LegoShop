@@ -2,6 +2,8 @@ export const ADMIN_ROUTES = {
   login: '/login',
   dashboard: '/dashboard',
   products: '/products',
+  frameSizes: '/frame-sizes',
+  frameColors: '/frame-colors',
   templates: '/templates',
   accessories: '/accessories',
   banners: '/banners',
@@ -16,6 +18,8 @@ export const ADMIN_ROUTES = {
 export type AdminNavIcon =
   | 'dashboard'
   | 'products'
+  | 'frameSizes'
+  | 'frameColors'
   | 'templates'
   | 'accessories'
   | 'banners'
@@ -62,6 +66,20 @@ export const ADMIN_NAV_SECTIONS: AdminNavSection[] = [
         labelKey: 'sidebar.products',
         descriptionKey: 'sidebarDesc.products',
         icon: 'products',
+      },
+      {
+        id: 'frameSizes',
+        href: ADMIN_ROUTES.frameSizes,
+        labelKey: 'sidebar.frameSizes',
+        descriptionKey: 'sidebarDesc.frameSizes',
+        icon: 'frameSizes',
+      },
+      {
+        id: 'frameColors',
+        href: ADMIN_ROUTES.frameColors,
+        labelKey: 'sidebar.frameColors',
+        descriptionKey: 'sidebarDesc.frameColors',
+        icon: 'frameColors',
       },
       {
         id: 'templates',

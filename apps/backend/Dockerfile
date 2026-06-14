@@ -59,8 +59,10 @@ COPY --from=deps /app/ .
 # Lấy mã nguồn thực tế (source files) từ Stage Pruner
 COPY --from=pruner /app/out/full/ .
 
-# (Bỏ qua generate ở đây vì pnpm deploy sẽ xóa mất file sinh tự động)
+# Prisma Generate lần 1: BẮT BUỘC phải sinh ra ở đây để TypeScript có Type mà compile code NestJS
+# Truyền biến DATABASE_URL ảo để vượt qua PrismaConfigEnvError trên Render
 WORKDIR /app/apps/backend
+RUN DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy" npx prisma generate
 
 # Xây dựng ứng dụng NestJS (Dùng phiên bản Turbo đã ghim)
 WORKDIR /app

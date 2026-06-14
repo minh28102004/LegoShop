@@ -1,26 +1,632 @@
-@import "tailwindcss";
+@config "../../tailwind.config.ts";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+/* ============================================================
+   BRICKFRAMES DESIGN SYSTEM — CSS CUSTOM PROPERTIES
+   Single source of truth cho toàn bộ visual tokens
+   ============================================================ */
 
-@media (prefers-color-scheme: dark) {
+@layer base {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    /* ----------------------------------------------------------
+       COLORS — Light Mode
+       Format: raw channel values để Tailwind opacity modifier hoạt động
+       Ví dụ: bg-primary/80 sẽ dùng opacity 0.8
+       ---------------------------------------------------------- */
+
+    /* Brand Primary — Deep Blue */
+    --color-primary:             220 90% 48%;
+    --color-primary-hover:       220 90% 43%;
+    --color-primary-foreground:  0 0% 100%;
+
+    /* Brand Accent — Warm Amber */
+    --color-accent:              38 90% 55%;
+    --color-accent-hover:        38 90% 47%;
+    --color-accent-foreground:   220 14% 10%;
+
+    /* Backgrounds */
+    --color-background:          0 0% 100%;
+    --color-surface:             210 20% 98%;
+    --color-surface-hover:       210 17% 95%;
+
+    /* Borders */
+    --color-border:              220 13% 91%;
+    --color-border-strong:       220 9% 82%;
+
+    /* Text */
+    --color-text-primary:        220 14% 10%;
+    --color-text-secondary:      220 9% 35%;
+    --color-text-muted:          220 9% 62%;
+    --color-text-inverse:        0 0% 100%;
+
+    /* Semantic */
+    --color-success:             162 86% 29%;
+    --color-error:               0 72% 51%;
+    --color-warning:             33 90% 45%;
+
+    /* Brick Motion Palette */
+    --color-lego-red:            358 100% 45%;
+    --color-lego-yellow:         51 100% 50%;
+    --color-lego-blue:           204 100% 36%;
+
+    /* ----------------------------------------------------------
+       TYPOGRAPHY
+       ---------------------------------------------------------- */
+    --font-display: 'Fraunces', Georgia, serif;
+    --font-body:    'DM Sans', system-ui, sans-serif;
+    --font-mono:    'Space Mono', 'Courier New', monospace;
+
+    /* ----------------------------------------------------------
+       SPACING SCALE — 4px base
+       ---------------------------------------------------------- */
+    --space-px:  1px;
+    --space-0:   0px;
+    --space-1:   4px;
+    --space-2:   8px;
+    --space-3:   12px;
+    --space-4:   16px;
+    --space-5:   20px;
+    --space-6:   24px;
+    --space-8:   32px;
+    --space-10:  40px;
+    --space-12:  48px;
+    --space-16:  64px;
+    --space-20:  80px;
+    --space-24:  96px;
+    --space-32:  128px;
+
+    /* ----------------------------------------------------------
+       BORDER RADIUS
+       ---------------------------------------------------------- */
+    --radius-xs:  2px;
+    --radius-sm:  4px;
+    --radius-md:  8px;
+    --radius-lg:  12px;
+    --radius-xl:  16px;
+    --radius-2xl: 24px;
+    --radius-3xl: 32px;
+
+    /* ----------------------------------------------------------
+       BOX SHADOWS
+       ---------------------------------------------------------- */
+    --shadow-xs:    0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --shadow-sm:    0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+    --shadow-md:    0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    --shadow-lg:    0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+    --shadow-xl:    0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+    --shadow-2xl:   0 25px 50px -12px rgb(0 0 0 / 0.25);
+    --shadow-inner: inset 0 2px 4px 0 rgb(0 0 0 / 0.05);
+
+    /* ----------------------------------------------------------
+       MOTION — Duration
+       ---------------------------------------------------------- */
+    --duration-instant: 100ms;
+    --duration-fast:    150ms;
+    --duration-normal:  250ms;
+    --duration-slow:    400ms;
+    --duration-slower:  600ms;
+
+    /* ----------------------------------------------------------
+       MOTION — Easing
+       ---------------------------------------------------------- */
+    --ease-smooth:   cubic-bezier(0.4, 0, 0.2, 1);
+    --ease-spring:   cubic-bezier(0.34, 1.56, 0.64, 1);
+    --ease-bounce:   cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    --ease-in-expo:  cubic-bezier(0.95, 0.05, 0.795, 0.035);
+    --ease-out-expo: cubic-bezier(0.19, 1, 0.22, 1);
+
+    /* ----------------------------------------------------------
+       Z-INDEX SCALE
+       ---------------------------------------------------------- */
+    --z-base:     0;
+    --z-dropdown: 1000;
+    --z-sticky:   1100;
+    --z-overlay:  1200;
+    --z-modal:    1300;
+    --z-popover:  1400;
+    --z-toast:    1500;
+    --z-tooltip:  1600;
+
+    /* ----------------------------------------------------------
+       LAYOUT
+       ---------------------------------------------------------- */
+    --header-height:    64px;
+    --footer-height:    auto;
+    --sidebar-width:    280px;
+    --content-max-width: 1280px;
+    --section-padding-x: clamp(1rem, 4vw, 5rem);
+    --section-padding-y: clamp(3rem, 8vw, 8rem);
+  }
+
+  /* ----------------------------------------------------------
+     DARK MODE — Override tokens
+     ---------------------------------------------------------- */
+  .dark {
+    --color-primary:             213 93% 67%;
+    --color-primary-hover:       213 93% 72%;
+    --color-primary-foreground:  220 14% 10%;
+
+    --color-accent:              38 90% 60%;
+    --color-accent-hover:        38 90% 65%;
+    --color-accent-foreground:   220 14% 10%;
+
+    --color-background:          222 47% 8%;
+    --color-surface:             222 39% 11%;
+    --color-surface-hover:       222 33% 14%;
+
+    --color-border:              217 19% 20%;
+    --color-border-strong:       217 16% 27%;
+
+    --color-text-primary:        210 20% 98%;
+    --color-text-secondary:      215 14% 68%;
+    --color-text-muted:          215 14% 45%;
+    --color-text-inverse:        220 14% 10%;
+
+    --color-success:             162 73% 46%;
+    --color-error:               0 86% 65%;
+    --color-warning:             38 92% 50%;
+
+    --shadow-xs:    0 1px 2px 0 rgb(0 0 0 / 0.3);
+    --shadow-sm:    0 1px 3px 0 rgb(0 0 0 / 0.4), 0 1px 2px -1px rgb(0 0 0 / 0.4);
+    --shadow-md:    0 4px 6px -1px rgb(0 0 0 / 0.4), 0 2px 4px -2px rgb(0 0 0 / 0.4);
+    --shadow-lg:    0 10px 15px -3px rgb(0 0 0 / 0.5), 0 4px 6px -4px rgb(0 0 0 / 0.4);
+    --shadow-xl:    0 20px 25px -5px rgb(0 0 0 / 0.5), 0 8px 10px -6px rgb(0 0 0 / 0.4);
+    --shadow-2xl:   0 25px 50px -12px rgb(0 0 0 / 0.7);
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* ============================================================
+   BASE STYLES
+   ============================================================ */
+
+@layer base {
+  * {
+    border-color: hsl(var(--color-border));
+    box-sizing: border-box;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    background: hsl(var(--color-background));
+    color: hsl(var(--color-text-primary));
+    font-family: var(--font-body);
+    min-height: 100dvh;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-display);
+    letter-spacing: -0.01em;
+  }
+
+  h1 {
+    font-size: 3.75rem;
+    line-height: 1.1;
+  }
+
+  h2 {
+    font-size: 3rem;
+    line-height: 1.15;
+  }
+
+  h3 {
+    font-size: 2.25rem;
+    line-height: 1.2;
+  }
+
+  h4 {
+    font-size: 1.875rem;
+    line-height: 1.25;
+  }
+
+  h5 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    line-height: 1.75;
+  }
+
+  h6 {
+    font-size: 1.125rem;
+    font-weight: 600;
+    line-height: 1.75;
+  }
+
+  p {
+    font-size: 1rem;
+    line-height: 1.625;
+  }
+
+  a {
+    transition-duration: var(--duration-fast);
+    transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
+    transition-timing-function: var(--ease-smooth);
+  }
+
+  /* Focus visible - accessibility */
+  :focus-visible {
+    outline: 2px solid hsl(var(--color-primary));
+    outline-offset: 2px;
+  }
+
+  /* Selection */
+  ::selection {
+    background-color: hsl(var(--color-primary) / 0.15);
+    color: hsl(var(--color-text-primary));
+  }
+
+  /* Scrollbar — thin, branded */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--color-border-strong));
+    border-radius: 9999px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--color-text-muted));
+  }
+}
+
+/* ============================================================
+   TYPOGRAPHY UTILITIES
+   ============================================================ */
+
+@layer utilities {
+  /* Font loading — Google Fonts phải được import trong layout.tsx */
+  .font-display { font-family: var(--font-display); }
+  .font-body    { font-family: var(--font-body); }
+  .font-mono    { font-family: var(--font-mono); }
+
+  /* Gradient text */
+  .text-gradient-primary {
+    background: linear-gradient(
+      135deg,
+      hsl(var(--color-primary)),
+      hsl(var(--color-accent))
+    );
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Responsive section spacing */
+  .section-py {
+    padding-top: var(--section-padding-y);
+    padding-bottom: var(--section-padding-y);
+  }
+
+  .section-px {
+    padding-left: var(--section-padding-x);
+    padding-right: var(--section-padding-x);
+  }
+
+  /* Smooth transition helper */
+  .transition-base {
+    transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter;
+    transition-timing-function: var(--ease-smooth);
+    transition-duration: var(--duration-normal);
+  }
+
+  /* Skeleton shimmer */
+  .skeleton {
+    background: linear-gradient(
+      90deg,
+      hsl(var(--color-surface)) 25%,
+      hsl(var(--color-surface-hover)) 50%,
+      hsl(var(--color-surface)) 75%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.5s linear infinite;
+  }
+
+  /* Glass effect */
+  .glass {
+    background: hsl(var(--color-background) / 0.8);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid hsl(var(--color-border) / 0.5);
+  }
+
+  /* Hide scrollbar but keep functionality */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@layer components {
+  .brick-stack-loader {
+    position: relative;
+    display: grid;
+    width: 176px;
+    min-height: 176px;
+    justify-items: center;
+    padding-top: 124px;
+  }
+
+  .brick-stack-loader__brick {
+    --stack-x: 0px;
+    --stack-y: 0px;
+    position: absolute;
+    left: 50%;
+    top: 12px;
+    width: 72px;
+    height: 30px;
+    margin-left: -36px;
+    border-radius: 6px;
+    background-image:
+      radial-gradient(circle at 18px 8px, rgb(255 255 255 / 0.5) 0 4px, transparent 4.5px),
+      radial-gradient(circle at 36px 8px, rgb(255 255 255 / 0.5) 0 4px, transparent 4.5px),
+      radial-gradient(circle at 54px 8px, rgb(255 255 255 / 0.5) 0 4px, transparent 4.5px);
+    box-shadow:
+      inset 0 -6px 0 rgb(0 0 0 / 0.12),
+      0 10px 18px rgb(15 23 42 / 0.16);
+    animation: brick-stack 1.6s var(--ease-out-expo) infinite;
+    opacity: 0;
+    will-change: transform, opacity;
+  }
+
+  .brick-stack-loader__brick--red {
+    --stack-y: 68px;
+    background-color: hsl(var(--color-lego-red));
+  }
+
+  .brick-stack-loader__brick--yellow {
+    --stack-x: -18px;
+    --stack-y: 38px;
+    background-color: hsl(var(--color-lego-yellow));
+    animation-delay: 120ms;
+  }
+
+  .brick-stack-loader__brick--blue {
+    --stack-x: 18px;
+    --stack-y: 8px;
+    background-color: hsl(var(--color-lego-blue));
+    animation-delay: 240ms;
+  }
+
+  .brick-stack-loader__brick--small {
+    --stack-x: 0px;
+    --stack-y: -22px;
+    width: 54px;
+    margin-left: -27px;
+    animation-delay: 360ms;
+  }
+
+  .brick-stack-loader__shadow {
+    position: absolute;
+    top: 112px;
+    width: 116px;
+    height: 18px;
+    border-radius: 9999px;
+    background: rgb(15 23 42 / 0.14);
+    filter: blur(8px);
+    animation: brick-shadow 1.6s var(--ease-out-expo) infinite;
+    will-change: transform, opacity;
+  }
+
+  .brick-cube-loader {
+    width: 72px;
+    height: 72px;
+    perspective: 680px;
+  }
+
+  .brick-cube-loader span {
+    display: block;
+    width: 48px;
+    height: 48px;
+    margin: 12px;
+    border-radius: 7px;
+    background:
+      radial-gradient(circle at 14px 14px, rgb(255 255 255 / 0.55) 0 5px, transparent 5.5px),
+      radial-gradient(circle at 34px 14px, rgb(255 255 255 / 0.55) 0 5px, transparent 5.5px),
+      hsl(var(--color-lego-red));
+    box-shadow:
+      14px 14px 0 hsl(var(--color-lego-yellow)),
+      -14px -14px 0 hsl(var(--color-lego-blue)),
+      0 18px 28px rgb(15 23 42 / 0.18);
+    animation: brick-cube-spin 1.1s var(--ease-smooth) infinite;
+    transform-origin: center;
+    will-change: transform;
+  }
+
+  .brick-bounce-loader {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    min-height: 24px;
+  }
+
+  .brick-bounce-loader i {
+    display: block;
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+    box-shadow: inset 0 -3px 0 rgb(0 0 0 / 0.14);
+    animation: brick-bounce 750ms var(--ease-spring) infinite;
+    will-change: transform;
+  }
+
+  .brick-bounce-loader i:nth-child(1) {
+    background: hsl(var(--color-lego-red));
+  }
+
+  .brick-bounce-loader i:nth-child(2) {
+    background: hsl(var(--color-lego-yellow));
+    animation-delay: 90ms;
+  }
+
+  .brick-bounce-loader i:nth-child(3) {
+    background: hsl(var(--color-lego-blue));
+    animation-delay: 180ms;
+  }
+
+  .loading-checkout-rail {
+    position: relative;
+    height: 156px;
+    overflow: hidden;
+    border-radius: var(--radius-md);
+    background:
+      linear-gradient(180deg, hsl(var(--color-surface)), hsl(var(--color-background))),
+      hsl(var(--color-surface));
+  }
+
+  .loading-checkout-rail::before {
+    position: absolute;
+    left: 28px;
+    right: 28px;
+    bottom: 42px;
+    height: 4px;
+    border-radius: 9999px;
+    background: hsl(var(--color-border-strong));
+    content: '';
+  }
+
+  .loading-checkout-rail__cart {
+    position: absolute;
+    left: 50%;
+    bottom: 46px;
+    display: grid;
+    width: 64px;
+    height: 64px;
+    place-items: center;
+    border-radius: var(--radius-md);
+    background: hsl(var(--color-background));
+    color: hsl(var(--color-primary));
+    box-shadow: var(--shadow-md);
+    transform: translateX(-50%);
+  }
+
+  .loading-checkout-rail__brick {
+    position: absolute;
+    left: 18px;
+    top: 32px;
+    width: 36px;
+    height: 18px;
+    border-radius: 4px;
+    box-shadow:
+      inset 0 -4px 0 rgb(0 0 0 / 0.12),
+      0 10px 18px rgb(15 23 42 / 0.12);
+    animation: checkout-brick 1.4s var(--ease-out-expo) infinite;
+    opacity: 0;
+    will-change: transform, opacity;
+  }
+
+  .loading-checkout-rail__brick--red {
+    background: hsl(var(--color-lego-red));
+  }
+
+  .loading-checkout-rail__brick--yellow {
+    background: hsl(var(--color-lego-yellow));
+    animation-delay: 160ms;
+  }
+
+  .loading-checkout-rail__brick--blue {
+    background: hsl(var(--color-lego-blue));
+    animation-delay: 320ms;
+  }
+}
+
+@keyframes brick-stack {
+  0%, 12% {
+    opacity: 0;
+    transform: translate3d(calc(var(--stack-x) - 120px), -96px, 0) rotate(-14deg);
+  }
+
+  36%, 76% {
+    opacity: 1;
+    transform: translate3d(var(--stack-x), var(--stack-y), 0) rotate(0deg);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate3d(calc(var(--stack-x) + 112px), var(--stack-y), 0) rotate(10deg);
+  }
+}
+
+@keyframes brick-shadow {
+  0%, 100% {
+    opacity: 0.16;
+    transform: scaleX(0.72);
+  }
+
+  42%, 76% {
+    opacity: 0.8;
+    transform: scaleX(1);
+  }
+}
+
+@keyframes brick-cube-spin {
+  0%, 100% {
+    transform: rotateX(0deg) rotateZ(0deg) scale(1);
+  }
+
+  50% {
+    transform: rotateX(180deg) rotateZ(45deg) scale(1.04);
+  }
+}
+
+@keyframes brick-bounce {
+  0%, 100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+
+  50% {
+    transform: translate3d(0, -8px, 0) scale(1.08);
+  }
+}
+
+@keyframes checkout-brick {
+  0% {
+    opacity: 0;
+    transform: translate3d(-48px, 18px, 0) rotate(-10deg);
+  }
+
+  22% {
+    opacity: 1;
+  }
+
+  74% {
+    opacity: 1;
+    transform: translate3d(calc(50vw - 128px), 62px, 0) rotate(0deg);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate3d(calc(50vw - 98px), 78px, 0) scale(0.72);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .brick-stack-loader__brick,
+  .brick-stack-loader__shadow,
+  .brick-cube-loader span,
+  .brick-bounce-loader i,
+  .loading-checkout-rail__brick {
+    animation: none;
+  }
+
+  .brick-stack-loader__brick,
+  .loading-checkout-rail__brick {
+    opacity: 1;
+  }
 }

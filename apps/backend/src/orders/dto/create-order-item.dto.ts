@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import {
   IsInt,
   IsNotEmpty,
@@ -10,17 +10,22 @@ import {
 } from 'class-validator';
 
 export class CreateOrderItemDto {
-  @ApiPropertyOptional({
-    example: null,
-    nullable: true,
+  @ApiProperty({
+    example: '8d33f2a5-f6da-4a07-a2f1-2359f5f818a7',
   })
-  @IsOptional()
+  @Transform(({ value }: { value: unknown }) =>
+    typeof value === 'string' ? value.trim() : value,
+  )
   @IsString()
-  productId?: string | null;
+  @IsNotEmpty()
+  productId: string;
 
   @ApiProperty({
     example: 'Dragon Brick Set',
   })
+  @Transform(({ value }: { value: unknown }) =>
+    typeof value === 'string' ? value.trim() : value,
+  )
   @IsString()
   @IsNotEmpty()
   productName: string;
@@ -56,6 +61,9 @@ export class CreateOrderItemDto {
   @ApiPropertyOptional({
     example: 'https://example.com/preview.jpg',
   })
+  @Transform(({ value }: { value: unknown }) =>
+    typeof value === 'string' ? value.trim() : value,
+  )
   @IsOptional()
   @IsString()
   @IsNotEmpty()

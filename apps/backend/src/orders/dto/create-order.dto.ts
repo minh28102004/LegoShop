@@ -1,6 +1,6 @@
 import { PaymentMethod } from '@prisma/client';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import {
   ArrayMinSize,
   IsArray,
@@ -18,6 +18,9 @@ export class CreateOrderDto {
   @ApiProperty({
     example: 'Nguyen Van A',
   })
+  @Transform(({ value }: { value: unknown }) =>
+    typeof value === 'string' ? value.trim() : value,
+  )
   @IsString()
   @IsNotEmpty()
   customerName: string;
@@ -25,6 +28,9 @@ export class CreateOrderDto {
   @ApiProperty({
     example: '0909123456',
   })
+  @Transform(({ value }: { value: unknown }) =>
+    typeof value === 'string' ? value.trim() : value,
+  )
   @IsString()
   @IsNotEmpty()
   phone: string;
@@ -32,6 +38,9 @@ export class CreateOrderDto {
   @ApiPropertyOptional({
     example: 'a@example.com',
   })
+  @Transform(({ value }: { value: unknown }) =>
+    typeof value === 'string' ? value.trim() : value,
+  )
   @IsOptional()
   @IsEmail()
   email?: string;
@@ -39,6 +48,9 @@ export class CreateOrderDto {
   @ApiProperty({
     example: '123 Nguyen Trai, HCM',
   })
+  @Transform(({ value }: { value: unknown }) =>
+    typeof value === 'string' ? value.trim() : value,
+  )
   @IsString()
   @IsNotEmpty()
   address: string;

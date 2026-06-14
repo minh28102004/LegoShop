@@ -1,6 +1,17 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { AdminListQueryDto } from '../common/dto/admin-list-query.dto';
 import { AccessoryCategoriesService } from './accessory-categories.service';
 import { CreateAccessoryCategoryDto } from './dto/create-accessory-category.dto';
 import { UpdateAccessoryCategoryDto } from './dto/update-accessory-category.dto';
@@ -20,8 +31,8 @@ export class AccessoryCategoriesController {
   @Get('admin/accessory-categories')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  findAdminAccessoryCategories() {
-    return this.accessoryCategoriesService.findAdminAccessoryCategories();
+  findAdminAccessoryCategories(@Query() query: AdminListQueryDto) {
+    return this.accessoryCategoriesService.findAdminAccessoryCategories(query);
   }
 
   @Get('admin/accessory-categories/:id')

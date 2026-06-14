@@ -1,5 +1,18 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma, ProductStatus } from '@prisma/client';
+import {
+  buildAdminListMeta,
+  buildDateFilter,
+  buildFiltersApplied,
+  getAdminPagination,
+  getAllowedFilterValues,
+  getAllowedSearchFields,
+  hasAdminListQuery,
+  resolveDateRange,
+  resolveSorts,
+  splitCsv,
+} from '../common/admin-query/admin-query.util';
+import { AdminListQueryDto } from '../common/dto/admin-list-query.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateTemplateDto } from './dto/create-template.dto';
 import { UpdateTemplateDto } from './dto/update-template.dto';
@@ -34,7 +47,78 @@ export class TemplatesService {
     return template;
   }
 
-  findAdminTemplates() {
+  async findAdminTemplates(query?: AdminListQueryDto) {
+    if (hasAdminListQuery(query)) {
+      const pagination = getAdminPagination(query);
+      const { sortBy, sortDir, sortCriteria } = resolveSorts(
+        query?.sort_by,
+        query?.sort_dir,
+        ['name', 'status', 'categoryId', 'createdAt', 'updatedAt'],
+        'createdAt',
+      );
+      const orderBy = sortCriteria.map(({ field, direction }) => ({
+        [field]: direction,
+      })) as Prisma.TemplateOrderByWithRelationInput[];
+      const dateRange = resolveDateRange(
+        query,
+        ['createdAt', 'updatedAt'],
+        'createdAt',
+      );
+      const where: Prisma.TemplateWhereInput = {
+        ...buildDateFilter(dateRange),
+      };
+
+      const statuses = getAllowedFilterValues(
+        query?.status,
+        Object.values(ProductStatus),
+        'status',
+      );
+      if (statuses.length > 0) {
+        where.status = { in: statuses };
+      }
+
+      const categoryIds = splitCsv(query?.category_id);
+      if (categoryIds.length > 0) {
+        where.categoryId = { in: categoryIds };
+      }
+
+      if (query?.search) {
+        const searchFields = getAllowedSearchFields(
+          query.search_fields,
+          ['name'],
+          ['name'],
+        );
+        where.OR = searchFields.map((field) => ({
+          [field]: { contains: query.search, mode: 'insensitive' },
+        }));
+      }
+
+      const [data, total] = await this.prisma.$transaction([
+        this.prisma.template.findMany({
+          where,
+          orderBy,
+          include: {
+            category: true,
+          },
+          skip: pagination.skip,
+          take: pagination.take,
+        }),
+        this.prisma.template.count({ where }),
+      ]);
+
+      return {
+        data,
+        meta: buildAdminListMeta({
+          page: pagination.page,
+          limit: pagination.limit,
+          total,
+          sortBy,
+          sortDir,
+          filtersApplied: buildFiltersApplied(query, sortBy, sortDir),
+        }),
+      };
+    }
+
     return this.prisma.template.findMany({
       orderBy: {
         createdAt: 'desc',

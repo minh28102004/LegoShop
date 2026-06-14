@@ -1,6 +1,15 @@
-import { Body, Controller, Get, Param, Patch, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { AdminListQueryDto } from '../common/dto/admin-list-query.dto';
 import { UpdateBusinessInquiryStatusDto } from './dto/update-business-inquiry-status.dto';
 import { AdminBusinessInquiriesService } from './admin-business-inquiries.service';
 
@@ -14,8 +23,8 @@ export class AdminBusinessInquiriesController {
   ) {}
 
   @Get('admin/business-inquiries')
-  findAdminBusinessInquiries() {
-    return this.adminBusinessInquiriesService.findAdminBusinessInquiries();
+  findAdminBusinessInquiries(@Query() query: AdminListQueryDto) {
+    return this.adminBusinessInquiriesService.findAdminBusinessInquiries(query);
   }
 
   @Get('admin/business-inquiries/:id')

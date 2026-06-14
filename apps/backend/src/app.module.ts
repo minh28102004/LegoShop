@@ -19,11 +19,13 @@ import { AdminDashboardModule } from './admin-dashboard/admin-dashboard.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { TemplateCategoriesModule } from './template-categories/template-categories.module';
 import { AccessoryCategoriesModule } from './accessory-categories/accessory-categories.module';
+import { FrameSizesModule } from './frame-sizes/frame-sizes.module';
+import { FrameColorsModule } from './frame-colors/frame-colors.module';
 
 @Module({
   imports: [ConfigModule.forRoot({
       isGlobal: true
-    }), AuthModule, ProductsModule, TemplatesModule, AccessoriesModule, BannersModule, CollectionsModule, UploadsModule, PaymentSettingsModule, PaymentsModule, OrdersModule, AdminOrdersModule, BusinessInquiriesModule, AdminBusinessInquiriesModule, AdminDashboardModule, TemplateCategoriesModule, AccessoryCategoriesModule, PrismaModule],
+    }), AuthModule, ProductsModule, TemplatesModule, AccessoriesModule, BannersModule, CollectionsModule, UploadsModule, PaymentSettingsModule, PaymentsModule, OrdersModule, AdminOrdersModule, BusinessInquiriesModule, AdminBusinessInquiriesModule, AdminDashboardModule, TemplateCategoriesModule, AccessoryCategoriesModule, FrameSizesModule, FrameColorsModule, PrismaModule],
   controllers: [AppController],
   providers: [AppService]
 })

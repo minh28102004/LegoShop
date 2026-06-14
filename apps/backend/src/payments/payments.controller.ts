@@ -1,4 +1,20 @@
-import { Controller } from '@nestjs/common';
+import { Body, Controller, Post } from '@nestjs/common';
+import { ApiTags } from '@nestjs/swagger';
+import { PaymentsService } from './payments.service';
+import type { PayosWebhookBody } from './payments.service';
 
-@Controller('payments')
-export class PaymentsController {}
+@ApiTags('Payments')
+@Controller()
+export class PaymentsController {
+  constructor(private readonly paymentsService: PaymentsService) {}
+
+  @Post('payments/payos/webhook')
+  handlePayosWebhook(@Body() body: PayosWebhookBody) {
+    return this.paymentsService.handlePayosWebhook(body);
+  }
+
+  @Post('payment/test')
+  createTestPaymentLink() {
+    return this.paymentsService.createTestPaymentLink();
+  }
+}

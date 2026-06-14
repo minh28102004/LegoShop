@@ -1,6 +1,17 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { AdminListQueryDto } from '../common/dto/admin-list-query.dto';
 import { ProductsService } from './products.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
@@ -23,8 +34,8 @@ export class ProductsController {
   @Get('admin/products')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  findAdminProducts() {
-    return this.productsService.findAdminProducts();
+  findAdminProducts(@Query() query: AdminListQueryDto) {
+    return this.productsService.findAdminProducts(query);
   }
 
   @Get('admin/products/:id')

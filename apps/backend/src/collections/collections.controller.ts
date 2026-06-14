@@ -1,6 +1,17 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { AdminListQueryDto } from '../common/dto/admin-list-query.dto';
 import { CollectionsService } from './collections.service';
 import { CreateCollectionDto } from './dto/create-collection.dto';
 import { UpdateCollectionDto } from './dto/update-collection.dto';
@@ -23,8 +34,8 @@ export class CollectionsController {
   @Get('admin/collections')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  findAdminCollections() {
-    return this.collectionsService.findAdminCollections();
+  findAdminCollections(@Query() query: AdminListQueryDto) {
+    return this.collectionsService.findAdminCollections(query);
   }
 
   @Get('admin/collections/:id')

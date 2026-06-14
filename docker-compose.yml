@@ -1,0 +1,32 @@
+version: '3.8'
+
+# =============================================================================
+# docker-compose.yml — Production VPS (Ubuntu)
+# =============================================================================
+
+services:
+  backend:
+    # Hỗ trợ versioned tag để rollback dễ dàng (vd: backend:v1, backend:latest)
+    image: legoshop-backend:latest
+    build:
+      context: .
+      dockerfile: apps/backend/Dockerfile
+    container_name: legoshop-backend
+    restart: unless-stopped
+
+    ports:
+      # Bind localhost only, proxy bằng Nginx
+      - "127.0.0.1:3000:3000"
+
+    env_file:
+      - apps/backend/.env
+
+    environment:
+      - NODE_ENV=production
+
+    # Quản lý giới hạn log (chống đầy ổ cứng VPS)
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"

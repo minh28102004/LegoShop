@@ -1,7 +1,7 @@
 {
   "name": "lego-shop",
   "private": true,
-  "packageManager": "pnpm@11.5.0",
+  "packageManager": "pnpm@9.15.4",
   "scripts": {
   "dev": "concurrently -n WEB,ADMIN,API -c blue,magenta,green \"pnpm --filter web dev\" \"pnpm --filter admin dev\" \"pnpm --filter backend start:dev\"",
   "dev:turbo": "turbo run dev --parallel",

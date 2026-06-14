@@ -59,10 +59,8 @@ COPY --from=deps /app/ .
 # Lấy mã nguồn thực tế (source files) từ Stage Pruner
 COPY --from=pruner /app/out/full/ .
 
-# Prisma Generate: NGUYÊN TẮC là chỉ sinh ra client trong lúc build.
-# Truyền biến DATABASE_URL ảo để vượt qua cơ chế check của prisma.config.ts trên môi trường CI/Render
+# (Bỏ qua generate ở đây vì pnpm deploy sẽ xóa mất file sinh tự động)
 WORKDIR /app/apps/backend
-RUN DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy" npx prisma generate
 
 # Xây dựng ứng dụng NestJS (Dùng phiên bản Turbo đã ghim)
 WORKDIR /app
@@ -73,11 +71,14 @@ RUN pnpm dlx turbo@2.9.18 run build --filter=backend
 RUN pnpm --filter backend --prod deploy /pruned
 
 # Chuyển kết quả biên dịch và cấu trúc DB sang thư mục production
-# Đồng thời bắt buộc phải copy thủ công thư mục `.prisma` (do pnpm deploy sẽ bỏ qua file sinh tự động)
 RUN cp -r apps/backend/dist /pruned/dist && \
-    cp -r apps/backend/prisma /pruned/prisma && \
-    cp -r node_modules/.prisma /pruned/node_modules/.prisma || true && \
-    cp -r apps/backend/node_modules/.prisma /pruned/node_modules/.prisma || true
+    cp -r apps/backend/prisma /pruned/prisma
+
+# Quan trọng nhất: Sinh Prisma Client trực tiếp bên trong thư mục /pruned.
+# Do /pruned là môi trường production độc lập, npx sẽ tự động đặt .prisma vào đúng /pruned/node_modules/.prisma
+# Không copy prisma.config.ts sang đây để tránh lỗi PrismaConfigEnvError do thiếu dotenv ở production.
+WORKDIR /pruned
+RUN npx --yes prisma generate
 
 # ── Stage 5: Production Runner ────────────────────────────────────────────────
 FROM base AS runner

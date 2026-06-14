@@ -1,5 +1,4 @@
 import type { Metadata, Viewport } from 'next'
-import { DM_Sans, Fraunces, Space_Mono } from 'next/font/google'
 
 import { Footer } from '@/components/layout/Footer'
 import { Header } from '@/components/layout/Header'
@@ -7,28 +6,8 @@ import { CartDrawer } from '@/components/layout/CartDrawer'
 import { ToastContainer } from '@/components/ui'
 import { SITE } from '@/constants'
 import { siteConfig } from '@/config/site'
-import { cn } from '@/lib/cn'
 import { Providers } from './providers'
 import './globals.css'
-
-const fraunces = Fraunces({
-  subsets: ['latin'],
-  variable: '--font-display',
-  display: 'swap',
-})
-
-const dmSans = DM_Sans({
-  subsets: ['latin', 'latin-ext'],
-  variable: '--font-body',
-  display: 'swap',
-})
-
-const spaceMono = Space_Mono({
-  subsets: ['latin'],
-  variable: '--font-mono',
-  weight: ['400', '700'],
-  display: 'swap',
-})
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE.url),
@@ -95,15 +74,7 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html
-      lang="vi"
-      className={cn(
-        fraunces.variable,
-        dmSans.variable,
-        spaceMono.variable,
-        'h-full scroll-smooth antialiased',
-      )}
-    >
+    <html lang="vi" className="h-full scroll-smooth antialiased">
       <body className="min-h-full bg-background font-body text-text-primary antialiased">
         <Providers>
           <Header />

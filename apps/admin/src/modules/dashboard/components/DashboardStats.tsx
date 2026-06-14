@@ -13,6 +13,7 @@ import Table, {
   TableHeader,
   TableRow,
 } from '@/common/components/ui/Table';
+import AdminNavIcon from '@/modules/admin/components/AdminNavIcon';
 import AdminPageHeader from '@/modules/admin/components/AdminPageHeader';
 import StatCard from '@/modules/admin/components/StatCard';
 import { getDashboardStats, listOrders } from '@/modules/admin/services/adminApi';
@@ -55,22 +56,22 @@ const STATUS_PALETTE: Record<string, StatusPalette> = {
     text: 'text-amber-700',
   },
   confirmed: {
-    bar: 'bg-blue-600',
-    dot: 'bg-blue-600',
-    track: 'bg-blue-50',
-    text: 'text-blue-700',
+    bar: 'bg-[var(--admin-primary)]',
+    dot: 'bg-[var(--admin-primary)]',
+    track: 'bg-[var(--admin-primary-soft)]',
+    text: 'text-[var(--admin-primary-strong)]',
   },
   processing: {
-    bar: 'bg-blue-600',
-    dot: 'bg-blue-600',
-    track: 'bg-blue-50',
-    text: 'text-blue-700',
+    bar: 'bg-[var(--admin-primary)]',
+    dot: 'bg-[var(--admin-primary)]',
+    track: 'bg-[var(--admin-primary-soft)]',
+    text: 'text-[var(--admin-primary-strong)]',
   },
   shipping: {
-    bar: 'bg-blue-600',
-    dot: 'bg-blue-600',
-    track: 'bg-blue-50',
-    text: 'text-blue-700',
+    bar: 'bg-[var(--admin-primary)]',
+    dot: 'bg-[var(--admin-primary)]',
+    track: 'bg-[var(--admin-primary-soft)]',
+    text: 'text-[var(--admin-primary-strong)]',
   },
   completed: {
     bar: 'bg-green-600',
@@ -220,7 +221,32 @@ function ChartEmptyState({ text }: { text: string }) {
     <div className='grid min-h-[260px] place-items-center rounded-[18px] border border-dashed border-slate-200 bg-slate-50 px-5 text-center'>
       <div className='mx-auto max-w-xs space-y-3'>
         <span className='mx-auto grid h-11 w-11 place-items-center rounded-full border border-slate-200 bg-white text-sm font-semibold text-slate-400'>
-          -
+          <svg viewBox='0 0 24 24' fill='none' className='h-5 w-5' aria-hidden='true'>
+            <path
+              d='M4.5 18.5H19.5'
+              stroke='currentColor'
+              strokeWidth='1.7'
+              strokeLinecap='round'
+            />
+            <path
+              d='M7.5 15V11'
+              stroke='currentColor'
+              strokeWidth='1.7'
+              strokeLinecap='round'
+            />
+            <path
+              d='M12 15V7'
+              stroke='currentColor'
+              strokeWidth='1.7'
+              strokeLinecap='round'
+            />
+            <path
+              d='M16.5 15V9.5'
+              stroke='currentColor'
+              strokeWidth='1.7'
+              strokeLinecap='round'
+            />
+          </svg>
         </span>
         <p className='text-sm font-medium leading-6 text-slate-500'>{text}</p>
       </div>
@@ -320,7 +346,7 @@ function RevenueTrendChart({
                 width={barWidth}
                 height={height}
                 rx='8'
-                fill='#2563eb'
+                fill='var(--admin-primary)'
               >
                 <title>{`${item.label}: ${formatCurrencyVND(item.value)}`}</title>
               </rect>
@@ -464,7 +490,11 @@ export default function DashboardStats() {
 
   return (
     <div className='space-y-6'>
-      <AdminPageHeader title={t('dashboard.title')} description={t('dashboard.subtitle')} />
+      <AdminPageHeader
+        icon={<AdminNavIcon name='dashboard' className='h-6 w-6' />}
+        title={t('dashboard.title')}
+        description={t('dashboard.subtitle')}
+      />
 
       <section className='grid items-stretch gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6'>
         <StatCard

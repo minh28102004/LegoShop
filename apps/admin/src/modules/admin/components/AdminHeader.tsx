@@ -51,7 +51,7 @@ export default function AdminHeader({
   const { toggleMobileSidebar } = useAdminSidebar();
 
   return (
-    <header className='sticky top-0 z-30 border-b border-slate-200 bg-white'>
+    <header className='sticky top-0 z-30 bg-white shadow-[0_12px_28px_-26px_rgba(15,23,42,0.42)]'>
       <div className='mx-auto flex h-full max-w-[1560px] items-center justify-between gap-4 px-4 sm:px-6 lg:px-7 xl:px-8 2xl:px-10'>
         <div className='flex min-w-0 items-center gap-3 sm:gap-4'>
           <Button
@@ -63,11 +63,8 @@ export default function AdminHeader({
             <MenuIcon />
           </Button>
 
-          <div className='min-w-0 space-y-0.5'>
-            <p className='truncate text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500'>
-              Lego Shop
-            </p>
-            <h1 className='truncate text-[18px] font-semibold leading-6 text-slate-900 sm:text-[20px]'>
+          <div className='min-w-0'>
+            <h1 className='truncate text-[20px] font-semibold leading-7 text-slate-900 sm:text-[22px]'>
               {title}
             </h1>
           </div>
@@ -76,7 +73,7 @@ export default function AdminHeader({
         <div className='flex items-center gap-2 sm:gap-3'>
           <Link
             href='/'
-            className='hidden h-10 items-center gap-2 rounded-[12px] border border-slate-200 bg-white px-3.5 text-[13px] font-semibold text-slate-700 shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition-all duration-200 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700 xl:inline-flex'
+            className='hidden h-10 items-center gap-2 rounded-[12px] border border-slate-200 bg-white px-3.5 text-[13px] font-semibold text-slate-700 shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition-all duration-200 hover:border-[var(--admin-primary-tint)] hover:bg-[var(--admin-primary-soft)] hover:text-[var(--admin-primary-strong)] xl:inline-flex'
           >
             {t('header.viewWebsite')}
             <ExternalIcon />

@@ -17,4 +17,9 @@ export class OrdersController {
   trackOrder(@Param('orderCode') orderCode: string) {
     return this.ordersService.trackOrder(orderCode);
   }
+
+  @Post('orders/:orderCode/create-payment-link')
+  createPaymentLink(@Param('orderCode') orderCode: string) {
+    return this.ordersService.createPaymentLink(orderCode);
+  }
 }

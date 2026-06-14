@@ -4,7 +4,19 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { ProductStatus } from '@prisma/client';
+import { Prisma, ProductStatus } from '@prisma/client';
+import {
+  buildAdminListMeta,
+  buildDateFilter,
+  buildFiltersApplied,
+  getAdminPagination,
+  getAllowedFilterValues,
+  getAllowedSearchFields,
+  hasAdminListQuery,
+  resolveDateRange,
+  resolveSorts,
+} from '../common/admin-query/admin-query.util';
+import { AdminListQueryDto } from '../common/dto/admin-list-query.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
@@ -39,7 +51,77 @@ export class ProductsService {
     return product;
   }
 
-  findAdminProducts() {
+  async findAdminProducts(query?: AdminListQueryDto) {
+    if (hasAdminListQuery(query)) {
+      const pagination = getAdminPagination(query);
+      const { sortBy, sortDir, sortCriteria } = resolveSorts(
+        query?.sort_by,
+        query?.sort_dir,
+        ['name', 'basePrice', 'status', 'featured', 'createdAt', 'updatedAt'],
+        'createdAt',
+      );
+      const orderBy = sortCriteria.map(({ field, direction }) => ({
+        [field]: direction,
+      })) as Prisma.ProductOrderByWithRelationInput[];
+      const dateRange = resolveDateRange(
+        query,
+        ['createdAt', 'updatedAt'],
+        'createdAt',
+      );
+      const where: Prisma.ProductWhereInput = {
+        ...buildDateFilter(dateRange),
+      };
+
+      const statuses = getAllowedFilterValues(
+        query?.status,
+        Object.values(ProductStatus),
+        'status',
+      );
+      if (statuses.length > 0) {
+        where.status = { in: statuses };
+      }
+
+      if (query?.price_min !== undefined || query?.price_max !== undefined) {
+        where.basePrice = {
+          ...(query.price_min !== undefined ? { gte: query.price_min } : {}),
+          ...(query.price_max !== undefined ? { lte: query.price_max } : {}),
+        };
+      }
+
+      if (query?.search) {
+        const searchFields = getAllowedSearchFields(
+          query.search_fields,
+          ['name', 'slug', 'description'],
+          ['name', 'slug'],
+        );
+        where.OR = searchFields.map((field) => ({
+          [field]: { contains: query.search, mode: 'insensitive' },
+        }));
+      }
+
+      const [data, total] = await this.prisma.$transaction([
+        this.prisma.product.findMany({
+          where,
+          orderBy,
+          skip: pagination.skip,
+          take: pagination.take,
+        }),
+        this.prisma.product.count({ where }),
+      ]);
+
+      return {
+        data,
+        meta: buildAdminListMeta({
+          page: pagination.page,
+          limit: pagination.limit,
+          total,
+          sortBy,
+          sortDir,
+          filtersApplied: buildFiltersApplied(query, sortBy, sortDir),
+        }),
+      };
+    }
+
     return this.prisma.product.findMany({
       orderBy: {
         createdAt: 'desc',

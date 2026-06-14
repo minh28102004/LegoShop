@@ -1,17 +1,49 @@
 import Card from '@/common/components/ui/Card';
 import { CardBody } from '@/common/components/ui/Card';
+import LoadingSpinner from '@/common/components/ui/LoadingSpinner';
+import { cn } from '@/common/utils/cn';
 
-type LoadingStateProps = {
+type LoadingStateVariant = 'card' | 'inline' | 'page';
+
+export type LoadingStateProps = {
   text: string;
+  variant?: LoadingStateVariant;
+  className?: string;
 };
 
-export default function LoadingState({ text }: LoadingStateProps) {
+export default function LoadingState({
+  text,
+  variant = 'card',
+  className,
+}: LoadingStateProps) {
+  const content = (
+    <div
+      className={cn(
+        'flex flex-col items-center justify-center gap-4 text-center text-slate-600',
+        variant === 'inline' ? 'py-3' : 'py-10',
+        className,
+      )}
+    >
+      <LoadingSpinner label={text} />
+      <span className='text-sm font-semibold text-slate-600'>{text}</span>
+    </div>
+  );
+
+  if (variant === 'inline') {
+    return content;
+  }
+
+  if (variant === 'page') {
+    return (
+      <div className='grid min-h-[calc(100vh-96px)] place-items-center px-4'>
+        {content}
+      </div>
+    );
+  }
+
   return (
     <Card>
-      <CardBody className='flex items-center justify-center gap-3 py-10 text-slate-600'>
-        <span className='inline-flex h-5 w-5 animate-spin rounded-full border-2 border-blue-200 border-t-blue-600' />
-        <span className='text-sm font-medium'>{text}</span>
-      </CardBody>
+      <CardBody>{content}</CardBody>
     </Card>
   );
 }

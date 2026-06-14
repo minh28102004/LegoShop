@@ -7,8 +7,8 @@ export const avatarColors = [
   'bg-zinc-500',
   'bg-stone-500',
   'bg-emerald-500',
-  'bg-cyan-500',
-  'bg-blue-500',
+  'bg-[#63afe3]',
+  'bg-[var(--admin-primary)]',
   'bg-indigo-500',
   'bg-violet-500',
   'bg-rose-500',
@@ -83,7 +83,7 @@ export default function AdminAvatar({
   return (
     <div
       className={[
-        'relative flex items-center justify-center overflow-hidden rounded-full font-semibold text-white',
+        'relative flex items-center justify-center rounded-full font-semibold text-white',
         'shadow-[0_10px_20px_-18px_rgba(15,23,42,0.18)]',
         bgColor,
         typeof size === 'string' ? size : '',
@@ -108,7 +108,7 @@ export default function AdminAvatar({
         <img
           src={imageUrl}
           alt={displayName}
-          className='absolute inset-0 h-full w-full object-cover'
+          className='absolute inset-0 h-full w-full rounded-full object-cover'
           onError={() => setFailedImageUrl(imageUrl)}
           draggable={false}
         />
@@ -119,7 +119,7 @@ export default function AdminAvatar({
       {status !== 'none' ? (
         <span
           className={[
-            'absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full ring-2 ring-white',
+            'absolute bottom-0 right-0 z-20 h-2.5 w-2.5 translate-x-0.5 translate-y-0.5 rounded-full shadow-sm ring-2 ring-white',
             statusColor[status],
           ].join(' ')}
           aria-hidden

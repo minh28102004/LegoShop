@@ -1,28 +1,47 @@
 'use client';
 
 import Link from 'next/link';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import Badge, { getStatusBadgeLabel, StatusBadge } from '@/common/components/ui/Badge';
-import Card from '@/common/components/ui/Card';
+import Button from '@/common/components/ui/Button';
+import Input from '@/common/components/ui/Input';
 import PageShell from '@/common/components/ui/PageShell';
-import SectionHeader from '@/common/components/ui/SectionHeader';
 import Select from '@/common/components/ui/Select';
 import Table, {
+  DEFAULT_TABLE_SORTS,
+  SortableTableHead,
   TableActions,
   TableBody,
   TableCell,
   TableEmptyState,
   TableHead,
   TableHeader,
+  TablePagination,
   TableRow,
+  areTableSortsEqual,
+  serializeTableSorts,
   tableActionButtonClass,
+  type TableSort,
 } from '@/common/components/ui/Table';
 import Tooltip from '@/common/components/ui/Tooltip';
 import { listBusinessInquiries, updateBusinessInquiryStatus } from '@/modules/admin/services/adminApi';
 import { useI18n } from '@/lib/i18n/useI18n';
-import type { BusinessInquiry, InquiryStatus } from '@/modules/admin/types/admin.types';
+import AdminToolbar, {
+  AdminToolbarField,
+  AdminToolbarIcon,
+  adminToolbarButtonClass,
+  adminToolbarInputClass,
+} from '@/modules/admin/components/AdminToolbar';
+import AdminNavIcon from '@/modules/admin/components/AdminNavIcon';
+import EntityFilterDrawer from '@/modules/admin/components/entities/EntityFilterDrawer';
+import {
+  EMPTY_ENTITY_FILTER_DRAFT,
+  type EntityFilterDraft,
+} from '@/modules/admin/components/entities/entity-filter.types';
+import type { BusinessInquiry, InquiryStatus, PaginatedResourceResponse } from '@/modules/admin/types/admin.types';
 
-const INQUIRY_STATUSES: InquiryStatus[] = [
+const INQUIRY_STATUSES: Array<InquiryStatus | ''> = [
+  '',
   'new',
   'contacted',
   'processing',
@@ -30,11 +49,72 @@ const INQUIRY_STATUSES: InquiryStatus[] = [
   'cancelled',
 ];
 
+const INQUIRY_PAGE_SIZE = 20;
+const NUMBER_FORMAT = new Intl.NumberFormat('vi-VN');
+
+type InquiryPayload = PaginatedResourceResponse<BusinessInquiry>;
+
+function getInquiryUiText(locale: string, key: string) {
+  const vi: Record<string, string> = {
+    searchPlaceholder: 'Tìm công ty, email, SĐT...',
+    allStatuses: 'Tất cả trạng thái',
+    reset: 'Đặt lại',
+    inquiries: 'liên hệ',
+    page: 'Trang',
+  };
+  const en: Record<string, string> = {
+    searchPlaceholder: 'Search company, email, phone...',
+    allStatuses: 'All statuses',
+    reset: 'Reset',
+    inquiries: 'inquiries',
+    page: 'Page',
+  };
+
+  return locale === 'vi' ? vi[key] : en[key];
+}
+
+function getInquiryPaginationRangeLabel(
+  locale: string,
+  from: number,
+  to: number,
+  total: number,
+  itemLabel: string,
+) {
+  const formattedRange = `${NUMBER_FORMAT.format(from)}–${NUMBER_FORMAT.format(to)}`;
+  const formattedTotal = `${NUMBER_FORMAT.format(total)}${itemLabel ? ` ${itemLabel}` : ''}`;
+
+  return locale === 'vi'
+    ? `Hiển thị ${formattedRange} trên ${formattedTotal}`
+    : `Showing ${formattedRange} of ${formattedTotal}`;
+}
+
+function FilterIconWithBadge({ count }: { count: number }) {
+  return (
+    <span className='relative inline-flex'>
+      <AdminToolbarIcon name='filter' />
+      {count > 0 ? (
+        <span className='absolute -right-2 -top-2 grid h-4 min-w-4 place-items-center rounded-full bg-[var(--admin-primary-strong)] px-1 text-[10px] font-bold leading-none text-white'>
+          {count}
+        </span>
+      ) : null}
+    </span>
+  );
+}
+
 export default function InquiriesManager() {
-  const { t } = useI18n();
-  const [inquiries, setInquiries] = useState<BusinessInquiry[]>([]);
+  const { t, locale } = useI18n();
+  const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState<InquiryStatus[]>([]);
+  const [sorts, setSorts] = useState<TableSort[]>([...DEFAULT_TABLE_SORTS]);
+  const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
+  const [draftFilters, setDraftFilters] = useState<EntityFilterDraft>(EMPTY_ENTITY_FILTER_DRAFT);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(INQUIRY_PAGE_SIZE);
+  const [payload, setPayload] = useState<InquiryPayload | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const inquiries = payload?.data ?? [];
 
   function statusLabel(value: string) {
     return getStatusBadgeLabel(value, t);
@@ -54,18 +134,53 @@ export default function InquiriesManager() {
     );
   }
 
+  const inquiryStatusOptions = useMemo(
+    () =>
+      INQUIRY_STATUSES.filter((status): status is InquiryStatus => Boolean(status)).map(
+        (status) => ({
+          value: status,
+          label: statusLabel(status),
+        }),
+      ),
+    [t],
+  );
+  const activeFilterCount = statusFilter.length;
+  const showResetFilters =
+    Boolean(search.trim()) ||
+    activeFilterCount > 0 ||
+    !areTableSortsEqual(sorts, DEFAULT_TABLE_SORTS);
+
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const data = await listBusinessInquiries();
-      setInquiries(data);
+      const serializedSorts = serializeTableSorts(sorts);
+      const data = await listBusinessInquiries({
+        page,
+        limit: pageSize,
+        search: debouncedSearch,
+        status: statusFilter.length > 0 ? statusFilter : undefined,
+        sort_by: serializedSorts.sortBy,
+        sort_dir: serializedSorts.sortDir,
+      });
+      setPayload(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : t('inquiries.loadFailed'));
     } finally {
       setLoading(false);
     }
-  }, [t]);
+  }, [debouncedSearch, page, pageSize, sorts, statusFilter, t]);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setDebouncedSearch(search.trim());
+      setPage(1);
+    }, 300);
+
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [search]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -86,38 +201,157 @@ export default function InquiriesManager() {
     }
   }
 
+  function applyInquiryFilters(nextFilters: EntityFilterDraft) {
+    setStatusFilter(nextFilters.status as InquiryStatus[]);
+    setPage(1);
+    setFilterDrawerOpen(false);
+  }
+
+  function resetFilters() {
+    setSearch('');
+    setDebouncedSearch('');
+    setStatusFilter([]);
+    setSorts([...DEFAULT_TABLE_SORTS]);
+    setDraftFilters(EMPTY_ENTITY_FILTER_DRAFT);
+    setPage(1);
+  }
+
+  function handleTableSort(nextSorts: TableSort[]) {
+    setSorts(nextSorts);
+    setPage(1);
+  }
+
   return (
-    <PageShell>
-      <Card className='p-5 sm:p-6'>
-        <SectionHeader
-          eyebrow={t('common.status')}
+    <PageShell scrollable={false}>
+      <AdminToolbar
+          icon={<AdminNavIcon name='businessInquiries' className='h-6 w-6' />}
           title={t('sidebar.businessInquiries')}
           description={t('sidebarDesc.businessInquiries')}
           badge={
-            <Badge tone='info' className='rounded-full px-4 py-2 text-sm font-medium'>
-              {inquiries.length} {t('common.total')}
+            <Badge tone='info' className='rounded-full px-4 py-2 text-sm font-bold !text-slate-950'>
+              {payload?.meta.total ?? 0} {getInquiryUiText(locale, 'inquiries')}
             </Badge>
           }
-        />
-      </Card>
+        >
+        <AdminToolbarField
+          wide
+          icon={<AdminToolbarIcon name='search' />}
+          label={t('common.search')}
+          className='sm:w-[300px]'
+        >
+          <Input
+            value={search}
+            aria-label={getInquiryUiText(locale, 'searchPlaceholder')}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder={getInquiryUiText(locale, 'searchPlaceholder')}
+            className={adminToolbarInputClass}
+          />
+        </AdminToolbarField>
 
-      <Table className='min-w-[980px]'>
+        <Button
+          type='button'
+          variant='secondary'
+          leftIcon={<FilterIconWithBadge count={activeFilterCount} />}
+          onClick={() => setFilterDrawerOpen(true)}
+          className={adminToolbarButtonClass}
+        >
+          {locale === 'vi' ? 'Bộ lọc' : 'Filters'}
+        </Button>
+
+        {showResetFilters ? (
+          <Button
+            type='button'
+            variant='secondary'
+            onClick={resetFilters}
+            leftIcon={<AdminToolbarIcon name='reset' />}
+            className={adminToolbarButtonClass}
+          >
+            {getInquiryUiText(locale, 'reset')}
+          </Button>
+        ) : null}
+      </AdminToolbar>
+
+      <EntityFilterDrawer
+        open={filterDrawerOpen}
+        draftFilters={draftFilters}
+        statusOptions={inquiryStatusOptions}
+        categoryOptions={[]}
+        hasPriceFilter={false}
+        onClose={() => setFilterDrawerOpen(false)}
+        onDraftChange={setDraftFilters}
+        onApply={applyInquiryFilters}
+        labels={{
+          allCategories: '',
+          allStatuses: getInquiryUiText(locale, 'allStatuses'),
+          apply: locale === 'vi' ? 'Áp dụng' : 'Apply filters',
+          category: '',
+          filterTitle: locale === 'vi' ? 'Bộ lọc' : 'Filters',
+          priceMax: '',
+          priceMin: '',
+          priceRange: '',
+          reset: getInquiryUiText(locale, 'reset'),
+          selectedCount: (count) => `${count} ${locale === 'vi' ? 'mục đã chọn' : 'selected'}`,
+          status: t('common.status'),
+        }}
+      />
+
+      <Table containerClassName='min-h-0'>
         <TableHeader>
           <tr>
-            <TableHead>{t('inquiries.company')}</TableHead>
-            <TableHead>{t('inquiries.contact')}</TableHead>
-            <TableHead>{t('inquiries.email')}</TableHead>
-            <TableHead>{t('inquiries.phone')}</TableHead>
-            <TableHead>{t('common.status')}</TableHead>
-            <TableHead className='text-right'>{t('inquiries.action')}</TableHead>
+            <SortableTableHead
+              sortKey='companyName'
+              defaultSorts={DEFAULT_TABLE_SORTS}
+              sorts={sorts}
+              defaultDirection='asc'
+              onSortChange={handleTableSort}
+            >
+              {t('inquiries.company')}
+            </SortableTableHead>
+            <SortableTableHead
+              sortKey='contactName'
+              defaultSorts={DEFAULT_TABLE_SORTS}
+              sorts={sorts}
+              defaultDirection='asc'
+              onSortChange={handleTableSort}
+            >
+              {t('inquiries.contact')}
+            </SortableTableHead>
+            <SortableTableHead
+              sortKey='email'
+              defaultSorts={DEFAULT_TABLE_SORTS}
+              sorts={sorts}
+              defaultDirection='asc'
+              onSortChange={handleTableSort}
+            >
+              {t('inquiries.email')}
+            </SortableTableHead>
+            <SortableTableHead
+              sortKey='phone'
+              defaultSorts={DEFAULT_TABLE_SORTS}
+              sorts={sorts}
+              defaultDirection='asc'
+              onSortChange={handleTableSort}
+            >
+              {t('inquiries.phone')}
+            </SortableTableHead>
+            <SortableTableHead
+              sortKey='status'
+              defaultSorts={DEFAULT_TABLE_SORTS}
+              sorts={sorts}
+              defaultDirection='asc'
+              onSortChange={handleTableSort}
+            >
+              {t('common.status')}
+            </SortableTableHead>
+            <TableHead className='text-center'>{t('inquiries.action')}</TableHead>
           </tr>
         </TableHeader>
 
         <TableBody>
           {loading ? (
-            <TableEmptyState colSpan={6}>{t('inquiries.loading')}</TableEmptyState>
+            <TableEmptyState colSpan={6} variant='loading'>{t('inquiries.loading')}</TableEmptyState>
           ) : error ? (
-            <TableEmptyState colSpan={6} className='text-red-700'>
+            <TableEmptyState colSpan={6} variant='error'>
               {error}
             </TableEmptyState>
           ) : inquiries.length === 0 ? (
@@ -149,7 +383,7 @@ export default function InquiriesManager() {
                       aria-label={t('common.status')}
                       onChange={(e) => updateStatus(item.id, e.target.value as InquiryStatus)}
                     >
-                      {INQUIRY_STATUSES.map((status) => (
+                      {INQUIRY_STATUSES.filter(Boolean).map((status) => (
                         <option key={status} value={status}>
                           {statusLabel(status)}
                         </option>
@@ -157,7 +391,7 @@ export default function InquiriesManager() {
                     </Select>
                   </div>
                 </TableCell>
-                <TableCell className='text-right'>
+                <TableCell className='text-center'>
                   <TableActions>
                     <Tooltip content={t('inquiries.detail')}>
                       <Link
@@ -175,6 +409,31 @@ export default function InquiriesManager() {
           )}
         </TableBody>
       </Table>
+
+      <TablePagination
+        page={payload?.meta.page ?? page}
+        totalPages={payload?.meta.totalPages ?? payload?.meta.total_pages ?? 1}
+        total={payload?.meta.total ?? 0}
+        itemLabel={getInquiryUiText(locale, 'inquiries')}
+        pageLabel={getInquiryUiText(locale, 'page')}
+        pageSize={payload?.meta.limit ?? pageSize}
+        pageSizeLabel={locale === 'vi' ? 'Số dòng' : 'Rows'}
+        totalLabel={t('common.total')}
+        previousLabel={t('common.previous')}
+        nextLabel={t('common.next')}
+        previousDisabled={page <= 1}
+        nextDisabled={page >= (payload?.meta.totalPages ?? payload?.meta.total_pages ?? 1)}
+        rangeLabel={(from, to, total, itemLabel) =>
+          getInquiryPaginationRangeLabel(locale, from, to, total, itemLabel)
+        }
+        onPrevious={() => setPage((prev) => Math.max(1, prev - 1))}
+        onNext={() => setPage((prev) => prev + 1)}
+        onPageChange={setPage}
+        onPageSizeChange={(nextPageSize) => {
+          setPageSize(nextPageSize);
+          setPage(1);
+        }}
+      />
     </PageShell>
   );
 }

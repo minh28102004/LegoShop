@@ -12,6 +12,7 @@ import type {
   PaginatedOrders,
   PaymentSettings,
   PaymentStatus,
+  PaginatedResourceResponse,
   Product,
   ShippingStatus,
   Template,
@@ -47,6 +48,23 @@ export type ResourceDataMap = {
   collections: Collection;
 };
 
+export type ResourceListParams = {
+  page?: number;
+  limit?: number;
+  search?: string;
+  search_fields?: string;
+  sort_by?: string;
+  sort_dir?: string;
+  status?: string | string[];
+  category_id?: string | string[];
+  price_min?: number;
+  price_max?: number;
+  preset?: string;
+  date_from?: string;
+  date_to?: string;
+  date_field?: string;
+};
+
 export async function me() {
   return apiRequest<AdminProfile>('auth/me');
 }
@@ -61,8 +79,21 @@ export async function uploadImage(file: File) {
   });
 }
 
-export async function listResource<K extends ResourceKey>(key: K) {
-  return apiRequest<ResourceDataMap[K][]>(ADMIN_RESOURCE_ENDPOINTS[key]);
+export async function listResource<K extends ResourceKey>(
+  key: K,
+): Promise<ResourceDataMap[K][]>;
+export async function listResource<K extends ResourceKey>(
+  key: K,
+  params: ResourceListParams,
+): Promise<PaginatedResourceResponse<ResourceDataMap[K]>>;
+export async function listResource<K extends ResourceKey>(
+  key: K,
+  params?: ResourceListParams,
+) {
+  const query = params ? toQueryString(params) : '';
+  return apiRequest<ResourceDataMap[K][] | PaginatedResourceResponse<ResourceDataMap[K]>>(
+    `${ADMIN_RESOURCE_ENDPOINTS[key]}${query}`,
+  );
 }
 
 export async function getResourceById<K extends ResourceKey>(key: K, id: string) {
@@ -101,17 +132,42 @@ export async function deleteResource(key: ResourceKey, id: string) {
 
 export async function listOrders(params: {
   search?: string;
-  orderStatus?: OrderStatus | '';
-  paymentStatus?: PaymentStatus | '';
-  shippingStatus?: ShippingStatus | '';
+  search_fields?: string;
+  orderStatus?: OrderStatus | OrderStatus[] | '';
+  paymentStatus?: PaymentStatus | PaymentStatus[] | '';
+  shippingStatus?: ShippingStatus | ShippingStatus[] | '';
+  paymentMethod?: 'COD' | 'PAYOS' | '';
+  sort_by?: string;
+  sort_dir?: string;
+  amount_min?: number;
+  amount_max?: number;
+  preset?: string;
+  date_from?: string;
+  date_to?: string;
+  date_field?: string;
   page?: number;
   limit?: number;
 }) {
+  const serializeListParam = (value?: string | string[] | '') => {
+    if (Array.isArray(value)) return value.length > 0 ? value.join(',') : undefined;
+    return value || undefined;
+  };
+
   const query = toQueryString({
     search: params.search,
-    orderStatus: params.orderStatus,
-    paymentStatus: params.paymentStatus,
-    shippingStatus: params.shippingStatus,
+    search_fields: params.search_fields,
+    orderStatus: serializeListParam(params.orderStatus),
+    paymentStatus: serializeListParam(params.paymentStatus),
+    shippingStatus: serializeListParam(params.shippingStatus),
+    paymentMethod: params.paymentMethod,
+    sort_by: params.sort_by,
+    sort_dir: params.sort_dir,
+    amount_min: params.amount_min,
+    amount_max: params.amount_max,
+    preset: params.preset,
+    date_from: params.date_from,
+    date_to: params.date_to,
+    date_field: params.date_field,
     page: params.page,
     limit: params.limit,
   });
@@ -144,8 +200,15 @@ export async function updateOrderShippingStatus(id: string, status: ShippingStat
   });
 }
 
-export async function listBusinessInquiries() {
-  return apiRequest<BusinessInquiry[]>('admin/business-inquiries');
+export async function listBusinessInquiries(): Promise<BusinessInquiry[]>;
+export async function listBusinessInquiries(
+  params: ResourceListParams,
+): Promise<PaginatedResourceResponse<BusinessInquiry>>;
+export async function listBusinessInquiries(params?: ResourceListParams) {
+  const query = params ? toQueryString(params) : '';
+  return apiRequest<BusinessInquiry[] | PaginatedResourceResponse<BusinessInquiry>>(
+    `admin/business-inquiries${query}`,
+  );
 }
 
 export async function getBusinessInquiryById(id: string) {

@@ -24,7 +24,7 @@ export default function Checkbox({
       <input
         type='checkbox'
         className={cn(
-          'mt-0.5 h-5 w-5 rounded-md border-slate-300 text-blue-600 shadow-sm focus:ring-4 focus:ring-blue-100/80 focus:ring-offset-0',
+          'mt-0.5 h-5 w-5 rounded-md border-slate-300 text-[var(--admin-primary)] shadow-sm focus:ring-4 focus:ring-[var(--admin-primary-ring)] focus:ring-offset-0',
           className,
         )}
         {...props}

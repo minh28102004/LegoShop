@@ -28,7 +28,7 @@ export function CardHeader({ className, children }: CardSectionProps) {
   return (
     <div
       className={cn(
-        'flex flex-col gap-3 border-b border-[var(--admin-border)] px-5 py-[18px] sm:flex-row sm:items-start sm:justify-between sm:px-6 sm:py-5',
+        'flex flex-col gap-3 px-5 py-[18px] shadow-[0_1px_0_rgba(226,232,240,0.72)] sm:flex-row sm:items-start sm:justify-between sm:px-6 sm:py-5',
         className,
       )}
     >
@@ -45,7 +45,7 @@ export function CardFooter({ className, children }: CardSectionProps) {
   return (
     <div
       className={cn(
-        'flex flex-wrap items-center justify-end gap-3 border-t border-[var(--admin-border)] bg-slate-50 px-5 py-4 sm:px-6 sm:py-5',
+        'flex flex-wrap items-center justify-end gap-3 bg-slate-50 px-5 py-4 shadow-[0_-1px_0_rgba(226,232,240,0.72)] sm:px-6 sm:py-5',
         className,
       )}
     >

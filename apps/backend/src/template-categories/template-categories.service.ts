@@ -4,6 +4,18 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
+import {
+  buildAdminListMeta,
+  buildDateFilter,
+  buildFiltersApplied,
+  getAdminPagination,
+  getAllowedSearchFields,
+  hasAdminListQuery,
+  resolveDateRange,
+  resolveSorts,
+} from '../common/admin-query/admin-query.util';
+import { AdminListQueryDto } from '../common/dto/admin-list-query.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateTemplateCategoryDto } from './dto/create-template-category.dto';
 import { UpdateTemplateCategoryDto } from './dto/update-template-category.dto';
@@ -27,7 +39,68 @@ export class TemplateCategoriesService {
     });
   }
 
-  findAdminTemplateCategories() {
+  async findAdminTemplateCategories(query?: AdminListQueryDto) {
+    if (hasAdminListQuery(query)) {
+      const pagination = getAdminPagination(query);
+      const { sortBy, sortDir, sortCriteria } = resolveSorts(
+        query?.sort_by,
+        query?.sort_dir,
+        ['name', 'slug', 'createdAt', 'updatedAt'],
+        'createdAt',
+      );
+      const orderBy = sortCriteria.map(({ field, direction }) => ({
+        [field]: direction,
+      })) as Prisma.TemplateCategoryOrderByWithRelationInput[];
+      const dateRange = resolveDateRange(
+        query,
+        ['createdAt', 'updatedAt'],
+        'createdAt',
+      );
+      const where: Prisma.TemplateCategoryWhereInput = {
+        ...buildDateFilter(dateRange),
+      };
+
+      if (query?.search) {
+        const searchFields = getAllowedSearchFields(
+          query.search_fields,
+          ['name', 'slug'],
+          ['name', 'slug'],
+        );
+        where.OR = searchFields.map((field) => ({
+          [field]: { contains: query.search, mode: 'insensitive' },
+        }));
+      }
+
+      const [data, total] = await this.prisma.$transaction([
+        this.prisma.templateCategory.findMany({
+          where,
+          orderBy,
+          include: {
+            _count: {
+              select: {
+                templates: true,
+              },
+            },
+          },
+          skip: pagination.skip,
+          take: pagination.take,
+        }),
+        this.prisma.templateCategory.count({ where }),
+      ]);
+
+      return {
+        data,
+        meta: buildAdminListMeta({
+          page: pagination.page,
+          limit: pagination.limit,
+          total,
+          sortBy,
+          sortDir,
+          filtersApplied: buildFiltersApplied(query, sortBy, sortDir),
+        }),
+      };
+    }
+
     return this.prisma.templateCategory.findMany({
       orderBy: {
         createdAt: 'desc',

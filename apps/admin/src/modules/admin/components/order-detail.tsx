@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import Card from '@/common/components/ui/Card';
+import LoadingState from '@/common/components/ui/LoadingState';
 import PageShell from '@/common/components/ui/PageShell';
 import SectionHeader from '@/common/components/ui/SectionHeader';
 import Select from '@/common/components/ui/Select';
@@ -21,6 +22,7 @@ import {
   updateOrderStatus,
 } from '@/modules/admin/services/adminApi';
 import { useI18n } from '@/lib/i18n/useI18n';
+import AdminNavIcon from '@/modules/admin/components/AdminNavIcon';
 import type { Order, OrderStatus, PaymentStatus, ShippingStatus } from '@/modules/admin/types/admin.types';
 
 type Props = {
@@ -60,7 +62,7 @@ const CURRENCY = new Intl.NumberFormat('vi-VN', {
 });
 
 export default function OrderDetail({ orderId }: Props) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -120,7 +122,7 @@ export default function OrderDetail({ orderId }: Props) {
   }
 
   if (loading) {
-    return <Card className='p-5'>{t('orderDetail.loading')}</Card>;
+    return <LoadingState text={t('orderDetail.loading')} />;
   }
 
   if (error || !order) {
@@ -135,7 +137,7 @@ export default function OrderDetail({ orderId }: Props) {
     <PageShell>
       <Card className='p-5 sm:p-6'>
         <SectionHeader
-          eyebrow={t('sidebar.orders')}
+          icon={<AdminNavIcon name='orders' className='h-6 w-6' />}
           title={order.orderCode}
           description={order.customerName}
           actions={
@@ -271,7 +273,9 @@ export default function OrderDetail({ orderId }: Props) {
             </TableHeader>
             <TableBody>
               {order.items.length === 0 ? (
-                <TableEmptyState colSpan={4}>{t('entity.noRecordsYet')}</TableEmptyState>
+                <TableEmptyState colSpan={4}>
+                  {locale === 'vi' ? 'Không có sản phẩm nào.' : 'No products found.'}
+                </TableEmptyState>
               ) : (
                 order.items.map((item) => (
                   <TableRow key={item.id} hoverable>
@@ -287,7 +291,7 @@ export default function OrderDetail({ orderId }: Props) {
                         <a
                           href={item.previewUrl}
                           target='_blank'
-                          className='text-sm font-medium text-blue-700 underline underline-offset-4'
+                          className='text-sm font-medium text-[var(--admin-primary-strong)] underline underline-offset-4'
                           rel='noreferrer'
                         >
                           {t('orderDetail.open')}

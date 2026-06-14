@@ -1,24 +1,47 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsEmail, IsNotEmpty, IsString } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { Transform } from 'class-transformer';
+import { IsEmail, IsNotEmpty, IsString, ValidateIf } from 'class-validator';
 
 export class CreateBusinessInquiryDto {
   @ApiProperty({
     example: 'ABC Brick Company',
   })
+  @Transform(({ value }: { value: unknown }) =>
+    typeof value === 'string' ? value.trim() : value,
+  )
   @IsString()
   @IsNotEmpty()
   companyName: string;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     example: 'Nguyen Van B',
   })
+  @Transform(({ value }: { value: unknown }) =>
+    typeof value === 'string' ? value.trim() : value,
+  )
+  @ValidateIf((dto: CreateBusinessInquiryDto) => !dto.contactPerson)
   @IsString()
   @IsNotEmpty()
-  contactName: string;
+  contactName?: string;
+
+  @ApiPropertyOptional({
+    example: 'Nguyen Van B',
+    description: 'Alias for contactName.',
+  })
+  @Transform(({ value }: { value: unknown }) =>
+    typeof value === 'string' ? value.trim() : value,
+  )
+  @ValidateIf((dto: CreateBusinessInquiryDto) => !dto.contactName)
+  @IsString()
+  @IsNotEmpty()
+  contactPerson?: string;
 
   @ApiProperty({
     example: 'business@example.com',
   })
+  @Transform(({ value }: { value: unknown }) =>
+    typeof value === 'string' ? value.trim() : value,
+  )
   @IsEmail()
   @IsNotEmpty()
   email: string;
@@ -26,6 +49,9 @@ export class CreateBusinessInquiryDto {
   @ApiProperty({
     example: '0911222333',
   })
+  @Transform(({ value }: { value: unknown }) =>
+    typeof value === 'string' ? value.trim() : value,
+  )
   @IsString()
   @IsNotEmpty()
   phone: string;
@@ -33,6 +59,9 @@ export class CreateBusinessInquiryDto {
   @ApiProperty({
     example: 'Toi muon dat so luong lon cho su kien.',
   })
+  @Transform(({ value }: { value: unknown }) =>
+    typeof value === 'string' ? value.trim() : value,
+  )
   @IsString()
   @IsNotEmpty()
   message: string;

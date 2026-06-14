@@ -11,6 +11,7 @@ type ModalProps = PropsWithChildren<{
   onClose: () => void;
   ariaLabelledby?: string;
   panelClassName?: string;
+  containerClassName?: string;
 }>;
 
 type ModalSectionProps = PropsWithChildren<{
@@ -22,6 +23,7 @@ export default function Modal({
   onClose,
   ariaLabelledby,
   panelClassName,
+  containerClassName,
   children,
 }: ModalProps) {
   useEffect(() => {
@@ -50,7 +52,12 @@ export default function Modal({
   if (!open) return null;
 
   return (
-    <div className='fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/35 px-3 py-4 sm:p-6'>
+    <div
+      className={cn(
+        'fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/35 px-3 py-4 sm:p-6',
+        containerClassName,
+      )}
+    >
       <button
         type='button'
         aria-label='Close modal overlay'

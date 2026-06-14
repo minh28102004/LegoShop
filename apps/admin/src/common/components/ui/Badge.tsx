@@ -32,34 +32,15 @@ const TONE_CLASS: Record<BadgeTone, string> = {
   active: 'border-green-200 bg-green-50 text-green-700',
   green: 'border-green-200 bg-green-50 text-green-700',
   emerald: 'border-green-200 bg-green-50 text-green-700',
-  warning: 'border-amber-200 bg-amber-50 text-amber-700',
-  pending: 'border-amber-200 bg-amber-50 text-amber-700',
-  amber: 'border-amber-200 bg-amber-50 text-amber-700',
+  warning: 'border-[var(--admin-accent)] bg-[var(--admin-accent-soft)] text-amber-800',
+  pending: 'border-[var(--admin-accent)] bg-[var(--admin-accent-soft)] text-amber-800',
+  amber: 'border-[var(--admin-accent)] bg-[var(--admin-accent-soft)] text-amber-800',
   danger: 'border-red-200 bg-red-50 text-red-700',
   rose: 'border-red-200 bg-red-50 text-red-700',
-  info: 'border-blue-200 bg-blue-50 text-blue-700',
-  blue: 'border-blue-200 bg-blue-50 text-blue-700',
-  sky: 'border-blue-200 bg-blue-50 text-blue-700',
+  info: 'border-[var(--admin-primary-tint)] bg-[var(--admin-primary-soft)] text-[var(--admin-primary-strong)]',
+  blue: 'border-[var(--admin-primary-tint)] bg-[var(--admin-primary-soft)] text-[var(--admin-primary-strong)]',
+  sky: 'border-[var(--admin-primary-tint)] bg-[var(--admin-primary-soft)] text-[var(--admin-primary-strong)]',
   cyan: 'border-cyan-200 bg-cyan-50 text-cyan-700',
-};
-
-const DOT_CLASS: Record<BadgeTone, string> = {
-  neutral: 'bg-slate-500',
-  inactive: 'bg-slate-500',
-  slate: 'bg-slate-500',
-  success: 'bg-green-600',
-  active: 'bg-green-600',
-  green: 'bg-green-600',
-  emerald: 'bg-green-600',
-  warning: 'bg-amber-600',
-  pending: 'bg-amber-600',
-  amber: 'bg-amber-600',
-  danger: 'bg-red-600',
-  rose: 'bg-red-600',
-  info: 'bg-blue-600',
-  blue: 'bg-blue-600',
-  sky: 'bg-blue-600',
-  cyan: 'bg-cyan-600',
 };
 
 const STATUS_ALIAS: Record<string, string> = {
@@ -209,7 +190,6 @@ export function StatusBadge({
       tone={tone}
       className={cn('px-2.5 py-1 text-[12px] font-semibold leading-none', className)}
     >
-      <span className={cn('h-1.5 w-1.5 rounded-full', DOT_CLASS[tone])} aria-hidden='true' />
       <span>{getStatusBadgeLabel(normalized, t)}</span>
     </Badge>
   );

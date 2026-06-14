@@ -153,6 +153,28 @@ export interface PaginatedOrders {
     limit: number;
     total: number;
     totalPages: number;
+    total_pages?: number;
+    sort_by?: string;
+    sort_dir?: string;
+    filters_applied?: Record<string, unknown>;
+  };
+  summary?: {
+    total_amount?: number;
+    average_order_value?: number;
+  };
+}
+
+export interface PaginatedResourceResponse<T> {
+  data: T[];
+  meta: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+    total_pages?: number;
+    sort_by?: string;
+    sort_dir?: string;
+    filters_applied?: Record<string, unknown>;
   };
 }
 

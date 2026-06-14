@@ -111,7 +111,7 @@ export default function Select({
       portal
       panelRole='listbox'
       matchTriggerWidth
-      offset={6}
+      offset={16}
       trigger={
         <button
           id={props.id}
@@ -126,7 +126,7 @@ export default function Select({
           className={cn(
             'admin-control admin-control-md relative flex min-h-[42px] items-center pr-11 text-left text-sm',
             invalid && 'is-invalid',
-            open && 'border-blue-500 shadow-[var(--admin-focus-ring)]',
+            open && 'border-[var(--admin-primary)] shadow-[var(--admin-focus-ring)]',
             props.disabled && 'cursor-not-allowed bg-slate-100 opacity-70',
             className,
           )}
@@ -142,7 +142,7 @@ export default function Select({
           <span
             className={cn(
               'pointer-events-none absolute inset-y-0 right-3.5 flex items-center text-slate-400 transition duration-150',
-              open && 'rotate-180 text-blue-600',
+              open && 'rotate-180 text-[var(--admin-primary-strong)]',
             )}
           >
             <ChevronDown />
@@ -166,14 +166,14 @@ export default function Select({
               className={cn(
                 'flex min-h-10 w-full items-center justify-between gap-3 rounded-[10px] px-3 py-2 text-left text-sm transition-colors duration-150',
                 item.value === currentValue
-                  ? 'bg-blue-50 font-semibold text-blue-700'
-                  : 'font-medium text-slate-700 hover:bg-blue-50 hover:text-slate-900',
+                  ? 'bg-[var(--admin-primary-soft)] font-semibold text-[var(--admin-primary-strong)]'
+                  : 'font-medium text-slate-700 hover:bg-[var(--admin-primary-soft)] hover:text-slate-900',
               )}
             >
-              <span className='min-w-0 truncate'>{item.label}</span>
+              <span className='whitespace-nowrap'>{item.label}</span>
               <span
                 className={cn(
-                  'grid h-5 w-5 shrink-0 place-items-center rounded-full text-blue-600 transition-opacity duration-150',
+                  'grid h-5 w-5 shrink-0 place-items-center rounded-full text-[var(--admin-primary-strong)] transition-opacity duration-150',
                   item.value === currentValue ? 'opacity-100' : 'opacity-0',
                 )}
                 aria-hidden='true'

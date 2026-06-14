@@ -56,10 +56,17 @@ export async function apiRequest<T>(
   return payload as T;
 }
 
-export function toQueryString(params: Record<string, string | number | undefined>) {
+export function toQueryString(
+  params: Record<string, string | number | Array<string | number> | undefined>,
+) {
   const searchParams = new URLSearchParams();
   Object.entries(params).forEach(([key, value]) => {
     if (value === undefined || value === '') return;
+    if (Array.isArray(value)) {
+      if (value.length === 0) return;
+      searchParams.set(key, value.join(','));
+      return;
+    }
     searchParams.set(key, String(value));
   });
   const query = searchParams.toString();

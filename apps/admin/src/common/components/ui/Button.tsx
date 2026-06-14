@@ -1,7 +1,8 @@
 import { type ButtonHTMLAttributes, type ReactNode } from 'react';
+import LoadingSpinner from '@/common/components/ui/LoadingSpinner';
 import { cn } from '@/common/utils/cn';
 
-type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'soft';
+type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'soft' | 'cancel' | 'remove';
 type ButtonSize = 'sm' | 'md' | 'lg';
 
 type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
@@ -14,15 +15,19 @@ type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
 
 const VARIANT_CLASS: Record<ButtonVariant, string> = {
   primary:
-    'border border-blue-600 bg-blue-600 text-white shadow-[0_10px_20px_-18px_rgba(15,23,42,0.2)] transition-all duration-200 ease-out hover:border-blue-700 hover:bg-blue-700 hover:shadow-[var(--admin-shadow-hover)]',
+    'border border-[var(--admin-primary)] bg-[var(--admin-primary)] !text-white shadow-[0_10px_20px_-18px_rgba(15,23,42,0.2)] transition-all duration-200 ease-out hover:border-[var(--admin-primary-strong)] hover:bg-[var(--admin-primary-strong)] hover:!text-white hover:shadow-[var(--admin-shadow-hover)] focus-visible:ring-[var(--admin-primary-ring)]',
   secondary:
-    'border border-[var(--admin-border)] bg-white text-slate-700 shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition-all duration-200 ease-out hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700',
+    'border border-[var(--admin-border)] bg-white !text-slate-700 shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition-all duration-200 ease-out hover:border-[var(--admin-primary-tint)] hover:bg-[var(--admin-primary-soft)] hover:!text-[var(--admin-primary-strong)] focus-visible:ring-[var(--admin-primary-ring)]',
   ghost:
-    'border border-transparent bg-transparent text-slate-600 transition-colors duration-200 ease-out hover:bg-slate-100 hover:text-slate-900',
+    'border border-transparent bg-transparent !text-slate-600 transition-colors duration-200 ease-out hover:bg-[var(--admin-primary-soft)] hover:!text-[var(--admin-primary-strong)] focus-visible:ring-[var(--admin-primary-ring)]',
   danger:
-    'border border-red-200 bg-white text-red-700 shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition-all duration-200 ease-out hover:border-red-300 hover:bg-red-50',
+    'border border-red-200 bg-white !text-red-700 shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition-all duration-200 ease-out hover:border-red-300 hover:bg-red-50 hover:!text-red-700 focus-visible:ring-red-100',
   soft:
-    'border border-blue-100 bg-blue-50 text-blue-700 shadow-[0_1px_2px_rgba(15,23,42,0.03)] transition-all duration-200 ease-out hover:border-blue-200 hover:bg-blue-100',
+    'border border-[var(--admin-primary-tint)] bg-[var(--admin-primary-soft)] !text-[var(--admin-primary-strong)] shadow-[0_1px_2px_rgba(15,23,42,0.03)] transition-all duration-200 ease-out hover:border-[var(--admin-primary)] hover:bg-[var(--admin-primary-tint)] hover:!text-[var(--admin-primary-strong)] focus-visible:ring-[var(--admin-primary-ring)]',
+  cancel:
+    'border border-[var(--admin-border)] bg-white !text-slate-700 shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition-all duration-200 ease-out hover:border-red-200 hover:bg-red-50 hover:!text-red-700 focus-visible:ring-red-100',
+  remove:
+    'border border-[var(--admin-border)] bg-white !text-slate-600 shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition-all duration-200 ease-out hover:border-red-200 hover:bg-red-50 hover:!text-red-700 focus-visible:ring-red-100',
 };
 
 const SIZE_CLASS: Record<ButtonSize, string> = {
@@ -48,7 +53,7 @@ export default function Button({
       type={type}
       disabled={disabled || loading}
       className={cn(
-        'inline-flex items-center justify-center gap-2 whitespace-nowrap font-semibold leading-none transition-all duration-200 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-100 active:scale-[0.985] disabled:cursor-not-allowed disabled:shadow-none disabled:translate-y-0 disabled:opacity-55',
+        'inline-flex items-center justify-center gap-2 whitespace-nowrap font-semibold leading-none transition-all duration-200 focus-visible:outline-none focus-visible:ring-4 active:scale-[0.985] disabled:cursor-not-allowed disabled:shadow-none disabled:translate-y-0 disabled:opacity-55',
         VARIANT_CLASS[variant],
         SIZE_CLASS[size],
         className,
@@ -56,7 +61,7 @@ export default function Button({
       {...props}
     >
       {loading ? (
-        <span className='inline-flex h-4 w-4 animate-spin rounded-full border-2 border-current/30 border-t-current' />
+        <LoadingSpinner size='sm' label='Loading button action' className='border-current/30 border-t-current' />
       ) : leftIcon ? (
         <span className='shrink-0'>{leftIcon}</span>
       ) : null}

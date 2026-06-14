@@ -5,10 +5,12 @@ import Button from '@/common/components/ui/Button';
 import Card from '@/common/components/ui/Card';
 import Checkbox from '@/common/components/ui/Checkbox';
 import Input from '@/common/components/ui/Input';
+import LoadingState from '@/common/components/ui/LoadingState';
 import PageShell from '@/common/components/ui/PageShell';
 import SectionHeader from '@/common/components/ui/SectionHeader';
 import { getPaymentSettings, updatePaymentSettings } from '@/modules/admin/services/adminApi';
 import { useI18n } from '@/lib/i18n/useI18n';
+import AdminNavIcon from '@/modules/admin/components/AdminNavIcon';
 import type { PaymentSettings } from '@/modules/admin/types/admin.types';
 
 export default function PaymentSettingsForm() {
@@ -65,7 +67,7 @@ export default function PaymentSettingsForm() {
   }
 
   if (loading) {
-    return <Card className='p-5'>{t('paymentSettings.loading')}</Card>;
+    return <LoadingState text={t('paymentSettings.loading')} />;
   }
 
   if (error || !settings) {
@@ -82,7 +84,7 @@ export default function PaymentSettingsForm() {
         <form onSubmit={handleSubmit}>
           <div className='border-b border-slate-200 px-5 py-5 sm:px-6'>
             <SectionHeader
-              eyebrow={t('sidebar.paymentSettings')}
+              icon={<AdminNavIcon name='paymentSettings' className='h-6 w-6' />}
               title={t('paymentSettings.title')}
               description={t('paymentSettings.description')}
             />

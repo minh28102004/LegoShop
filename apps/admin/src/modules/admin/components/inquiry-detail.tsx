@@ -2,12 +2,14 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import Card from '@/common/components/ui/Card';
+import LoadingState from '@/common/components/ui/LoadingState';
 import PageShell from '@/common/components/ui/PageShell';
 import SectionHeader from '@/common/components/ui/SectionHeader';
 import Select from '@/common/components/ui/Select';
 import { getStatusBadgeLabel, StatusBadge } from '@/common/components/ui/Badge';
 import { getBusinessInquiryById, updateBusinessInquiryStatus } from '@/modules/admin/services/adminApi';
 import { useI18n } from '@/lib/i18n/useI18n';
+import AdminNavIcon from '@/modules/admin/components/AdminNavIcon';
 import type { BusinessInquiry, InquiryStatus } from '@/modules/admin/types/admin.types';
 
 type Props = {
@@ -66,7 +68,7 @@ export default function InquiryDetail({ inquiryId }: Props) {
   }
 
   if (loading) {
-    return <Card className='p-5'>{t('inquiries.loadingDetail')}</Card>;
+    return <LoadingState text={t('inquiries.loadingDetail')} />;
   }
 
   if (error || !inquiry) {
@@ -81,7 +83,7 @@ export default function InquiryDetail({ inquiryId }: Props) {
     <PageShell>
       <Card className='p-5 sm:p-6'>
         <SectionHeader
-          eyebrow={t('sidebar.businessInquiries')}
+          icon={<AdminNavIcon name='businessInquiries' className='h-6 w-6' />}
           title={t('inquiries.detailTitle')}
           description={inquiry.companyName}
           badge={<StatusBadge value={inquiry.status} t={t} />}

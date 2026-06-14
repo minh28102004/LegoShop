@@ -14,9 +14,9 @@ const TONE_STYLES = {
     strip: 'bg-amber-400',
   },
   blue: {
-    dot: 'bg-blue-500',
-    panel: 'bg-blue-50',
-    strip: 'bg-blue-500',
+    dot: 'bg-[var(--admin-primary)]',
+    panel: 'bg-[var(--admin-primary-soft)]',
+    strip: 'bg-[var(--admin-primary)]',
   },
   emerald: {
     dot: 'bg-emerald-500',

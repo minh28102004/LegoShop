@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { I18nProvider } from '@/lib/i18n/I18nProvider';
+import Providers from '@/app/providers';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -15,7 +15,7 @@ export default function RootLayout({
   return (
     <html lang='vi' className='h-full antialiased'>
       <body className='min-h-full'>
-        <I18nProvider>{children}</I18nProvider>
+        <Providers>{children}</Providers>
       </body>
     </html>
   );

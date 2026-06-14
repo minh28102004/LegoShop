@@ -11,7 +11,9 @@ export class BusinessInquiriesController {
   ) {}
 
   @Post('business-inquiries')
-  createBusinessInquiry(@Body() createBusinessInquiryDto: CreateBusinessInquiryDto) {
+  createBusinessInquiry(
+    @Body() createBusinessInquiryDto: CreateBusinessInquiryDto,
+  ) {
     return this.businessInquiriesService.createBusinessInquiry(
       createBusinessInquiryDto,
     );

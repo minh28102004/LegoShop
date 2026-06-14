@@ -32,7 +32,7 @@ function CloseIcon() {
 function NotificationGlyph({ tone }: { tone: 'amber' | 'blue' | 'emerald' }) {
   const toneMap = {
     amber: 'bg-amber-100 text-amber-600',
-    blue: 'bg-blue-100 text-blue-600',
+    blue: 'bg-[var(--admin-primary-soft)] text-[var(--admin-primary-strong)]',
     emerald: 'bg-emerald-100 text-emerald-600',
   } as const;
 
@@ -70,7 +70,7 @@ export default function AdminNotificationDropdown() {
       trigger={
         <button
           type='button'
-          className='relative flex h-10 w-10 items-center justify-center rounded-[14px] border border-slate-200 bg-white text-slate-500 shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition-all duration-200 ease-out hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-100'
+          className='relative flex h-10 w-10 items-center justify-center rounded-[14px] border border-slate-200 bg-white text-slate-500 shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition-all duration-200 ease-out hover:border-[var(--admin-primary-tint)] hover:bg-[var(--admin-primary-soft)] hover:text-[var(--admin-primary-strong)] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--admin-primary-ring)]'
           aria-label={t('common.notifications')}
         >
           {notifying ? (
@@ -88,7 +88,7 @@ export default function AdminNotificationDropdown() {
             <button
               type='button'
               onClick={close}
-              className='rounded-[10px] p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-100'
+              className='rounded-[10px] p-1 text-slate-400 transition hover:bg-red-50 hover:text-red-700 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-red-100'
               aria-label={t('common.close')}
             >
               <CloseIcon />
@@ -106,7 +106,7 @@ export default function AdminNotificationDropdown() {
                   <button
                     type='button'
                     onClick={close}
-                    className='flex w-full items-start gap-3 rounded-2xl border border-transparent px-3 py-3 text-left transition-colors hover:border-slate-100 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-100'
+                    className='flex w-full items-start gap-3 rounded-2xl border border-transparent px-3 py-3 text-left transition-colors hover:border-[var(--admin-primary-tint)] hover:bg-[var(--admin-primary-soft)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--admin-primary-ring)]'
                   >
                     <NotificationGlyph tone={item.tone} />
                     <span className='block min-w-0'>

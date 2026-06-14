@@ -1,6 +1,17 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { AdminListQueryDto } from '../common/dto/admin-list-query.dto';
 import { BannersService } from './banners.service';
 import { CreateBannerDto } from './dto/create-banner.dto';
 import { UpdateBannerDto } from './dto/update-banner.dto';
@@ -18,8 +29,8 @@ export class BannersController {
   @Get('admin/banners')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  findAdminBanners() {
-    return this.bannersService.findAdminBanners();
+  findAdminBanners(@Query() query: AdminListQueryDto) {
+    return this.bannersService.findAdminBanners(query);
   }
 
   @Get('admin/banners/:id')
@@ -39,7 +50,10 @@ export class BannersController {
   @Patch('admin/banners/:id')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  updateBanner(@Param('id') id: string, @Body() updateBannerDto: UpdateBannerDto) {
+  updateBanner(
+    @Param('id') id: string,
+    @Body() updateBannerDto: UpdateBannerDto,
+  ) {
     return this.bannersService.updateBanner(id, updateBannerDto);
   }
 

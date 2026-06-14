@@ -70,7 +70,7 @@ export default function Dropdown({
       left,
       width: matchTriggerWidth ? panelWidth : undefined,
       maxHeight,
-      zIndex: 120,
+      zIndex: 1700,
     });
   }, [align, matchTriggerWidth, offset, portal]);
 
@@ -78,10 +78,12 @@ export default function Dropdown({
     if (!open || !portal) return;
 
     updatePortalPosition();
+    const frame = window.requestAnimationFrame(updatePortalPosition);
     window.addEventListener('resize', updatePortalPosition);
     window.addEventListener('scroll', updatePortalPosition, true);
 
     return () => {
+      window.cancelAnimationFrame(frame);
       window.removeEventListener('resize', updatePortalPosition);
       window.removeEventListener('scroll', updatePortalPosition, true);
     };

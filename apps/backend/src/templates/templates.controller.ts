@@ -1,6 +1,17 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { AdminListQueryDto } from '../common/dto/admin-list-query.dto';
 import { CreateTemplateDto } from './dto/create-template.dto';
 import { UpdateTemplateDto } from './dto/update-template.dto';
 import { TemplatesService } from './templates.service';
@@ -23,8 +34,8 @@ export class TemplatesController {
   @Get('admin/templates')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  findAdminTemplates() {
-    return this.templatesService.findAdminTemplates();
+  findAdminTemplates(@Query() query: AdminListQueryDto) {
+    return this.templatesService.findAdminTemplates(query);
   }
 
   @Get('admin/templates/:id')

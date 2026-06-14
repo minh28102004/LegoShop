@@ -109,9 +109,9 @@ function LogoutIcon() {
 const roleBadge = (role: UserRole) => {
   switch (role) {
     case 'ADMIN':
-      return { labelKey: 'roles.admin', tone: 'bg-blue-600 text-white' };
+      return { labelKey: 'roles.admin', tone: 'bg-red-600 text-white' };
     case 'STAFF':
-      return { labelKey: 'roles.staff', tone: 'bg-sky-600 text-white' };
+      return { labelKey: 'roles.staff', tone: 'bg-[var(--admin-primary)] text-white' };
     case 'HOST':
       return { labelKey: 'roles.host', tone: 'bg-amber-500 text-slate-900' };
     default:
@@ -178,18 +178,18 @@ export default function AdminUserDropdown({
       icon: UserIcon,
       label: profileLabel,
       colorClass: 'text-slate-700',
-      hoverClass: 'hover:bg-blue-50 hover:text-blue-700',
+      hoverClass: 'hover:bg-[var(--admin-primary-soft)] hover:text-[var(--admin-primary-strong)]',
       iconClass:
-        'bg-slate-100 text-slate-600 group-hover:bg-blue-100 group-hover:text-blue-700',
+        'bg-slate-100 text-slate-600 group-hover:bg-[var(--admin-primary-tint)] group-hover:text-[var(--admin-primary-strong)]',
     },
     {
       id: 'settings',
       icon: SettingsIcon,
       label: t('common.settings'),
       colorClass: 'text-slate-700',
-      hoverClass: 'hover:bg-blue-50 hover:text-blue-700',
+      hoverClass: 'hover:bg-[var(--admin-primary-soft)] hover:text-[var(--admin-primary-strong)]',
       iconClass:
-        'bg-slate-100 text-slate-600 group-hover:bg-blue-100 group-hover:text-blue-700',
+        'bg-slate-100 text-slate-600 group-hover:bg-[var(--admin-primary-tint)] group-hover:text-[var(--admin-primary-strong)]',
     },
   ];
 
@@ -200,11 +200,11 @@ export default function AdminUserDropdown({
       trigger={
         <button
           type='button'
-          className={`group relative z-[89] flex items-center gap-2.5 overflow-hidden rounded-full bg-white px-3 py-1.5 text-left transition-all duration-300 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-100 ${
+          className={`group relative z-[89] flex items-center gap-2.5 overflow-hidden rounded-full bg-white px-3 py-1.5 text-left transition-all duration-300 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--admin-primary-ring)] ${
             isLoggingOut
               ? 'cursor-wait opacity-90'
               : open
-                ? 'shadow-md ring-1 ring-blue-200'
+                ? 'shadow-md ring-1 ring-[var(--admin-primary-tint)]'
                 : 'hover:shadow-md'
           }`}
           aria-busy={isLoggingOut}
@@ -213,7 +213,7 @@ export default function AdminUserDropdown({
         >
           <span
             aria-hidden
-            className='pointer-events-none absolute inset-0 rounded-full ring-1 ring-blue-100 transition group-hover:ring-blue-200'
+            className='pointer-events-none absolute inset-0 rounded-full ring-1 ring-[var(--admin-primary-tint)] transition group-hover:ring-[var(--admin-primary)]'
           />
 
           <div className='relative flex items-center gap-2'>
@@ -222,7 +222,7 @@ export default function AdminUserDropdown({
                 src={avatarUrl}
                 name={fullName}
                 email={email}
-                size={36}
+                size={32}
                 status='online'
                 ringClassName='ring-2 ring-white'
               />
@@ -241,7 +241,7 @@ export default function AdminUserDropdown({
 
             <span
               className={`hidden max-w-[150px] truncate text-[14px] font-medium md:block ${
-                isLoggingOut ? 'text-blue-600' : 'text-slate-700 group-hover:text-slate-900'
+                isLoggingOut ? 'text-[var(--admin-primary-strong)]' : 'text-slate-700 group-hover:text-slate-900'
               }`}
               title={fullName || email}
             >
@@ -274,7 +274,7 @@ export default function AdminUserDropdown({
               className='overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl'
               onMouseDown={(event) => event.stopPropagation()}
             >
-              <div className='border-b border-slate-100 bg-blue-50 px-6 py-3'>
+              <div className='border-b border-slate-100 bg-linear-to-br from-sky-50 via-purple-50 to-pink-50 px-6 py-3'>
                 <p className='mb-0.5 truncate text-base font-semibold leading-6 text-slate-900'>
                   {fullName || t('common.account')}
                 </p>
@@ -308,7 +308,7 @@ export default function AdminUserDropdown({
                       onClick={() => close()}
                       initial='rest'
                       whileHover='hover'
-                      className={`group flex w-full items-center gap-3 rounded-md px-4 py-2 text-left text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-100 ${item.colorClass} ${item.hoverClass}`}
+                      className={`group flex w-full items-center gap-3 rounded-md px-4 py-2 text-left text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--admin-primary-ring)] ${item.colorClass} ${item.hoverClass}`}
                     >
                       <div
                         className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-colors duration-200 ${item.iconClass}`}

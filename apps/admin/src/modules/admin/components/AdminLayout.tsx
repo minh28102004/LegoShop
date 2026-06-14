@@ -65,7 +65,7 @@ function AdminShell({
   return (
     <div
       style={shellCssVariables}
-      className='min-h-screen overflow-x-clip bg-transparent text-slate-900'
+      className='h-screen overflow-hidden bg-transparent text-slate-900'
     >
       <AdminSidebar />
 
@@ -80,11 +80,11 @@ function AdminShell({
 
       <div
         className={cn(
-          'min-w-0 flex-1 transition-[margin] duration-300 ease-out',
+          'flex h-screen min-w-0 flex-1 flex-col transition-[margin] duration-300 ease-out',
           mainContentMargin,
         )}
       >
-        <div className='h-[var(--admin-shell-header-height)] [&>*]:h-full'>
+        <div className='h-[var(--admin-shell-header-height)] shrink-0 [&>*]:h-full'>
           <AdminHeader
             title={pageTitle}
             profileName={profileName}
@@ -94,8 +94,8 @@ function AdminShell({
           />
         </div>
 
-        <main className='min-w-0 bg-transparent'>
-          <div className='mx-auto w-full max-w-[1560px] px-4 pb-12 pt-7 sm:px-6 lg:px-7 xl:px-8 2xl:px-10'>
+        <main className='min-h-0 min-w-0 flex-1 overflow-hidden bg-transparent'>
+          <div className='mx-auto flex h-full w-full max-w-[1600px] flex-col px-3 pb-3 pt-4 sm:px-4 lg:px-5 xl:px-5 2xl:px-6'>
             {children}
           </div>
         </main>

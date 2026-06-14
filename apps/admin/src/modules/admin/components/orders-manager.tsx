@@ -1,15 +1,13 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
-import Badge, { getStatusBadgeLabel, StatusBadge } from '@/common/components/ui/Badge';
-import Card from '@/common/components/ui/Card';
-import Input from '@/common/components/ui/Input';
+import { useEffect, useMemo, useState } from 'react';
+import { getStatusBadgeLabel, StatusBadge } from '@/common/components/ui/Badge';
 import PageShell from '@/common/components/ui/PageShell';
-import Select from '@/common/components/ui/Select';
-import SectionHeader from '@/common/components/ui/SectionHeader';
 import Tooltip from '@/common/components/ui/Tooltip';
 import Table, {
+  DEFAULT_TABLE_SORTS,
+  SortableTableHead,
   TableActions,
   TableBody,
   TableCell,
@@ -18,48 +16,30 @@ import Table, {
   TableHeader,
   TablePagination,
   TableRow,
+  serializeTableSorts,
   tableActionButtonClass,
 } from '@/common/components/ui/Table';
+import OrdersFilterDrawer from '@/modules/admin/components/orders/OrdersFilterDrawer';
+import OrdersToolbar from '@/modules/admin/components/orders/OrdersToolbar';
+import {
+  DEFAULT_ORDER_FILTERS,
+  clearAdvancedOrderFilters,
+  countAdvancedOrderFilters,
+  hasAnyOrderFilter,
+  type OrderFilters,
+} from '@/modules/admin/components/orders/order-filter.types';
 import { listOrders } from '@/modules/admin/services/adminApi';
 import { useI18n } from '@/lib/i18n/useI18n';
-import type { OrderStatus, PaginatedOrders, PaymentStatus, ShippingStatus } from '@/modules/admin/types/admin.types';
-
-const ORDER_STATUSES: Array<OrderStatus | ''> = [
-  '',
-  'pending',
-  'confirmed',
-  'processing',
-  'shipping',
-  'completed',
-  'cancelled',
-];
-
-const PAYMENT_STATUSES: Array<PaymentStatus | ''> = [
-  '',
-  'unpaid',
-  'pending',
-  'deposit_pending',
-  'deposit_paid',
-  'paid',
-  'failed',
-  'cancelled',
-  'refunded',
-];
-
-const SHIPPING_STATUSES: Array<ShippingStatus | ''> = [
-  '',
-  'pending',
-  'preparing',
-  'shipping',
-  'delivered',
-  'cancelled',
-];
+import type { PaginatedOrders } from '@/modules/admin/types/admin.types';
 
 const CURRENCY = new Intl.NumberFormat('vi-VN', {
   style: 'currency',
   currency: 'VND',
   maximumFractionDigits: 0,
 });
+const NUMBER_FORMAT = new Intl.NumberFormat('vi-VN');
+
+const ORDER_PAGE_SIZE = 20;
 
 function EyeIcon() {
   return (
@@ -75,20 +55,68 @@ function EyeIcon() {
   );
 }
 
+function toDateRange(from: string, to: string): [string, string] | undefined {
+  return from || to ? [from, to] : undefined;
+}
+
+function getOrderItemLabel(locale: string) {
+  return locale === 'vi' ? 'đơn hàng' : 'orders';
+}
+
+function getOrderPaginationRangeLabel(
+  locale: string,
+  from: number,
+  to: number,
+  total: number,
+  itemLabel: string,
+) {
+  const formattedRange = `${NUMBER_FORMAT.format(from)}–${NUMBER_FORMAT.format(to)}`;
+  const formattedTotal = `${NUMBER_FORMAT.format(total)}${itemLabel ? ` ${itemLabel}` : ''}`;
+
+  return locale === 'vi'
+    ? `Hiển thị ${formattedRange} trên ${formattedTotal}`
+    : `Showing ${formattedRange} of ${formattedTotal}`;
+}
+
 export default function OrdersManager() {
-  const { t } = useI18n();
-  const [search, setSearch] = useState('');
-  const [orderStatus, setOrderStatus] = useState<OrderStatus | ''>('');
-  const [paymentStatus, setPaymentStatus] = useState<PaymentStatus | ''>('');
-  const [shippingStatus, setShippingStatus] = useState<ShippingStatus | ''>('');
+  const { t, locale } = useI18n();
+  const [searchInput, setSearchInput] = useState('');
+  const [appliedFilters, setAppliedFilters] = useState<OrderFilters>(DEFAULT_ORDER_FILTERS);
+  const [draftFilters, setDraftFilters] = useState<OrderFilters>(DEFAULT_ORDER_FILTERS);
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(ORDER_PAGE_SIZE);
   const [payload, setPayload] = useState<PaginatedOrders | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const activeAdvancedFilterCount = countAdvancedOrderFilters(appliedFilters);
+  const showReset = hasAnyOrderFilter(appliedFilters);
+  const dateFrom = appliedFilters.dateRange?.[0] ?? '';
+  const dateTo = appliedFilters.dateRange?.[1] ?? '';
+  const serializedSorts = useMemo(
+    () => serializeTableSorts(appliedFilters.sorts),
+    [appliedFilters.sorts],
+  );
+
   function statusLabel(value: string) {
     return getStatusBadgeLabel(value, t);
   }
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      const keyword = searchInput.trim();
+      setAppliedFilters((current) => {
+        if (current.keyword === keyword) return current;
+        setPage(1);
+        return { ...current, keyword };
+      });
+    }, 300);
+
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [searchInput]);
 
   useEffect(() => {
     async function load() {
@@ -96,12 +124,18 @@ export default function OrdersManager() {
       setError(null);
       try {
         const data = await listOrders({
-          search,
-          orderStatus,
-          paymentStatus,
-          shippingStatus,
+          search: appliedFilters.keyword,
+          orderStatus: appliedFilters.orderStatus,
+          paymentStatus: appliedFilters.paymentStatus,
+          shippingStatus: appliedFilters.shippingStatus,
+          amount_min: appliedFilters.minPrice,
+          amount_max: appliedFilters.maxPrice,
+          date_from: appliedFilters.dateRange?.[0] || undefined,
+          date_to: appliedFilters.dateRange?.[1] || undefined,
+          sort_by: serializedSorts.sortBy,
+          sort_dir: serializedSorts.sortDir,
           page,
-          limit: 20,
+          limit: pageSize,
         });
         setPayload(data);
       } catch (err) {
@@ -112,100 +146,149 @@ export default function OrdersManager() {
     }
 
     load();
-  }, [search, orderStatus, paymentStatus, shippingStatus, page, t]);
+  }, [appliedFilters, page, pageSize, serializedSorts.sortBy, serializedSorts.sortDir, t]);
+
+  function resetFilters() {
+    setSearchInput('');
+    setAppliedFilters(DEFAULT_ORDER_FILTERS);
+    setDraftFilters(DEFAULT_ORDER_FILTERS);
+    setPage(1);
+  }
+
+  function applyDraftFilters(nextFilters: OrderFilters) {
+    setDraftFilters(nextFilters);
+    setAppliedFilters((current) => ({
+      ...current,
+      orderStatus: nextFilters.orderStatus,
+      paymentStatus: nextFilters.paymentStatus,
+      shippingStatus: nextFilters.shippingStatus,
+      minPrice: nextFilters.minPrice,
+      maxPrice: nextFilters.maxPrice,
+    }));
+    setPage(1);
+    setDrawerOpen(false);
+  }
+
+  function updateAppliedAndDraft(updater: (filters: OrderFilters) => OrderFilters) {
+    setAppliedFilters((current) => updater(current));
+    setDraftFilters((current) => updater(current));
+    setPage(1);
+  }
+
+  function handleTableSort(sorts: OrderFilters['sorts']) {
+    updateAppliedAndDraft((current) => ({
+      ...current,
+      sorts,
+    }));
+  }
 
   return (
-    <PageShell>
-      <Card className='p-5 sm:p-6'>
-        <SectionHeader
-          eyebrow={t('common.filter')}
-          title={t('sidebar.orders')}
-          description={t('sidebarDesc.orders')}
-          badge={
-            <Badge tone='info' className='rounded-full px-4 py-2 text-sm font-medium'>
-              {payload?.meta.total ?? 0} {t('common.total')}
-            </Badge>
-          }
-        />
+    <PageShell scrollable={false}>
+      <OrdersToolbar
+        activeFilterCount={activeAdvancedFilterCount}
+        dateFrom={dateFrom}
+        dateTo={dateTo}
+        description={t('sidebarDesc.orders')}
+        onDateFromChange={(from) => {
+          updateAppliedAndDraft((current) => ({
+            ...current,
+            dateRange: toDateRange(from, current.dateRange?.[1] ?? ''),
+          }));
+        }}
+        onDateToChange={(to) => {
+          updateAppliedAndDraft((current) => ({
+            ...current,
+            dateRange: toDateRange(current.dateRange?.[0] ?? '', to),
+          }));
+        }}
+        onOpenFilters={() => setDrawerOpen(true)}
+        onReset={resetFilters}
+        onSearchChange={setSearchInput}
+        searchValue={searchInput}
+        showReset={showReset}
+        title={t('sidebar.orders')}
+        total={payload?.meta.total ?? 0}
+      />
 
-        <div className='mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-[minmax(280px,1.55fr)_repeat(3,minmax(180px,1fr))]'>
-          <Input
-            value={search}
-            aria-label={t('orders.searchPlaceholder')}
-            onChange={(e) => {
-              setPage(1);
-              setSearch(e.target.value);
-            }}
-            placeholder={t('orders.searchPlaceholder')}
-            className='sm:col-span-2 xl:col-span-1'
-          />
-
-          <Select
-            value={orderStatus}
-            aria-label={t('orders.allOrderStatuses')}
-            onChange={(e) => {
-              setPage(1);
-              setOrderStatus(e.target.value as OrderStatus | '');
-            }}
-          >
-            {ORDER_STATUSES.map((item) => (
-              <option key={item || 'all'} value={item}>
-                {item ? statusLabel(item) : t('orders.allOrderStatuses')}
-              </option>
-            ))}
-          </Select>
-
-          <Select
-            value={paymentStatus}
-            aria-label={t('orders.allPaymentStatuses')}
-            onChange={(e) => {
-              setPage(1);
-              setPaymentStatus(e.target.value as PaymentStatus | '');
-            }}
-          >
-            {PAYMENT_STATUSES.map((item) => (
-              <option key={item || 'all'} value={item}>
-                {item ? statusLabel(item) : t('orders.allPaymentStatuses')}
-              </option>
-            ))}
-          </Select>
-
-          <Select
-            value={shippingStatus}
-            aria-label={t('orders.allShippingStatuses')}
-            onChange={(e) => {
-              setPage(1);
-              setShippingStatus(e.target.value as ShippingStatus | '');
-            }}
-          >
-            {SHIPPING_STATUSES.map((item) => (
-              <option key={item || 'all'} value={item}>
-                {item ? statusLabel(item) : t('orders.allShippingStatuses')}
-              </option>
-            ))}
-          </Select>
-        </div>
-      </Card>
-
-      <Table className='min-w-[980px]'>
+      <Table containerClassName='min-h-0'>
         <TableHeader>
           <tr>
-            <TableHead>{t('orders.code')}</TableHead>
-            <TableHead>{t('orders.customer')}</TableHead>
-            <TableHead>{t('orders.phone')}</TableHead>
-            <TableHead className='text-right'>{t('orders.amount')}</TableHead>
-            <TableHead className='text-center'>{t('orders.orderStatus')}</TableHead>
-            <TableHead className='text-center'>{t('orders.paymentStatus')}</TableHead>
-            <TableHead className='text-center'>{t('orders.shippingStatus')}</TableHead>
-            <TableHead className='text-right'>{t('orders.action')}</TableHead>
+            <SortableTableHead
+              sortKey='orderCode'
+              defaultSorts={DEFAULT_TABLE_SORTS}
+              sorts={appliedFilters.sorts}
+              defaultDirection='asc'
+              onSortChange={handleTableSort}
+            >
+              {t('orders.code')}
+            </SortableTableHead>
+            <SortableTableHead
+              sortKey='customerName'
+              defaultSorts={DEFAULT_TABLE_SORTS}
+              sorts={appliedFilters.sorts}
+              defaultDirection='asc'
+              onSortChange={handleTableSort}
+            >
+              {t('orders.customer')}
+            </SortableTableHead>
+            <SortableTableHead
+              sortKey='phone'
+              defaultSorts={DEFAULT_TABLE_SORTS}
+              sorts={appliedFilters.sorts}
+              defaultDirection='asc'
+              onSortChange={handleTableSort}
+            >
+              {t('orders.phone')}
+            </SortableTableHead>
+            <SortableTableHead
+              sortKey='totalAmount'
+              defaultSorts={DEFAULT_TABLE_SORTS}
+              sorts={appliedFilters.sorts}
+              defaultDirection='desc'
+              onSortChange={handleTableSort}
+              className='text-right'
+            >
+              {t('orders.amount')}
+            </SortableTableHead>
+            <SortableTableHead
+              sortKey='orderStatus'
+              defaultSorts={DEFAULT_TABLE_SORTS}
+              sorts={appliedFilters.sorts}
+              defaultDirection='asc'
+              onSortChange={handleTableSort}
+              className='text-center'
+            >
+              {t('orders.orderStatus')}
+            </SortableTableHead>
+            <SortableTableHead
+              sortKey='paymentStatus'
+              defaultSorts={DEFAULT_TABLE_SORTS}
+              sorts={appliedFilters.sorts}
+              defaultDirection='asc'
+              onSortChange={handleTableSort}
+              className='text-center'
+            >
+              {t('orders.paymentStatus')}
+            </SortableTableHead>
+            <SortableTableHead
+              sortKey='shippingStatus'
+              defaultSorts={DEFAULT_TABLE_SORTS}
+              sorts={appliedFilters.sorts}
+              defaultDirection='asc'
+              onSortChange={handleTableSort}
+              className='text-center'
+            >
+              {t('orders.shippingStatus')}
+            </SortableTableHead>
+            <TableHead className='text-center'>{t('orders.action')}</TableHead>
           </tr>
         </TableHeader>
 
         <TableBody>
           {loading ? (
-            <TableEmptyState colSpan={8}>{t('common.loading')}</TableEmptyState>
+            <TableEmptyState colSpan={8} variant='loading'>{t('common.loading')}</TableEmptyState>
           ) : error ? (
-            <TableEmptyState colSpan={8} className='text-red-700'>
+            <TableEmptyState colSpan={8} variant='error'>
               {error}
             </TableEmptyState>
           ) : payload && payload.data.length > 0 ? (
@@ -244,7 +327,7 @@ export default function OrdersManager() {
                 <TableCell className='text-center'>
                   <StatusBadge value={order.shippingStatus} t={t} />
                 </TableCell>
-                <TableCell className='text-right'>
+                <TableCell className='text-center'>
                   <TableActions>
                     <Tooltip content={t('orders.detail')}>
                       <Link
@@ -267,18 +350,37 @@ export default function OrdersManager() {
 
       <TablePagination
         page={payload?.meta.page ?? page}
-        totalPages={payload?.meta.totalPages ?? 1}
+        totalPages={payload?.meta.totalPages ?? payload?.meta.total_pages ?? 1}
         total={payload?.meta.total ?? 0}
+        itemLabel={getOrderItemLabel(locale)}
         pageLabel={t('orders.page')}
+        pageSize={payload?.meta.limit ?? pageSize}
+        pageSizeLabel={locale === 'vi' ? 'Số dòng' : 'Rows'}
         totalLabel={t('common.total')}
         previousLabel={t('common.previous')}
         nextLabel={t('common.next')}
         previousDisabled={page <= 1}
-        nextDisabled={page >= (payload?.meta.totalPages ?? 1)}
+        nextDisabled={page >= (payload?.meta.totalPages ?? payload?.meta.total_pages ?? 1)}
+        rangeLabel={(from, to, total, itemLabel) =>
+          getOrderPaginationRangeLabel(locale, from, to, total, itemLabel)
+        }
         onPrevious={() => setPage((prev) => Math.max(1, prev - 1))}
         onNext={() => setPage((prev) => prev + 1)}
+        onPageChange={setPage}
+        onPageSizeChange={(nextPageSize) => {
+          setPageSize(nextPageSize);
+          setPage(1);
+        }}
+      />
+
+      <OrdersFilterDrawer
+        draftFilters={draftFilters}
+        getStatusLabel={statusLabel}
+        onApply={applyDraftFilters}
+        onClose={() => setDrawerOpen(false)}
+        onDraftChange={setDraftFilters}
+        open={drawerOpen}
       />
     </PageShell>
   );
 }
-

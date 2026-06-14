@@ -1,21 +1,26 @@
 ﻿'use client';
 
 import { type FormEvent, type ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
+import { motion } from 'framer-motion';
+import toast from 'react-hot-toast';
 import Badge, { getStatusBadgeLabel, StatusBadge } from '@/common/components/ui/Badge';
 import Button from '@/common/components/ui/Button';
-import Card from '@/common/components/ui/Card';
 import Checkbox from '@/common/components/ui/Checkbox';
+import ConfirmDialog from '@/common/components/ui/ConfirmDialog';
 import Input from '@/common/components/ui/Input';
+import LoadingSpinner from '@/common/components/ui/LoadingSpinner';
 import Modal, {
   ModalBody,
   ModalFooter,
   ModalHeader,
 } from '@/common/components/ui/Modal';
 import PageShell from '@/common/components/ui/PageShell';
-import SectionHeader from '@/common/components/ui/SectionHeader';
 import Select from '@/common/components/ui/Select';
 import Tooltip from '@/common/components/ui/Tooltip';
+import { type AdminNavIcon as AdminNavIconName } from '@/common/constants/routes';
 import Table, {
+  DEFAULT_TABLE_SORTS,
+  SortableTableHead,
   TableActionButton,
   TableActions,
   TableBody,
@@ -23,7 +28,11 @@ import Table, {
   TableEmptyState,
   TableHead,
   TableHeader,
+  TablePagination,
   TableRow,
+  areTableSortsEqual,
+  serializeTableSorts,
+  type TableSort,
 } from '@/common/components/ui/Table';
 import Textarea from '@/common/components/ui/Textarea';
 import { cn } from '@/common/utils/cn';
@@ -31,12 +40,26 @@ import {
   createResource,
   deleteResource,
   listResource,
+  type ResourceListParams,
   type ResourceDataMap,
   type ResourceKey,
   updateResource,
   uploadImage,
 } from '@/modules/admin/services/adminApi';
 import { useI18n } from '@/lib/i18n/useI18n';
+import AdminToolbar, {
+  AdminToolbarField,
+  AdminToolbarIcon,
+  adminToolbarButtonClass,
+  adminToolbarInputClass,
+} from '@/modules/admin/components/AdminToolbar';
+import AdminNavIcon from '@/modules/admin/components/AdminNavIcon';
+import EntityFilterDrawer from '@/modules/admin/components/entities/EntityFilterDrawer';
+import {
+  EMPTY_ENTITY_FILTER_DRAFT,
+  type EntityFilterDraft,
+} from '@/modules/admin/components/entities/entity-filter.types';
+import type { PaginatedResourceResponse } from '@/modules/admin/types/admin.types';
 
 type FieldType = 'text' | 'number' | 'textarea' | 'checkbox' | 'select' | 'json' | 'image' | 'images';
 type ImageInputMode = 'file' | 'url';
@@ -72,6 +95,15 @@ const CURRENCY_FORMAT = new Intl.NumberFormat('vi-VN', {
   currency: 'VND',
   maximumFractionDigits: 0,
 });
+const ENTITY_PAGE_SIZE = 20;
+const PAGE_SIZE_LABEL = {
+  vi: 'Số dòng',
+  en: 'Rows',
+} as const;
+const ENTITY_ACTION_COLUMN_CLASS = 'w-[124px] min-w-[124px] max-w-[124px] px-2 text-center';
+
+type SortDirection = 'asc' | 'desc';
+type EntityListMeta = PaginatedResourceResponse<unknown>['meta'];
 
 function isCurrencyColumn(key: string) {
   const normalized = key.toLowerCase();
@@ -148,16 +180,54 @@ function isPrimaryField(field: EntityField) {
   return normalizedKey === 'name' || normalizedKey.endsWith('name') || normalizedKey === 'title';
 }
 
+function getOptionalNumber(value: string): number | undefined {
+  const trimmed = value.trim();
+  if (!trimmed) return undefined;
+  const numberValue = Number(trimmed);
+  return Number.isFinite(numberValue) ? numberValue : undefined;
+}
+
+function getEntityUiText(locale: string, key: string) {
+  const vi: Record<string, string> = {
+    searchPlaceholder: 'Tìm theo tên, slug, mô tả...',
+    allStatuses: 'Tất cả trạng thái',
+    allCategories: 'Tất cả danh mục',
+    priceMin: 'Giá từ',
+    priceMax: 'Giá đến',
+    priceRange: 'Khoảng giá',
+    filters: 'Bộ lọc',
+    filterTitle: 'Bộ lọc',
+    applyFilters: 'Áp dụng',
+    reset: 'Đặt lại',
+    page: 'Trang',
+  };
+  const en: Record<string, string> = {
+    searchPlaceholder: 'Search by name, slug, description...',
+    allStatuses: 'All statuses',
+    allCategories: 'All categories',
+    priceMin: 'Price from',
+    priceMax: 'Price to',
+    priceRange: 'Price range',
+    filters: 'Filters',
+    filterTitle: 'Filters',
+    applyFilters: 'Apply filters',
+    reset: 'Reset',
+    page: 'Page',
+  };
+
+  return locale === 'vi' ? vi[key] : en[key];
+}
+
 function getEntityTableColumns(fields: EntityField[], resource: ResourceKey): EntityTableColumn[] {
   const columns: EntityTableColumn[] = [];
   const usedKeys = new Set<string>();
 
   const orderByResource: Partial<Record<ResourceKey, string[]>> = {
-    products: ['name', 'basePrice', 'slug', 'description', 'images', 'status'],
-    templates: ['name', 'categoryId', 'configJson', 'imageUrl', 'status'],
-    accessories: ['name', 'categoryId', 'imageUrl', 'iconUrl', 'status'],
-    banners: ['title', 'sortOrder', 'linkUrl', 'imageUrl', 'status'],
-    collections: ['name', 'slug', 'description', 'imageUrl', 'status'],
+    products: ['name', 'images', 'basePrice', 'slug', 'description', 'status'],
+    templates: ['name', 'imageUrl', 'categoryId', 'configJson', 'status'],
+    accessories: ['name', 'imageUrl', 'iconUrl', 'categoryId', 'status'],
+    banners: ['title', 'imageUrl', 'sortOrder', 'linkUrl', 'status'],
+    collections: ['name', 'imageUrl', 'slug', 'description', 'status'],
     'template-categories': ['name', 'slug'],
     'accessory-categories': ['name', 'slug'],
   };
@@ -178,9 +248,28 @@ function getEntityTableColumns(fields: EntityField[], resource: ResourceKey): En
   return columns.slice(0, 6);
 }
 
+const ENTITY_SORT_FIELDS = {
+  products: ['name', 'basePrice', 'status', 'featured', 'createdAt', 'updatedAt'],
+  templates: ['name', 'status', 'categoryId', 'createdAt', 'updatedAt'],
+  'template-categories': ['name', 'slug', 'createdAt', 'updatedAt'],
+  accessories: ['name', 'status', 'categoryId', 'createdAt', 'updatedAt'],
+  'accessory-categories': ['name', 'slug', 'createdAt', 'updatedAt'],
+  banners: ['title', 'sortOrder', 'status', 'createdAt', 'updatedAt'],
+  collections: ['name', 'slug', 'status', 'createdAt', 'updatedAt'],
+} satisfies Record<ResourceKey, string[]>;
+
+function isEntityColumnSortable(column: EntityTableColumn, resource: ResourceKey) {
+  return ENTITY_SORT_FIELDS[resource].includes(column.field.key);
+}
+
+function getEntityDefaultSortDirection(column: EntityTableColumn): SortDirection {
+  if (column.field.type === 'number' || column.field.type === 'checkbox') return 'desc';
+  return 'asc';
+}
+
 function CloseIcon() {
   return (
-    <svg viewBox='0 0 24 24' fill='none' className='h-4 w-4' aria-hidden='true'>
+    <svg viewBox='0 0 24 24' fill='none' className='h-5 w-5' aria-hidden='true'>
       <path
         d='M6 6L18 18M18 6L6 18'
         stroke='currentColor'
@@ -216,6 +305,19 @@ function PlusIcon() {
       <path d='M12 5.5V18.5' stroke='currentColor' strokeWidth='1.8' strokeLinecap='round' />
       <path d='M5.5 12H18.5' stroke='currentColor' strokeWidth='1.8' strokeLinecap='round' />
     </svg>
+  );
+}
+
+function FilterIconWithBadge({ count }: { count: number }) {
+  return (
+    <span className='relative inline-flex'>
+      <AdminToolbarIcon name='filter' />
+      {count > 0 ? (
+        <span className='absolute -right-2 -top-2 grid h-4 min-w-4 place-items-center rounded-full bg-[var(--admin-primary-strong)] px-1 text-[10px] font-bold leading-none text-white'>
+          {count}
+        </span>
+      ) : null}
+    </span>
   );
 }
 
@@ -355,9 +457,9 @@ function TableThumbnail({ src, alt }: { src?: string; alt: string }) {
 
 function FieldLabel({ label, required }: { label: string; required?: boolean }) {
   return (
-    <span className='admin-label flex items-center gap-1.5'>
+    <span className='admin-label'>
       <span>{label}</span>
-      {required ? <span className='text-red-500'>*</span> : null}
+      {required ? <span className='text-red-500'> *</span> : null}
     </span>
   );
 }
@@ -451,6 +553,155 @@ function isNonEmptyString(value: unknown): value is string {
   return typeof value === 'string' && value.trim().length > 0;
 }
 
+function getEntityEmptyMessage(resource: ResourceKey, locale: string) {
+  const messages = {
+    vi: {
+      products: 'Không có sản phẩm nào.',
+      templates: 'Không có mẫu thiết kế nào.',
+      'template-categories': 'Không có danh mục mẫu nào.',
+      accessories: 'Không có phụ kiện nào.',
+      'accessory-categories': 'Không có danh mục phụ kiện nào.',
+      banners: 'Không có banner nào.',
+      collections: 'Không có bộ sưu tập nào.',
+    },
+    en: {
+      products: 'No products found.',
+      templates: 'No templates found.',
+      'template-categories': 'No template categories found.',
+      accessories: 'No accessories found.',
+      'accessory-categories': 'No accessory categories found.',
+      banners: 'No banners found.',
+      collections: 'No collections found.',
+    },
+  } satisfies Record<string, Record<ResourceKey, string>>;
+
+  return locale === 'vi' ? messages.vi[resource] : messages.en[resource];
+}
+
+function getEntityNoun(resource: ResourceKey, locale: string, count?: number) {
+  const nouns = {
+    vi: {
+      products: 'sản phẩm',
+      templates: 'mẫu thiết kế',
+      'template-categories': 'danh mục mẫu',
+      accessories: 'phụ kiện',
+      'accessory-categories': 'danh mục phụ kiện',
+      banners: 'banner',
+      collections: 'bộ sưu tập',
+    },
+    en: {
+      products: count === 1 ? 'product' : 'products',
+      templates: count === 1 ? 'template' : 'templates',
+      'template-categories': count === 1 ? 'template category' : 'template categories',
+      accessories: count === 1 ? 'accessory' : 'accessories',
+      'accessory-categories': count === 1 ? 'accessory category' : 'accessory categories',
+      banners: count === 1 ? 'banner' : 'banners',
+      collections: count === 1 ? 'collection' : 'collections',
+    },
+  } satisfies Record<string, Record<ResourceKey, string>>;
+
+  return locale === 'vi' ? nouns.vi[resource] : nouns.en[resource];
+}
+
+function getEntityCountLabel(resource: ResourceKey, count: number, locale: string) {
+  return `${NUMBER_FORMAT.format(count)} ${getEntityNoun(resource, locale, count)}`;
+}
+
+function getEntityPaginationRangeLabel(
+  locale: string,
+  from: number,
+  to: number,
+  total: number,
+  itemLabel: string,
+) {
+  const formattedRange = `${NUMBER_FORMAT.format(from)}–${NUMBER_FORMAT.format(to)}`;
+  const formattedTotal = `${NUMBER_FORMAT.format(total)}${itemLabel ? ` ${itemLabel}` : ''}`;
+
+  return locale === 'vi'
+    ? `Hiển thị ${formattedRange} trên ${formattedTotal}`
+    : `Showing ${formattedRange} of ${formattedTotal}`;
+}
+
+function getEntityLoadingLabel(resource: ResourceKey, locale: string) {
+  const noun = getEntityNoun(resource, locale);
+  return locale === 'vi' ? `Đang tải ${noun}...` : `Loading ${noun}...`;
+}
+
+function getEntitySubmitLabel(resource: ResourceKey, locale: string, isEditing: boolean) {
+  const noun = getEntityNoun(resource, locale, 1);
+  if (locale === 'vi') return `${isEditing ? 'Cập nhật' : 'Tạo'} ${noun}`;
+  return `${isEditing ? 'Update' : 'Create'} ${noun}`;
+}
+
+function getEntityActionToastLabel(
+  resource: ResourceKey,
+  locale: string,
+  action: 'creating' | 'updating' | 'created' | 'updated' | 'deleting' | 'deleted',
+) {
+  const noun = getEntityNoun(resource, locale, 1);
+
+  if (locale === 'vi') {
+    const labels = {
+      creating: `Đang tạo ${noun}...`,
+      updating: `Đang cập nhật ${noun}...`,
+      created: `Đã tạo ${noun}.`,
+      updated: `Đã cập nhật ${noun}.`,
+      deleting: `Đang xóa ${noun}...`,
+      deleted: `Đã xóa ${noun}.`,
+    } satisfies Record<typeof action, string>;
+
+    return labels[action];
+  }
+
+  const labels = {
+    creating: `Creating ${noun}...`,
+    updating: `Updating ${noun}...`,
+    created: `${noun.charAt(0).toUpperCase()}${noun.slice(1)} created.`,
+    updated: `${noun.charAt(0).toUpperCase()}${noun.slice(1)} updated.`,
+    deleting: `Deleting ${noun}...`,
+    deleted: `${noun.charAt(0).toUpperCase()}${noun.slice(1)} deleted.`,
+  } satisfies Record<typeof action, string>;
+
+  return labels[action];
+}
+
+function getEntityDeleteDialogTitle(resource: ResourceKey, locale: string) {
+  const noun = getEntityNoun(resource, locale, 1);
+  return locale === 'vi' ? `Xóa ${noun}?` : `Delete ${noun}?`;
+}
+
+function getEntityDeleteDialogDescription(
+  resource: ResourceKey,
+  locale: string,
+  label?: string,
+) {
+  const noun = getEntityNoun(resource, locale, 1);
+
+  if (locale === 'vi') {
+    return label
+      ? `Bạn sắp xóa "${label}". Hành động này không thể hoàn tác.`
+      : `Mục ${noun} này sẽ bị xóa khỏi hệ thống. Hành động này không thể hoàn tác.`;
+  }
+
+  return label
+    ? `You are about to delete "${label}". This action cannot be undone.`
+    : `This ${noun} will be removed from the system. This action cannot be undone.`;
+}
+
+function getEntityIconName(resource: ResourceKey): AdminNavIconName {
+  const icons = {
+    products: 'products',
+    templates: 'templates',
+    'template-categories': 'templates',
+    accessories: 'accessories',
+    'accessory-categories': 'accessories',
+    banners: 'banners',
+    collections: 'collections',
+  } satisfies Record<ResourceKey, AdminNavIconName>;
+
+  return icons[resource];
+}
+
 export default function EntityManager<K extends ResourceKey>({
   title,
   resource,
@@ -459,12 +710,26 @@ export default function EntityManager<K extends ResourceKey>({
   pageDescription,
   createButtonLabel,
 }: EntityManagerProps<K>) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const [items, setItems] = useState<ResourceDataMap[K][]>([]);
+  const [meta, setMeta] = useState<EntityListMeta | null>(null);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(ENTITY_PAGE_SIZE);
+  const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string[]>([]);
+  const [categoryFilter, setCategoryFilter] = useState<string[]>([]);
+  const [priceMinFilter, setPriceMinFilter] = useState('');
+  const [priceMaxFilter, setPriceMaxFilter] = useState('');
+  const [sorts, setSorts] = useState<TableSort[]>([...DEFAULT_TABLE_SORTS]);
+  const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
+  const [draftFilters, setDraftFilters] = useState<EntityFilterDraft>(EMPTY_ENTITY_FILTER_DRAFT);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; label?: string } | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formValues, setFormValues] = useState<Record<string, unknown>>(() =>
     toInitialValues(fields),
@@ -476,6 +741,31 @@ export default function EntityManager<K extends ResourceKey>({
   const [imageLoadErrors, setImageLoadErrors] = useState<Record<string, boolean>>({});
 
   const visibleColumns = useMemo(() => getEntityTableColumns(fields, resource), [fields, resource]);
+  const statusField = useMemo(
+    () => fields.find((field) => field.key === 'status' && field.type === 'select'),
+    [fields],
+  );
+  const categoryField = useMemo(
+    () => fields.find((field) => field.key === 'categoryId' && field.type === 'select'),
+    [fields],
+  );
+  const hasPriceFilter = useMemo(
+    () => fields.some((field) => field.key === 'basePrice' && field.type === 'number'),
+    [fields],
+  );
+  const statusOptions = useMemo(() => statusField?.options ?? [], [statusField]);
+  const categoryOptions = useMemo(() => categoryField?.options ?? [], [categoryField]);
+  const activeFilterCount = useMemo(
+    () =>
+      statusFilter.length +
+      categoryFilter.length +
+      Number(Boolean(priceMinFilter || priceMaxFilter)),
+    [categoryFilter, priceMaxFilter, priceMinFilter, statusFilter],
+  );
+  const showResetFilters =
+    Boolean(search.trim()) ||
+    activeFilterCount > 0 ||
+    !areTableSortsEqual(sorts, DEFAULT_TABLE_SORTS);
   const getInputPlaceholder = useCallback(
     (field: EntityField) =>
       field.placeholder ?? buildFieldPlaceholder(t('entity.enterFieldPrefix'), field.label),
@@ -487,18 +777,54 @@ export default function EntityManager<K extends ResourceKey>({
     [t],
   );
 
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setDebouncedSearch(search.trim());
+      setPage(1);
+    }, 300);
+
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [search]);
+
   const loadItems = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const data = await listResource(resource);
-      setItems(data as ResourceDataMap[K][]);
+      const serializedSorts = serializeTableSorts(sorts);
+      const params: ResourceListParams = {
+        page,
+        limit: pageSize,
+        search: debouncedSearch || undefined,
+        sort_by: serializedSorts.sortBy,
+        sort_dir: serializedSorts.sortDir,
+        status: statusFilter.length > 0 ? statusFilter : undefined,
+        category_id: categoryFilter.length > 0 ? categoryFilter : undefined,
+        price_min: hasPriceFilter ? getOptionalNumber(priceMinFilter) : undefined,
+        price_max: hasPriceFilter ? getOptionalNumber(priceMaxFilter) : undefined,
+      };
+      const response = await listResource(resource, params);
+      setItems(response.data as ResourceDataMap[K][]);
+      setMeta(response.meta);
     } catch (err) {
       setError(err instanceof Error ? err.message : t('entity.loadFailed'));
     } finally {
       setLoading(false);
     }
-  }, [resource, t]);
+  }, [
+    categoryFilter,
+    debouncedSearch,
+    hasPriceFilter,
+    page,
+    pageSize,
+    priceMaxFilter,
+    priceMinFilter,
+    resource,
+    sorts,
+    statusFilter,
+    t,
+  ]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -555,8 +881,39 @@ export default function EntityManager<K extends ResourceKey>({
     resetForm();
   }
 
+  function applyEntityFilters(nextFilters: EntityFilterDraft) {
+    setStatusFilter(nextFilters.status);
+    setCategoryFilter(nextFilters.category);
+    setPriceMinFilter(nextFilters.priceMin);
+    setPriceMaxFilter(nextFilters.priceMax);
+    setPage(1);
+    setFilterDrawerOpen(false);
+  }
+
+  function resetFilters() {
+    setSearch('');
+    setDebouncedSearch('');
+    setStatusFilter([]);
+    setCategoryFilter([]);
+    setPriceMinFilter('');
+    setPriceMaxFilter('');
+    setSorts([...DEFAULT_TABLE_SORTS]);
+    setDraftFilters(EMPTY_ENTITY_FILTER_DRAFT);
+    setPage(1);
+  }
+
+  function handleTableSort(nextSorts: TableSort[]) {
+    setSorts(nextSorts);
+    setPage(1);
+  }
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const isEditing = Boolean(editingId);
+    const toastId = toast.loading(
+      getEntityActionToastLabel(resource, locale, isEditing ? 'updating' : 'creating'),
+    );
+
     setSaving(true);
     setError(null);
 
@@ -585,24 +942,52 @@ export default function EntityManager<K extends ResourceKey>({
 
       await loadItems();
       closeModal();
+      toast.success(
+        getEntityActionToastLabel(resource, locale, isEditing ? 'updated' : 'created'),
+        { id: toastId },
+      );
     } catch (err) {
-      setError(err instanceof Error ? err.message : t('entity.saveFailed'));
+      const message = err instanceof Error ? err.message : t('entity.saveFailed');
+      setError(message);
+      toast.error(message, { id: toastId });
     } finally {
       setSaving(false);
     }
   }
 
-  async function handleDelete(id: string) {
-    const yes = window.confirm(t('entity.deleteConfirm'));
-    if (!yes) return;
+  function getDeleteTargetLabel(row: Record<string, unknown>) {
+    const labelKeys = ['name', 'title', 'code', 'slug'];
+    const foundKey = labelKeys.find((key) => isNonEmptyString(row[key]));
+    return foundKey ? String(row[foundKey]).trim() : undefined;
+  }
+
+  function requestDelete(row: Record<string, unknown> & { id?: string }) {
+    if (!row.id) return;
+    const label = getDeleteTargetLabel(row);
+
+    setDeleteTarget(label ? { id: row.id, label } : { id: row.id });
+  }
+
+  async function handleDelete() {
+    if (!deleteTarget) return;
 
     setError(null);
+    setDeleting(true);
+    const toastId = toast.loading(getEntityActionToastLabel(resource, locale, 'deleting'));
+    const deletingId = deleteTarget.id;
+
     try {
-      await deleteResource(resource, id);
+      await deleteResource(resource, deletingId);
       await loadItems();
-      if (editingId === id) closeModal();
+      if (editingId === deletingId) closeModal();
+      setDeleteTarget(null);
+      toast.success(getEntityActionToastLabel(resource, locale, 'deleted'), { id: toastId });
     } catch (err) {
-      setError(err instanceof Error ? err.message : t('entity.deleteFailed'));
+      const message = err instanceof Error ? err.message : t('entity.deleteFailed');
+      setError(message);
+      toast.error(message, { id: toastId });
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -681,11 +1066,11 @@ export default function EntityManager<K extends ResourceKey>({
     return (
       <div className='flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between'>
         <FieldLabel label={field.label} required={field.required} />
-        <div className='relative grid h-10 w-full grid-cols-2 gap-1 overflow-hidden rounded-[14px] border border-slate-200 bg-slate-100 p-1 sm:w-[210px]'>
+        <div className='relative grid h-10 w-full grid-cols-2 gap-1 overflow-hidden rounded-[14px] border border-slate-100 bg-white p-1 shadow-[0_1px_2px_rgba(15,23,42,0.04)] sm:w-[210px]'>
           <span
             aria-hidden='true'
             className={cn(
-              'absolute left-1 top-1 h-8 w-[calc(50%-0.375rem)] rounded-[11px] bg-blue-600 shadow-[0_1px_2px_rgba(15,23,42,0.08)] transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]',
+              'absolute left-1 top-1 h-8 w-[calc(50%-0.375rem)] rounded-[11px] bg-[var(--admin-primary)] shadow-[0_1px_2px_rgba(15,23,42,0.08)] transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]',
               mode === 'url' && 'translate-x-[calc(100%+0.25rem)]',
             )}
           />
@@ -699,7 +1084,7 @@ export default function EntityManager<K extends ResourceKey>({
                 onClick={() => setImageInputMode(field.key, option.value)}
                 className={cn(
                   'relative z-10 inline-flex items-center justify-center gap-1.5 rounded-[11px] px-3 text-[13px] font-semibold transition-colors duration-200',
-                  active ? 'text-white' : 'text-slate-600 hover:bg-white hover:text-blue-700',
+                  active ? '!text-white' : '!text-slate-600 hover:bg-[var(--admin-primary-soft)] hover:!text-[var(--admin-primary-strong)]',
                 )}
               >
                 {option.icon}
@@ -768,7 +1153,7 @@ export default function EntityManager<K extends ResourceKey>({
           role='button'
           tabIndex={0}
           aria-label={field.label}
-          className='cursor-pointer rounded-[18px] border border-dashed border-blue-200 bg-slate-50 px-4 py-5 transition-colors duration-200 hover:border-blue-300 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-100'
+          className='group cursor-pointer rounded-[18px] border border-dashed border-slate-300 bg-white px-4 py-5 transition-colors duration-200 hover:border-[var(--admin-primary)] focus-visible:border-[var(--admin-primary)] focus-visible:outline-none focus-visible:shadow-[var(--admin-focus-ring)]'
           onClick={(event) => {
             const target = event.target as HTMLElement;
             if (target.closest('a, button, input, label')) return;
@@ -795,7 +1180,7 @@ export default function EntityManager<K extends ResourceKey>({
                 {imageUrls.map((imageUrl, index) => (
                   <div
                     key={`${field.key}-file-preview-${imageUrl}-${index}`}
-                    className='space-y-2 rounded-[16px] border border-slate-200 bg-white p-2.5'
+                    className='space-y-2 rounded-[16px] border border-slate-300 bg-white p-2.5'
                   >
                     {renderImagePreview(
                       imageUrl,
@@ -804,7 +1189,7 @@ export default function EntityManager<K extends ResourceKey>({
                     )}
                     {multiple ? (
                       <Button
-                        variant='danger'
+                        variant='remove'
                         type='button'
                         className='h-9 w-full rounded-[10px] px-3 py-1.5 text-xs'
                         onClick={() => removeImageListItem(field.key, index)}
@@ -824,7 +1209,7 @@ export default function EntityManager<K extends ResourceKey>({
                 <label
                   htmlFor={inputId}
                   onClick={(event) => event.stopPropagation()}
-                  className='inline-flex min-h-[42px] cursor-pointer items-center justify-center gap-2 rounded-[12px] border border-blue-100 bg-blue-50 px-4 py-2.5 text-sm font-semibold leading-none text-blue-700 transition-colors duration-200 hover:border-blue-200 hover:bg-blue-100'
+                  className='inline-flex min-h-[42px] cursor-pointer items-center justify-center gap-2 rounded-[12px] border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold leading-none text-slate-700 transition-colors duration-200 hover:border-[var(--admin-primary)] hover:bg-[var(--admin-primary-soft)] hover:text-[var(--admin-primary-strong)]'
                 >
                   <UploadIcon />
                   {multiple ? t('entity.chooseOtherFiles') : t('entity.changeImage')}
@@ -834,7 +1219,7 @@ export default function EntityManager<K extends ResourceKey>({
           ) : (
             <div className='grid min-h-[220px] place-items-center text-center'>
               <div className='flex max-w-md flex-col items-center gap-3'>
-                <span className='grid h-12 w-12 place-items-center rounded-[16px] border border-blue-100 bg-blue-50 text-blue-600'>
+                <span className='grid h-12 w-12 place-items-center rounded-[16px] border border-slate-200 bg-slate-50 text-slate-500 transition-colors duration-200 group-hover:border-[var(--admin-primary-tint)] group-hover:bg-[var(--admin-primary-soft)] group-hover:text-[var(--admin-primary-strong)] group-focus-visible:border-[var(--admin-primary-tint)] group-focus-visible:bg-[var(--admin-primary-soft)] group-focus-visible:text-[var(--admin-primary-strong)]'>
                   <UploadIcon />
                 </span>
                 <div>
@@ -848,7 +1233,7 @@ export default function EntityManager<K extends ResourceKey>({
                 <label
                   htmlFor={inputId}
                   onClick={(event) => event.stopPropagation()}
-                  className='inline-flex min-h-[42px] cursor-pointer items-center justify-center gap-2 rounded-[12px] border border-blue-100 bg-blue-50 px-4 py-2.5 text-sm font-semibold leading-none text-blue-700 transition-colors duration-200 hover:border-blue-200 hover:bg-blue-100'
+                  className='inline-flex min-h-[42px] cursor-pointer items-center justify-center gap-2 rounded-[12px] border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold leading-none text-slate-700 transition-colors duration-200 hover:border-[var(--admin-primary)] hover:bg-[var(--admin-primary-soft)] hover:text-[var(--admin-primary-strong)]'
                 >
                   <UploadIcon />
                   {t('entity.chooseFile')}
@@ -881,7 +1266,7 @@ export default function EntityManager<K extends ResourceKey>({
           {imageUrl.trim() ? (
             renderImagePreview(imageUrl, field.label, field.key)
           ) : (
-            <div className='grid min-h-[190px] place-items-center rounded-[18px] border border-dashed border-slate-300 bg-slate-50 px-4 text-center'>
+            <div className='grid min-h-[190px] place-items-center rounded-[18px] border border-dashed border-slate-300 bg-white px-4 text-center'>
               <div className='flex max-w-xs flex-col items-center gap-3'>
                 <span className='grid h-11 w-11 place-items-center rounded-[14px] border border-slate-200 bg-white text-slate-500'>
                   <LinkIcon />
@@ -918,7 +1303,7 @@ export default function EntityManager<K extends ResourceKey>({
             />
             {imageUrls.length ? (
               <Button
-                variant='secondary'
+                variant='remove'
                 type='button'
                 className='h-10 rounded-[12px] px-4'
                 onClick={() => removeImageListItem(field.key, index)}
@@ -947,7 +1332,7 @@ export default function EntityManager<K extends ResourceKey>({
             ))}
           </div>
         ) : (
-          <div className='grid min-h-[190px] place-items-center rounded-[18px] border border-dashed border-slate-300 bg-slate-50 px-4 text-center'>
+          <div className='grid min-h-[190px] place-items-center rounded-[18px] border border-dashed border-slate-300 bg-white px-4 text-center'>
             <div className='flex max-w-xs flex-col items-center gap-3'>
               <span className='grid h-11 w-11 place-items-center rounded-[14px] border border-slate-200 bg-white text-slate-500'>
                 <LinkIcon />
@@ -1072,59 +1457,146 @@ export default function EntityManager<K extends ResourceKey>({
   }
 
   return (
-    <PageShell className='space-y-6'>
-      <Card className='p-5 sm:p-6'>
-        <SectionHeader
-          eyebrow={t('entity.manageData')}
+    <PageShell scrollable={false}>
+      <AdminToolbar
+          icon={<AdminNavIcon name={getEntityIconName(resource)} className='h-6 w-6' />}
           title={pageTitle ?? title}
           description={pageDescription ?? t('entity.description')}
-          actions={
-            <>
-              <Badge tone='info' className='rounded-full px-4 py-2 text-sm font-medium'>
-                {loading
-                  ? t('entity.loadingRecords')
-                  : `${items.length} ${items.length === 1 ? t('entity.record') : t('entity.records')}`}
-              </Badge>
-              <Button
-                onClick={openCreateModal}
-                size='md'
-                variant='primary'
-                leftIcon={<PlusIcon />}
-                className='h-10 rounded-xl px-4'
-              >
-                {createButtonLabel ?? `${t('common.create')} ${title}`}
-              </Button>
-            </>
+          badge={
+            <Badge
+              tone='info'
+              className={cn(
+                'rounded-full px-4 py-2 text-sm font-bold !text-slate-950',
+                loading && 'min-w-[112px] justify-center',
+              )}
+            >
+              {loading ? (
+                <LoadingSpinner
+                  size='sm'
+                  label={getEntityLoadingLabel(resource, locale)}
+                  className='border-current/25 border-t-current'
+                />
+              ) : (
+                getEntityCountLabel(resource, meta?.total ?? items.length, locale)
+              )}
+            </Badge>
           }
-        />
+        >
+        <AdminToolbarField
+          wide
+          icon={<AdminToolbarIcon name='search' />}
+          label={t('common.search')}
+          className='sm:w-[300px]'
+        >
+          <Input
+            value={search}
+            aria-label={t('common.search')}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder={getEntityUiText(locale, 'searchPlaceholder')}
+            className={adminToolbarInputClass}
+          />
+        </AdminToolbarField>
+
+        <Button
+          type='button'
+          variant='secondary'
+          leftIcon={<FilterIconWithBadge count={activeFilterCount} />}
+          onClick={() => setFilterDrawerOpen(true)}
+          className={cn(adminToolbarButtonClass, 'px-4')}
+        >
+          {getEntityUiText(locale, 'filters')}
+        </Button>
+
+        {showResetFilters ? (
+          <Button
+            variant='secondary'
+            type='button'
+            onClick={resetFilters}
+            leftIcon={<AdminToolbarIcon name='reset' />}
+            className={adminToolbarButtonClass}
+          >
+            {getEntityUiText(locale, 'reset')}
+          </Button>
+        ) : null}
+
+        <Button
+          onClick={openCreateModal}
+          size='md'
+          variant='primary'
+          leftIcon={<PlusIcon />}
+          className={cn(adminToolbarButtonClass, 'px-4')}
+        >
+          {createButtonLabel ?? `${t('common.create')} ${title}`}
+        </Button>
 
         {error ? (
-          <p className='mt-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700'>
+          <p className='basis-full rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700'>
             {error}
           </p>
         ) : null}
-      </Card>
+      </AdminToolbar>
 
-      <Table className='min-w-[1080px]'>
+      <EntityFilterDrawer
+        open={filterDrawerOpen}
+        draftFilters={draftFilters}
+        statusOptions={statusOptions}
+        categoryOptions={categoryOptions}
+        hasPriceFilter={hasPriceFilter}
+        onClose={() => setFilterDrawerOpen(false)}
+        onDraftChange={setDraftFilters}
+        onApply={applyEntityFilters}
+        labels={{
+          allCategories: getEntityUiText(locale, 'allCategories'),
+          allStatuses: getEntityUiText(locale, 'allStatuses'),
+          apply: getEntityUiText(locale, 'applyFilters'),
+          category: categoryField?.label ?? getEntityUiText(locale, 'allCategories'),
+          filterTitle: getEntityUiText(locale, 'filterTitle'),
+          priceMax: getEntityUiText(locale, 'priceMax'),
+          priceMin: getEntityUiText(locale, 'priceMin'),
+          priceRange: getEntityUiText(locale, 'priceRange'),
+          reset: getEntityUiText(locale, 'reset'),
+          selectedCount: (count) => `${count} ${locale === 'vi' ? 'mục đã chọn' : 'selected'}`,
+          status: t('common.status'),
+        }}
+      />
+
+      <Table containerClassName='min-h-0'>
         <TableHeader>
           <tr>
-            {visibleColumns.map((column) => (
-              <TableHead key={column.id} className={getEntityTableColumnClass(column)}>
-                {column.label}
-              </TableHead>
-            ))}
-            <TableHead className='text-right'>{t('common.actions')}</TableHead>
+            {visibleColumns.map((column) => {
+              const sortable = isEntityColumnSortable(column, resource);
+              const className = getEntityTableColumnClass(column);
+
+              return sortable ? (
+                <SortableTableHead
+                  key={column.id}
+                  sortKey={column.field.key}
+                  defaultSorts={DEFAULT_TABLE_SORTS}
+                  sorts={sorts}
+                  defaultDirection={getEntityDefaultSortDirection(column)}
+                  onSortChange={handleTableSort}
+                  className={className}
+                >
+                  {column.label}
+                </SortableTableHead>
+              ) : (
+                <TableHead key={column.id} className={className}>
+                  {column.label}
+                </TableHead>
+              );
+            })}
+            <TableHead className={ENTITY_ACTION_COLUMN_CLASS}>{t('common.actions')}</TableHead>
           </tr>
         </TableHeader>
 
         <TableBody>
           {loading ? (
-            <TableEmptyState colSpan={visibleColumns.length + 1}>
+            <TableEmptyState colSpan={visibleColumns.length + 1} variant='loading'>
               {t('common.loading')}
             </TableEmptyState>
           ) : items.length === 0 ? (
             <TableEmptyState colSpan={visibleColumns.length + 1}>
-              {t('entity.noRecordsYet')}
+              {getEntityEmptyMessage(resource, locale)}
             </TableEmptyState>
           ) : (
             items.map((item, index) => {
@@ -1140,7 +1612,7 @@ export default function EntityManager<K extends ResourceKey>({
                       {renderTableCell(column, row)}
                     </TableCell>
                   ))}
-                  <TableCell className='whitespace-nowrap text-right'>
+                  <TableCell className={cn('whitespace-nowrap', ENTITY_ACTION_COLUMN_CLASS)}>
                     <TableActions>
                       <Tooltip content={t('common.edit')}>
                         <TableActionButton
@@ -1154,7 +1626,7 @@ export default function EntityManager<K extends ResourceKey>({
                       <Tooltip content={t('common.delete')}>
                         <TableActionButton
                           tone='delete'
-                          onClick={() => row.id && handleDelete(row.id)}
+                          onClick={() => requestDelete(row)}
                           aria-label={t('common.delete')}
                         >
                           <TrashIcon />
@@ -1169,34 +1641,65 @@ export default function EntityManager<K extends ResourceKey>({
         </TableBody>
       </Table>
 
+      <TablePagination
+        page={meta?.page ?? page}
+        totalPages={meta?.totalPages ?? meta?.total_pages ?? 1}
+        total={meta?.total ?? 0}
+        itemLabel={getEntityNoun(resource, locale)}
+        pageLabel={getEntityUiText(locale, 'page')}
+        pageSize={meta?.limit ?? pageSize}
+        pageSizeLabel={locale === 'vi' ? PAGE_SIZE_LABEL.vi : PAGE_SIZE_LABEL.en}
+        totalLabel={t('common.total')}
+        previousLabel={t('common.previous')}
+        nextLabel={t('common.next')}
+        previousDisabled={page <= 1}
+        nextDisabled={page >= (meta?.totalPages ?? meta?.total_pages ?? 1)}
+        rangeLabel={(from, to, total, itemLabel) =>
+          getEntityPaginationRangeLabel(locale, from, to, total, itemLabel)
+        }
+        onPrevious={() => setPage((prev) => Math.max(1, prev - 1))}
+        onNext={() => setPage((prev) => prev + 1)}
+        onPageChange={setPage}
+        onPageSizeChange={(nextPageSize) => {
+          setPageSize(nextPageSize);
+          setPage(1);
+        }}
+      />
+
       <Modal
         open={isModalOpen}
         onClose={closeModal}
         ariaLabelledby='entity-manager-modal-title'
-        panelClassName='max-w-4xl'
+        panelClassName='max-w-4xl !border-0'
       >
         <form onSubmit={handleSubmit} className='flex min-h-0 flex-1 flex-col'>
-          <ModalHeader className='items-center px-5 py-4 sm:px-6 sm:py-4'>
-            <div className='min-w-0 pr-2'>
+          <ModalHeader className='items-center !border-b-[#4f9ed6] !bg-[#4fa6dc] px-5 py-5 sm:px-6 sm:py-5'>
+            <div className='flex min-h-10 min-w-0 items-center gap-4 pr-2'>
+              <span className='inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-[16px] bg-[#ffe16a] text-[#18385a] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.55)]'>
+                <AdminNavIcon name={getEntityIconName(resource)} className='h-6 w-6' />
+              </span>
               <h3
                 id='entity-manager-modal-title'
-                className='text-2xl font-semibold leading-tight tracking-[-0.02em] text-slate-900 sm:text-[26px]'
+                className='text-2xl font-semibold leading-none tracking-[-0.02em] text-white sm:text-[26px]'
               >
                 {editingId ? `${t('common.edit')} ${title}` : `${t('common.create')} ${title}`}
               </h3>
             </div>
 
-            <button
+            <motion.button
               type='button'
               onClick={closeModal}
               aria-label={t('common.close')}
-              className='inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-[14px] border border-slate-200 bg-white text-slate-500 transition-colors duration-200 hover:border-red-100 hover:bg-red-50 hover:text-red-600 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-100'
+              whileHover={{ rotate: 90 }}
+              whileTap={{ scale: 0.96 }}
+              transition={{ type: 'spring', stiffness: 500, damping: 18 }}
+              className='inline-flex h-10 w-10 shrink-0 items-center justify-center self-center rounded-md bg-transparent p-2 text-white transition-colors duration-200 hover:bg-white/90 hover:text-[#2479b2] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#ffe16a]/45'
             >
               <CloseIcon />
-            </button>
+            </motion.button>
           </ModalHeader>
 
-          <ModalBody className='!py-5 sm:!py-5'>
+          <ModalBody className='!bg-slate-50 !py-5 sm:!py-5'>
             <div className='grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-12'>
               {fields.map((field) => {
                 const value = formValues[field.key];
@@ -1261,7 +1764,7 @@ export default function EntityManager<K extends ResourceKey>({
                         }
                         label={field.label}
                         description={field.key === 'featured' ? undefined : `${t('entity.toggle')} ${field.label}`}
-                        containerClassName='rounded-[16px] border-slate-200 bg-slate-50 px-4 py-3 shadow-none'
+                        containerClassName='rounded-[16px] border-slate-200 bg-white px-4 py-3 shadow-none'
                       />
                     ) : null}
 
@@ -1292,9 +1795,9 @@ export default function EntityManager<K extends ResourceKey>({
             ) : null}
           </ModalBody>
 
-          <ModalFooter>
+          <ModalFooter className='!bg-white'>
             <Button
-              variant='secondary'
+              variant='cancel'
               type='button'
               onClick={closeModal}
               className='h-10 w-full rounded-[12px] px-4 sm:w-auto'
@@ -1304,17 +1807,28 @@ export default function EntityManager<K extends ResourceKey>({
             <Button
               type='submit'
               disabled={saving}
+              loading={saving}
               className='h-10 w-full rounded-[12px] px-5 disabled:translate-y-0 sm:w-auto'
             >
               {saving
                 ? t('entity.saving')
-                : editingId
-                  ? t('entity.updateRecord')
-                  : t('entity.createRecordAction')}
+                : getEntitySubmitLabel(resource, locale, Boolean(editingId))}
             </Button>
           </ModalFooter>
         </form>
       </Modal>
+
+      <ConfirmDialog
+        open={Boolean(deleteTarget)}
+        title={getEntityDeleteDialogTitle(resource, locale)}
+        description={getEntityDeleteDialogDescription(resource, locale, deleteTarget?.label)}
+        confirmText={t('common.delete')}
+        cancelText={t('common.cancel')}
+        tone='danger'
+        loading={deleting}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={handleDelete}
+      />
     </PageShell>
   );
 }

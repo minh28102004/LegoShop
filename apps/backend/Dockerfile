@@ -60,9 +60,9 @@ COPY --from=deps /app/ .
 COPY --from=pruner /app/out/full/ .
 
 # Prisma Generate: NGUYÊN TẮC là chỉ sinh ra client trong lúc build.
-# Không bao giờ chạy lệnh này lúc start app ở Production Runner.
+# Truyền biến DATABASE_URL ảo để vượt qua cơ chế check của prisma.config.ts trên môi trường CI/Render
 WORKDIR /app/apps/backend
-RUN npx prisma generate
+RUN DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy" npx prisma generate
 
 # Xây dựng ứng dụng NestJS (Dùng phiên bản Turbo đã ghim)
 WORKDIR /app

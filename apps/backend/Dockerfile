@@ -76,11 +76,11 @@ RUN pnpm --filter backend --prod deploy /pruned
 RUN cp -r apps/backend/dist /pruned/dist && \
     cp -r apps/backend/prisma /pruned/prisma
 
-# Quan trọng nhất: Sinh Prisma Client trực tiếp bên trong thư mục /pruned.
-# Do /pruned là môi trường production độc lập, npx sẽ tự động đặt .prisma vào đúng /pruned/node_modules/.prisma
-# Không copy prisma.config.ts sang đây để tránh lỗi PrismaConfigEnvError do thiếu dotenv ở production.
+# Generate Prisma Client inside the production bundle so .prisma lands in /pruned/node_modules.
+# pnpm deploy includes prisma.config.ts, so production deps must include dotenv.
+# DATABASE_URL only needs a valid shape here; prisma generate does not connect to the DB.
 WORKDIR /pruned
-RUN npx --yes prisma generate
+RUN DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy" npx --yes prisma generate
 
 # ── Stage 5: Production Runner ────────────────────────────────────────────────
 FROM base AS runner

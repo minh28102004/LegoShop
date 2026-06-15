@@ -48,7 +48,7 @@ export const ProductCard = React.forwardRef<HTMLDivElement, ProductCardProps>(
     const imageSrc = getProductImage(product)
     const rating = product.rating ?? 0
     const reviewCount = product.reviewCount
-    const detailHref = ROUTES.product(product.slug)
+    const detailHref = ROUTES.creatorStudio
 
     if (variant === 'compact') {
       return (

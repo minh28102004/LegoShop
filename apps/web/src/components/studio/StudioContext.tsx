@@ -3,7 +3,9 @@
 import { createContext, useContext, useState, ReactNode, useEffect } from "react";
 import { fetchApi } from "@/lib/api";
 
-export type ElementType = "text" | "accessory";
+export type ElementType = "text" | "accessory" | "character";
+
+export const FREESHIP_THRESHOLD = 349000; // Ngưỡng miễn phí vận chuyển
 
 export interface StudioElement {
   id: string;
@@ -81,7 +83,15 @@ export interface StudioContextType {
   zoom: number;
   setZoom: (zoom: number) => void;
   
+  // Characters (nhân vật LEGO)
+  characterCount: number;
+  setCharacterCount: (count: number) => void;
+  characterPrice: number;
+
   totalPrice: number;
+  freeshipAmount: number; // Amount needed to reach freeship
+  freeshipProgress: number; // % progress toward freeship
+  
   addElement: (el: Omit<StudioElement, "id">) => void;
   updateElement: (id: string, updates: Partial<StudioElement>) => void;
   removeElement: (id: string) => void;
@@ -104,6 +114,8 @@ export function StudioProvider({ children }: { children: ReactNode }) {
   const [frameSize, setFrameSize] = useState<string>("");
   const [frameColor, setFrameColor] = useState<string>("");
   const [printText, setPrintText] = useState<PrintText>({ title: "", date: "", message: "" });
+  const [characterCount, setCharacterCount] = useState<number>(0);
+  const CHARACTER_PRICE = 10000; // 10,000đ per character
   
   const [elements, setElements] = useState<StudioElement[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -184,7 +196,11 @@ export function StudioProvider({ children }: { children: ReactNode }) {
 
   const activeFrameSizeObj = frameSizes.find(s => s.id === frameSize);
   const baseFramePrice = activeFrameSizeObj ? activeFrameSizeObj.price : 0;
-  const totalPrice = baseFramePrice + elements.reduce((acc, el) => acc + (el.price || 0), 0);
+  const accessoriesPrice = elements.reduce((acc, el) => acc + (el.price || 0), 0);
+  const charactersTotalPrice = characterCount * CHARACTER_PRICE;
+  const totalPrice = baseFramePrice + accessoriesPrice + charactersTotalPrice;
+  const freeshipAmount = Math.max(0, FREESHIP_THRESHOLD - totalPrice);
+  const freeshipProgress = Math.min(100, Math.round((totalPrice / FREESHIP_THRESHOLD) * 100));
 
   const addElement = (el: Omit<StudioElement, "id">) => {
     const newEl = { ...el, id: Math.random().toString(36).substring(2, 9) };
@@ -219,7 +235,12 @@ export function StudioProvider({ children }: { children: ReactNode }) {
         frameColors,
         printText,
         setPrintText,
+        characterCount,
+        setCharacterCount,
+        characterPrice: CHARACTER_PRICE,
         totalPrice,
+        freeshipAmount,
+        freeshipProgress,
         elements,
         selectedId,
         activeTemplate,

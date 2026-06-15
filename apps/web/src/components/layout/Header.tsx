@@ -2,154 +2,284 @@
 
 import * as React from 'react'
 import Link from 'next/link'
-import { Menu, Search, ShoppingBag, X } from 'lucide-react'
+import { usePathname } from 'next/navigation'
+import { Menu, Search, ShoppingBag, User, X } from 'lucide-react'
 
-import { Badge, Button, Drawer } from '@/components/ui'
+import { Drawer } from '@/components/ui'
 import { HEADER_NAV, ROUTES, SITE, UI_MODAL_IDS } from '@/constants'
 import { useCart } from '@/features/cart/hooks/useCart'
 import { useScrollY } from '@/hooks/useScrollY'
-import { cn } from '@/lib/cn'
-import {
-  selectIsMobileMenuOpen,
-  useUIStore,
-} from '@/stores/uiStore'
-import { Container } from './Container'
+import { selectIsMobileMenuOpen, useUIStore } from '@/stores/uiStore'
+import { useAuthStore } from '@/stores/authStore'
 
 export interface HeaderProps extends React.ComponentPropsWithoutRef<'header'> {
   transparent?: boolean
 }
 
 export const Header = React.forwardRef<HTMLElement, HeaderProps>(
-  ({ className, transparent = true, ...props }, ref) => {
+  ({ className, transparent = false, ...props }, ref) => {
     const scrollY = useScrollY()
+    const pathname = usePathname()
     const { itemCount } = useCart()
     const isMobileMenuOpen = useUIStore(selectIsMobileMenuOpen)
     const closeMobileMenu = useUIStore((state) => state.closeMobileMenu)
     const openMobileMenu = useUIStore((state) => state.openMobileMenu)
     const openModal = useUIStore((state) => state.openModal)
-    const isScrolled = scrollY > 16
-    const shouldUseSolidBackground = !transparent || isScrolled
+    const user = useAuthStore((state) => state.user)
+    const isScrolled = scrollY > 8
 
     return (
       <>
         <header
           ref={ref}
-          className={cn(
-            'sticky top-0 z-z-sticky border-b transition-base',
-            shouldUseSolidBackground
-              ? 'border-border bg-background/90 shadow-sm backdrop-blur-xl'
-              : 'border-transparent bg-background/0',
-            className,
-          )}
           {...props}
+          style={{
+            position: 'sticky',
+            top: 0,
+            zIndex: 1100,
+            height: 60,
+            background: '#fff',
+            borderBottom: isScrolled ? 'none' : '1px solid #f3f4f6',
+            boxShadow: isScrolled ? '0 1px 0 #f3f4f6' : 'none',
+            transition: 'box-shadow 0.2s',
+          }}
         >
-          <Container className="flex h-[var(--header-height)] items-center justify-between gap-4">
+          <div
+            style={{
+              maxWidth: 1100,
+              margin: '0 auto',
+              padding: '0 24px',
+              height: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+            }}
+          >
+            {/* Logo */}
             <Link
               href={ROUTES.home}
-              className="flex shrink-0 items-center gap-3"
+              style={{ textDecoration: 'none', flexShrink: 0 }}
               aria-label={`${SITE.name} home`}
             >
-              <span className="grid size-9 place-items-center rounded-md bg-primary text-primary-foreground shadow-sm">
-                BF
-              </span>
-              <span className="font-display text-body-xl font-semibold text-text-primary">
+              <span
+                style={{
+                  fontWeight: 900,
+                  fontSize: 14,
+                  color: '#0f0f0f',
+                  letterSpacing: '0.1em',
+                  textTransform: 'uppercase',
+                }}
+              >
                 {SITE.name}
               </span>
             </Link>
 
-            <nav
-              className="hidden items-center gap-6 lg:flex"
-              aria-label="Điều hướng chính"
-            >
-              {HEADER_NAV.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className="text-body-sm font-semibold text-text-secondary transition-base hover:text-primary"
-                >
-                  {item.label}
-                </Link>
-              ))}
+            {/* Nav — center */}
+            <nav style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              {HEADER_NAV.map((item) => {
+                const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href))
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    style={{
+                      padding: '6px 14px',
+                      fontSize: 12.5,
+                      fontWeight: isActive ? 600 : 500,
+                      color: isActive ? '#0f0f0f' : '#6b7280',
+                      textDecoration: 'none',
+                      borderRadius: 6,
+                      transition: 'color 0.15s',
+                    }}
+                  >
+                    {item.label}
+                  </Link>
+                )
+              })}
             </nav>
 
-            <div className="flex items-center gap-2">
+            {/* Right — icons */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
               <button
                 type="button"
                 aria-label="Tìm kiếm"
-                className="hidden size-10 items-center justify-center rounded-md text-text-secondary transition-base hover:bg-surface hover:text-text-primary md:flex"
+                style={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: 6,
+                  border: 'none',
+                  background: 'transparent',
+                  color: '#6b7280',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                }}
               >
-                <Search className="size-5" aria-hidden="true" />
+                <Search size={16} />
               </button>
+
+              {user ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: '#374151' }}>
+                    {user.name || user.email}
+                  </span>
+                  <button
+                    onClick={() => useAuthStore.getState().logout()}
+                    style={{
+                      fontSize: 12,
+                      color: '#ef4444',
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Thoát
+                  </button>
+                </div>
+              ) : (
+                <Link
+                  href="/login"
+                  aria-label="Tài khoản"
+                  style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: 6,
+                    border: 'none',
+                    background: 'transparent',
+                    color: '#6b7280',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    textDecoration: 'none'
+                  }}
+                >
+                  <User size={16} />
+                </Link>
+              )}
+
               <button
                 type="button"
                 aria-label="Mở giỏ hàng"
-                className="relative flex size-10 items-center justify-center rounded-md text-text-secondary transition-base hover:bg-surface hover:text-text-primary"
+                style={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: 6,
+                  border: 'none',
+                  background: 'transparent',
+                  color: '#6b7280',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  position: 'relative',
+                }}
                 onClick={() => openModal(UI_MODAL_IDS.CART_DRAWER)}
               >
-                <ShoppingBag className="size-5" aria-hidden="true" />
-                {itemCount > 0 ? (
-                  <Badge
-                    variant="primary"
-                    size="sm"
-                    className="absolute -right-2 -top-2 min-w-5 justify-center px-1"
+                <ShoppingBag size={16} />
+                {itemCount > 0 && (
+                  <span
+                    style={{
+                      position: 'absolute',
+                      top: -2,
+                      right: -2,
+                      width: 14,
+                      height: 14,
+                      borderRadius: '50%',
+                      background: '#2563eb',
+                      color: '#fff',
+                      fontSize: 8,
+                      fontWeight: 700,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
                   >
                     {itemCount}
-                  </Badge>
-                ) : null}
+                  </span>
+                )}
               </button>
-              <Button asChild className="hidden md:inline-flex">
-                <Link href={ROUTES.creatorStudio}>Tạo ngay</Link>
-              </Button>
+
+              {/* Mobile toggle — hidden on desktop */}
               <button
                 type="button"
-                aria-label="Mở menu"
-                className="flex size-10 items-center justify-center rounded-md text-text-secondary transition-base hover:bg-surface hover:text-text-primary lg:hidden"
+                aria-label="Menu"
+                style={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: 6,
+                  border: 'none',
+                  background: 'transparent',
+                  color: '#6b7280',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  marginLeft: 2,
+                }}
                 onClick={openMobileMenu}
+                className="lg:hidden"
               >
-                <Menu className="size-5" aria-hidden="true" />
+                <Menu size={16} />
               </button>
             </div>
-          </Container>
+          </div>
         </header>
 
-        <Drawer
-          isOpen={isMobileMenuOpen}
-          onClose={closeMobileMenu}
-          title="Menu"
-          position="right"
-          size="sm"
-        >
-          <div className="flex flex-col gap-4">
-            <div className="flex items-center justify-between">
-              <span className="font-display text-body-xl font-semibold">
+        {/* Mobile Drawer */}
+        <Drawer isOpen={isMobileMenuOpen} onClose={closeMobileMenu} title={SITE.name} position="right" size="sm">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+              <span style={{ fontWeight: 900, fontSize: 13, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#0f0f0f' }}>
                 {SITE.name}
               </span>
               <button
                 type="button"
-                aria-label="Đóng menu"
-                className="rounded-md p-2 text-text-muted transition-base hover:bg-surface hover:text-text-primary"
                 onClick={closeMobileMenu}
+                style={{ padding: 6, borderRadius: 6, border: 'none', background: 'transparent', color: '#9ca3af', cursor: 'pointer' }}
               >
-                <X className="size-5" aria-hidden="true" />
+                <X size={16} />
               </button>
             </div>
-            <nav className="grid gap-2" aria-label="Điều hướng mobile">
+            <nav style={{ display: 'grid', gap: 2 }}>
               {HEADER_NAV.map((item) => (
                 <Link
                   key={item.href}
                   href={item.href}
-                  className="rounded-md px-3 py-3 text-body-md font-semibold text-text-primary transition-base hover:bg-surface"
                   onClick={closeMobileMenu}
+                  style={{
+                    padding: '10px 12px',
+                    fontSize: 14,
+                    fontWeight: 500,
+                    color: '#374151',
+                    textDecoration: 'none',
+                    borderRadius: 8,
+                  }}
                 >
                   {item.label}
                 </Link>
               ))}
             </nav>
-            <Button asChild className="mt-4">
-              <Link href={ROUTES.creatorStudio} onClick={closeMobileMenu}>
-                Tạo ngay
-              </Link>
-            </Button>
+            <Link
+              href={ROUTES.studio}
+              onClick={closeMobileMenu}
+              style={{
+                marginTop: 16,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: '#2563eb',
+                color: '#fff',
+                fontWeight: 600,
+                padding: '12px 0',
+                borderRadius: 8,
+                fontSize: 14,
+                textDecoration: 'none',
+              }}
+            >
+              Bắt đầu thiết kế →
+            </Link>
           </div>
         </Drawer>
       </>

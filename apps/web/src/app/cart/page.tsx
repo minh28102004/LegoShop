@@ -1,109 +1,160 @@
 "use client";
 
-import { useCart } from "@/lib/cart";
+import { useCart } from "@/features/cart/hooks/useCart";
 import Link from "next/link";
 import Image from "next/image";
-import { Trash2, Minus, Plus, ShoppingBag, ArrowRight } from "lucide-react";
+import { Trash2, Minus, Plus, ShoppingBag, ArrowRight, Pencil, ChevronRight } from "lucide-react";
+import { formatPrice } from "@/lib/formatters";
+import { ROUTES } from "@/constants";
+import { FREESHIP_THRESHOLD } from "@/components/studio/StudioContext";
 
 export default function CartPage() {
-  const { items, isLoaded, updateQuantity, removeItem, totalAmount } = useCart();
-
-  if (!isLoaded) return <div className="p-8 text-center">Đang tải...</div>;
+  const { items, updateQuantity, removeItem, totalAmount, isEmpty, itemCount } = useCart();
+  const freeshipRemaining = Math.max(0, FREESHIP_THRESHOLD - totalAmount);
+  const isFree = freeshipRemaining === 0;
 
   return (
-    <div className="container mx-auto px-4 py-12 flex-1 flex flex-col">
-      <h1 className="text-3xl font-black mb-8">Giỏ Hàng Của Bạn</h1>
+    <div className="min-h-screen bg-background">
+      <div className="container mx-auto px-4 max-w-7xl py-10">
+        {/* Breadcrumb */}
+        <nav className="flex items-center gap-1.5 text-xs text-text-muted mb-6">
+          <Link href="/" className="hover:text-primary transition-colors">Trang chủ</Link>
+          <ChevronRight className="w-3 h-3" />
+          <span className="text-text-secondary font-semibold">Giỏ hàng</span>
+        </nav>
 
-      {items.length === 0 ? (
-        <div className="flex-1 flex flex-col items-center justify-center text-center py-20 bg-white rounded-2xl border border-zinc-200">
-          <div className="w-20 h-20 bg-zinc-100 rounded-full flex items-center justify-center mb-6">
-            <ShoppingBag className="w-10 h-10 text-zinc-400" />
-          </div>
-          <h2 className="text-2xl font-bold mb-2">Giỏ hàng trống</h2>
-          <p className="text-zinc-500 mb-8 max-w-md">Bạn chưa có sản phẩm nào trong giỏ hàng. Hãy thử thiết kế một sản phẩm cá nhân hóa xem sao!</p>
-          <Link href="/collection" className="px-8 py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-full transition-colors flex items-center gap-2">
-            Khám phá sản phẩm <ArrowRight className="w-4 h-4" />
-          </Link>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-10 items-start">
-          <div className="lg:col-span-2 space-y-6">
-            {items.map((item) => (
-              <div key={item.id} className="flex gap-6 p-6 bg-white rounded-2xl border border-zinc-200">
-                <div className="w-32 h-32 bg-zinc-100 rounded-xl overflow-hidden shrink-0 relative">
-                  {item.previewUrl ? (
-                    <Image src={item.previewUrl} alt={item.productName} fill className="object-cover" />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-zinc-400 text-sm">No Preview</div>
-                  )}
-                </div>
-                
-                <div className="flex-1 flex flex-col justify-between">
-                  <div>
-                    <div className="flex justify-between items-start mb-1">
-                      <h3 className="font-bold text-lg">{item.productName}</h3>
-                      <button onClick={() => removeItem(item.id)} className="text-zinc-400 hover:text-red-600 transition-colors">
-                        <Trash2 className="w-5 h-5" />
-                      </button>
-                    </div>
-                    {item.designData && <p className="text-sm text-green-600 font-medium">Đã cá nhân hóa</p>}
-                  </div>
-                  
-                  <div className="flex items-center justify-between mt-4">
-                    <div className="flex items-center gap-3 bg-zinc-100 p-1 rounded-lg">
-                      <button onClick={() => updateQuantity(item.id, item.quantity - 1)} className="p-1 hover:bg-white rounded shadow-sm">
-                        <Minus className="w-4 h-4" />
-                      </button>
-                      <span className="w-8 text-center font-medium">{item.quantity}</span>
-                      <button onClick={() => updateQuantity(item.id, item.quantity + 1)} className="p-1 hover:bg-white rounded shadow-sm">
-                        <Plus className="w-4 h-4" />
-                      </button>
-                    </div>
-                    
-                    <span className="font-black text-red-600">
-                      {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(item.price * item.quantity)}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-          
-          <div className="bg-white p-6 rounded-2xl border border-zinc-200 sticky top-24">
-            <h3 className="text-xl font-bold mb-6">Tổng đơn hàng</h3>
-            
-            <div className="space-y-4 mb-6">
-              <div className="flex justify-between text-zinc-600">
-                <span>Tạm tính</span>
-                <span className="font-medium">{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(totalAmount)}</span>
-              </div>
-              <div className="flex justify-between text-zinc-600">
-                <span>Phí giao hàng</span>
-                <span className="font-medium">Chưa tính</span>
-              </div>
-              <div className="border-t border-zinc-100 pt-4 flex justify-between items-center">
-                <span className="font-bold">Tổng cộng</span>
-                <span className="text-2xl font-black text-red-600">
-                  {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(totalAmount)}
-                </span>
-              </div>
+        <h1 className="text-3xl font-black mb-2 text-text-primary">Giỏ hàng của bạn</h1>
+        {itemCount > 0 && <p className="text-sm text-text-muted mb-8">{itemCount} sản phẩm</p>}
+
+        {isEmpty ? (
+          <div className="flex flex-col items-center justify-center py-24 text-center bg-surface rounded-3xl border border-border">
+            <div className="w-24 h-24 bg-primary/10 rounded-2xl flex items-center justify-center mb-6">
+              <ShoppingBag className="w-12 h-12 text-primary" />
             </div>
-            
-            <Link 
-              href="/checkout" 
-              className="w-full flex items-center justify-center py-4 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl transition-colors shadow-lg shadow-red-600/20"
-            >
-              Tiến hành thanh toán
+            <h2 className="text-2xl font-black text-text-primary mb-3">Giỏ hàng đang trống</h2>
+            <p className="text-text-secondary mb-8 max-w-sm">Hãy thiết kế một sản phẩm LEGO cá nhân hóa thật đặc biệt!</p>
+            <Link href={ROUTES.studio}
+              className="px-8 py-3.5 bg-[hsl(var(--color-cta))] text-white font-bold rounded-full transition-colors flex items-center gap-2 hover:bg-[hsl(var(--color-cta-hover))] shadow-sm">
+              Bắt đầu thiết kế <ArrowRight className="w-4 h-4" />
             </Link>
-            
-            <div className="mt-4 text-center">
-              <Link href="/collection" className="text-sm font-medium text-zinc-500 hover:text-zinc-900 transition-colors">
-                Tiếp tục mua sắm
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+            {/* Items */}
+            <div className="lg:col-span-2 space-y-4">
+              {/* Freeship bar */}
+              <div className="bg-surface rounded-2xl border border-border p-4">
+                {isFree ? (
+                  <p className="text-sm font-semibold text-emerald-600 flex items-center gap-2">🎉 Bạn đã được Miễn phí vận chuyển thường!</p>
+                ) : (
+                  <div className="space-y-2">
+                    <p className="text-sm text-text-secondary">Thêm <strong className="text-text-primary">{formatPrice(freeshipRemaining)}</strong> để được miễn phí vận chuyển</p>
+                    <div className="h-2 bg-border rounded-full overflow-hidden">
+                      <div className="h-full bg-primary rounded-full transition-all duration-500" style={{ width: `${Math.min(100, (totalAmount / FREESHIP_THRESHOLD) * 100)}%` }} />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {items.map(item => (
+                <div key={item.id} className="flex gap-5 p-5 bg-surface rounded-2xl border border-border hover:border-primary/20 transition-colors">
+                  {/* Preview */}
+                  <div className="w-28 h-28 bg-background rounded-xl overflow-hidden shrink-0 relative border border-border">
+                    {item.previewUrl ? (
+                      <Image src={item.previewUrl} alt={item.productName} fill className="object-cover" sizes="112px" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <ShoppingBag className="w-8 h-8 text-text-muted" />
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex-1 flex flex-col justify-between min-w-0">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <h3 className="font-bold text-base text-text-primary truncate">{item.productName}</h3>
+                        <p className="text-sm text-text-muted mt-0.5">{item.frameSizeLabel} · {item.frameColorName}</p>
+                        {item.designData && (
+                          <span className="inline-block mt-1 text-xs text-primary font-semibold bg-primary/10 px-2 py-0.5 rounded-full">
+                            Đã cá nhân hóa
+                          </span>
+                        )}
+                      </div>
+                      <button type="button" onClick={() => removeItem(item.id)}
+                        className="shrink-0 p-1.5 text-text-muted hover:text-error hover:bg-error/10 rounded-lg transition-all">
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+
+                    <div className="flex items-center justify-between mt-3">
+                      <div className="flex items-center gap-0 border border-border rounded-xl overflow-hidden">
+                        <button type="button" onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                          className="w-9 h-9 flex items-center justify-center hover:bg-surface-hover transition-colors text-text-secondary">
+                          <Minus className="w-3.5 h-3.5" />
+                        </button>
+                        <span className="w-10 text-center text-sm font-bold text-text-primary">{item.quantity}</span>
+                        <button type="button" onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                          className="w-9 h-9 flex items-center justify-center hover:bg-surface-hover transition-colors text-text-secondary">
+                          <Plus className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-black text-primary text-lg">{formatPrice(item.totalPrice)}</p>
+                        {item.quantity > 1 && (
+                          <p className="text-xs text-text-muted">{formatPrice(item.unitPrice)} / cái</p>
+                        )}
+                      </div>
+                    </div>
+
+                    <Link href={ROUTES.studio} className="inline-flex items-center gap-1 mt-2 text-xs font-semibold text-text-muted hover:text-primary transition-colors">
+                      <Pencil className="w-3 h-3" /> Chỉnh sửa thiết kế
+                    </Link>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Summary */}
+            <div className="bg-surface p-6 rounded-2xl border border-border sticky top-24 space-y-5">
+              <h3 className="text-lg font-black text-text-primary">Tổng đơn hàng</h3>
+
+              <div className="space-y-3">
+                <div className="flex justify-between text-sm">
+                  <span className="text-text-secondary">Tạm tính ({itemCount} sản phẩm)</span>
+                  <span className="font-semibold text-text-primary">{formatPrice(totalAmount)}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-text-secondary">Phí vận chuyển</span>
+                  <span className={`font-semibold ${isFree ? 'text-emerald-600' : 'text-text-muted'}`}>
+                    {isFree ? 'Miễn phí' : 'Tính khi thanh toán'}
+                  </span>
+                </div>
+                <div className="border-t border-border pt-3 flex justify-between items-center">
+                  <span className="font-black text-text-primary">Tổng cộng</span>
+                  <span className="text-2xl font-black text-primary">{formatPrice(totalAmount)}</span>
+                </div>
+              </div>
+
+              <Link href={ROUTES.checkout}
+                className="w-full flex items-center justify-center py-4 bg-primary hover:bg-primary-hover text-white font-bold rounded-2xl transition-colors shadow-sm">
+                Tiến hành thanh toán <ArrowRight className="w-4 h-4 ml-2" />
               </Link>
+
+              <Link href={ROUTES.collection} className="w-full text-center block text-sm font-medium text-text-muted hover:text-primary transition-colors">
+                ← Tiếp tục mua sắm
+              </Link>
+
+              {/* Trust badges */}
+              <div className="border-t border-border pt-4 space-y-2">
+                {["🛡️ Duyệt thiết kế trước khi in", "🎁 Gói quà miễn phí", "🚚 Giao hàng toàn quốc"].map(t => (
+                  <p key={t} className="text-xs text-text-muted flex items-center gap-1.5">{t}</p>
+                ))}
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }
+

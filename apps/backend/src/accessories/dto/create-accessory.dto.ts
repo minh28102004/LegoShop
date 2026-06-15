@@ -1,7 +1,7 @@
 import { ProductStatus } from '@prisma/client';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { Transform } from 'class-transformer';
-import { IsEnum, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { Transform, Type } from 'class-transformer';
+import { IsEnum, IsInt, IsNotEmpty, IsOptional, IsString, Min } from 'class-validator';
 
 export class CreateAccessoryDto {
   @ApiProperty({
@@ -13,6 +13,15 @@ export class CreateAccessoryDto {
   @IsString()
   @IsNotEmpty()
   name: string;
+
+  @ApiProperty({
+    example: 0,
+    minimum: 0,
+  })
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  price: number;
 
   @ApiPropertyOptional({
     example: 'https://example.com/sword.png',

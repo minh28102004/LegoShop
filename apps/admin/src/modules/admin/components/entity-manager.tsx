@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { type FormEvent, type ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
@@ -256,6 +256,8 @@ const ENTITY_SORT_FIELDS = {
   'accessory-categories': ['name', 'slug', 'createdAt', 'updatedAt'],
   banners: ['title', 'sortOrder', 'status', 'createdAt', 'updatedAt'],
   collections: ['name', 'slug', 'status', 'createdAt', 'updatedAt'],
+  'frame-sizes': ['name', 'createdAt', 'updatedAt'],
+  'frame-colors': ['name', 'createdAt', 'updatedAt'],
 } satisfies Record<ResourceKey, string[]>;
 
 function isEntityColumnSortable(column: EntityTableColumn, resource: ResourceKey) {
@@ -563,6 +565,8 @@ function getEntityEmptyMessage(resource: ResourceKey, locale: string) {
       'accessory-categories': 'Không có danh mục phụ kiện nào.',
       banners: 'Không có banner nào.',
       collections: 'Không có bộ sưu tập nào.',
+      'frame-sizes': 'Không có kích thước khung nào.',
+      'frame-colors': 'Không có màu khung nào.',
     },
     en: {
       products: 'No products found.',
@@ -572,6 +576,8 @@ function getEntityEmptyMessage(resource: ResourceKey, locale: string) {
       'accessory-categories': 'No accessory categories found.',
       banners: 'No banners found.',
       collections: 'No collections found.',
+      'frame-sizes': 'No frame sizes found.',
+      'frame-colors': 'No frame colors found.',
     },
   } satisfies Record<string, Record<ResourceKey, string>>;
 
@@ -588,6 +594,8 @@ function getEntityNoun(resource: ResourceKey, locale: string, count?: number) {
       'accessory-categories': 'danh mục phụ kiện',
       banners: 'banner',
       collections: 'bộ sưu tập',
+      'frame-sizes': 'kích thước khung',
+      'frame-colors': 'màu khung',
     },
     en: {
       products: count === 1 ? 'product' : 'products',
@@ -597,6 +605,8 @@ function getEntityNoun(resource: ResourceKey, locale: string, count?: number) {
       'accessory-categories': count === 1 ? 'accessory category' : 'accessory categories',
       banners: count === 1 ? 'banner' : 'banners',
       collections: count === 1 ? 'collection' : 'collections',
+      'frame-sizes': count === 1 ? 'frame size' : 'frame sizes',
+      'frame-colors': count === 1 ? 'frame color' : 'frame colors',
     },
   } satisfies Record<string, Record<ResourceKey, string>>;
 
@@ -697,9 +707,47 @@ function getEntityIconName(resource: ResourceKey): AdminNavIconName {
     'accessory-categories': 'accessories',
     banners: 'banners',
     collections: 'collections',
+    'frame-sizes': 'products',
+    'frame-colors': 'products',
   } satisfies Record<ResourceKey, AdminNavIconName>;
 
   return icons[resource];
+}
+
+const DEFAULT_COLOR_MAP: Record<string, string> = {
+  'tráng': '#ffffff',
+  'trắng': '#ffffff',
+  'white': '#ffffff',
+  'den': '#1a1a1a',
+  'đen': '#1a1a1a',
+  'black': '#1a1a1a',
+  'go': '#d7a15c',
+  'gỗ': '#d7a15c',
+  'wood': '#d7a15c',
+  'xám': '#808080',
+  'gray': '#808080',
+  'grey': '#808080',
+  'nâu': '#8b4513',
+  'brown': '#8b4513',
+  'đỏ': '#ff0000',
+  'red': '#ff0000',
+  'vàng': '#facc15',
+  'yellow': '#facc15',
+  'xanh lá': '#22c55e',
+  'green': '#22c55e',
+  'xanh dương': '#3b82f6',
+  'blue': '#3b82f6',
+};
+
+function getValidHexForInput(val: unknown): string {
+  const str = String(val ?? '').trim();
+  if (/^#[0-9A-F]{6}$/i.test(str)) {
+    return str;
+  }
+  if (/^[0-9A-F]{6}$/i.test(str)) {
+    return `#${str}`;
+  }
+  return '#ffffff';
 }
 
 export default function EntityManager<K extends ResourceKey>({
@@ -805,8 +853,16 @@ export default function EntityManager<K extends ResourceKey>({
         price_max: hasPriceFilter ? getOptionalNumber(priceMaxFilter) : undefined,
       };
       const response = await listResource(resource, params);
-      setItems(response.data as ResourceDataMap[K][]);
-      setMeta(response.meta);
+      if (Array.isArray(response)) {
+        setItems(response as ResourceDataMap[K][]);
+        setMeta(null);
+      } else if (response && typeof response === 'object' && 'data' in response) {
+        setItems((response as any).data as ResourceDataMap[K][]);
+        setMeta((response as any).meta ?? null);
+      } else {
+        setItems([]);
+        setMeta(null);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : t('entity.loadFailed'));
     } finally {
@@ -1360,6 +1416,20 @@ export default function EntityManager<K extends ResourceKey>({
     const field = column.field;
     const value = getRelatedDisplayValue(row, field.key);
 
+    if (field.key === 'colorHex') {
+      const hex = typeof value === 'string' ? value.trim() : '';
+      if (!hex) return <span className='text-slate-400'>-</span>;
+      return (
+        <div className='flex items-center gap-2'>
+          <span
+            className='h-4.5 w-4.5 shrink-0 rounded-full border border-slate-300 shadow-sm'
+            style={{ backgroundColor: hex }}
+          />
+          <span className='font-mono text-[13px] text-slate-700'>{hex}</span>
+        </div>
+      );
+    }
+
     if (typeof value === 'string' && field.key.toLowerCase().includes('status')) {
       const statusValue = value.trim();
       if (!statusValue) return <span className='text-slate-400'>-</span>;
@@ -1644,7 +1714,7 @@ export default function EntityManager<K extends ResourceKey>({
       <TablePagination
         page={meta?.page ?? page}
         totalPages={meta?.totalPages ?? meta?.total_pages ?? 1}
-        total={meta?.total ?? 0}
+        total={meta?.total ?? items.length}
         itemLabel={getEntityNoun(resource, locale)}
         pageLabel={getEntityUiText(locale, 'page')}
         pageSize={meta?.limit ?? pageSize}
@@ -1769,17 +1839,44 @@ export default function EntityManager<K extends ResourceKey>({
                     ) : null}
 
                     {(field.type === 'text' || field.type === 'number') ? (
-                      <Input
-                        type={field.type}
-                        value={String(value ?? '')}
-                        required={field.required}
-                        aria-label={field.label}
-                        placeholder={getInputPlaceholder(field)}
-                        onChange={(event) =>
-                          setFormValues((prev) => ({ ...prev, [field.key]: event.target.value }))
-                        }
-                        size='md'
-                      />
+                      <div className={cn(field.key === 'colorHex' && 'flex items-center gap-2')}>
+                        <Input
+                          type={field.type}
+                          value={String(value ?? '')}
+                          required={field.required}
+                          aria-label={field.label}
+                          placeholder={getInputPlaceholder(field)}
+                          onChange={(event) => {
+                            const val = event.target.value;
+                            setFormValues((prev) => {
+                              const updated = { ...prev, [field.key]: val };
+                              if (resource === 'frame-colors' && field.key === 'name') {
+                                const normalized = val.trim().toLowerCase();
+                                const matchedHex = DEFAULT_COLOR_MAP[normalized];
+                                if (matchedHex && (!prev.colorHex || prev.colorHex === '')) {
+                                  updated.colorHex = matchedHex;
+                                }
+                              }
+                              return updated;
+                            });
+                          }}
+                          size='md'
+                          className='flex-1'
+                        />
+                        {field.key === 'colorHex' && (
+                          <div className='relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-slate-200 shadow-sm'>
+                            <input
+                              type='color'
+                              value={getValidHexForInput(value)}
+                              onChange={(event) => {
+                                const val = event.target.value;
+                                setFormValues((prev) => ({ ...prev, [field.key]: val }));
+                              }}
+                              className='absolute h-[150%] w-[150%] cursor-pointer border-none p-0 bg-transparent'
+                            />
+                          </div>
+                        )}
+                      </div>
                     ) : null}
 
                     {(field.type === 'image' || field.type === 'images') ? renderImageField(field, value) : null}

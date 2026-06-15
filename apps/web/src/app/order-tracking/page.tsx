@@ -2,14 +2,42 @@
 
 import { useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { Search, Package, CheckCircle, Truck, Clock, AlertCircle } from "lucide-react";
-
+import { Search, Package, CheckCircle, Truck, Clock, AlertCircle, ChevronRight } from "lucide-react";
+import Link from "next/link";
 import { fetchApi } from "@/lib/api";
+import { formatPrice } from "@/lib/formatters";
+import { ROUTES } from "@/constants";
+
+const ORDER_STATUSES: Record<string, { label: string; color: string }> = {
+  Pending:    { label: "Chờ xác nhận", color: "bg-yellow-100 text-yellow-700" },
+  Confirmed:  { label: "Đã xác nhận",  color: "bg-blue-100 text-blue-700" },
+  Processing: { label: "Đang xử lý",   color: "bg-purple-100 text-purple-700" },
+  Shipping:   { label: "Đang giao",    color: "bg-orange-100 text-orange-700" },
+  Completed:  { label: "Hoàn thành",   color: "bg-emerald-100 text-emerald-700" },
+  Cancelled:  { label: "Đã hủy",       color: "bg-red-100 text-red-700" },
+};
+
+const PAYMENT_STATUSES: Record<string, { label: string; color: string }> = {
+  unpaid:        { label: "Chưa thanh toán", color: "text-yellow-600" },
+  deposit_paid:  { label: "Đã đặt cọc",     color: "text-blue-600" },
+  paid:          { label: "Đã thanh toán",   color: "text-emerald-600" },
+};
+
+const STEPS = [
+  { key: "Pending",    label: "Tiếp nhận",   icon: Package },
+  { key: "Confirmed",  label: "Xác nhận",    icon: Clock },
+  { key: "Processing", label: "Đang làm",    icon: Clock },
+  { key: "Shipping",   label: "Đang giao",   icon: Truck },
+  { key: "Completed",  label: "Hoàn thành",  icon: CheckCircle },
+];
+
+function getStepIndex(status: string) {
+  return STEPS.findIndex(s => s.key === status);
+}
 
 function TrackingContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  
   const initialCode = searchParams.get("code") || "";
   const [orderCode, setOrderCode] = useState(initialCode);
   const [loading, setLoading] = useState(false);
@@ -18,145 +46,157 @@ function TrackingContent() {
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!orderCode.trim()) return;
-    
     setLoading(true);
-    
     try {
-      const data = await fetchApi(`/orders/track/${orderCode}`);
+      const data = await fetchApi(`/orders/track/${orderCode.trim()}`);
       setResult(data);
-    } catch (err: any) {
-      console.error(err);
+    } catch {
       setResult({ error: true });
     }
-    
     setLoading(false);
-    router.push(`/order-tracking?code=${orderCode}`);
+    router.push(`${ROUTES.orderTracking}?code=${orderCode.trim()}`);
   };
 
+  const currentStepIdx = result && !result.error ? getStepIndex(result.orderStatus) : -1;
+
   return (
-    <div className="container mx-auto px-4 py-12 max-w-4xl">
-      <h1 className="text-3xl font-black mb-2 text-center">Tra Cứu Đơn Hàng</h1>
-      <p className="text-zinc-500 text-center mb-10">Nhập mã đơn hàng của bạn để kiểm tra trạng thái</p>
+    <div className="min-h-screen bg-background py-10">
+      <div className="container mx-auto px-4 max-w-3xl">
+        {/* Breadcrumb */}
+        <nav className="flex items-center gap-1.5 text-xs text-text-muted mb-8">
+          <Link href="/" className="hover:text-primary">Trang chủ</Link>
+          <ChevronRight className="w-3 h-3" />
+          <span className="text-text-secondary font-semibold">Tra cứu đơn hàng</span>
+        </nav>
 
-      <form onSubmit={handleSearch} className="flex gap-2 max-w-md mx-auto mb-16">
-        <input 
-          type="text" 
-          required
-          placeholder="Ví dụ: ORD123456" 
-          value={orderCode}
-          onChange={e => setOrderCode(e.target.value)}
-          className="flex-1 px-4 py-3 rounded-lg border border-zinc-300 focus:ring-red-500 focus:border-red-500 uppercase"
-        />
-        <button 
-          type="submit" 
-          disabled={loading}
-          className="px-6 py-3 bg-zinc-900 text-white rounded-lg font-medium hover:bg-zinc-800 transition-colors disabled:opacity-50"
-        >
-          {loading ? "Đang tìm..." : <Search className="w-5 h-5" />}
-        </button>
-      </form>
-
-      {result?.error && (
-        <div className="bg-red-50 text-red-600 p-6 rounded-2xl flex items-center gap-4">
-          <AlertCircle className="w-6 h-6 shrink-0" />
-          <p>Không tìm thấy đơn hàng nào với mã <strong>{orderCode}</strong>. Vui lòng kiểm tra lại.</p>
+        <div className="text-center mb-10">
+          <h1 className="text-3xl font-black text-text-primary mb-2">Tra Cứu Đơn Hàng</h1>
+          <p className="text-text-secondary">Nhập mã đơn hàng để kiểm tra trạng thái</p>
         </div>
-      )}
 
-      {result && !result.error && (
-        <div className="bg-white rounded-3xl border border-zinc-200 overflow-hidden shadow-sm">
-          {/* Order Header */}
-          <div className="bg-zinc-50 p-6 md:p-8 border-b border-zinc-200 flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div>
-              <p className="text-sm text-zinc-500 mb-1">Đơn hàng</p>
-              <h2 className="text-2xl font-bold tracking-widest">{result.orderCode}</h2>
-            </div>
-            <div className="flex flex-col md:items-end gap-1">
-              <span className="px-3 py-1 rounded-full bg-blue-100 text-blue-700 text-sm font-medium">
-                Đang xử lý
-              </span>
-              <span className="text-sm text-zinc-500">
-                Ngày đặt: {new Date(result.createdAt).toLocaleDateString('vi-VN')}
-              </span>
-            </div>
+        {/* Search form */}
+        <form onSubmit={handleSearch} className="flex gap-2 max-w-md mx-auto mb-12">
+          <input
+            type="text" required
+            placeholder="Ví dụ: ORD123456"
+            value={orderCode}
+            onChange={e => setOrderCode(e.target.value.toUpperCase())}
+            className="flex-1 px-4 py-3 rounded-xl border border-border focus:ring-2 focus:ring-primary focus:border-primary outline-none bg-surface text-text-primary uppercase font-mono font-bold tracking-widest text-sm"
+          />
+          <button type="submit" disabled={loading}
+            className="px-6 py-3 bg-[hsl(var(--color-cta))] text-white rounded-xl font-bold hover:bg-[hsl(var(--color-cta-hover))] transition-colors disabled:opacity-50 flex items-center gap-2">
+            {loading ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Search className="w-5 h-5" />}
+          </button>
+        </form>
+
+        {/* Error */}
+        {result?.error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 p-5 rounded-2xl flex items-center gap-3 mb-8">
+            <AlertCircle className="w-5 h-5 shrink-0" />
+            <p>Không tìm thấy đơn hàng với mã <strong className="font-mono">{orderCode}</strong>. Vui lòng kiểm tra lại.</p>
           </div>
+        )}
 
-          {/* Tracking Timeline */}
-          <div className="p-6 md:p-8 border-b border-zinc-200">
-            <div className="relative flex justify-between">
-              <div className="absolute top-1/2 left-0 right-0 h-1 bg-zinc-100 -translate-y-1/2 z-0" />
-              <div className="absolute top-1/2 left-0 w-1/3 h-1 bg-green-500 -translate-y-1/2 z-0" />
-              
-              <div className="relative z-10 flex flex-col items-center gap-2">
-                <div className="w-10 h-10 rounded-full bg-green-500 text-white flex items-center justify-center">
-                  <Package className="w-5 h-5" />
-                </div>
-                <span className="text-xs font-medium text-green-600">Đã tiếp nhận</span>
+        {/* Result */}
+        {result && !result.error && (
+          <div className="bg-surface rounded-3xl border border-border overflow-hidden shadow-sm">
+            {/* Header */}
+            <div className="px-6 py-5 border-b border-border flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-background">
+              <div>
+                <p className="text-xs text-text-muted mb-1 font-medium uppercase tracking-wide">Đơn hàng</p>
+                <h2 className="text-xl font-black tracking-[0.1em] text-text-primary font-mono">{result.orderCode}</h2>
+                <p className="text-xs text-text-muted mt-1">Đặt ngày: {new Date(result.createdAt).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })}</p>
               </div>
-              
-              <div className="relative z-10 flex flex-col items-center gap-2">
-                <div className="w-10 h-10 rounded-full bg-green-500 text-white flex items-center justify-center shadow-lg shadow-green-500/30">
-                  <Clock className="w-5 h-5" />
-                </div>
-                <span className="text-xs font-medium text-green-600">Đang xử lý</span>
-              </div>
-              
-              <div className="relative z-10 flex flex-col items-center gap-2">
-                <div className="w-10 h-10 rounded-full bg-zinc-200 text-zinc-400 flex items-center justify-center">
-                  <Truck className="w-5 h-5" />
-                </div>
-                <span className="text-xs font-medium text-zinc-400">Đang giao</span>
-              </div>
-              
-              <div className="relative z-10 flex flex-col items-center gap-2">
-                <div className="w-10 h-10 rounded-full bg-zinc-200 text-zinc-400 flex items-center justify-center">
-                  <CheckCircle className="w-5 h-5" />
-                </div>
-                <span className="text-xs font-medium text-zinc-400">Hoàn thành</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Details */}
-          <div className="p-6 md:p-8 grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div>
-              <h3 className="font-bold text-lg mb-4">Thông tin giao hàng</h3>
-              <div className="space-y-2 text-zinc-600 text-sm">
-                <p><span className="font-medium text-zinc-900">Người nhận:</span> {result.customerName}</p>
-                <p><span className="font-medium text-zinc-900">Địa chỉ:</span> {result.address}</p>
-              </div>
-            </div>
-            
-            <div>
-              <h3 className="font-bold text-lg mb-4">Tóm tắt đơn hàng</h3>
-              <div className="space-y-3 mb-4">
-                {result.items.map((item: any, idx: number) => (
-                  <div key={idx} className="flex justify-between text-sm">
-                    <span className="text-zinc-600">
-                      {item.quantity}x {item.name} 
-                      {item.personalized && <span className="ml-2 text-xs text-green-600 font-medium">(Đã thiết kế)</span>}
-                    </span>
-                    <span className="font-medium">{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(item.price * item.quantity)}</span>
-                  </div>
-                ))}
-              </div>
-              <div className="pt-4 border-t border-zinc-100 flex justify-between items-center">
-                <span className="font-bold">Tổng cộng</span>
-                <span className="text-xl font-black text-red-600">
-                  {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(result.totalAmount)}
+              <div className="flex flex-col items-start sm:items-end gap-1.5">
+                <span className={`px-3 py-1 rounded-full text-xs font-bold ${ORDER_STATUSES[result.orderStatus]?.color ?? 'bg-border text-text-secondary'}`}>
+                  {ORDER_STATUSES[result.orderStatus]?.label ?? result.orderStatus}
+                </span>
+                <span className={`text-sm font-semibold ${PAYMENT_STATUSES[result.paymentStatus]?.color ?? 'text-text-muted'}`}>
+                  {PAYMENT_STATUSES[result.paymentStatus]?.label ?? result.paymentStatus}
                 </span>
               </div>
             </div>
+
+            {/* Timeline */}
+            <div className="px-6 py-6 border-b border-border overflow-x-auto">
+              <div className="relative flex justify-between min-w-[320px]">
+                <div className="absolute top-5 left-0 right-0 h-0.5 bg-border z-0" />
+                <div className="absolute top-5 left-0 h-0.5 bg-primary z-0 transition-all duration-500" style={{ width: `${Math.max(0, currentStepIdx / (STEPS.length - 1)) * 100}%` }} />
+                {STEPS.map((step, idx) => {
+                  const Icon = step.icon;
+                  const done = idx <= currentStepIdx;
+                  const current = idx === currentStepIdx;
+                  return (
+                    <div key={step.key} className="relative z-10 flex flex-col items-center gap-2">
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${done ? 'bg-primary text-white' : 'bg-border text-text-muted'} ${current ? 'ring-4 ring-primary/20' : ''}`}>
+                        <Icon className="w-5 h-5" />
+                      </div>
+                      <span className={`text-xs font-semibold whitespace-nowrap ${done ? 'text-primary' : 'text-text-muted'}`}>{step.label}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Info grid */}
+            <div className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-6">
+              {/* Shipping info */}
+              <div>
+                <h3 className="font-bold text-sm text-text-secondary uppercase tracking-wide mb-3">Thông tin giao hàng</h3>
+                <div className="space-y-2 text-sm">
+                  <div className="flex gap-2"><span className="font-semibold text-text-secondary w-24 shrink-0">Người nhận:</span><span className="text-text-primary">{result.customerName}</span></div>
+                  <div className="flex gap-2"><span className="font-semibold text-text-secondary w-24 shrink-0">SĐT:</span><span className="text-text-primary">{result.phone}</span></div>
+                  {result.email && <div className="flex gap-2"><span className="font-semibold text-text-secondary w-24 shrink-0">Email:</span><span className="text-text-primary">{result.email}</span></div>}
+                  <div className="flex gap-2"><span className="font-semibold text-text-secondary w-24 shrink-0">Địa chỉ:</span><span className="text-text-primary">{result.address}</span></div>
+                </div>
+              </div>
+
+              {/* Payment info */}
+              <div>
+                <h3 className="font-bold text-sm text-text-secondary uppercase tracking-wide mb-3">Thông tin thanh toán</h3>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between"><span className="text-text-secondary">Tổng đơn hàng</span><span className="font-bold text-text-primary">{formatPrice(result.totalAmount)}</span></div>
+                  {result.depositRequired && (
+                    <>
+                      <div className="flex justify-between"><span className="text-text-secondary">Đặt cọc ({result.depositPercent}%)</span><span className="font-bold text-primary">{formatPrice(result.depositAmount)}</span></div>
+                      <div className="flex justify-between"><span className="text-text-secondary">Còn lại khi nhận</span><span className="font-bold text-text-primary">{formatPrice(result.remainingAmount)}</span></div>
+                    </>
+                  )}
+                  <div className="flex justify-between"><span className="text-text-secondary">Hình thức</span><span className="font-semibold text-text-primary">{result.paymentMethod}</span></div>
+                </div>
+              </div>
+            </div>
+
+            {/* Items */}
+            {result.items?.length > 0 && (
+              <div className="px-6 pb-6 border-t border-border pt-5">
+                <h3 className="font-bold text-sm text-text-secondary uppercase tracking-wide mb-4">Sản phẩm</h3>
+                <div className="space-y-3">
+                  {result.items.map((item: any, idx: number) => (
+                    <div key={idx} className="flex items-center gap-3 p-3 bg-background rounded-xl border border-border">
+                      {item.previewUrl && (
+                        <img src={item.previewUrl} alt="" className="w-12 h-12 rounded-lg object-cover border border-border shrink-0" />
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-text-primary truncate">{item.productName}</p>
+                        <p className="text-xs text-text-muted">×{item.quantity}</p>
+                      </div>
+                      <span className="text-sm font-bold text-text-primary shrink-0">{formatPrice(item.price * item.quantity)}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }
 
 export default function OrderTrackingPage() {
   return (
-    <Suspense fallback={<div className="p-20 text-center">Đang tải...</div>}>
+    <Suspense fallback={<div className="flex items-center justify-center min-h-[60vh]"><div className="w-12 h-12 border-4 border-primary/30 border-t-primary rounded-full animate-spin" /></div>}>
       <TrackingContent />
     </Suspense>
   );

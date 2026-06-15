@@ -19,6 +19,7 @@ export default function AccessoriesPage() {
   const fields = useMemo<EntityField[]>(
     () => [
       { key: 'name', label: t('accessoriesPage.name'), type: 'text', required: true },
+      { key: 'price', label: t('accessoriesPage.price'), type: 'number', required: true },
       {
         key: 'status',
         label: t('accessoriesPage.status'),

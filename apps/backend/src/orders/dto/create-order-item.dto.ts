@@ -10,15 +10,15 @@ import {
 } from 'class-validator';
 
 export class CreateOrderItemDto {
-  @ApiProperty({
+  @ApiPropertyOptional({
     example: '8d33f2a5-f6da-4a07-a2f1-2359f5f818a7',
   })
   @Transform(({ value }: { value: unknown }) =>
     typeof value === 'string' ? value.trim() : value,
   )
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
-  productId: string;
+  productId?: string;
 
   @ApiProperty({
     example: 'Dragon Brick Set',

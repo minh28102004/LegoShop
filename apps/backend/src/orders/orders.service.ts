@@ -24,7 +24,7 @@ import { CreateOrderDto } from './dto/create-order.dto';
 import { CreateOrderItemDto } from './dto/create-order-item.dto';
 
 type ResolvedOrderItem = {
-  productId: string;
+  productId?: string;
   productName: string;
   quantity: number;
   price: number;
@@ -358,7 +358,7 @@ export class OrdersService {
   private async resolveOrderItems(
     items: CreateOrderItemDto[],
   ): Promise<ResolvedOrderItem[]> {
-    const productIds = items.map((item) => item.productId);
+    const productIds = items.map((item) => item.productId).filter((id): id is string => !!id);
     const uniqueProductIds = Array.from(new Set(productIds));
     const products = await this.prisma.product.findMany({
       where: {
@@ -378,22 +378,34 @@ export class OrdersService {
     );
 
     return items.map((item) => {
-      const product = productsById.get(item.productId);
+      if (item.productId) {
+        const product = productsById.get(item.productId);
 
-      if (!product) {
-        throw new BadRequestException(
-          `Product ${item.productId} is not available`,
-        );
+        if (!product) {
+          throw new BadRequestException(
+            `Product ${item.productId} is not available`,
+          );
+        }
+
+        return {
+          productId: product.id,
+          productName: product.name,
+          quantity: item.quantity,
+          price: product.basePrice,
+          designData: item.designData,
+          previewUrl: item.previewUrl,
+        };
+      } else {
+        // Custom item without productId
+        return {
+          productId: undefined,
+          productName: item.productName || 'Thiết kế khung LEGO',
+          quantity: item.quantity,
+          price: item.price, // Use price from frontend for custom items
+          designData: item.designData,
+          previewUrl: item.previewUrl,
+        };
       }
-
-      return {
-        productId: product.id,
-        productName: product.name,
-        quantity: item.quantity,
-        price: product.basePrice,
-        designData: item.designData,
-        previewUrl: item.previewUrl,
-      };
     });
   }
 

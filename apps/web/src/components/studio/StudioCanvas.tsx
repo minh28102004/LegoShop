@@ -1,27 +1,55 @@
 "use client";
 
-import { Undo, Redo, ZoomIn, ZoomOut, Save, ShoppingBag, Trash2 } from "lucide-react";
+import { Undo, Redo, Trash2, Share2, Image as ImageIcon, Type } from "lucide-react";
 import { useStudio } from "./StudioContext";
 import { useState, useRef, useEffect } from "react";
-import { useCart } from "@/lib/cart";
-import { useRouter } from "next/navigation";
+
+const getFrameColorHex = (name: string, apiHex?: string | null): string => {
+  if (apiHex && apiHex.startsWith('#')) return apiHex;
+  const lower = (name || '').trim().toLowerCase();
+  if (lower === 'trắng' || lower === 'white') return '#ffffff';
+  if (lower === 'đen' || lower === 'black') return '#1f1f21';
+  if (lower === 'gỗ' || lower === 'wood') return '#d7a15c';
+  return '#d1d5db';
+};
 
 export function StudioCanvas() {
   const { 
-    elements, 
-    selectedId, 
-    setSelectedId, 
-    updateElement, 
-    removeElement, 
-    activeTemplate, 
-    zoom, 
-    setZoom,
-    addElement,
-    templates
+    elements, selectedId, setSelectedId, updateElement, removeElement, 
+    activeTemplate, zoom, addElement, templates, frameSize, frameSizes,
+    frameColor, frameColors
   } = useStudio();
   
   const currentTemplate = templates.find(t => t.id === activeTemplate);
   const activeTemplateImage = currentTemplate?.imageUrl;
+
+  const selectedColorObj = frameColors.find(c => c.name === frameColor);
+  const frameColorHex = getFrameColorHex(frameColor, selectedColorObj?.colorHex);
+
+  const parseFrameDimensions = (lbl: string) => {
+    const match = lbl.match(/(\d+)\s*x\s*(\d+)/i);
+    if (match && match[1] && match[2]) {
+      const wVal = parseInt(match[1], 10);
+      const hVal = parseInt(match[2], 10);
+      return { w: wVal, h: hVal };
+    }
+    return { w: 20, h: 20 };
+  };
+
+  const parsedSizes = frameSizes.map(s => {
+    const { w, h } = parseFrameDimensions(s.label);
+    return { id: s.id, w, h };
+  });
+
+  const maxDim = parsedSizes.length > 0 ? Math.max(...parsedSizes.map(s => Math.max(s.w, s.h)), 30) : 30;
+
+  const currentSizeObj = parsedSizes.find(s => s.id === frameSize) || { w: 20, h: 20 };
+
+  const maxBound = 360;
+  const minBound = 180;
+  
+  const canvasW = Math.max(minBound, Math.round((currentSizeObj.w / maxDim) * maxBound));
+  const canvasH = Math.max(minBound, Math.round((currentSizeObj.h / maxDim) * maxBound));
 
   const [isDragging, setIsDragging] = useState(false);
   const dragRef = useRef<{ id: string, startX: number, startY: number, initialX: number, initialY: number } | null>(null);
@@ -37,11 +65,8 @@ export function StudioCanvas() {
   const handlePointerMove = (e: React.PointerEvent) => {
     if (!isDragging || !dragRef.current) return;
     const { id, startX, startY, initialX, initialY } = dragRef.current;
-    
-    // Calculate new position
     const dx = (e.clientX - startX) / zoom;
     const dy = (e.clientY - startY) / zoom;
-    
     updateElement(id, { x: initialX + dx, y: initialY + dy });
   };
 
@@ -51,11 +76,11 @@ export function StudioCanvas() {
     (e.target as HTMLElement).releasePointerCapture(e.pointerId);
   };
 
-  // Keyboard delete support
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Delete' || e.key === 'Backspace') {
-        if (selectedId && !isDragging) {
+      if ((e.key === 'Delete' || e.key === 'Backspace') && selectedId && !isDragging) {
+        const tag = (document.activeElement as HTMLElement)?.tagName;
+        if (tag !== 'INPUT' && tag !== 'TEXTAREA') {
           removeElement(selectedId);
         }
       }
@@ -65,69 +90,94 @@ export function StudioCanvas() {
   }, [selectedId, isDragging, removeElement]);
 
   return (
-    <div className="flex-1 flex flex-col bg-zinc-50 h-full relative" onClick={() => setSelectedId(null)}>
-      {/* Top Toolbar */}
-      <div className="absolute top-4 right-6 flex items-center gap-2 z-10" onClick={e => e.stopPropagation()}>
-        <button onClick={() => addElement({ type: 'text', content: 'Văn bản mới', x: 150, y: 150, fontSize: 16, color: '#000000' })} className="px-3 py-1.5 bg-white border border-zinc-200 text-sm font-medium rounded-md hover:bg-zinc-50 flex items-center gap-2">
-          <span className="font-bold">T+</span> Thêm chữ
-        </button>
-        <button className="px-3 py-1.5 bg-white border border-zinc-200 text-sm font-medium rounded-md hover:bg-zinc-50 flex items-center gap-2 text-emerald-600">
-          🖼️ Hình ảnh
-        </button>
-
-        <div className="flex items-center ml-2 bg-white border border-zinc-200 rounded-md">
-          <button className="p-1.5 text-zinc-400 hover:text-zinc-900 hover:bg-zinc-50 rounded-l-md" title="Hoàn tác">
-            <Undo className="w-4 h-4" />
+    <div className="flex-1 flex flex-col h-full relative" onClick={() => setSelectedId(null)}>
+      {/* Toolbar */}
+      <div className="absolute top-3 left-4 right-4 flex items-center justify-between z-10 pointer-events-none">
+        <span className="bg-surface/90 backdrop-blur-sm text-xs font-bold uppercase tracking-widest text-text-secondary px-3 py-1.5 rounded-full border border-border shadow-sm pointer-events-auto">
+          ẢNH XEM TRƯỚC
+        </span>
+        <div className="flex items-center gap-1.5 pointer-events-auto" onClick={e => e.stopPropagation()}>
+          <button
+            type="button"
+            onClick={() => addElement({ type: 'text', content: 'Văn bản mới', x: 120 + Math.random() * 160, y: 120 + Math.random() * 160, fontSize: 14, color: '#000000' })}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 bg-surface border border-border text-xs font-semibold rounded-lg hover:bg-surface-hover shadow-sm transition-colors"
+          >
+            <Type className="w-3.5 h-3.5 text-text-secondary" />
+            <span className="hidden sm:inline text-text-secondary">Thêm chữ</span>
           </button>
-          <div className="w-px h-4 bg-zinc-200" />
-          <button className="p-1.5 text-zinc-400 hover:text-zinc-900 hover:bg-zinc-50 rounded-r-md" title="Làm lại">
-            <Redo className="w-4 h-4" />
+          <button
+            type="button"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 bg-surface border border-border text-xs font-semibold rounded-lg hover:bg-surface-hover shadow-sm transition-colors text-emerald-600"
+          >
+            <ImageIcon className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Hình ảnh</span>
+          </button>
+          <div className="flex items-center bg-surface border border-border rounded-lg shadow-sm overflow-hidden">
+            <button type="button" className="px-2 py-1.5 text-text-muted hover:text-text-primary hover:bg-surface-hover transition-colors" title="Hoàn tác">
+              <Undo className="w-3.5 h-3.5" />
+            </button>
+            <div className="w-px h-4 bg-border" />
+            <button type="button" className="px-2 py-1.5 text-text-muted hover:text-text-primary hover:bg-surface-hover transition-colors" title="Làm lại">
+              <Redo className="w-3.5 h-3.5" />
+            </button>
+          </div>
+          <button
+            type="button"
+            onClick={() => selectedId && removeElement(selectedId)}
+            className={`p-1.5 border rounded-lg shadow-sm transition-colors ${selectedId ? 'bg-surface border-error/30 text-error hover:bg-error/10' : 'bg-surface/50 border-border text-text-muted cursor-not-allowed'}`}
+            title="Xóa"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+          </button>
+          <button
+            type="button"
+            className="p-1.5 bg-surface border border-border rounded-lg shadow-sm text-text-muted hover:text-primary hover:border-primary/30 transition-colors"
+            title="Chia sẻ"
+          >
+            <Share2 className="w-3.5 h-3.5" />
           </button>
         </div>
-
-        <button onClick={() => selectedId && removeElement(selectedId)} className={`p-1.5 border rounded-md transition-colors ${selectedId ? 'bg-white border-red-200 text-red-500 hover:bg-red-50' : 'bg-white/50 border-zinc-200 text-zinc-300 cursor-not-allowed'}`} title="Xóa">
-          <Trash2 className="w-4 h-4" />
-        </button>
       </div>
 
-      {/* Canvas Area */}
-      <div className="flex-1 overflow-auto flex items-center justify-center p-8">
-        <div 
-          className="w-[400px] h-[400px] bg-white shadow-lg relative border border-zinc-200 transition-transform origin-center bg-center bg-contain bg-no-repeat"
-          style={{ 
+      {/* Canvas */}
+      <div className="flex-1 overflow-auto flex items-center justify-center p-10 pt-14">
+        <div
+          className="bg-white relative transition-all duration-300 origin-center bg-center bg-cover bg-no-repeat"
+          style={{
+            width: `${canvasW}px`,
+            height: `${canvasH}px`,
             transform: `scale(${zoom})`,
             backgroundImage: activeTemplateImage ? `url(${activeTemplateImage})` : 'none',
+            border: `12px solid ${frameColorHex}`,
+            boxSizing: 'content-box',
+            boxShadow: `
+              0 15px 35px -5px rgba(0, 0, 0, 0.18), 
+              0 10px 15px -6px rgba(0, 0, 0, 0.15),
+              inset 0 0 5px rgba(0, 0, 0, 0.2), 
+              inset 0 2px 4px rgba(255, 255, 255, 0.15)
+            `,
           }}
         >
           {!activeTemplateImage && elements.length === 0 && (
             <div className="absolute inset-8 border-2 border-dashed border-zinc-200 rounded flex flex-col items-center justify-center text-zinc-400 pointer-events-none">
-              <span className="text-sm">Khu vực thiết kế</span>
+              <span className="text-sm text-center">Khu vực thiết kế</span>
+              <span className="text-xs text-center mt-1 opacity-60">Chọn mẫu hoặc thêm chữ/phụ kiện</span>
             </div>
           )}
-
-          {/* Render Elements */}
           {elements.map(el => (
             <div
               key={el.id}
-              onPointerDown={(e) => handlePointerDown(e, el.id, el.x, el.y)}
+              onPointerDown={e => handlePointerDown(e, el.id, el.x, el.y)}
               onPointerMove={handlePointerMove}
               onPointerUp={handlePointerUp}
               onPointerCancel={handlePointerUp}
-              className={`absolute cursor-move select-none ${selectedId === el.id ? 'ring-2 ring-red-500 ring-offset-2' : 'hover:ring-1 hover:ring-zinc-300 hover:ring-offset-1'}`}
-              style={{
-                left: el.x,
-                top: el.y,
-                fontSize: el.fontSize,
-                color: el.color,
-                width: el.width,
-                height: el.height,
-                touchAction: 'none'
-              }}
+              className={`absolute cursor-move select-none ${selectedId === el.id ? 'ring-2 ring-primary ring-offset-1' : 'hover:ring-1 hover:ring-primary/40'}`}
+              style={{ left: el.x, top: el.y, fontSize: el.fontSize, color: el.color, width: el.width, height: el.height, touchAction: 'none' }}
             >
               {el.type === 'accessory' && el.imageUrl ? (
                 <img src={el.imageUrl} alt={el.content} className="w-full h-full object-contain pointer-events-none" />
               ) : (
-                el.content
+                <span className="pointer-events-none whitespace-nowrap">{el.content}</span>
               )}
             </div>
           ))}

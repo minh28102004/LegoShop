@@ -3,17 +3,17 @@
 // ============================================================
 
 export const SITE = {
-  name: 'BrickFrames',
-  tagline: 'Nhung vien gach xung dang duoc trung bay.',
+  name: 'THE LUVIN',
+  tagline: 'Quà tặng cá nhân hóa từ khung LEGO độc đáo.',
   description:
-    'Khung tranh LEGO cao cap, duoc thiet ke de trung bay nhung bo suu tap Technic, Icons va Architecture dac biet nhat cua ban.',
-  url: 'https://brickframes.vn',
-  email: 'hello@brickframes.vn',
+    'Thiết kế khung tranh LEGO cá nhân hóa cho mọi dịp đặc biệt. Độc đáo, ý nghĩa và chỉ mất 5 phút để tạo ra.',
+  url: 'https://theluvin.vn',
+  email: 'hello@theluvin.vn',
   phone: '0901 234 567',
-  address: 'Quan 1, TP. Ho Chi Minh',
+  address: 'Quận 1, TP. Hồ Chí Minh',
   locale: 'vi-VN',
   currency: 'VND',
-  twitterHandle: '@brickframes_vn',
+  twitterHandle: '@theluvin_vn',
   ogImage: '/og-image.jpg',
 } as const
 

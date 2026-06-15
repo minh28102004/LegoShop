@@ -41,7 +41,6 @@ export class PaymentsService {
   async createPayosPaymentLink(
     input: CreatePayosPaymentLinkInput,
   ): Promise<PayosPaymentLinkResult> {
-    const payos = this.createPayosClient();
     const config = this.getPayosRuntimeConfig();
     const amount = this.validatePositiveInteger(input.amount, 'Payment amount');
     const orderCode = this.validatePayosOrderCode(input.providerOrderCode);
@@ -49,6 +48,8 @@ export class PaymentsService {
     const items = this.normalizePayosItems(input.items);
 
     this.assertItemsTotalMatchesAmount(items, amount);
+
+    const payos = this.createPayosClient();
 
     const payload: CreatePaymentLinkRequest = {
       orderCode,

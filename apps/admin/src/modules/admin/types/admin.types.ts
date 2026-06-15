@@ -78,6 +78,7 @@ export interface Template {
 export interface Accessory {
   id: string;
   name: string;
+  price: number;
   imageUrl?: string | null;
   iconUrl?: string | null;
   status: ProductStatus;

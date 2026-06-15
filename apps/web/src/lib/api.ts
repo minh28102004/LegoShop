@@ -1,14 +1,26 @@
+import { useAuthStore } from '../stores/authStore';
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
 export async function fetchApi(endpoint: string, options: RequestInit = {}) {
   const url = `${API_URL}${endpoint}`;
   
-  const headers = {
+  const token = typeof window !== 'undefined' ? useAuthStore.getState().token : null;
+
+  const headers: Record<string, string> = {
     'Content-Type': 'application/json',
+  };
+
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  const mergedHeaders = {
+    ...headers,
     ...options.headers,
   };
 
-  const response = await fetch(url, { ...options, headers });
+  const response = await fetch(url, { ...options, headers: mergedHeaders });
 
   if (!response.ok) {
     let errorMsg = 'An error occurred while fetching the data.';

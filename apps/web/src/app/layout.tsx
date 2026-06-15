@@ -7,7 +7,32 @@ import { ToastContainer } from '@/components/ui'
 import { SITE } from '@/constants'
 import { siteConfig } from '@/config/site'
 import { Providers } from './providers'
+import { Playfair_Display, Poppins, Space_Mono } from 'next/font/google'
 import './globals.css'
+
+// Playfair Display — Serif cho tiêu đề, logo (THE LUVIN style)
+const playfairDisplay = Playfair_Display({ 
+  subsets: ['latin'], 
+  variable: '--font-display',
+  weight: ['400', '500', '600', '700', '800', '900'],
+  style: ['normal', 'italic'],
+  display: 'swap',
+})
+
+// Poppins — Sans-serif nhẹ nhàng cho body text
+const poppins = Poppins({
+  subsets: ['latin'],
+  variable: '--font-body',
+  weight: ['300', '400', '500', '600', '700'],
+  display: 'swap',
+})
+
+const spaceMono = Space_Mono({
+  weight: ['400', '700'],
+  subsets: ['latin'],
+  variable: '--font-mono',
+  display: 'swap',
+})
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE.url),
@@ -63,8 +88,8 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 5,
   themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#ffffff' },
-    { media: '(prefers-color-scheme: dark)', color: '#0f172a' },
+    { media: '(prefers-color-scheme: light)', color: '#FDF8F5' },
+    { media: '(prefers-color-scheme: dark)', color: '#141414' },
   ],
 }
 
@@ -74,7 +99,7 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="vi" className="h-full scroll-smooth antialiased">
+    <html lang="vi" className={`h-full scroll-smooth antialiased ${playfairDisplay.variable} ${poppins.variable} ${spaceMono.variable}`}>
       <body className="min-h-full bg-background font-body text-text-primary antialiased">
         <Providers>
           <Header />

@@ -21,11 +21,13 @@ import { TemplateCategoriesModule } from './template-categories/template-categor
 import { AccessoryCategoriesModule } from './accessory-categories/accessory-categories.module';
 import { FrameSizesModule } from './frame-sizes/frame-sizes.module';
 import { FrameColorsModule } from './frame-colors/frame-colors.module';
+import { UsersModule } from './users/users.module';
+import { UserDesignsModule } from './user-designs/user-designs.module';
 
 @Module({
   imports: [ConfigModule.forRoot({
       isGlobal: true
-    }), AuthModule, ProductsModule, TemplatesModule, AccessoriesModule, BannersModule, CollectionsModule, UploadsModule, PaymentSettingsModule, PaymentsModule, OrdersModule, AdminOrdersModule, BusinessInquiriesModule, AdminBusinessInquiriesModule, AdminDashboardModule, TemplateCategoriesModule, AccessoryCategoriesModule, FrameSizesModule, FrameColorsModule, PrismaModule],
+    }), AuthModule, ProductsModule, TemplatesModule, AccessoriesModule, BannersModule, CollectionsModule, UploadsModule, PaymentSettingsModule, PaymentsModule, OrdersModule, AdminOrdersModule, BusinessInquiriesModule, AdminBusinessInquiriesModule, AdminDashboardModule, TemplateCategoriesModule, AccessoryCategoriesModule, FrameSizesModule, FrameColorsModule, PrismaModule, UsersModule, UserDesignsModule],
   controllers: [AppController],
   providers: [AppService]
 })

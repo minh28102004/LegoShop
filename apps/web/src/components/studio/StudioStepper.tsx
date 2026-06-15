@@ -14,7 +14,7 @@ export function StudioStepper() {
   ];
 
   return (
-    <div className="flex items-center gap-4 py-4 px-8 border-b bg-white">
+    <div className="flex items-center gap-1">
       {steps.map((s, idx) => {
         const isPast = step > s.num;
         const isActive = step === s.num;
@@ -23,21 +23,36 @@ export function StudioStepper() {
           <div key={s.num} className="flex items-center">
             <button
               onClick={() => setStep(s.num)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-full border transition-colors ${
-                isActive ? "border-red-500 text-red-600 bg-red-50 font-medium" :
-                isPast ? "border-red-200 text-red-500 hover:bg-red-50" : 
-                "border-zinc-200 text-zinc-400 hover:border-zinc-300"
-              }`}
+              className="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold transition-all"
+              style={
+                isActive
+                  ? { backgroundColor: "#2563eb", color: "#ffffff" }
+                  : isPast
+                  ? { color: "#2563eb", backgroundColor: "rgba(37, 99, 235, 0.1)" }
+                  : { color: "#9CA3AF" }
+              }
             >
-              <div className={`w-5 h-5 rounded-full flex items-center justify-center text-xs ${
-                isActive || isPast ? "bg-red-200 text-red-700" : "bg-zinc-100 text-zinc-500"
-              }`}>
-                {isPast ? <Check className="w-3 h-3" /> : s.num}
+              <div
+                className="w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-black"
+                style={
+                  isActive
+                    ? { backgroundColor: "rgba(255, 255, 255, 0.25)", color: "#ffffff" }
+                    : isPast
+                    ? { backgroundColor: "#2563eb", color: "#ffffff" }
+                    : { backgroundColor: "#e5e7eb", color: "#9CA3AF" }
+                }
+              >
+                {isPast ? <Check className="w-2.5 h-2.5" /> : s.num}
               </div>
-              <span className="text-sm">{s.label}</span>
+              <span>{s.label}</span>
             </button>
             {idx < steps.length - 1 && (
-              <div className="w-8 h-[2px] mx-2 bg-zinc-200" />
+              <div
+                className="w-6 h-px mx-1"
+                style={{
+                  backgroundColor: isPast ? "rgba(37, 99, 235, 0.3)" : "#e5e7eb"
+                }}
+              />
             )}
           </div>
         );

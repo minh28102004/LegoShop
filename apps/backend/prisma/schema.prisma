@@ -112,6 +112,7 @@ model AccessoryCategory {
 model Accessory {
   id       String        @id @default(uuid())
   name     String
+  price    Int           @default(0)
   imageUrl String?
   iconUrl  String?
   status   ProductStatus @default(active)
@@ -270,4 +271,30 @@ model BusinessInquiry {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  name         String?
+  phone        String?
+
+  designs      UserDesign[]
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model UserDesign {
+  id         String   @id @default(uuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  name       String   @default("My Design")
+  designData Json     
+  previewUrl String?  
+
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 }

@@ -4,15 +4,15 @@
 
 export const ROUTES = {
   home: '/',
-  collections: '/collections',
-  collection: (slug: string) => `/collections/${slug}`,
-  product: (slug: string) => `/products/${slug}`,
-  creatorStudio: '/creator-studio',
+  collection: '/collection',
+  studio: '/studio',
   cart: '/cart',
   checkout: '/checkout',
-  checkoutSuccess: '/checkout/success',
-  orderLookup: '/orders/track',
-  orderTracking: (orderCode: string) => `/orders/track/${orderCode}`,
+  orderSuccess: '/order-success',
+  orderTracking: '/order-tracking',
+  paymentSuccess: '/payment/success',
+  paymentCancel: '/payment/cancel',
+  business: '/business',
   about: '/about',
   contact: '/contact',
   faq: '/faq',
@@ -20,37 +20,46 @@ export const ROUTES = {
   returns: '/return-policy',
   privacy: '/privacy-policy',
   terms: '/terms',
+  // Legacy aliases
+  creatorStudio: '/studio',
+  collections: '/collection',
+  orderLookup: '/order-tracking',
+  checkoutSuccess: '/order-success',
 } as const
 
 // Static routes (khong co params) - dung cho navigation
 export const STATIC_ROUTES = {
   home: ROUTES.home,
-  collections: ROUTES.collections,
-  creatorStudio: ROUTES.creatorStudio,
+  collection: ROUTES.collection,
+  studio: ROUTES.studio,
   cart: ROUTES.cart,
   checkout: ROUTES.checkout,
-  orderLookup: ROUTES.orderLookup,
+  orderTracking: ROUTES.orderTracking,
+  business: ROUTES.business,
   about: ROUTES.about,
   contact: ROUTES.contact,
-  faq: ROUTES.faq,
 } as const
 
 export const HEADER_NAV = [
   {
-    label: 'Bộ sưu tập',
-    href: ROUTES.collections,
+    label: 'Trang chủ',
+    href: ROUTES.home,
   },
   {
-    label: 'Creator Studio',
-    href: ROUTES.creatorStudio,
+    label: 'Studio Thiết kế',
+    href: ROUTES.studio,
   },
   {
-    label: 'Theo dõi đơn',
-    href: ROUTES.orderLookup,
+    label: 'Khung Lego',
+    href: ROUTES.collection,
   },
   {
-    label: 'FAQ',
-    href: ROUTES.faq,
+    label: 'Doanh nghiệp',
+    href: ROUTES.business,
+  },
+  {
+    label: 'Tra cứu',
+    href: ROUTES.orderTracking,
   },
 ] as const
 

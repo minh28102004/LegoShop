@@ -5,58 +5,61 @@
 @tailwind utilities;
 
 /* ============================================================
-   BRICKFRAMES DESIGN SYSTEM — CSS CUSTOM PROPERTIES
-   Single source of truth cho toàn bộ visual tokens
+   THE LUVIN DESIGN SYSTEM — CSS CUSTOM PROPERTIES
+   Elegant Cream & Soft Pink palette
    ============================================================ */
 
 @layer base {
   :root {
     /* ----------------------------------------------------------
        COLORS — Light Mode
-       Format: raw channel values để Tailwind opacity modifier hoạt động
-       Ví dụ: bg-primary/80 sẽ dùng opacity 0.8
        ---------------------------------------------------------- */
 
-    /* Brand Primary — Deep Blue */
-    --color-primary:             220 90% 48%;
-    --color-primary-hover:       220 90% 43%;
+    /* Brand Primary — Electric Blue (BrickStudio style) */
+    --color-primary:             221 83% 53%;   /* #2563EB */
+    --color-primary-hover:       221 83% 45%;
     --color-primary-foreground:  0 0% 100%;
 
-    /* Brand Accent — Warm Amber */
-    --color-accent:              38 90% 55%;
-    --color-accent-hover:        38 90% 47%;
-    --color-accent-foreground:   220 14% 10%;
+    /* Brand Accent — Light Blue */
+    --color-accent:              214 100% 97%;  /* #EFF6FF */
+    --color-accent-hover:        214 95% 93%;
+    --color-accent-foreground:   221 70% 38%;
 
-    /* Backgrounds */
+    /* CTA */
+    --color-cta:                 221 83% 53%;
+    --color-cta-hover:           221 83% 45%;
+    --color-cta-foreground:      0 0% 100%;
+
+    /* Backgrounds — Pure white + light gray */
     --color-background:          0 0% 100%;
-    --color-surface:             210 20% 98%;
-    --color-surface-hover:       210 17% 95%;
+    --color-surface:             0 0% 100%;
+    --color-surface-hover:       220 14% 97%;
 
     /* Borders */
     --color-border:              220 13% 91%;
-    --color-border-strong:       220 9% 82%;
+    --color-border-strong:       220 13% 85%;
 
     /* Text */
-    --color-text-primary:        220 14% 10%;
-    --color-text-secondary:      220 9% 35%;
-    --color-text-muted:          220 9% 62%;
+    --color-text-primary:        224 71% 4%;    /* #030712 */
+    --color-text-secondary:      220 9% 46%;    /* #6B7280 */
+    --color-text-muted:          220 9% 64%;    /* #9CA3AF */
     --color-text-inverse:        0 0% 100%;
 
     /* Semantic */
-    --color-success:             162 86% 29%;
+    --color-success:             142 71% 35%;
     --color-error:               0 72% 51%;
-    --color-warning:             33 90% 45%;
+    --color-warning:             38 95% 54%;
 
-    /* Brick Motion Palette */
-    --color-lego-red:            358 100% 45%;
-    --color-lego-yellow:         51 100% 50%;
-    --color-lego-blue:           204 100% 36%;
+    /* Decorative */
+    --color-rose:                352 75% 80%;
+    --color-ivory:               44 40% 95%;
+    --color-blush:               349 80% 93%;
 
     /* ----------------------------------------------------------
-       TYPOGRAPHY
+       TYPOGRAPHY — Playfair Display (Serif) + Poppins (Sans)
        ---------------------------------------------------------- */
-    --font-display: 'Fraunces', Georgia, serif;
-    --font-body:    'DM Sans', system-ui, sans-serif;
+    --font-display: 'Playfair Display', Georgia, serif;
+    --font-body:    'Poppins', system-ui, sans-serif;
     --font-mono:    'Space Mono', 'Courier New', monospace;
 
     /* ----------------------------------------------------------
@@ -79,26 +82,27 @@
     --space-32:  128px;
 
     /* ----------------------------------------------------------
-       BORDER RADIUS
+       BORDER RADIUS — Mềm mại, bo tròn nhẹ
        ---------------------------------------------------------- */
-    --radius-xs:  2px;
-    --radius-sm:  4px;
-    --radius-md:  8px;
-    --radius-lg:  12px;
-    --radius-xl:  16px;
-    --radius-2xl: 24px;
-    --radius-3xl: 32px;
+    --radius-xs:  4px;
+    --radius-sm:  8px;
+    --radius-md:  12px;
+    --radius-lg:  16px;
+    --radius-xl:  20px;
+    --radius-2xl: 28px;
+    --radius-3xl: 40px;
 
     /* ----------------------------------------------------------
-       BOX SHADOWS
+       BOX SHADOWS — Mềm mại, không quá đậm
        ---------------------------------------------------------- */
-    --shadow-xs:    0 1px 2px 0 rgb(0 0 0 / 0.05);
-    --shadow-sm:    0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
-    --shadow-md:    0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-    --shadow-lg:    0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-    --shadow-xl:    0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
-    --shadow-2xl:   0 25px 50px -12px rgb(0 0 0 / 0.25);
-    --shadow-inner: inset 0 2px 4px 0 rgb(0 0 0 / 0.05);
+    --shadow-xs:    0 1px 2px 0 rgb(0 0 0 / 0.04);
+    --shadow-sm:    0 2px 8px 0 rgb(0 0 0 / 0.06), 0 1px 2px -1px rgb(0 0 0 / 0.04);
+    --shadow-md:    0 4px 16px -2px rgb(0 0 0 / 0.08), 0 2px 4px -2px rgb(0 0 0 / 0.04);
+    --shadow-lg:    0 12px 32px -4px rgb(0 0 0 / 0.10), 0 4px 8px -4px rgb(0 0 0 / 0.06);
+    --shadow-xl:    0 24px 48px -8px rgb(0 0 0 / 0.12), 0 8px 12px -6px rgb(0 0 0 / 0.06);
+    --shadow-2xl:   0 32px 64px -12px rgb(0 0 0 / 0.18);
+    --shadow-inner: inset 0 2px 4px 0 rgb(0 0 0 / 0.04);
+    --shadow-blue:  0 8px 24px -4px hsl(221 83% 53% / 0.25);
 
     /* ----------------------------------------------------------
        MOTION — Duration
@@ -133,7 +137,7 @@
     /* ----------------------------------------------------------
        LAYOUT
        ---------------------------------------------------------- */
-    --header-height:    64px;
+    --header-height:    72px;
     --footer-height:    auto;
     --sidebar-width:    280px;
     --content-max-width: 1280px;
@@ -142,41 +146,47 @@
   }
 
   /* ----------------------------------------------------------
-     DARK MODE — Override tokens
+     DARK MODE — Override tokens (giữ minimal)
      ---------------------------------------------------------- */
   .dark {
-    --color-primary:             213 93% 67%;
-    --color-primary-hover:       213 93% 72%;
-    --color-primary-foreground:  220 14% 10%;
+    --color-primary:             221 80% 62%;
+    --color-primary-hover:       221 80% 68%;
+    --color-primary-foreground:  0 0% 10%;
 
-    --color-accent:              38 90% 60%;
-    --color-accent-hover:        38 90% 65%;
-    --color-accent-foreground:   220 14% 10%;
+    --color-accent:              221 50% 20%;
+    --color-accent-hover:        221 50% 25%;
+    --color-accent-foreground:   221 70% 75%;
 
-    --color-background:          222 47% 8%;
-    --color-surface:             222 39% 11%;
-    --color-surface-hover:       222 33% 14%;
+    --color-cta:                 221 80% 62%;
+    --color-cta-hover:           221 80% 68%;
+    --color-cta-foreground:      0 0% 100%;
 
-    --color-border:              217 19% 20%;
-    --color-border-strong:       217 16% 27%;
+    --color-background:          0 0% 8%;
+    --color-surface:             0 0% 11%;
+    --color-surface-hover:       0 0% 14%;
 
-    --color-text-primary:        210 20% 98%;
-    --color-text-secondary:      215 14% 68%;
-    --color-text-muted:          215 14% 45%;
-    --color-text-inverse:        220 14% 10%;
+    --color-border:              0 0% 20%;
+    --color-border-strong:       0 0% 27%;
 
-    --color-success:             162 73% 46%;
-    --color-error:               0 86% 65%;
-    --color-warning:             38 92% 50%;
+    --color-text-primary:        0 0% 96%;
+    --color-text-secondary:      0 0% 65%;
+    --color-text-muted:          0 0% 45%;
+    --color-text-inverse:        0 0% 10%;
+
+    --color-success:             142 60% 46%;
+    --color-error:               0 80% 65%;
+    --color-warning:             38 90% 58%;
 
     --shadow-xs:    0 1px 2px 0 rgb(0 0 0 / 0.3);
-    --shadow-sm:    0 1px 3px 0 rgb(0 0 0 / 0.4), 0 1px 2px -1px rgb(0 0 0 / 0.4);
-    --shadow-md:    0 4px 6px -1px rgb(0 0 0 / 0.4), 0 2px 4px -2px rgb(0 0 0 / 0.4);
-    --shadow-lg:    0 10px 15px -3px rgb(0 0 0 / 0.5), 0 4px 6px -4px rgb(0 0 0 / 0.4);
-    --shadow-xl:    0 20px 25px -5px rgb(0 0 0 / 0.5), 0 8px 10px -6px rgb(0 0 0 / 0.4);
-    --shadow-2xl:   0 25px 50px -12px rgb(0 0 0 / 0.7);
+    --shadow-sm:    0 2px 8px 0 rgb(0 0 0 / 0.35);
+    --shadow-md:    0 4px 16px -2px rgb(0 0 0 / 0.4);
+    --shadow-lg:    0 12px 32px -4px rgb(0 0 0 / 0.5);
+    --shadow-xl:    0 24px 48px -8px rgb(0 0 0 / 0.55);
+    --shadow-2xl:   0 32px 64px -12px rgb(0 0 0 / 0.7);
   }
 }
+
+
 
 /* ============================================================
    BASE STYLES
@@ -205,43 +215,45 @@
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-display);
     letter-spacing: -0.01em;
+    font-weight: 700;
   }
 
   h1 {
-    font-size: 3.75rem;
-    line-height: 1.1;
+    font-size: clamp(2.5rem, 6vw, 4.5rem);
+    line-height: 1.05;
   }
 
   h2 {
-    font-size: 3rem;
-    line-height: 1.15;
+    font-size: clamp(2rem, 4vw, 3rem);
+    line-height: 1.1;
   }
 
   h3 {
-    font-size: 2.25rem;
+    font-size: clamp(1.5rem, 2.5vw, 2rem);
     line-height: 1.2;
   }
 
   h4 {
-    font-size: 1.875rem;
+    font-size: 1.5rem;
     line-height: 1.25;
   }
 
   h5 {
-    font-size: 1.25rem;
-    font-weight: 600;
-    line-height: 1.75;
+    font-size: 1.125rem;
+    font-weight: 700;
+    line-height: 1.5;
   }
 
   h6 {
-    font-size: 1.125rem;
-    font-weight: 600;
-    line-height: 1.75;
+    font-size: 0.875rem;
+    font-weight: 700;
+    line-height: 1.5;
+    letter-spacing: 0;
   }
 
   p {
     font-size: 1rem;
-    line-height: 1.625;
+    line-height: 1.7;
   }
 
   a {
@@ -292,16 +304,23 @@
   .font-body    { font-family: var(--font-body); }
   .font-mono    { font-family: var(--font-mono); }
 
-  /* Gradient text */
+  /* Gradient text — Blue style */
   .text-gradient-primary {
     background: linear-gradient(
       135deg,
       hsl(var(--color-primary)),
-      hsl(var(--color-accent))
+      hsl(199 89% 58%)
     );
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
+  }
+
+  /* Italic serif — Dùng cho tagline style THE LUVIN */
+  .font-italic-serif {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-weight: 700;
   }
 
   /* Responsive section spacing */

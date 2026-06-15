@@ -30,6 +30,11 @@ const config: Config = {
           hover: 'hsl(var(--color-accent-hover))',
           foreground: 'hsl(var(--color-accent-foreground))',
         },
+        cta: {
+          DEFAULT: 'hsl(var(--color-cta))',
+          hover: 'hsl(var(--color-cta-hover))',
+          foreground: 'hsl(var(--color-cta-foreground))',
+        },
         background: 'hsl(var(--color-background))',
         surface: {
           DEFAULT: 'hsl(var(--color-surface))',

@@ -54,6 +54,9 @@ RUN pnpm install --frozen-lockfile
 FROM base AS builder
 WORKDIR /app
 
+# Build-time Prisma commands only need a syntactically valid URL; they do not connect to the DB.
+ENV DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy"
+
 # Tái sử dụng TOÀN BỘ node_modules đã được install từ Stage Deps (bao gồm cả thư mục con)
 COPY --from=deps /app/ .
 # Lấy mã nguồn thực tế (source files) từ Stage Pruner
@@ -62,7 +65,7 @@ COPY --from=pruner /app/out/full/ .
 # Prisma Generate lần 1: BẮT BUỘC phải sinh ra ở đây để TypeScript có Type mà compile code NestJS
 # Truyền biến DATABASE_URL ảo để vượt qua PrismaConfigEnvError trên Render
 WORKDIR /app/apps/backend
-RUN DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy" npx prisma generate
+RUN npx prisma generate
 
 # Xây dựng ứng dụng NestJS (Dùng phiên bản Turbo đã ghim)
 WORKDIR /app
@@ -81,7 +84,7 @@ RUN cp -r apps/backend/dist /pruned/dist && \
 # DATABASE_URL only needs a valid shape here; prisma generate does not connect to the DB.
 WORKDIR /pruned
 RUN rm -f prisma.config.ts && \
-    DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy" npx --yes prisma generate --schema=prisma/schema.prisma
+    npx --yes prisma generate --schema=prisma/schema.prisma
 
 # ── Stage 5: Production Runner ────────────────────────────────────────────────
 FROM base AS runner

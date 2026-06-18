@@ -288,17 +288,17 @@ export default function AdminToolbar({
       )}
     >
       <div className='flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between lg:gap-6'>
-        <div className='min-w-0 lg:basis-[340px] xl:basis-[380px] lg:shrink-0'>
+        <div className='min-w-0 lg:basis-[460px] xl:basis-[520px] lg:shrink-0'>
           <div className='flex items-center gap-3'>
             <div className='grid h-11 w-11 shrink-0 place-items-center rounded-[15px] border border-[var(--admin-accent)] bg-[#ffe16a] text-[#18385a] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.55)]'>
               {icon}
             </div>
             <div className='min-w-0'>
-              <div className='flex flex-wrap items-center gap-x-3 gap-y-1'>
-                <h2 className='text-lg font-bold tracking-[-0.01em] text-slate-950'>
+              <div className='flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1'>
+                <h2 className='shrink-0 text-lg font-bold tracking-[-0.01em] text-slate-950'>
                   {title}
                 </h2>
-                {badge}
+                {badge ? <div className='shrink-0'>{badge}</div> : null}
               </div>
               {description ? (
                 <p className='mt-0.5 line-clamp-2 max-w-[360px] text-sm font-medium leading-5 text-slate-600 xl:max-w-[420px]'>

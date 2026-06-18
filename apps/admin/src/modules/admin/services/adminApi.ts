@@ -7,6 +7,8 @@ import type {
   BusinessInquiry,
   Collection,
   DashboardStats,
+  FrameBackground,
+  FrameOption,
   Order,
   OrderStatus,
   PaginatedOrders,
@@ -22,10 +24,12 @@ import type {
 export type ResourceKey =
   | 'products'
   | 'templates'
+  | 'frame-options'
   | 'template-categories'
   | 'accessories'
   | 'accessory-categories'
   | 'banners'
+  | 'frame-backgrounds'
   | 'collections'
   | 'frame-sizes'
   | 'frame-colors';
@@ -33,10 +37,12 @@ export type ResourceKey =
 const ADMIN_RESOURCE_ENDPOINTS: Record<ResourceKey, string> = {
   products: 'admin/products',
   templates: 'admin/templates',
+  'frame-options': 'admin/frame-options',
   'template-categories': 'admin/template-categories',
   accessories: 'admin/accessories',
   'accessory-categories': 'admin/accessory-categories',
   banners: 'admin/banners',
+  'frame-backgrounds': 'admin/frame-backgrounds',
   collections: 'admin/collections',
   'frame-sizes': 'admin/frame-sizes',
   'frame-colors': 'admin/frame-colors',
@@ -45,10 +51,12 @@ const ADMIN_RESOURCE_ENDPOINTS: Record<ResourceKey, string> = {
 export type ResourceDataMap = {
   products: Product;
   templates: Template;
+  'frame-options': FrameOption;
   'template-categories': TemplateCategory;
   accessories: Accessory;
   'accessory-categories': AccessoryCategory;
   banners: Banner;
+  'frame-backgrounds': FrameBackground;
   collections: Collection;
   'frame-sizes': any;
   'frame-colors': any;

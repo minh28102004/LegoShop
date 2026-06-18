@@ -8,6 +8,7 @@ import { TemplatesModule } from './templates/templates.module';
 import { AccessoriesModule } from './accessories/accessories.module';
 import { BannersModule } from './banners/banners.module';
 import { CollectionsModule } from './collections/collections.module';
+import { FrameBackgroundsModule } from './frame-backgrounds/frame-backgrounds.module';
 import { UploadsModule } from './uploads/uploads.module';
 import { PaymentSettingsModule } from './payment-settings/payment-settings.module';
 import { PaymentsModule } from './payments/payments.module';
@@ -21,13 +22,14 @@ import { TemplateCategoriesModule } from './template-categories/template-categor
 import { AccessoryCategoriesModule } from './accessory-categories/accessory-categories.module';
 import { FrameSizesModule } from './frame-sizes/frame-sizes.module';
 import { FrameColorsModule } from './frame-colors/frame-colors.module';
+import { FrameOptionsModule } from './frame-options/frame-options.module';
 import { UsersModule } from './users/users.module';
 import { UserDesignsModule } from './user-designs/user-designs.module';
 
 @Module({
   imports: [ConfigModule.forRoot({
       isGlobal: true
-    }), AuthModule, ProductsModule, TemplatesModule, AccessoriesModule, BannersModule, CollectionsModule, UploadsModule, PaymentSettingsModule, PaymentsModule, OrdersModule, AdminOrdersModule, BusinessInquiriesModule, AdminBusinessInquiriesModule, AdminDashboardModule, TemplateCategoriesModule, AccessoryCategoriesModule, FrameSizesModule, FrameColorsModule, PrismaModule, UsersModule, UserDesignsModule],
+    }), AuthModule, ProductsModule, TemplatesModule, AccessoriesModule, BannersModule, CollectionsModule, FrameBackgroundsModule, UploadsModule, PaymentSettingsModule, PaymentsModule, OrdersModule, AdminOrdersModule, BusinessInquiriesModule, AdminBusinessInquiriesModule, AdminDashboardModule, TemplateCategoriesModule, AccessoryCategoriesModule, FrameSizesModule, FrameColorsModule, FrameOptionsModule, PrismaModule, UsersModule, UserDesignsModule],
   controllers: [AppController],
   providers: [AppService]
 })

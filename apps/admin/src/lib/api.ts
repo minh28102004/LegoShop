@@ -7,6 +7,18 @@ type RequestOptions = RequestInit & {
 
 const API_BASE_URL = env.apiUrl;
 
+export function resolveApiAssetUrl(url?: string | null) {
+  const trimmedUrl = url?.trim();
+  if (!trimmedUrl) return '';
+  if (/^(https?:)?\/\//i.test(trimmedUrl) || trimmedUrl.startsWith('data:')) {
+    return trimmedUrl;
+  }
+  if (trimmedUrl.startsWith('/')) {
+    return `${API_BASE_URL}${trimmedUrl}`;
+  }
+  return trimmedUrl;
+}
+
 export class ApiError extends Error {
   status: number;
   details: unknown;

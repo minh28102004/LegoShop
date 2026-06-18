@@ -31,8 +31,7 @@ WORKDIR /app
 # CHỈ COPY những file/folder cốt lõi cấu thành nên cấu trúc Monorepo.
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
 COPY apps/ ./apps/
-# Nếu có thư mục packages, uncomment dòng dưới:
-# COPY packages/ ./packages/
+COPY packages/ ./packages/
 
 # Bắt buộc: KHÔNG `pnpm install` ở đây.
 # Sử dụng trực tiếp `pnpm dlx` để tải và chạy Turbo ở vùng không gian cô lập.
@@ -78,6 +77,10 @@ RUN pnpm --filter backend --prod deploy /pruned
 # Chuyển kết quả biên dịch và cấu trúc DB sang thư mục production
 RUN cp -r apps/backend/dist /pruned/dist && \
     cp -r apps/backend/prisma /pruned/prisma
+
+# Shared visual assets are served by the backend at /shared/images/* for admin/web.
+RUN mkdir -p /pruned/shared && \
+    cp -r packages/shared/images /pruned/shared/images
 
 # Generate Prisma Client inside the production bundle so .prisma lands in /pruned/node_modules.
 # Remove prisma.config.ts here because the production bundle intentionally excludes the prisma CLI package.

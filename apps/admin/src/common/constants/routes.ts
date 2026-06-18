@@ -2,11 +2,13 @@ export const ADMIN_ROUTES = {
   login: '/login',
   dashboard: '/dashboard',
   products: '/products',
+  frameOptions: '/frame-options',
   frameSizes: '/frame-sizes',
   frameColors: '/frame-colors',
   templates: '/templates',
   accessories: '/accessories',
   banners: '/banners',
+  frameBackgrounds: '/frame-backgrounds',
   collections: '/collections',
   orders: '/orders',
   businessInquiries: '/business-inquiries',
@@ -18,11 +20,13 @@ export const ADMIN_ROUTES = {
 export type AdminNavIcon =
   | 'dashboard'
   | 'products'
+  | 'frameOptions'
   | 'frameSizes'
   | 'frameColors'
   | 'templates'
   | 'accessories'
   | 'banners'
+  | 'frameBackgrounds'
   | 'collections'
   | 'orders'
   | 'businessInquiries'
@@ -68,25 +72,11 @@ export const ADMIN_NAV_SECTIONS: AdminNavSection[] = [
         icon: 'products',
       },
       {
-        id: 'frameSizes',
-        href: ADMIN_ROUTES.frameSizes,
-        labelKey: 'sidebar.frameSizes',
-        descriptionKey: 'sidebarDesc.frameSizes',
-        icon: 'frameSizes',
-      },
-      {
-        id: 'frameColors',
-        href: ADMIN_ROUTES.frameColors,
-        labelKey: 'sidebar.frameColors',
-        descriptionKey: 'sidebarDesc.frameColors',
-        icon: 'frameColors',
-      },
-      {
-        id: 'templates',
-        href: ADMIN_ROUTES.templates,
-        labelKey: 'sidebar.templates',
-        descriptionKey: 'sidebarDesc.templates',
-        icon: 'templates',
+        id: 'frameOptions',
+        href: ADMIN_ROUTES.frameOptions,
+        labelKey: 'sidebar.frameOptions',
+        descriptionKey: 'sidebarDesc.frameOptions',
+        icon: 'frameOptions',
       },
       {
         id: 'accessories',
@@ -101,6 +91,13 @@ export const ADMIN_NAV_SECTIONS: AdminNavSection[] = [
         labelKey: 'sidebar.banners',
         descriptionKey: 'sidebarDesc.banners',
         icon: 'banners',
+      },
+      {
+        id: 'frameBackgrounds',
+        href: ADMIN_ROUTES.frameBackgrounds,
+        labelKey: 'sidebar.frameBackgrounds',
+        descriptionKey: 'sidebarDesc.frameBackgrounds',
+        icon: 'frameBackgrounds',
       },
       {
         id: 'collections',

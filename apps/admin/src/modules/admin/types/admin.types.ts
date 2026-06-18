@@ -1,5 +1,14 @@
 export type ProductStatus = 'active' | 'inactive';
 
+export type FrameOptionType =
+  | 'size'
+  | 'color'
+  | 'template'
+  | 'material'
+  | 'glass'
+  | 'mat'
+  | 'accessory';
+
 export type OrderStatus =
   | 'pending'
   | 'confirmed'
@@ -75,6 +84,28 @@ export interface Template {
   category?: TemplateCategory | null;
 }
 
+export interface FrameOption {
+  id: string;
+  type: FrameOptionType;
+  name: string;
+  label?: string | null;
+  slug?: string | null;
+  description?: string | null;
+  colorHex?: string | null;
+  imageUrl?: string | null;
+  widthCm?: number | null;
+  heightCm?: number | null;
+  price: number;
+  stock: number;
+  minQuantity: number;
+  maxQuantity: number;
+  sortOrder: number;
+  popular: boolean;
+  metadata?: Record<string, unknown> | null;
+  status: ProductStatus;
+  createdAt: string;
+}
+
 export interface Accessory {
   id: string;
   name: string;
@@ -91,6 +122,14 @@ export interface Banner {
   title?: string | null;
   imageUrl: string;
   linkUrl?: string | null;
+  sortOrder: number;
+  status: ProductStatus;
+}
+
+export interface FrameBackground {
+  id: string;
+  title: string;
+  imageUrl: string;
   sortOrder: number;
   status: ProductStatus;
 }

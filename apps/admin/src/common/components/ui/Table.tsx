@@ -170,7 +170,7 @@ export function TableHeader({ className, children, ...props }: TableSectionProps
   return (
     <thead
       className={cn(
-        'bg-slate-800 text-left text-slate-50 shadow-[0_1px_0_rgba(15,23,42,0.26)]',
+        'bg-slate-800 text-center text-slate-50 shadow-[0_1px_0_rgba(15,23,42,0.26)]',
         className,
       )}
       {...props}
@@ -212,7 +212,7 @@ export function TableRow({
 
 export function TableHead({ className, children, ...props }: TableHeadProps) {
   return (
-    <th className={cn('admin-table-head-cell', className)} {...props}>
+    <th className={cn('admin-table-head-cell text-center', className)} {...props}>
       {children}
     </th>
   );
@@ -269,6 +269,12 @@ export function SortableTableHead({
   const active = activeSort !== undefined;
   const direction = activeSort?.direction ?? defaultDirection;
   const ariaSort = active ? (direction === 'asc' ? 'ascending' : 'descending') : 'none';
+  const alignmentClass =
+    typeof className === 'string' && className.includes('text-left')
+      ? 'mr-auto justify-start text-left'
+      : typeof className === 'string' && className.includes('text-right')
+        ? 'ml-auto justify-end text-right'
+        : 'mx-auto justify-center text-center';
 
   function handleSort() {
     onSortChange(getNextTableSorts(sorts, sortKey, defaultDirection, defaultSorts));
@@ -276,7 +282,7 @@ export function SortableTableHead({
 
   return (
     <th
-      className={cn('admin-table-head-cell', className)}
+      className={cn('admin-table-head-cell text-center', className)}
       aria-sort={ariaSort}
       {...props}
     >
@@ -284,7 +290,8 @@ export function SortableTableHead({
         type='button'
         onClick={handleSort}
         className={cn(
-          'group inline-flex max-w-full items-center gap-1.5 rounded-md text-left transition-colors duration-150',
+          'group inline-flex max-w-full items-center gap-1.5 rounded-md transition-colors duration-150',
+          alignmentClass,
           active ? 'text-yellow-200' : 'text-inherit hover:text-white',
         )}
       >

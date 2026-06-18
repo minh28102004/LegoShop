@@ -3,6 +3,7 @@ import { ConfigService } from "@nestjs/config";
 import { NestFactory } from "@nestjs/core";
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
+import { existsSync } from 'fs';
 import { join } from 'path';
 import { AppModule } from "./app.module";
 
@@ -60,8 +61,16 @@ async function bootstrap() {
     allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
   });
 
-  app.useStaticAssets(join(process.cwd(), 'public'), {
-    prefix: '/',
+  app.useStaticAssets(join(process.cwd(), 'public'), { prefix: '/' });
+
+  const sharedImageRoots = [
+    join(process.cwd(), '../../packages/shared/images'),
+    join(process.cwd(), 'shared/images'),
+  ];
+  sharedImageRoots.forEach((root) => {
+    if (existsSync(root)) {
+      app.useStaticAssets(root, { prefix: '/shared/images/' });
+    }
   });
 
   app.useGlobalPipes(

@@ -17,6 +17,7 @@ import Modal, {
 import PageShell from '@/common/components/ui/PageShell';
 import Select from '@/common/components/ui/Select';
 import Tooltip from '@/common/components/ui/Tooltip';
+import { resolveApiAssetUrl } from '@/lib/api';
 import { type AdminNavIcon as AdminNavIconName } from '@/common/constants/routes';
 import Table, {
   DEFAULT_TABLE_SORTS,
@@ -77,6 +78,7 @@ type EntityManagerProps<K extends ResourceKey> = {
   title: string;
   resource: K;
   fields: EntityField[];
+  tableFields?: EntityField[];
   pageTitle?: string;
   pageDescription?: string;
   createButtonLabel?: string;
@@ -162,15 +164,20 @@ function getEntityTableColumnClass(column: EntityTableColumn) {
   const field = column.field;
   const normalizedKey = field.key.toLowerCase();
 
-  if (field.type === 'number') return 'w-[132px] text-right';
-  if (field.type === 'image' || field.type === 'images') return 'w-[112px] text-center';
-  if (normalizedKey.includes('status')) return 'w-[160px] text-center';
+  if (normalizedKey === 'colorhex') return 'w-[96px] min-w-[96px] max-w-[96px] text-center';
+  if (normalizedKey === 'framesize') return 'w-[150px] min-w-[150px] max-w-[150px] text-center';
+  if (normalizedKey === 'stock' || normalizedKey === 'sortorder') {
+    return 'w-[112px] min-w-[112px] max-w-[112px] text-center';
+  }
+  if (field.type === 'number') return 'w-[132px] min-w-[132px] max-w-[132px] text-right';
+  if (field.type === 'image' || field.type === 'images') return 'w-[116px] min-w-[116px] max-w-[116px] text-center';
+  if (normalizedKey.includes('status')) return 'w-[150px] min-w-[150px] max-w-[150px] text-center';
   if (field.type === 'json') return 'min-w-[280px] max-w-[420px]';
   if (normalizedKey.includes('description')) return 'min-w-[240px] max-w-[360px]';
   if (normalizedKey === 'slug' || normalizedKey.includes('url') || normalizedKey.includes('link')) {
     return 'min-w-[180px] max-w-[240px]';
   }
-  if (isPrimaryField(field)) return 'min-w-[200px] max-w-[280px]';
+  if (isPrimaryField(field)) return 'min-w-[200px] max-w-[280px] text-left';
 
   return getTableColumnClass(field);
 }
@@ -225,8 +232,10 @@ function getEntityTableColumns(fields: EntityField[], resource: ResourceKey): En
   const orderByResource: Partial<Record<ResourceKey, string[]>> = {
     products: ['name', 'images', 'basePrice', 'slug', 'description', 'status'],
     templates: ['name', 'imageUrl', 'categoryId', 'configJson', 'status'],
+    'frame-options': ['imageUrl', 'frameSize', 'price', 'stock', 'colorHex'],
     accessories: ['name', 'imageUrl', 'iconUrl', 'categoryId', 'status'],
-    banners: ['title', 'imageUrl', 'sortOrder', 'linkUrl', 'status'],
+    banners: ['imageUrl', 'title', 'sortOrder', 'linkUrl', 'status'],
+    'frame-backgrounds': ['imageUrl', 'title'],
     collections: ['name', 'imageUrl', 'slug', 'description', 'status'],
     'template-categories': ['name', 'slug'],
     'accessory-categories': ['name', 'slug'],
@@ -251,10 +260,12 @@ function getEntityTableColumns(fields: EntityField[], resource: ResourceKey): En
 const ENTITY_SORT_FIELDS = {
   products: ['name', 'basePrice', 'status', 'featured', 'createdAt', 'updatedAt'],
   templates: ['name', 'status', 'categoryId', 'createdAt', 'updatedAt'],
+  'frame-options': ['type', 'name', 'price', 'stock', 'sortOrder', 'status', 'createdAt', 'updatedAt'],
   'template-categories': ['name', 'slug', 'createdAt', 'updatedAt'],
   accessories: ['name', 'status', 'categoryId', 'createdAt', 'updatedAt'],
   'accessory-categories': ['name', 'slug', 'createdAt', 'updatedAt'],
   banners: ['title', 'sortOrder', 'status', 'createdAt', 'updatedAt'],
+  'frame-backgrounds': ['title', 'createdAt', 'updatedAt'],
   collections: ['name', 'slug', 'status', 'createdAt', 'updatedAt'],
   'frame-sizes': ['name', 'createdAt', 'updatedAt'],
   'frame-colors': ['name', 'createdAt', 'updatedAt'],
@@ -437,22 +448,55 @@ function getRelatedDisplayValue(row: Record<string, unknown>, key: string) {
   return row[key];
 }
 
-function TableThumbnail({ src, alt }: { src?: string; alt: string }) {
+function TableThumbnail({
+  src,
+  alt,
+  onOpen,
+  zoomLabel,
+}: {
+  src?: string;
+  alt: string;
+  onOpen?: (src: string) => void;
+  zoomLabel?: string;
+}) {
   const [failed, setFailed] = useState(false);
-  const imageUrl = src?.trim();
+  const imageUrl = resolveApiAssetUrl(src);
+  const canOpen = Boolean(imageUrl && !failed && onOpen);
+
+  useEffect(() => {
+    setFailed(false);
+  }, [imageUrl]);
+
+  const content = imageUrl && !failed ? (
+    <img
+      src={imageUrl}
+      alt={alt}
+      className='h-full w-full object-cover transition-opacity duration-150 group-hover:opacity-55'
+      onError={() => setFailed(true)}
+    />
+  ) : (
+    <ImagePlaceholderIcon />
+  );
+
+  if (canOpen) {
+    return (
+      <button
+        type='button'
+        className='group relative grid h-11 w-11 shrink-0 place-items-center overflow-hidden rounded-xl border border-slate-200 bg-slate-50 text-slate-400 transition-all duration-150 hover:border-[var(--admin-primary)] hover:shadow-[0_10px_24px_-18px_rgba(15,23,42,0.45)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--admin-primary-ring)]'
+        aria-label={`${zoomLabel ?? 'Zoom image'}: ${alt}`}
+        onClick={() => onOpen?.(imageUrl)}
+      >
+        {content}
+        <span className='absolute inset-0 grid place-items-center bg-slate-950/38 px-1 text-center text-[9px] font-medium leading-tight text-white opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-visible:opacity-100'>
+          {zoomLabel ?? 'Zoom image'}
+        </span>
+      </button>
+    );
+  }
 
   return (
     <span className='grid h-11 w-11 shrink-0 place-items-center overflow-hidden rounded-xl border border-slate-200 bg-slate-50 text-slate-400'>
-      {imageUrl && !failed ? (
-        <img
-          src={imageUrl}
-          alt={alt}
-          className='h-full w-full object-cover'
-          onError={() => setFailed(true)}
-        />
-      ) : (
-        <ImagePlaceholderIcon />
-      )}
+      {content}
     </span>
   );
 }
@@ -564,7 +608,9 @@ function getEntityEmptyMessage(resource: ResourceKey, locale: string) {
       accessories: 'Không có phụ kiện nào.',
       'accessory-categories': 'Không có danh mục phụ kiện nào.',
       banners: 'Không có banner nào.',
+      'frame-backgrounds': 'Chưa có nền ảnh khung nào.',
       collections: 'Không có bộ sưu tập nào.',
+      'frame-options': 'Chưa có khung tranh nào.',
       'frame-sizes': 'Không có kích thước khung nào.',
       'frame-colors': 'Không có màu khung nào.',
     },
@@ -575,7 +621,9 @@ function getEntityEmptyMessage(resource: ResourceKey, locale: string) {
       accessories: 'No accessories found.',
       'accessory-categories': 'No accessory categories found.',
       banners: 'No banners found.',
+      'frame-backgrounds': 'No frame image backgrounds found.',
       collections: 'No collections found.',
+      'frame-options': 'No picture frames found.',
       'frame-sizes': 'No frame sizes found.',
       'frame-colors': 'No frame colors found.',
     },
@@ -593,7 +641,9 @@ function getEntityNoun(resource: ResourceKey, locale: string, count?: number) {
       accessories: 'phụ kiện',
       'accessory-categories': 'danh mục phụ kiện',
       banners: 'banner',
+      'frame-backgrounds': 'nền ảnh khung',
       collections: 'bộ sưu tập',
+      'frame-options': 'khung tranh',
       'frame-sizes': 'kích thước khung',
       'frame-colors': 'màu khung',
     },
@@ -604,7 +654,9 @@ function getEntityNoun(resource: ResourceKey, locale: string, count?: number) {
       accessories: count === 1 ? 'accessory' : 'accessories',
       'accessory-categories': count === 1 ? 'accessory category' : 'accessory categories',
       banners: count === 1 ? 'banner' : 'banners',
+      'frame-backgrounds': count === 1 ? 'frame image background' : 'frame image backgrounds',
       collections: count === 1 ? 'collection' : 'collections',
+      'frame-options': count === 1 ? 'picture frame' : 'picture frames',
       'frame-sizes': count === 1 ? 'frame size' : 'frame sizes',
       'frame-colors': count === 1 ? 'frame color' : 'frame colors',
     },
@@ -706,7 +758,9 @@ function getEntityIconName(resource: ResourceKey): AdminNavIconName {
     accessories: 'accessories',
     'accessory-categories': 'accessories',
     banners: 'banners',
+    'frame-backgrounds': 'frameBackgrounds',
     collections: 'collections',
+    'frame-options': 'frameOptions',
     'frame-sizes': 'products',
     'frame-colors': 'products',
   } satisfies Record<ResourceKey, AdminNavIconName>;
@@ -754,6 +808,7 @@ export default function EntityManager<K extends ResourceKey>({
   title,
   resource,
   fields,
+  tableFields,
   pageTitle,
   pageDescription,
   createButtonLabel,
@@ -779,6 +834,7 @@ export default function EntityManager<K extends ResourceKey>({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; label?: string } | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [imagePreview, setImagePreview] = useState<{ src: string; alt: string } | null>(null);
   const [formValues, setFormValues] = useState<Record<string, unknown>>(() =>
     toInitialValues(fields),
   );
@@ -788,7 +844,10 @@ export default function EntityManager<K extends ResourceKey>({
   const [imageFileNames, setImageFileNames] = useState<Record<string, string>>({});
   const [imageLoadErrors, setImageLoadErrors] = useState<Record<string, boolean>>({});
 
-  const visibleColumns = useMemo(() => getEntityTableColumns(fields, resource), [fields, resource]);
+  const visibleColumns = useMemo(
+    () => getEntityTableColumns(tableFields ?? fields, resource),
+    [fields, resource, tableFields],
+  );
   const statusField = useMemo(
     () => fields.find((field) => field.key === 'status' && field.type === 'select'),
     [fields],
@@ -803,6 +862,7 @@ export default function EntityManager<K extends ResourceKey>({
   );
   const statusOptions = useMemo(() => statusField?.options ?? [], [statusField]);
   const categoryOptions = useMemo(() => categoryField?.options ?? [], [categoryField]);
+  const hasEntityFilters = statusOptions.length > 0 || categoryOptions.length > 0 || hasPriceFilter;
   const activeFilterCount = useMemo(
     () =>
       statusFilter.length +
@@ -935,6 +995,14 @@ export default function EntityManager<K extends ResourceKey>({
   function closeModal() {
     setIsModalOpen(false);
     resetForm();
+  }
+
+  function openImagePreview(src: string, alt: string) {
+    setImagePreview({ src, alt });
+  }
+
+  function closeImagePreview() {
+    setImagePreview(null);
   }
 
   function applyEntityFilters(nextFilters: EntityFilterDraft) {
@@ -1416,9 +1484,41 @@ export default function EntityManager<K extends ResourceKey>({
     const field = column.field;
     const value = getRelatedDisplayValue(row, field.key);
 
+    if (resource === 'frame-options' && field.key === 'frameSize') {
+      const width = row.widthCm;
+      const height = row.heightCm;
+      const label = typeof row.label === 'string' && row.label.trim() ? row.label.trim() : '';
+      const name = typeof row.name === 'string' && row.name.trim() ? row.name.trim() : '';
+
+      if (typeof width === 'number' && typeof height === 'number' && width > 0 && height > 0) {
+        return (
+          <span className='block text-center font-semibold tabular-nums text-slate-900'>
+            {NUMBER_FORMAT.format(width)} x {NUMBER_FORMAT.format(height)}
+          </span>
+        );
+      }
+
+      return (
+        <span className='block text-center font-semibold text-slate-900'>
+          {label || name || '-'}
+        </span>
+      );
+    }
+
     if (field.key === 'colorHex') {
       const hex = typeof value === 'string' ? value.trim() : '';
       if (!hex) return <span className='text-slate-400'>-</span>;
+      if (resource === 'frame-options') {
+        return (
+          <div className='flex items-center justify-center'>
+            <span
+              className='h-8 w-8 shrink-0 rounded-full border border-slate-300 shadow-sm ring-2 ring-white'
+              style={{ backgroundColor: hex }}
+              title={hex}
+            />
+          </div>
+        );
+      }
       return (
         <div className='flex items-center gap-2'>
           <span
@@ -1442,7 +1542,12 @@ export default function EntityManager<K extends ResourceKey>({
 
       return (
         <div className='flex items-center justify-center'>
-          <TableThumbnail src={imageUrl} alt={field.label} />
+          <TableThumbnail
+            src={imageUrl}
+            alt={field.label}
+            zoomLabel={locale === 'vi' ? 'Phóng to ảnh' : 'Zoom image'}
+            onOpen={(src) => openImagePreview(src, field.label)}
+          />
         </div>
       );
     }
@@ -1454,7 +1559,12 @@ export default function EntityManager<K extends ResourceKey>({
 
       return (
         <div className='flex items-center justify-center gap-2'>
-          <TableThumbnail src={imageUrls[0]} alt={field.label} />
+          <TableThumbnail
+            src={imageUrls[0]}
+            alt={field.label}
+            zoomLabel={locale === 'vi' ? 'Phóng to ảnh' : 'Zoom image'}
+            onOpen={(src) => openImagePreview(src, field.label)}
+          />
           {imageUrls.length > 1 ? (
             <span className='rounded-full bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-500'>
               +{imageUrls.length - 1}
@@ -1466,7 +1576,12 @@ export default function EntityManager<K extends ResourceKey>({
 
     if (typeof value === 'number') {
       return (
-        <span className='font-semibold tabular-nums text-slate-900'>
+        <span
+          className={cn(
+            'block font-semibold tabular-nums text-slate-900',
+            isCurrencyColumn(field.key) ? 'text-right' : 'text-center',
+          )}
+        >
           {isCurrencyColumn(field.key) ? CURRENCY_FORMAT.format(value) : NUMBER_FORMAT.format(value)}
         </span>
       );
@@ -1567,15 +1682,17 @@ export default function EntityManager<K extends ResourceKey>({
           />
         </AdminToolbarField>
 
-        <Button
-          type='button'
-          variant='secondary'
-          leftIcon={<FilterIconWithBadge count={activeFilterCount} />}
-          onClick={() => setFilterDrawerOpen(true)}
-          className={cn(adminToolbarButtonClass, 'px-4')}
-        >
-          {getEntityUiText(locale, 'filters')}
-        </Button>
+        {hasEntityFilters ? (
+          <Button
+            type='button'
+            variant='secondary'
+            leftIcon={<FilterIconWithBadge count={activeFilterCount} />}
+            onClick={() => setFilterDrawerOpen(true)}
+            className={cn(adminToolbarButtonClass, 'px-4')}
+          >
+            {getEntityUiText(locale, 'filters')}
+          </Button>
+        ) : null}
 
         {showResetFilters ? (
           <Button
@@ -1606,6 +1723,7 @@ export default function EntityManager<K extends ResourceKey>({
         ) : null}
       </AdminToolbar>
 
+      {hasEntityFilters ? (
       <EntityFilterDrawer
         open={filterDrawerOpen}
         draftFilters={draftFilters}
@@ -1629,6 +1747,7 @@ export default function EntityManager<K extends ResourceKey>({
           status: t('common.status'),
         }}
       />
+      ) : null}
 
       <Table containerClassName='min-h-0'>
         <TableHeader>
@@ -1913,6 +2032,43 @@ export default function EntityManager<K extends ResourceKey>({
             </Button>
           </ModalFooter>
         </form>
+      </Modal>
+
+      <Modal
+        open={Boolean(imagePreview)}
+        onClose={closeImagePreview}
+        ariaLabelledby='entity-image-preview-title'
+        containerClassName='bg-slate-950/70'
+        panelClassName='max-w-6xl !border-0 !bg-slate-950 text-white shadow-[0_30px_80px_-34px_rgba(15,23,42,0.85)]'
+      >
+        <div className='flex items-center justify-between gap-4 border-b border-white/10 bg-slate-950 px-4 py-3 sm:px-5'>
+          <h3
+            id='entity-image-preview-title'
+            className='truncate text-base font-semibold text-white'
+          >
+            {imagePreview?.alt}
+          </h3>
+          <motion.button
+            type='button'
+            onClick={closeImagePreview}
+            aria-label={t('common.close')}
+            whileHover={{ rotate: 90 }}
+            whileTap={{ scale: 0.96 }}
+            transition={{ type: 'spring', stiffness: 500, damping: 18 }}
+            className='inline-flex h-10 w-10 shrink-0 items-center justify-center self-center rounded-md bg-transparent p-2 text-white transition-colors duration-200 hover:bg-white/90 hover:text-[#2479b2] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#ffe16a]/45'
+          >
+            <CloseIcon />
+          </motion.button>
+        </div>
+        <div className='grid min-h-[220px] place-items-center bg-slate-950 p-3 sm:p-5'>
+          {imagePreview ? (
+            <img
+              src={imagePreview.src}
+              alt={imagePreview.alt}
+              className='max-h-[78vh] w-full rounded-[16px] object-contain'
+            />
+          ) : null}
+        </div>
       </Modal>
 
       <ConfirmDialog

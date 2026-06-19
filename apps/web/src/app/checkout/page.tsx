@@ -5,17 +5,16 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { formatPrice } from "@/lib/formatters";
 import { ArrowLeft, ChevronRight, Info, Gift, Lightbulb, Camera, Zap, AlertCircle } from "lucide-react";
-import { fetchApi } from "@/lib/api";
+import { publicApiClient } from "@/lib/api/public-client";
 import Link from "next/link";
 import Image from "next/image";
 import { ROUTES } from "@/constants";
+import type { CreateOrderRequestContract, JsonObject, PaymentSettingsContract } from "@lego-shop/shared";
 
-interface PaymentSettings {
-  codEnabled: boolean;
-  payosEnabled: boolean;
-  codDepositEnabled: boolean;
-  codDepositPercent: number;
-}
+type PaymentSettings = Pick<
+  PaymentSettingsContract,
+  "codEnabled" | "payosEnabled" | "codDepositEnabled" | "codDepositPercent"
+>;
 
 const SHIPPING_OPTIONS = [
   { id: "standard", label: "Ship thường (3-5 ngày)", fee: 0, note: "Miễn phí" },
@@ -29,20 +28,24 @@ const POLAROID_OPTIONS = [
   { id: "4", label: "In 4 ảnh (+25k)", price: 25000 },
 ] as const;
 
+type ShippingMethod = (typeof SHIPPING_OPTIONS)[number]["id"];
+type PolaroidOption = (typeof POLAROID_OPTIONS)[number]["id"];
+type CheckoutPaymentMethod = "COD" | "PAYOS" | "COD_DEPOSIT";
+
 export default function CheckoutPage() {
   const { items, totalAmount, clearCart, isEmpty, itemCount } = useCart();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [shippingMethod, setShippingMethod] = useState<"standard" | "fast" | "self">("standard");
-  const [paymentMethod, setPaymentMethod] = useState<"COD" | "PAYOS" | "COD_DEPOSIT">("PAYOS");
+  const [shippingMethod, setShippingMethod] = useState<ShippingMethod>("standard");
+  const [paymentMethod, setPaymentMethod] = useState<CheckoutPaymentMethod>("PAYOS");
   const [paymentSettings, setPaymentSettings] = useState<PaymentSettings | null>(null);
   const [giftPackage, setGiftPackage] = useState(false);
-  const [polaroid, setPolaroid] = useState<"none" | "2" | "4">("none");
+  const [polaroid, setPolaroid] = useState<PolaroidOption>("none");
   const [discountCode, setDiscountCode] = useState("");
   const [referralCode, setReferralCode] = useState("");
 
   useEffect(() => {
-    fetchApi("/public/payment-settings").then(data => {
+    publicApiClient.public.getPaymentSettings().then(data => {
       setPaymentSettings(data);
       if (data?.payosEnabled) setPaymentMethod("PAYOS");
       else if (data?.codDepositEnabled) setPaymentMethod("COD_DEPOSIT");
@@ -77,30 +80,39 @@ export default function CheckoutPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (loading) return;
     setLoading(true);
     try {
-      const payload = {
+      const payload: CreateOrderRequestContract = {
         customerName: formData.name,
         phone: formData.phone,
-        email: formData.email || undefined,
         address: `${formData.address}, ${formData.ward}, ${formData.district}, ${formData.city}`,
-        receiveDate: formData.receiveDate || undefined,
         paymentMethod: paymentMethod === "COD_DEPOSIT" ? "COD" : paymentMethod,
         items: items.map(i => ({
-          productId: i.productId || undefined,
           productName: i.productName,
           quantity: i.quantity,
           price: i.unitPrice,
-          designData: i.designData,
-          previewUrl: i.previewUrl || undefined,
+          designData: i.designData as JsonObject,
         })),
       };
-      const data = await fetchApi("/orders", { method: "POST", body: JSON.stringify(payload) });
+      if (formData.email) {
+        payload.email = formData.email;
+      }
+      if (formData.receiveDate) {
+        payload.receiveDate = formData.receiveDate;
+      }
+      payload.items.forEach((item, index) => {
+        const cartItem = items[index];
+        if (!cartItem) return;
+        if (cartItem.productId) item.productId = cartItem.productId;
+        if (cartItem.previewUrl) item.previewUrl = cartItem.previewUrl;
+      });
+      const data = await publicApiClient.orders.createOrder(payload);
       if (data.checkoutUrl) {
         window.location.href = data.checkoutUrl;
-      } else if (data.orderCode || data.id) {
+      } else if (data.orderCode || data.orderId) {
         clearCart();
-        router.push(`/order-success?orderCode=${data.orderCode || data.id}`);
+        router.push(`/order-success?orderCode=${data.orderCode || data.orderId}`);
       }
     } catch (error) {
       console.error(error);
@@ -201,7 +213,7 @@ export default function CheckoutPage() {
                       {SHIPPING_OPTIONS.map(opt => (
                         <label key={opt.id} className={`flex items-center justify-between px-3 py-2.5 border-2 rounded-xl cursor-pointer transition-all ${shippingMethod === opt.id ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/30'}`}>
                           <div className="flex items-center gap-2.5">
-                            <input type="radio" name="shipping" checked={shippingMethod === opt.id} onChange={() => setShippingMethod(opt.id as any)}
+                            <input type="radio" name="shipping" checked={shippingMethod === opt.id} onChange={() => setShippingMethod(opt.id)}
                               className="text-primary focus:ring-primary w-3.5 h-3.5" />
                             <div>
                               <span className="text-sm font-semibold text-text-primary">{opt.label}</span>
@@ -285,7 +297,7 @@ export default function CheckoutPage() {
                   </div>
                   <div className="grid grid-cols-3 gap-2">
                     {POLAROID_OPTIONS.map(opt => (
-                      <button key={opt.id} type="button" onClick={() => setPolaroid(opt.id as any)}
+                      <button key={opt.id} type="button" onClick={() => setPolaroid(opt.id)}
                         className={`py-2 px-3 rounded-xl text-xs font-bold border-2 transition-all ${polaroid === opt.id ? 'border-primary bg-primary/5 text-primary' : 'border-border text-text-secondary hover:border-primary/30'}`}>
                         {opt.label}
                       </button>

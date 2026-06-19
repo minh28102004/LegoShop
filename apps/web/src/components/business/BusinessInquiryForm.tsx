@@ -2,12 +2,13 @@
 
 import { useState } from "react";
 import { Building2, User, Mail, Phone, MessageSquare, Send } from "lucide-react";
-import { fetchApi } from "@/lib/api";
+import { publicApiClient } from "@/lib/api/public-client";
+import type { CreateBusinessInquiryRequestContract } from "@lego-shop/shared";
 
 export function BusinessInquiryForm() {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<CreateBusinessInquiryRequestContract>({
     companyName: "",
     contactName: "",
     email: "",
@@ -20,15 +21,12 @@ export function BusinessInquiryForm() {
     setLoading(true);
     
     try {
-      await fetchApi("/business-inquiries", {
-        method: "POST",
-        body: JSON.stringify(formData)
-      });
+      await publicApiClient.inquiries.createBusinessInquiry(formData);
       setSuccess(true);
       setFormData({ companyName: "", contactName: "", email: "", phone: "", message: "" });
-    } catch (error: any) {
+    } catch (error) {
       console.error(error);
-      alert(error.message || "Có lỗi xảy ra, vui lòng thử lại!");
+      alert(error instanceof Error ? error.message : "Có lỗi xảy ra, vui lòng thử lại!");
     }
     
     setLoading(false);

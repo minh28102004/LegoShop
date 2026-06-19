@@ -53,9 +53,7 @@ const TABLE_ACTION_TONE_CLASS: Record<TableActionTone, string> = {
   neutral: 'border-slate-200 bg-white !text-slate-600 hover:border-slate-300 hover:bg-slate-50 hover:!text-slate-700',
 };
 
-export const DEFAULT_TABLE_SORTS: readonly TableSort[] = [
-  { key: 'createdAt', direction: 'desc' },
-];
+export const DEFAULT_TABLE_SORTS: readonly TableSort[] = [];
 
 export function areTableSortsEqual(
   current: readonly TableSort[],

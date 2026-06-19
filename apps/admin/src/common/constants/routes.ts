@@ -36,7 +36,6 @@ export type AdminNavItem = {
   id: string;
   href: string;
   labelKey: string;
-  descriptionKey: string;
   icon: AdminNavIcon;
 };
 
@@ -55,7 +54,6 @@ export const ADMIN_NAV_SECTIONS: AdminNavSection[] = [
         id: 'dashboard',
         href: ADMIN_ROUTES.dashboard,
         labelKey: 'sidebar.dashboard',
-        descriptionKey: 'sidebarDesc.dashboard',
         icon: 'dashboard',
       },
     ],
@@ -68,42 +66,36 @@ export const ADMIN_NAV_SECTIONS: AdminNavSection[] = [
         id: 'products',
         href: ADMIN_ROUTES.products,
         labelKey: 'sidebar.products',
-        descriptionKey: 'sidebarDesc.products',
         icon: 'products',
       },
       {
         id: 'frameOptions',
         href: ADMIN_ROUTES.frameOptions,
         labelKey: 'sidebar.frameOptions',
-        descriptionKey: 'sidebarDesc.frameOptions',
         icon: 'frameOptions',
       },
       {
         id: 'accessories',
         href: ADMIN_ROUTES.accessories,
         labelKey: 'sidebar.accessories',
-        descriptionKey: 'sidebarDesc.accessories',
         icon: 'accessories',
       },
       {
         id: 'banners',
         href: ADMIN_ROUTES.banners,
         labelKey: 'sidebar.banners',
-        descriptionKey: 'sidebarDesc.banners',
         icon: 'banners',
       },
       {
         id: 'frameBackgrounds',
         href: ADMIN_ROUTES.frameBackgrounds,
         labelKey: 'sidebar.frameBackgrounds',
-        descriptionKey: 'sidebarDesc.frameBackgrounds',
         icon: 'frameBackgrounds',
       },
       {
         id: 'collections',
         href: ADMIN_ROUTES.collections,
         labelKey: 'sidebar.collections',
-        descriptionKey: 'sidebarDesc.collections',
         icon: 'collections',
       },
     ],
@@ -116,14 +108,12 @@ export const ADMIN_NAV_SECTIONS: AdminNavSection[] = [
         id: 'orders',
         href: ADMIN_ROUTES.orders,
         labelKey: 'sidebar.orders',
-        descriptionKey: 'sidebarDesc.orders',
         icon: 'orders',
       },
       {
         id: 'businessInquiries',
         href: ADMIN_ROUTES.businessInquiries,
         labelKey: 'sidebar.businessInquiries',
-        descriptionKey: 'sidebarDesc.businessInquiries',
         icon: 'businessInquiries',
       },
     ],
@@ -136,7 +126,6 @@ export const ADMIN_NAV_SECTIONS: AdminNavSection[] = [
         id: 'paymentSettings',
         href: ADMIN_ROUTES.paymentSettings,
         labelKey: 'sidebar.paymentSettings',
-        descriptionKey: 'sidebarDesc.paymentSettings',
         icon: 'paymentSettings',
       },
     ],

@@ -6,7 +6,6 @@ import type {
   BusinessInquiryStatus,
   ID,
   ISODateString,
-  JsonRecord,
   Order,
   OrderStatus,
   PaymentMethod,
@@ -16,6 +15,13 @@ import type {
   ShippingStatus,
   URLString,
 } from './domain'
+import type {
+  CreateBusinessInquiryRequestContract,
+  CreateOrderItemRequestContract,
+  CreateOrderRequestContract,
+  CreateOrderResponseContract,
+  UpdateBusinessInquiryStatusRequestContract,
+} from '@lego-shop/shared'
 
 // ------------------------------------------------------------
 // BASE RESPONSE WRAPPERS
@@ -103,38 +109,9 @@ export interface BusinessInquiryFilters {
 // CHECKOUT / ORDERS - Mirrors backend DTOs
 // ------------------------------------------------------------
 
-export interface CreateOrderItemRequest {
-  productId: ID
-  productName: string
-  quantity: number
-  price: PriceInVND
-  designData?: JsonRecord
-  previewUrl?: URLString
-}
-
-export interface CreateOrderRequest {
-  customerName: string
-  phone: string
-  email?: string
-  address: string
-  receiveDate?: ISODateString
-  paymentMethod: PaymentMethod
-  items: CreateOrderItemRequest[]
-}
-
-export interface CreateOrderResponse {
-  orderId: ID
-  orderCode: string
-  paymentMethod: PaymentMethod
-  paymentStatus: PaymentStatus
-  totalAmount: PriceInVND
-  depositRequired: boolean
-  depositPercent: number
-  depositAmount: PriceInVND
-  remainingAmount: PriceInVND
-  depositStatus: string
-  checkoutUrl?: URLString
-}
+export type CreateOrderItemRequest = CreateOrderItemRequestContract
+export type CreateOrderRequest = CreateOrderRequestContract
+export type CreateOrderResponse = CreateOrderResponseContract
 
 export type TrackOrderResponse = Omit<Order, 'id'>
 
@@ -156,15 +133,5 @@ export interface CreatePaymentLinkResponse {
 // BUSINESS INQUIRY
 // ------------------------------------------------------------
 
-export interface CreateBusinessInquiryRequest {
-  companyName: string
-  contactName?: string
-  contactPerson?: string
-  email: string
-  phone: string
-  message: string
-}
-
-export interface UpdateBusinessInquiryStatusRequest {
-  status: BusinessInquiryStatus
-}
+export type CreateBusinessInquiryRequest = CreateBusinessInquiryRequestContract
+export type UpdateBusinessInquiryStatusRequest = UpdateBusinessInquiryStatusRequestContract

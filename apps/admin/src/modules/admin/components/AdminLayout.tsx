@@ -30,11 +30,14 @@ function AdminShell({
   const { t } = useI18n();
   const { isExpanded, isMobileOpen, closeMobileSidebar } = useAdminSidebar();
 
-  const pageTitle = useMemo(() => {
-    const titleMap: Array<{ href: string; label: string }> = [
+  const breadcrumbs = useMemo(() => {
+    const routeMap: Array<{ href: string; label: string }> = [
       { href: ADMIN_ROUTES.dashboard, label: t('sidebar.dashboard') },
       { href: ADMIN_ROUTES.orders, label: t('sidebar.orders') },
       { href: ADMIN_ROUTES.frameOptions, label: t('sidebar.frameOptions') },
+      { href: ADMIN_ROUTES.frameSizes, label: t('sidebar.frameSizes') },
+      { href: ADMIN_ROUTES.frameColors, label: t('sidebar.frameColors') },
+      { href: ADMIN_ROUTES.templates, label: t('sidebar.templates') },
       { href: ADMIN_ROUTES.templateCategories, label: t('sidebar.templateCategories') },
       { href: ADMIN_ROUTES.accessories, label: t('sidebar.accessories') },
       { href: ADMIN_ROUTES.accessoryCategories, label: t('sidebar.accessoryCategories') },
@@ -46,10 +49,33 @@ function AdminShell({
       { href: ADMIN_ROUTES.paymentSettings, label: t('sidebar.paymentSettings') },
     ];
 
-    const found = titleMap.find((item) =>
+    const found = routeMap.find((item) =>
       pathname === item.href || pathname.startsWith(`${item.href}/`),
     );
-    return found?.label ?? t('header.adminControl');
+
+    const rootCrumb = {
+      href: ADMIN_ROUTES.dashboard,
+      label: t('header.adminControl'),
+    };
+
+    if (!found) {
+      return [{ label: t('header.adminControl') }];
+    }
+
+    if (pathname === found.href) {
+      return [rootCrumb, { label: found.label }];
+    }
+
+    const pathSegments = pathname.split('/').filter(Boolean);
+    const fallbackDetailLabel = pathSegments[pathSegments.length - 1] ?? found.label;
+    const detailLabel =
+      found.href === ADMIN_ROUTES.orders
+        ? t('orders.detail')
+        : found.href === ADMIN_ROUTES.businessInquiries
+          ? t('inquiries.detail')
+          : fallbackDetailLabel;
+
+    return [rootCrumb, { href: found.href, label: found.label }, { label: detailLabel }];
   }, [pathname, t]);
 
   const mainContentMargin = isMobileOpen
@@ -87,7 +113,7 @@ function AdminShell({
       >
         <div className='h-[var(--admin-shell-header-height)] shrink-0 [&>*]:h-full'>
           <AdminHeader
-            title={pageTitle}
+            breadcrumbs={breadcrumbs}
             profileName={profileName}
             profileEmail={profileEmail}
             profileRole={profileRole}

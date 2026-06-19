@@ -2,6 +2,7 @@
 
 import Image from 'next/image';
 import { useState } from 'react';
+import toast from 'react-hot-toast';
 import Dropdown from '@/common/components/ui/Dropdown';
 import { cn } from '@/common/utils/cn';
 import { type Locale } from '@/lib/i18n/config';
@@ -53,6 +54,19 @@ export default function LanguageSwitcher({
   const { locale, setLocale, t } = useI18n();
   const [open, setOpen] = useState(false);
   const selected = LOCALE_OPTIONS.find((option) => option.value === locale) ?? LOCALE_OPTIONS[0];
+
+  function handleLocaleChange(nextLocale: Locale, label: string, close: () => void) {
+    close();
+
+    if (nextLocale === locale) return;
+
+    setLocale(nextLocale);
+    toast.success(
+      nextLocale === 'vi'
+        ? `Đã chuyển sang ${label}`
+        : `Language changed to ${label}`,
+    );
+  }
 
   return (
     <div
@@ -111,8 +125,7 @@ export default function LanguageSwitcher({
                       : 'text-slate-700 hover:bg-[var(--admin-primary-soft)] hover:text-[var(--admin-primary-strong)]',
                   )}
                   onClick={() => {
-                    setLocale(option.value);
-                    close();
+                    handleLocaleChange(option.value, option.label, close);
                   }}
                 >
                   <Image

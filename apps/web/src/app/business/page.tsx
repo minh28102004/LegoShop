@@ -3,12 +3,13 @@
 import { useState } from "react";
 import { Building2, MessageSquare, Users, BadgePercent, CheckCircle2, ChevronRight } from "lucide-react";
 import Link from "next/link";
-import { fetchApi } from "@/lib/api";
+import { publicApiClient } from "@/lib/api/public-client";
+import type { CreateBusinessInquiryRequestContract } from "@lego-shop/shared";
 
 export default function BusinessPage() {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<CreateBusinessInquiryRequestContract>({
     companyName: "", contactName: "", email: "", phone: "", message: ""
   });
 
@@ -16,7 +17,7 @@ export default function BusinessPage() {
     e.preventDefault();
     setLoading(true);
     try {
-      await fetchApi("/business-inquiries", { method: "POST", body: JSON.stringify(formData) });
+      await publicApiClient.inquiries.createBusinessInquiry(formData);
       setSuccess(true);
     } catch {
       alert("Có lỗi xảy ra, vui lòng thử lại sau.");

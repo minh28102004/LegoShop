@@ -1,3 +1,4 @@
+import type { CreateOrderItemRequestContract, JsonObject } from '@lego-shop/shared';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
 import {
@@ -9,7 +10,7 @@ import {
   Min,
 } from 'class-validator';
 
-export class CreateOrderItemDto {
+export class CreateOrderItemDto implements CreateOrderItemRequestContract {
   @ApiPropertyOptional({
     example: '8d33f2a5-f6da-4a07-a2f1-2359f5f818a7',
   })
@@ -56,7 +57,7 @@ export class CreateOrderItemDto {
   })
   @IsOptional()
   @IsObject()
-  designData?: Record<string, unknown>;
+  designData?: JsonObject;
 
   @ApiPropertyOptional({
     example: 'https://example.com/preview.jpg',

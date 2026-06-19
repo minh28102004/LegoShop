@@ -9,7 +9,8 @@ import { useCartStore } from "@/stores/cartStore";
 import { useUIStore } from "@/stores/uiStore";
 import { UI_MODAL_IDS } from "@/constants";
 import { useAuthStore } from "@/stores/authStore";
-import { fetchApi } from "@/lib/api";
+import { browserApiClient } from "@/lib/api/browser-client";
+import type { JsonObject } from "@lego-shop/shared";
 
 const getFrameColorHex = (name: string, apiHex?: string | null): string => {
   if (apiHex && apiHex.startsWith('#')) return apiHex;
@@ -252,7 +253,7 @@ function Step2Content() {
             <button key={tpl.id} type="button" onClick={() => setActiveTemplate(tpl.id)}
               className={`aspect-square rounded-lg border-2 overflow-hidden relative transition-all ${activeTemplate === tpl.id ? 'border-primary shadow-sm' : 'border-border hover:border-primary/40'}`}
             >
-              {tpl.imageUrl ? <img src={tpl.imageUrl} alt={tpl.name} className="w-full h-full object-cover" /> :
+              {tpl.imageUrl ? <img src={tpl.imageUrl} alt={tpl.name} loading="lazy" className="w-full h-full object-cover" /> :
                <div className="w-full h-full bg-surface-hover flex items-center justify-center"><span className="text-[10px] text-text-muted text-center px-1 leading-tight">{tpl.name}</span></div>}
               {activeTemplate === tpl.id && <div className="absolute inset-0 bg-primary/20 flex items-center justify-center"><Check className="w-4 h-4 text-primary drop-shadow" /></div>}
               <div className="absolute bottom-0 inset-x-0 bg-black/50 text-center py-0.5">
@@ -369,7 +370,7 @@ function Step3Characters() {
               }}
                 className={`relative aspect-square rounded-xl border-2 overflow-hidden flex flex-col items-center justify-center p-1 transition-all ${isAdded ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/40 bg-surface'}`}
               >
-                {acc.imageUrl || acc.iconUrl ? <img src={acc.imageUrl || acc.iconUrl || ''} alt={acc.name} className="w-9 h-9 object-contain" /> : <div className="w-9 h-9 bg-border rounded-lg" />}
+                {acc.imageUrl || acc.iconUrl ? <img src={acc.imageUrl || acc.iconUrl || ''} alt={acc.name} loading="lazy" className="w-9 h-9 object-contain" /> : <div className="w-9 h-9 bg-border rounded-lg" />}
                 <span className="text-[9px] font-medium text-text-secondary mt-0.5 text-center leading-tight line-clamp-1 w-full px-0.5">{acc.name}</span>
                 <span className="text-[9px] font-bold text-primary">{formatPrice(acc.price)}</span>
                 {isAdded && <div className="absolute top-1 right-1 w-3.5 h-3.5 bg-primary rounded-full flex items-center justify-center"><Check className="w-2 h-2 text-white" /></div>}
@@ -411,6 +412,30 @@ function Step4Finish() {
     frameColorName: frameColor,
     designData: { elements, printText, templateId: activeTemplate, characterCount },
     previewUrl: null,
+  });
+
+  const buildUserDesignData = (): JsonObject => ({
+    elements: elements.map((element): JsonObject => ({
+      id: element.id,
+      type: element.type,
+      x: element.x,
+      y: element.y,
+      ...(element.content !== undefined ? { content: element.content } : {}),
+      ...(element.imageUrl !== undefined ? { imageUrl: element.imageUrl } : {}),
+      ...(element.fontSize !== undefined ? { fontSize: element.fontSize } : {}),
+      ...(element.color !== undefined ? { color: element.color } : {}),
+      ...(element.width !== undefined ? { width: element.width } : {}),
+      ...(element.height !== undefined ? { height: element.height } : {}),
+      ...(element.price !== undefined ? { price: element.price } : {}),
+      ...(element.accessoryId !== undefined ? { accessoryId: element.accessoryId } : {}),
+    })),
+    printText: {
+      title: printText.title,
+      date: printText.date,
+      message: printText.message,
+    },
+    templateId: activeTemplate,
+    characterCount,
   });
 
   const handleAddToCart = () => { addItem(buildCartItem()); openModal(UI_MODAL_IDS.CART_DRAWER); };
@@ -519,16 +544,13 @@ function Step4Finish() {
               return;
             }
             try {
-              await fetchApi('/user-designs', {
-                method: 'POST',
-                body: JSON.stringify({
-                  name: `Thiết kế ${new Date().toLocaleDateString()}`,
-                  designData: buildCartItem().designData
-                })
+              await browserApiClient.userDesigns.createUserDesign({
+                name: `Thiết kế ${new Date().toLocaleDateString()}`,
+                designData: buildUserDesignData(),
               });
               alert("Lưu thiết kế thành công!");
-            } catch (err: any) {
-              alert(err.message || "Lỗi khi lưu thiết kế");
+            } catch (err) {
+              alert(err instanceof Error ? err.message : "Lỗi khi lưu thiết kế");
             }
           }}
           className="col-span-2 py-3 px-4 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-1.5 bg-surface border border-border text-text-secondary hover:bg-gray-50"

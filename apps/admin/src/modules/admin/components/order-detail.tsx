@@ -24,6 +24,7 @@ import {
 import { useI18n } from '@/lib/i18n/useI18n';
 import AdminNavIcon from '@/modules/admin/components/AdminNavIcon';
 import type { Order, OrderStatus, PaymentStatus, ShippingStatus } from '@/modules/admin/types/admin.types';
+import type { JsonObject } from '@lego-shop/shared';
 import DesignPreviewModal from './design-preview-modal';
 
 type Props = {
@@ -62,13 +63,17 @@ const CURRENCY = new Intl.NumberFormat('vi-VN', {
   maximumFractionDigits: 0,
 });
 
+function isJsonObject(value: unknown): value is JsonObject {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
+
 export default function OrderDetail({ orderId }: Props) {
   const { t, locale } = useI18n();
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const [previewItem, setPreviewItem] = useState<{designData: any, productName: string} | null>(null);
+  const [previewItem, setPreviewItem] = useState<{ designData: JsonObject | null; productName: string } | null>(null);
 
   function statusLabel(value: string) {
     return getStatusBadgeLabel(value, t);
@@ -298,9 +303,9 @@ export default function OrderDetail({ orderId }: Props) {
                         >
                           {t('orderDetail.open')}
                         </a>
-                      ) : item.designData ? (
+                      ) : isJsonObject(item.designData) ? (
                         <button
-                          onClick={() => setPreviewItem({ designData: item.designData, productName: item.productName })}
+                          onClick={() => setPreviewItem({ designData: item.designData ?? null, productName: item.productName })}
                           className='text-sm font-bold text-emerald-600 hover:text-emerald-700 underline underline-offset-4 cursor-pointer'
                         >
                           Xem thiết kế
@@ -354,7 +359,7 @@ export default function OrderDetail({ orderId }: Props) {
       <DesignPreviewModal 
         isOpen={!!previewItem}
         onClose={() => setPreviewItem(null)}
-        designData={previewItem?.designData}
+        designData={previewItem?.designData ?? null}
         productName={previewItem?.productName || ''}
       />
     </PageShell>

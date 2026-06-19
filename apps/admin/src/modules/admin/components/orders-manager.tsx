@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { getStatusBadgeLabel, StatusBadge } from '@/common/components/ui/Badge';
 import PageShell from '@/common/components/ui/PageShell';
 import Tooltip from '@/common/components/ui/Tooltip';
@@ -89,6 +89,7 @@ export default function OrdersManager() {
   const [payload, setPayload] = useState<PaginatedOrders | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const requestSeq = useRef(0);
 
   const activeAdvancedFilterCount = countAdvancedOrderFilters(appliedFilters);
   const showReset = hasAnyOrderFilter(appliedFilters);
@@ -120,6 +121,8 @@ export default function OrdersManager() {
 
   useEffect(() => {
     async function load() {
+      const requestId = requestSeq.current + 1;
+      requestSeq.current = requestId;
       setLoading(true);
       setError(null);
       try {
@@ -137,11 +140,15 @@ export default function OrdersManager() {
           page,
           limit: pageSize,
         });
+        if (requestSeq.current !== requestId) return;
         setPayload(data);
       } catch (err) {
+        if (requestSeq.current !== requestId) return;
         setError(err instanceof Error ? err.message : t('orders.loadFailed'));
       } finally {
-        setLoading(false);
+        if (requestSeq.current === requestId) {
+          setLoading(false);
+        }
       }
     }
 
@@ -285,7 +292,7 @@ export default function OrdersManager() {
         </TableHeader>
 
         <TableBody>
-          {loading ? (
+          {loading && !payload ? (
             <TableEmptyState colSpan={8} variant='loading'>{t('common.loading')}</TableEmptyState>
           ) : error ? (
             <TableEmptyState colSpan={8} variant='error'>
@@ -355,7 +362,7 @@ export default function OrdersManager() {
         itemLabel={getOrderItemLabel(locale)}
         pageLabel={t('orders.page')}
         pageSize={payload?.meta.limit ?? pageSize}
-        pageSizeLabel={locale === 'vi' ? 'Số dòng' : 'Rows'}
+        pageSizeLabel={locale === 'vi' ? 'Mỗi trang' : 'Per page'}
         totalLabel={t('common.total')}
         previousLabel={t('common.previous')}
         nextLabel={t('common.next')}

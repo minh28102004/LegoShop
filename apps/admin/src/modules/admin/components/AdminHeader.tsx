@@ -9,7 +9,10 @@ import { useAdminSidebar } from '@/modules/admin/hooks/useAdminSidebar';
 import { useI18n } from '@/lib/i18n/useI18n';
 
 type AdminHeaderProps = {
-  title: string;
+  breadcrumbs: Array<{
+    href?: string;
+    label: string;
+  }>;
   profileName: string | null;
   profileEmail: string;
   profileRole: string | null;
@@ -40,8 +43,16 @@ function ExternalIcon() {
   );
 }
 
+function BreadcrumbSeparator() {
+  return (
+    <svg viewBox='0 0 20 20' fill='none' className='h-3.5 w-3.5 text-slate-400' aria-hidden='true'>
+      <path d='M7.5 4.5L12.5 10L7.5 15.5' stroke='currentColor' strokeWidth='1.8' strokeLinecap='round' strokeLinejoin='round' />
+    </svg>
+  );
+}
+
 export default function AdminHeader({
-  title,
+  breadcrumbs,
   profileName,
   profileEmail,
   profileRole,
@@ -63,11 +74,31 @@ export default function AdminHeader({
             <MenuIcon />
           </Button>
 
-          <div className='min-w-0'>
-            <h1 className='truncate text-[20px] font-semibold leading-7 text-slate-900 sm:text-[22px]'>
-              {title}
-            </h1>
-          </div>
+          <nav className='min-w-0' aria-label='Breadcrumb'>
+            <ol className='flex min-w-0 items-center gap-1 text-sm font-semibold text-slate-500'>
+              {breadcrumbs.map((item, index) => {
+                const isLast = index === breadcrumbs.length - 1;
+
+                return (
+                  <li key={`${item.label}-${index}`} className='flex min-w-0 items-center gap-1'>
+                    {index > 0 ? <BreadcrumbSeparator /> : null}
+                    {item.href && !isLast ? (
+                      <Link
+                        href={item.href}
+                        className='min-w-0 truncate rounded-lg px-1 py-0.5 text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-800'
+                      >
+                        {item.label}
+                      </Link>
+                    ) : (
+                      <span className='min-w-0 truncate px-1 py-0.5 text-sm font-semibold leading-5 text-slate-600'>
+                        {item.label}
+                      </span>
+                    )}
+                  </li>
+                );
+              })}
+            </ol>
+          </nav>
         </div>
 
         <div className='flex items-center gap-2 sm:gap-3'>

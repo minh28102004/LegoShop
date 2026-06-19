@@ -3,17 +3,19 @@
   "private": true,
   "packageManager": "pnpm@9.15.4",
   "scripts": {
-  "dev": "concurrently -n WEB,ADMIN,API -c blue,magenta,green \"pnpm --filter web dev\" \"pnpm --filter admin dev\" \"pnpm --filter backend start:dev\"",
-  "dev:turbo": "turbo run dev --parallel",
-  "build": "turbo run build",
-  "lint": "turbo run lint",
-  "typecheck": "turbo run typecheck",
-  "dev:web": "pnpm --filter web dev",
-  "dev:admin": "pnpm --filter admin dev",
-  "dev:backend": "pnpm --filter backend start:dev"
-},
+    "dev": "concurrently -n WEB,ADMIN,API -c blue,magenta,green \"pnpm --filter web dev\" \"pnpm --filter admin dev\" \"pnpm --filter backend start:dev\"",
+    "dev:turbo": "turbo run dev --parallel",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "dev:web": "pnpm --filter web dev",
+    "dev:admin": "pnpm --filter admin dev",
+    "dev:backend": "pnpm --filter backend start:dev",
+    "prepare": "husky"
+  },
   "devDependencies": {
     "concurrently": "^10.0.0",
+    "husky": "^9.1.7",
     "prettier": "latest",
     "turbo": "latest",
     "typescript": "latest"

@@ -4,7 +4,7 @@ import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { XCircle, RefreshCcw, Search } from "lucide-react";
 import { Suspense, useState } from "react";
-import { fetchApi } from "@/lib/api";
+import { publicApiClient } from "@/lib/api/public-client";
 
 function PaymentCancelContent() {
   const searchParams = useSearchParams();
@@ -15,9 +15,7 @@ function PaymentCancelContent() {
     if (!orderCode) return;
     setLoading(true);
     try {
-      const data = await fetchApi(`/orders/${orderCode}/create-payment-link`, {
-        method: "POST"
-      });
+      const data = await publicApiClient.orders.createPaymentLink(orderCode);
       if (data.checkoutUrl) {
         window.location.href = data.checkoutUrl;
       } else {

@@ -288,7 +288,7 @@ export default function AdminToolbar({
       )}
     >
       <div className='flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between lg:gap-6'>
-        <div className='min-w-0 lg:basis-[460px] xl:basis-[520px] lg:shrink-0'>
+        <div className='min-w-0 lg:basis-[360px] xl:basis-[420px] lg:shrink-0'>
           <div className='flex items-center gap-3'>
             <div className='grid h-11 w-11 shrink-0 place-items-center rounded-[15px] border border-[var(--admin-accent)] bg-[#ffe16a] text-[#18385a] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.55)]'>
               {icon}
@@ -300,11 +300,6 @@ export default function AdminToolbar({
                 </h2>
                 {badge ? <div className='shrink-0'>{badge}</div> : null}
               </div>
-              {description ? (
-                <p className='mt-0.5 line-clamp-2 max-w-[360px] text-sm font-medium leading-5 text-slate-600 xl:max-w-[420px]'>
-                  {description}
-                </p>
-              ) : null}
             </div>
           </div>
         </div>

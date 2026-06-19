@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import type { JsonObject } from "@lego-shop/shared";
 
 export interface CartItem {
   id: string; // unique cart item id
@@ -8,7 +9,7 @@ export interface CartItem {
   productName: string;
   quantity: number;
   price: number;
-  designData?: any;
+  designData?: JsonObject;
   previewUrl?: string;
 }
 

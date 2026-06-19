@@ -1,7 +1,8 @@
 "use client";
 
-import { createContext, useContext, useState, ReactNode, useEffect } from "react";
-import { fetchApi } from "@/lib/api";
+import { createContext, useCallback, useContext, useMemo, useState, ReactNode, useEffect } from "react";
+import { publicApiClient } from "@/lib/api/public-client";
+import type { JsonObject } from "@lego-shop/shared";
 
 export type ElementType = "text" | "accessory" | "character";
 
@@ -31,16 +32,16 @@ interface PrintText {
 export interface ApiTemplate {
   id: string;
   name: string;
-  imageUrl: string;
+  imageUrl: string | null;
   categoryId: string | null;
-  configJson: any;
+  configJson: JsonObject | null;
 }
 
 export interface ApiAccessory {
   id: string;
   name: string;
   price: number;
-  imageUrl: string;
+  imageUrl: string | null;
   iconUrl: string | null;
   categoryId: string | null;
 }
@@ -109,6 +110,71 @@ export interface StudioContextType {
 
 const StudioContext = createContext<StudioContextType | undefined>(undefined);
 
+type TemplateElement = Omit<StudioElement, "id">;
+
+function getTemplateElements(configJson: JsonObject | null): TemplateElement[] {
+  const elements = configJson?.elements;
+
+  if (!Array.isArray(elements)) {
+    return [];
+  }
+
+  return elements.flatMap((element) => {
+    const parsed = parseTemplateElement(element);
+    return parsed ? [parsed] : [];
+  });
+}
+
+function parseTemplateElement(value: unknown): TemplateElement | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+
+  const record = value as Record<string, unknown>;
+
+  if (!isElementType(record.type)) {
+    return null;
+  }
+
+  const element: TemplateElement = {
+    type: record.type,
+    x: readNumber(record.x) ?? 0,
+    y: readNumber(record.y) ?? 0,
+  };
+
+  const content = readString(record.content);
+  const imageUrl = readString(record.imageUrl);
+  const fontSize = readNumber(record.fontSize);
+  const color = readString(record.color);
+  const width = readNumber(record.width);
+  const height = readNumber(record.height);
+  const price = readNumber(record.price);
+  const accessoryId = readString(record.accessoryId);
+
+  if (content !== undefined) element.content = content;
+  if (imageUrl !== undefined) element.imageUrl = imageUrl;
+  if (fontSize !== undefined) element.fontSize = fontSize;
+  if (color !== undefined) element.color = color;
+  if (width !== undefined) element.width = width;
+  if (height !== undefined) element.height = height;
+  if (price !== undefined) element.price = price;
+  if (accessoryId !== undefined) element.accessoryId = accessoryId;
+
+  return element;
+}
+
+function isElementType(value: unknown): value is ElementType {
+  return value === "text" || value === "accessory" || value === "character";
+}
+
+function readString(value: unknown): string | undefined {
+  return typeof value === "string" ? value : undefined;
+}
+
+function readNumber(value: unknown, fallback?: number): number | undefined {
+  return typeof value === "number" ? value : fallback;
+}
+
 export function StudioProvider({ children }: { children: ReactNode }) {
   const [step, setStep] = useState<number>(1);
   const [frameSize, setFrameSize] = useState<string>("");
@@ -135,40 +201,36 @@ export function StudioProvider({ children }: { children: ReactNode }) {
     async function loadData() {
       try {
         const [tpls, tplCats, accs, accCats, fSizes, fColors] = await Promise.all([
-          fetchApi("/public/templates"),
-          fetchApi("/public/template-categories"),
-          fetchApi("/public/accessories"),
-          fetchApi("/public/accessory-categories"),
-          fetchApi("/public/frame-sizes"),
-          fetchApi("/public/frame-colors"),
+          publicApiClient.products.listTemplates(),
+          publicApiClient.categories.listTemplateCategories(),
+          publicApiClient.products.listAccessories(),
+          publicApiClient.categories.listAccessoryCategories(),
+          publicApiClient.products.listFrameSizes(),
+          publicApiClient.products.listFrameColors(),
         ]);
         // Filter active only
-        setTemplates((tpls as any[]).filter(t => t.status === 'active'));
+        setTemplates(tpls.filter(t => t.status === 'active'));
         setTemplateCategories(tplCats);
-        setAccessories((accs as any[]).filter(a => a.status === 'active'));
+        setAccessories(accs.filter(a => a.status === 'active'));
         setAccessoryCategories(accCats);
         
-        const activeFrameSizes = (fSizes as any[]).filter(f => f.status === 'active');
-        const activeFrameColors = (fColors as any[]).filter(c => c.status === 'active');
+        const activeFrameSizes = fSizes.filter(f => f.status === 'active');
+        const activeFrameColors = fColors.filter(c => c.status === 'active');
         
         setFrameSizes(activeFrameSizes);
         setFrameColors(activeFrameColors);
         
-        if (activeFrameSizes.length > 0) setFrameSize(activeFrameSizes[0].id);
-        if (activeFrameColors.length > 0) setFrameColor(activeFrameColors[0].name);
+        const firstFrameSize = activeFrameSizes[0];
+        const firstFrameColor = activeFrameColors[0];
+
+        if (firstFrameSize) setFrameSize(firstFrameSize.id);
+        if (firstFrameColor) setFrameColor(firstFrameColor.name);
         
         // Set first template as active if available
-        const activeTpls = (tpls as any[]).filter(t => t.status === 'active');
-        if (activeTpls.length > 0) {
-          setActiveTemplate(activeTpls[0].id);
-          
-          // Try to load initial elements if configJson exists
-          if (activeTpls[0].configJson?.elements) {
-            setElements(activeTpls[0].configJson.elements.map((el: any) => ({
-              ...el,
-              id: Math.random().toString(36).substring(2, 9)
-            })));
-          }
+        const activeTpls = tpls.filter(t => t.status === 'active');
+        const firstTemplate = activeTpls[0];
+        if (firstTemplate) {
+          setActiveTemplate(firstTemplate.id);
         }
       } catch (err) {
         console.error("Failed to load studio data:", err);
@@ -183,8 +245,9 @@ export function StudioProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!activeTemplate || isLoadingData) return;
     const tpl = templates.find(t => t.id === activeTemplate);
-    if (tpl && tpl.configJson?.elements) {
-      setElements(tpl.configJson.elements.map((el: any) => ({
+    const templateElements = tpl ? getTemplateElements(tpl.configJson) : [];
+    if (templateElements.length > 0) {
+      setElements(templateElements.map((el) => ({
         ...el,
         id: Math.random().toString(36).substring(2, 9)
       })));
@@ -194,71 +257,104 @@ export function StudioProvider({ children }: { children: ReactNode }) {
     setSelectedId(null);
   }, [activeTemplate, templates, isLoadingData]);
 
-  const activeFrameSizeObj = frameSizes.find(s => s.id === frameSize);
+  const activeFrameSizeObj = useMemo(
+    () => frameSizes.find(s => s.id === frameSize),
+    [frameSize, frameSizes],
+  );
   const baseFramePrice = activeFrameSizeObj ? activeFrameSizeObj.price : 0;
-  const accessoriesPrice = elements.reduce((acc, el) => acc + (el.price || 0), 0);
+  const accessoriesPrice = useMemo(
+    () => elements.reduce((acc, el) => acc + (el.price || 0), 0),
+    [elements],
+  );
   const charactersTotalPrice = characterCount * CHARACTER_PRICE;
   const totalPrice = baseFramePrice + accessoriesPrice + charactersTotalPrice;
   const freeshipAmount = Math.max(0, FREESHIP_THRESHOLD - totalPrice);
   const freeshipProgress = Math.min(100, Math.round((totalPrice / FREESHIP_THRESHOLD) * 100));
 
-  const addElement = (el: Omit<StudioElement, "id">) => {
+  const addElement = useCallback((el: Omit<StudioElement, "id">) => {
     const newEl = { ...el, id: Math.random().toString(36).substring(2, 9) };
     setElements(prev => [...prev, newEl]);
     setSelectedId(newEl.id);
-  };
+  }, []);
 
-  const updateElement = (id: string, updates: Partial<StudioElement>) => {
+  const updateElement = useCallback((id: string, updates: Partial<StudioElement>) => {
     setElements(prev => prev.map(el => (el.id === id ? { ...el, ...updates } : el)));
-  };
+  }, []);
 
-  const removeElement = (id: string) => {
+  const removeElement = useCallback((id: string) => {
     setElements(prev => prev.filter(el => el.id !== id));
-    if (selectedId === id) setSelectedId(null);
-  };
+    setSelectedId(current => (current === id ? null : current));
+  }, []);
 
-  const clearAll = () => {
+  const clearAll = useCallback(() => {
     setElements([]);
     setSelectedId(null);
-  };
+  }, []);
+
+  const contextValue = useMemo(
+    () => ({
+      step,
+      setStep,
+      frameSize,
+      setFrameSize,
+      frameColor,
+      setFrameColor,
+      frameSizes,
+      frameColors,
+      printText,
+      setPrintText,
+      characterCount,
+      setCharacterCount,
+      characterPrice: CHARACTER_PRICE,
+      totalPrice,
+      freeshipAmount,
+      freeshipProgress,
+      elements,
+      selectedId,
+      activeTemplate,
+      zoom,
+      setZoom,
+      setActiveTemplate,
+      setSelectedId,
+      addElement,
+      updateElement,
+      removeElement,
+      clearAll,
+      templates,
+      templateCategories,
+      accessories,
+      accessoryCategories,
+      isLoadingData,
+    }),
+    [
+      step,
+      frameSize,
+      frameColor,
+      frameSizes,
+      frameColors,
+      printText,
+      characterCount,
+      totalPrice,
+      freeshipAmount,
+      freeshipProgress,
+      elements,
+      selectedId,
+      activeTemplate,
+      zoom,
+      addElement,
+      updateElement,
+      removeElement,
+      clearAll,
+      templates,
+      templateCategories,
+      accessories,
+      accessoryCategories,
+      isLoadingData,
+    ],
+  );
 
   return (
-    <StudioContext.Provider
-      value={{
-        step,
-        setStep,
-        frameSize,
-        setFrameSize,
-        frameColor,
-        setFrameColor,
-        frameSizes,
-        frameColors,
-        printText,
-        setPrintText,
-        characterCount,
-        setCharacterCount,
-        characterPrice: CHARACTER_PRICE,
-        totalPrice,
-        freeshipAmount,
-        freeshipProgress,
-        elements,
-        selectedId,
-        activeTemplate,
-        zoom,
-        setZoom,
-        setActiveTemplate,
-        setSelectedId,
-        addElement,
-        updateElement,
-        removeElement,
-        clearAll,
-        templates,
-        templateCategories,
-        accessories,
-        accessoryCategories,
-        isLoadingData,
-      }}
-    >
+    <StudioContext.Provider value={contextValue}>
       {children}
     </StudioContext.Provider>
   );

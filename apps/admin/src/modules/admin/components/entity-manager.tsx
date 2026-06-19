@@ -1,6 +1,6 @@
 'use client';
 
-import { type FormEvent, type ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
+import { type FormEvent, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 import Badge, { getStatusBadgeLabel, StatusBadge } from '@/common/components/ui/Badge';
@@ -49,6 +49,7 @@ import {
 } from '@/modules/admin/services/adminApi';
 import { useI18n } from '@/lib/i18n/useI18n';
 import AdminToolbar, {
+  AdminToolbarDateRangeField,
   AdminToolbarField,
   AdminToolbarIcon,
   adminToolbarButtonClass,
@@ -99,10 +100,37 @@ const CURRENCY_FORMAT = new Intl.NumberFormat('vi-VN', {
 });
 const ENTITY_PAGE_SIZE = 20;
 const PAGE_SIZE_LABEL = {
-  vi: 'Số dòng',
-  en: 'Rows',
+  vi: 'Mỗi trang',
+  en: 'Per page',
 } as const;
-const ENTITY_ACTION_COLUMN_CLASS = 'w-[124px] min-w-[124px] max-w-[124px] px-2 text-center';
+const ENTITY_ACTION_COLUMN_CLASS = 'w-[9%] min-w-[112px] max-w-[124px] px-2 text-center';
+const ENTITY_DATE_FILTER_RESOURCES = new Set<ResourceKey>([
+  'products',
+  'templates',
+  'frame-options',
+  'template-categories',
+  'accessories',
+  'accessory-categories',
+  'banners',
+  'frame-backgrounds',
+  'collections',
+]);
+const DATE_TIME_FORMATTERS = {
+  vi: new Intl.DateTimeFormat('vi-VN', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  }),
+  en: new Intl.DateTimeFormat('en-US', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  }),
+} as const;
 
 type SortDirection = 'asc' | 'desc';
 type EntityListMeta = PaginatedResourceResponse<unknown>['meta'];
@@ -160,24 +188,37 @@ function getTableColumnClass(field: EntityField) {
   return '';
 }
 
-function getEntityTableColumnClass(column: EntityTableColumn) {
+function getEntityPrimaryColumnClass(resource: ResourceKey) {
+  if (resource === 'frame-backgrounds') return 'w-[42%] min-w-[280px] max-w-[520px] text-left';
+  if (resource === 'products') return 'w-[28%] min-w-[260px] max-w-[420px] text-left';
+  if (resource === 'banners') return 'w-[26%] min-w-[220px] max-w-[360px] text-left';
+  if (resource === 'template-categories' || resource === 'accessory-categories') {
+    return 'w-[36%] min-w-[240px] max-w-[420px] text-left';
+  }
+  return 'w-[30%] min-w-[220px] max-w-[380px] text-left';
+}
+
+function getEntityTableColumnClass(column: EntityTableColumn, resource: ResourceKey) {
   const field = column.field;
   const normalizedKey = field.key.toLowerCase();
 
   if (normalizedKey === 'colorhex') return 'w-[96px] min-w-[96px] max-w-[96px] text-center';
-  if (normalizedKey === 'framesize') return 'w-[150px] min-w-[150px] max-w-[150px] text-center';
-  if (normalizedKey === 'stock' || normalizedKey === 'sortorder') {
-    return 'w-[112px] min-w-[112px] max-w-[112px] text-center';
+  if (normalizedKey === 'framesize') return 'w-[12%] min-w-[140px] max-w-[160px] text-center';
+  if (normalizedKey === 'createdat' || normalizedKey === 'updatedat') {
+    return 'w-[14%] min-w-[150px] max-w-[180px] text-center';
   }
-  if (field.type === 'number') return 'w-[132px] min-w-[132px] max-w-[132px] text-right';
-  if (field.type === 'image' || field.type === 'images') return 'w-[116px] min-w-[116px] max-w-[116px] text-center';
-  if (normalizedKey.includes('status')) return 'w-[150px] min-w-[150px] max-w-[150px] text-center';
+  if (normalizedKey === 'stock' || normalizedKey === 'sortorder') {
+    return 'w-[10%] min-w-[104px] max-w-[128px] text-center';
+  }
+  if (field.type === 'number') return 'w-[12%] min-w-[128px] max-w-[150px] text-right';
+  if (field.type === 'image' || field.type === 'images') return 'w-[14%] min-w-[118px] max-w-[170px] text-center';
+  if (normalizedKey.includes('status')) return 'w-[14%] min-w-[148px] max-w-[180px] text-center';
   if (field.type === 'json') return 'min-w-[280px] max-w-[420px]';
   if (normalizedKey.includes('description')) return 'min-w-[240px] max-w-[360px]';
   if (normalizedKey === 'slug' || normalizedKey.includes('url') || normalizedKey.includes('link')) {
-    return 'min-w-[180px] max-w-[240px]';
+    return 'w-[18%] min-w-[180px] max-w-[260px]';
   }
-  if (isPrimaryField(field)) return 'min-w-[200px] max-w-[280px] text-left';
+  if (isPrimaryField(field)) return getEntityPrimaryColumnClass(resource);
 
   return getTableColumnClass(field);
 }
@@ -194,9 +235,41 @@ function getOptionalNumber(value: string): number | undefined {
   return Number.isFinite(numberValue) ? numberValue : undefined;
 }
 
+function getEntityTimestampLabel(locale: string, key: string) {
+  if (key === 'createdAt') return locale === 'vi' ? 'Ngày tạo' : 'Created';
+  if (key === 'updatedAt') return locale === 'vi' ? 'Ngày cập nhật' : 'Updated';
+  return key;
+}
+
+function getSyntheticEntityTableField(key: string, locale: string): EntityField | undefined {
+  if (key !== 'createdAt' && key !== 'updatedAt') return undefined;
+
+  return {
+    key,
+    label: getEntityTimestampLabel(locale, key),
+    type: 'text',
+  };
+}
+
+function formatEntityDateTime(value: unknown, locale: string) {
+  const date =
+    typeof value === 'string' || typeof value === 'number'
+      ? new Date(value)
+      : value instanceof Date
+        ? value
+        : null;
+
+  if (!date || Number.isNaN(date.getTime())) return '-';
+
+  return DATE_TIME_FORMATTERS[locale === 'vi' ? 'vi' : 'en'].format(date);
+}
+
 function getEntityUiText(locale: string, key: string) {
   const vi: Record<string, string> = {
     searchPlaceholder: 'Tìm theo tên, slug, mô tả...',
+    dateRange: 'Khoảng ngày',
+    dateFrom: 'Từ ngày',
+    dateTo: 'Đến ngày',
     allStatuses: 'Tất cả trạng thái',
     allCategories: 'Tất cả danh mục',
     priceMin: 'Giá từ',
@@ -210,6 +283,9 @@ function getEntityUiText(locale: string, key: string) {
   };
   const en: Record<string, string> = {
     searchPlaceholder: 'Search by name, slug, description...',
+    dateRange: 'Date range',
+    dateFrom: 'From date',
+    dateTo: 'To date',
     allStatuses: 'All statuses',
     allCategories: 'All categories',
     priceMin: 'Price from',
@@ -225,20 +301,22 @@ function getEntityUiText(locale: string, key: string) {
   return locale === 'vi' ? vi[key] : en[key];
 }
 
-function getEntityTableColumns(fields: EntityField[], resource: ResourceKey): EntityTableColumn[] {
+function getEntityTableColumns(fields: EntityField[], resource: ResourceKey, locale: string): EntityTableColumn[] {
   const columns: EntityTableColumn[] = [];
   const usedKeys = new Set<string>();
 
   const orderByResource: Partial<Record<ResourceKey, string[]>> = {
-    products: ['name', 'images', 'basePrice', 'slug', 'description', 'status'],
-    templates: ['name', 'imageUrl', 'categoryId', 'configJson', 'status'],
-    'frame-options': ['imageUrl', 'frameSize', 'price', 'stock', 'colorHex'],
-    accessories: ['name', 'imageUrl', 'iconUrl', 'categoryId', 'status'],
-    banners: ['imageUrl', 'title', 'sortOrder', 'linkUrl', 'status'],
-    'frame-backgrounds': ['imageUrl', 'title'],
-    collections: ['name', 'imageUrl', 'slug', 'description', 'status'],
-    'template-categories': ['name', 'slug'],
-    'accessory-categories': ['name', 'slug'],
+    products: ['name', 'images', 'basePrice', 'status', 'createdAt', 'updatedAt'],
+    templates: ['name', 'imageUrl', 'categoryId', 'status', 'createdAt', 'updatedAt'],
+    'frame-options': ['frameSize', 'imageUrl', 'price', 'stock', 'createdAt', 'updatedAt'],
+    accessories: ['name', 'imageUrl', 'categoryId', 'status', 'createdAt', 'updatedAt'],
+    banners: ['title', 'imageUrl', 'sortOrder', 'status', 'createdAt', 'updatedAt'],
+    'frame-backgrounds': ['title', 'imageUrl', 'createdAt', 'updatedAt'],
+    collections: ['name', 'imageUrl', 'slug', 'status', 'createdAt', 'updatedAt'],
+    'template-categories': ['name', 'slug', 'createdAt', 'updatedAt'],
+    'accessory-categories': ['name', 'slug', 'createdAt', 'updatedAt'],
+    'frame-sizes': ['label', 'price', 'createdAt', 'updatedAt'],
+    'frame-colors': ['name', 'colorHex', 'createdAt', 'updatedAt'],
   };
 
   const addField = (field?: EntityField) => {
@@ -251,7 +329,9 @@ function getEntityTableColumns(fields: EntityField[], resource: ResourceKey): En
     usedKeys.add(field.key);
   };
 
-  (orderByResource[resource] ?? []).forEach((key) => addField(fields.find((field) => field.key === key)));
+  (orderByResource[resource] ?? []).forEach((key) =>
+    addField(fields.find((field) => field.key === key) ?? getSyntheticEntityTableField(key, locale)),
+  );
   fields.forEach(addField);
 
   return columns.slice(0, 6);
@@ -471,6 +551,7 @@ function TableThumbnail({
     <img
       src={imageUrl}
       alt={alt}
+      loading='lazy'
       className='h-full w-full object-cover transition-opacity duration-150 group-hover:opacity-55'
       onError={() => setFailed(true)}
     />
@@ -824,6 +905,8 @@ export default function EntityManager<K extends ResourceKey>({
   const [categoryFilter, setCategoryFilter] = useState<string[]>([]);
   const [priceMinFilter, setPriceMinFilter] = useState('');
   const [priceMaxFilter, setPriceMaxFilter] = useState('');
+  const [dateFromFilter, setDateFromFilter] = useState('');
+  const [dateToFilter, setDateToFilter] = useState('');
   const [sorts, setSorts] = useState<TableSort[]>([...DEFAULT_TABLE_SORTS]);
   const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
   const [draftFilters, setDraftFilters] = useState<EntityFilterDraft>(EMPTY_ENTITY_FILTER_DRAFT);
@@ -835,6 +918,7 @@ export default function EntityManager<K extends ResourceKey>({
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; label?: string } | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [imagePreview, setImagePreview] = useState<{ src: string; alt: string } | null>(null);
+  const requestSeq = useRef(0);
   const [formValues, setFormValues] = useState<Record<string, unknown>>(() =>
     toInitialValues(fields),
   );
@@ -845,8 +929,8 @@ export default function EntityManager<K extends ResourceKey>({
   const [imageLoadErrors, setImageLoadErrors] = useState<Record<string, boolean>>({});
 
   const visibleColumns = useMemo(
-    () => getEntityTableColumns(tableFields ?? fields, resource),
-    [fields, resource, tableFields],
+    () => getEntityTableColumns(tableFields ?? fields, resource, locale),
+    [fields, locale, resource, tableFields],
   );
   const statusField = useMemo(
     () => fields.find((field) => field.key === 'status' && field.type === 'select'),
@@ -862,14 +946,16 @@ export default function EntityManager<K extends ResourceKey>({
   );
   const statusOptions = useMemo(() => statusField?.options ?? [], [statusField]);
   const categoryOptions = useMemo(() => categoryField?.options ?? [], [categoryField]);
+  const hasDateFilter = ENTITY_DATE_FILTER_RESOURCES.has(resource);
   const hasEntityFilters = statusOptions.length > 0 || categoryOptions.length > 0 || hasPriceFilter;
-  const activeFilterCount = useMemo(
+  const drawerFilterCount = useMemo(
     () =>
       statusFilter.length +
       categoryFilter.length +
       Number(Boolean(priceMinFilter || priceMaxFilter)),
     [categoryFilter, priceMaxFilter, priceMinFilter, statusFilter],
   );
+  const activeFilterCount = drawerFilterCount + Number(Boolean(dateFromFilter || dateToFilter));
   const showResetFilters =
     Boolean(search.trim()) ||
     activeFilterCount > 0 ||
@@ -897,6 +983,8 @@ export default function EntityManager<K extends ResourceKey>({
   }, [search]);
 
   const loadItems = useCallback(async () => {
+    const requestId = requestSeq.current + 1;
+    requestSeq.current = requestId;
     setLoading(true);
     setError(null);
     try {
@@ -911,26 +999,37 @@ export default function EntityManager<K extends ResourceKey>({
         category_id: categoryFilter.length > 0 ? categoryFilter : undefined,
         price_min: hasPriceFilter ? getOptionalNumber(priceMinFilter) : undefined,
         price_max: hasPriceFilter ? getOptionalNumber(priceMaxFilter) : undefined,
+        date_from: hasDateFilter ? dateFromFilter || undefined : undefined,
+        date_to: hasDateFilter ? dateToFilter || undefined : undefined,
+        date_field: hasDateFilter && (dateFromFilter || dateToFilter) ? 'createdAt' : undefined,
       };
       const response = await listResource(resource, params);
+      if (requestSeq.current !== requestId) return;
       if (Array.isArray(response)) {
         setItems(response as ResourceDataMap[K][]);
         setMeta(null);
       } else if (response && typeof response === 'object' && 'data' in response) {
-        setItems((response as any).data as ResourceDataMap[K][]);
-        setMeta((response as any).meta ?? null);
+        const paginatedResponse = response as PaginatedResourceResponse<ResourceDataMap[K]>;
+        setItems(paginatedResponse.data);
+        setMeta(paginatedResponse.meta ?? null);
       } else {
         setItems([]);
         setMeta(null);
       }
     } catch (err) {
+      if (requestSeq.current !== requestId) return;
       setError(err instanceof Error ? err.message : t('entity.loadFailed'));
     } finally {
-      setLoading(false);
+      if (requestSeq.current === requestId) {
+        setLoading(false);
+      }
     }
   }, [
     categoryFilter,
+    dateFromFilter,
+    dateToFilter,
     debouncedSearch,
+    hasDateFilter,
     hasPriceFilter,
     page,
     pageSize,
@@ -943,13 +1042,7 @@ export default function EntityManager<K extends ResourceKey>({
   ]);
 
   useEffect(() => {
-    const timer = window.setTimeout(() => {
-      void loadItems();
-    }, 0);
-
-    return () => {
-      window.clearTimeout(timer);
-    };
+    void loadItems();
   }, [loadItems]);
 
   function resetForm() {
@@ -1021,8 +1114,20 @@ export default function EntityManager<K extends ResourceKey>({
     setCategoryFilter([]);
     setPriceMinFilter('');
     setPriceMaxFilter('');
+    setDateFromFilter('');
+    setDateToFilter('');
     setSorts([...DEFAULT_TABLE_SORTS]);
     setDraftFilters(EMPTY_ENTITY_FILTER_DRAFT);
+    setPage(1);
+  }
+
+  function updateDateFrom(value: string) {
+    setDateFromFilter(value);
+    setPage(1);
+  }
+
+  function updateDateTo(value: string) {
+    setDateToFilter(value);
     setPage(1);
   }
 
@@ -1234,6 +1339,7 @@ export default function EntityManager<K extends ResourceKey>({
           <img
             src={imageUrl}
             alt={label}
+            loading='lazy'
             className='max-h-[240px] w-full rounded-[12px] object-cover'
             onError={() => setImageLoadErrors((prev) => ({ ...prev, [errorKey]: true }))}
             onLoad={() => setImageLoadErrors((prev) => ({ ...prev, [errorKey]: false }))}
@@ -1599,6 +1705,16 @@ export default function EntityManager<K extends ResourceKey>({
     const safeTextValue = textValue.trim() ? textValue : '-';
     const normalizedKey = field.key.toLowerCase();
 
+    if (normalizedKey === 'createdat' || normalizedKey === 'updatedat') {
+      const formattedDate = formatEntityDateTime(value, locale);
+
+      return (
+        <span title={safeTextValue} className='block text-center text-[13px] font-semibold tabular-nums text-slate-700'>
+          {formattedDate}
+        </span>
+      );
+    }
+
     if (field.type === 'json') {
       return (
         <code
@@ -1682,11 +1798,24 @@ export default function EntityManager<K extends ResourceKey>({
           />
         </AdminToolbarField>
 
+        {hasDateFilter ? (
+          <AdminToolbarDateRangeField
+            fromLabel={getEntityUiText(locale, 'dateFrom')}
+            fromValue={dateFromFilter}
+            label={getEntityUiText(locale, 'dateRange')}
+            onFromChange={updateDateFrom}
+            onToChange={updateDateTo}
+            toLabel={getEntityUiText(locale, 'dateTo')}
+            toValue={dateToFilter}
+            className='sm:w-[250px]'
+          />
+        ) : null}
+
         {hasEntityFilters ? (
           <Button
             type='button'
             variant='secondary'
-            leftIcon={<FilterIconWithBadge count={activeFilterCount} />}
+            leftIcon={<FilterIconWithBadge count={drawerFilterCount} />}
             onClick={() => setFilterDrawerOpen(true)}
             className={cn(adminToolbarButtonClass, 'px-4')}
           >
@@ -1754,7 +1883,7 @@ export default function EntityManager<K extends ResourceKey>({
           <tr>
             {visibleColumns.map((column) => {
               const sortable = isEntityColumnSortable(column, resource);
-              const className = getEntityTableColumnClass(column);
+              const className = getEntityTableColumnClass(column, resource);
 
               return sortable ? (
                 <SortableTableHead
@@ -1779,7 +1908,7 @@ export default function EntityManager<K extends ResourceKey>({
         </TableHeader>
 
         <TableBody>
-          {loading ? (
+          {loading && items.length === 0 ? (
             <TableEmptyState colSpan={visibleColumns.length + 1} variant='loading'>
               {t('common.loading')}
             </TableEmptyState>
@@ -1796,7 +1925,7 @@ export default function EntityManager<K extends ResourceKey>({
                   {visibleColumns.map((column) => (
                     <TableCell
                       key={column.id}
-                      className={cn('text-slate-700', getEntityTableColumnClass(column))}
+                      className={cn('text-slate-700', getEntityTableColumnClass(column, resource))}
                     >
                       {renderTableCell(column, row)}
                     </TableCell>

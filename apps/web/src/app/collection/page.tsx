@@ -1,19 +1,32 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { ChevronDown, Search, X, Heart } from "lucide-react";
-import { fetchApi } from "@/lib/api";
+import { publicApiClient } from "@/lib/api/public-client";
 import { formatPrice } from "@/lib/formatters";
 import { ROUTES, UI_MODAL_IDS } from "@/constants";
 import { useCartStore } from "@/stores/cartStore";
 import { useUIStore } from "@/stores/uiStore";
+import { useDebounce } from "@/hooks/useDebounce";
+
+type CollectionProduct = {
+  id: string | number;
+  name: string;
+  category?: string;
+  basePrice?: number;
+  price?: string | number;
+  images?: string[];
+  img?: string;
+  badge?: string | null;
+  orders?: number;
+};
 
 const PRICE_FILTERS = ["Tất cả", "Dưới 200K", "200K–300K", "Trên 300K"];
 const COMPLEXITY = ["Tất cả", "1 nhân vật", "2 nhân vật", "2+ nhân vật"];
 
-const DEMO_PRODUCTS = [
+const DEMO_PRODUCTS: CollectionProduct[] = [
   { id: 1, name: "Happy Birthday 1", category: "Anniversary", basePrice: 290000, images: ["https://images.unsplash.com/photo-1549465220-1a8b9238cd48?q=80&w=800&auto=format&fit=crop"], badge: "Bán chạy", orders: 123 },
   { id: 2, name: "Merry Christmas", category: "Holiday", basePrice: 360000, images: ["https://images.unsplash.com/photo-1543158181-e6f9f6712055?q=80&w=800&auto=format&fit=crop"], badge: null, orders: 37 },
   { id: 3, name: "Merry Christmas 2", category: "Holiday", basePrice: 338000, images: ["https://images.unsplash.com/photo-1516589178581-6cd7833ae3b2?q=80&w=800&auto=format&fit=crop"], badge: null, orders: 46 },
@@ -27,18 +40,19 @@ const DEMO_PRODUCTS = [
 const CATEGORY_TABS = ["Tất cả", "Anniversary", "Holiday", "Wedding", "Sport", "Gallery", "Family"];
 
 export default function CollectionPage() {
-  const [products, setProducts] = useState<any[]>([]);
+  const [products, setProducts] = useState<CollectionProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState("Tất cả");
   const [activePriceFilter, setActivePriceFilter] = useState("Tất cả");
   const [activeComplexity, setActiveComplexity] = useState("Tất cả");
   const [searchQuery, setSearchQuery] = useState("");
+  const debouncedSearchQuery = useDebounce(searchQuery, 200);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const prodsRes = await fetchApi("/public/products?limit=20");
-        setProducts(prodsRes.data || []);
+        const prodsRes = await publicApiClient.products.listProducts({ limit: 20 });
+        setProducts(prodsRes);
       } catch (err) {
         console.error(err);
       } finally {
@@ -48,13 +62,20 @@ export default function CollectionPage() {
     fetchData();
   }, []);
 
-  const displayProducts = products.length > 0 ? products : DEMO_PRODUCTS;
+  const displayProducts = useMemo(
+    () => (products.length > 0 ? products : DEMO_PRODUCTS),
+    [products],
+  );
 
-  const filtered = displayProducts.filter((p: any) => {
-    if (searchQuery && !p.name.toLowerCase().includes(searchQuery.toLowerCase())) return false;
-    if (activeCategory !== "Tất cả" && p.category !== activeCategory) return false;
-    return true;
-  });
+  const filtered = useMemo(() => {
+    const normalizedSearch = debouncedSearchQuery.trim().toLowerCase();
+
+    return displayProducts.filter((p) => {
+      if (normalizedSearch && !p.name.toLowerCase().includes(normalizedSearch)) return false;
+      if (activeCategory !== "Tất cả" && p.category !== activeCategory) return false;
+      return true;
+    });
+  }, [activeCategory, debouncedSearchQuery, displayProducts]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -177,15 +198,24 @@ export default function CollectionPage() {
           </div>
         ) : (
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
-            {filtered.map((product: any) => (
+            {filtered.map((product) => {
+              const productImage = product.images?.[0] ?? product.img ?? null;
+              const unitPrice =
+                typeof product.basePrice === "number"
+                  ? product.basePrice
+                  : typeof product.price === "number"
+                    ? product.price
+                    : 0;
+
+              return (
               <div
                 key={product.id}
                 className="group bg-white rounded-2xl overflow-hidden border border-border hover:shadow-[0_8px_32px_-4px_rgb(0_0_0/0.10)] transition-all duration-300 hover:-translate-y-0.5"
               >
                 <div className="relative aspect-square bg-[#F8F4F0] overflow-hidden">
-                  {product.images?.[0] || product.img ? (
+                  {productImage ? (
                     <Image
-                      src={product.images?.[0] || product.img}
+                      src={productImage}
                       alt={product.name}
                       fill
                       sizes="(max-width: 640px) 50vw, 25vw"
@@ -233,15 +263,15 @@ export default function CollectionPage() {
                     <button
                       onClick={() => {
                         useCartStore.getState().addItem({
-                          productId: product.id,
+                          productId: String(product.id),
                           productName: product.name,
                           quantity: 1,
-                          unitPrice: product.basePrice || product.price || 0,
+                          unitPrice,
                           frameSizeId: 'M',
                           frameSizeLabel: 'Khung vừa',
                           frameColorName: 'White',
                           designData: { elements: [] },
-                          previewUrl: product.images?.[0] || product.img,
+                          previewUrl: productImage,
                         });
                         useUIStore.getState().openModal(UI_MODAL_IDS.CART_DRAWER);
                       }}
@@ -252,7 +282,8 @@ export default function CollectionPage() {
                   </div>
                 </div>
               </div>
-            ))}
+            );
+            })}
           </div>
         )}
 

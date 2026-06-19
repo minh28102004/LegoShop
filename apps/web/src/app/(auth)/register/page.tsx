@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { fetchApi } from "@/lib/api";
+import { browserApiClient } from "@/lib/api/browser-client";
 import { useAuthStore } from "@/stores/authStore";
 import { ROUTES } from "@/constants";
 
@@ -23,14 +23,11 @@ export default function RegisterPage() {
     setLoading(true);
 
     try {
-      const data = await fetchApi("/users/register", {
-        method: "POST",
-        body: JSON.stringify({ name, email, password }),
-      });
+      const data = await browserApiClient.auth.userRegister({ name, email, password });
       setAuth(data.accessToken, data.user);
       router.push(ROUTES.home);
-    } catch (err: any) {
-      setError(err.message || "Đăng ký thất bại");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Đăng ký thất bại");
     } finally {
       setLoading(false);
     }

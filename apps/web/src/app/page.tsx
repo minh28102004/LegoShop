@@ -1,11 +1,22 @@
 import Link from "next/link";
-import { fetchApi } from "@/lib/api";
+import { publicApiClient } from "@/lib/api/public-client";
 import { ArrowRight, ChevronRight } from "lucide-react";
+
+type HomeProduct = {
+  id: string | number;
+  name: string;
+  subtitle?: string;
+  category?: string;
+  basePrice: number;
+  pieces?: number;
+  images: string[];
+  badge?: string | null;
+};
 
 export const revalidate = 0;
 
 // Fallback products with reliable images
-const DEMO_PRODUCTS = [
+const DEMO_PRODUCTS: HomeProduct[] = [
   {
     id: "1",
     name: "Classic Rangefinder",
@@ -54,10 +65,10 @@ const HOW_STEPS = [
 ];
 
 export default async function Home() {
-  let apiProducts: any[] = [];
+  let apiProducts: HomeProduct[] = [];
   try {
-    const prodRes = await fetchApi("/public/products?limit=4&featured=true");
-    apiProducts = (Array.isArray(prodRes) ? prodRes : prodRes?.data || []).slice(0, 4);
+    const prodRes = await publicApiClient.products.listProducts({ limit: 4, featured: true });
+    apiProducts = prodRes.slice(0, 4);
   } catch {}
 
   const products = apiProducts.length > 0 ? apiProducts : DEMO_PRODUCTS;

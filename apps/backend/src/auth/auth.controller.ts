@@ -1,3 +1,4 @@
+import type { AdminProfileContract } from '@lego-shop/shared';
 import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { CurrentAdmin } from './decorators/current-admin.decorator';
@@ -18,7 +19,7 @@ export class AuthController {
   @Get('me')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  me(@CurrentAdmin() admin: { id: string; email: string; name: string | null; role: string }) {
+  me(@CurrentAdmin() admin: AdminProfileContract) {
     return admin;
   }
 }

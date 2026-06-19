@@ -1,4 +1,5 @@
-import { ProductStatus } from '@prisma/client';
+import type { CreateProductRequestContract, ProductStatus } from '@lego-shop/shared';
+import { PRODUCT_STATUS } from '@lego-shop/shared';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
 import {
@@ -12,7 +13,7 @@ import {
   Min,
 } from 'class-validator';
 
-export class CreateProductDto {
+export class CreateProductDto implements CreateProductRequestContract {
   @ApiProperty({
     example: 'Dragon Brick Set',
   })
@@ -63,11 +64,11 @@ export class CreateProductDto {
   images?: string[];
 
   @ApiPropertyOptional({
-    enum: ProductStatus,
-    example: ProductStatus.active,
+    enum: PRODUCT_STATUS,
+    example: PRODUCT_STATUS.ACTIVE,
   })
   @IsOptional()
-  @IsEnum(ProductStatus)
+  @IsEnum(PRODUCT_STATUS)
   status?: ProductStatus;
 
   @ApiPropertyOptional({

@@ -11,6 +11,7 @@ out/
 dist/
 build/
 coverage/
+*.tsbuildinfo
 
 # env files
 .env
@@ -35,6 +36,7 @@ apps/backend/.env.*
 
 # logs
 *.log
+.codex-*.log
 npm-debug.log*
 pnpm-debug.log*
 yarn-debug.log*
@@ -47,6 +49,9 @@ Thumbs.db
 
 # turbo
 .turbo/
+
+# accidental CLI artifacts
+--version/
 
 # prisma local db if any
 *.db

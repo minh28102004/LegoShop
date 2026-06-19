@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { fetchApi } from "@/lib/api";
+import { browserApiClient } from "@/lib/api/browser-client";
 import { useAuthStore } from "@/stores/authStore";
 import { ROUTES } from "@/constants";
 
@@ -22,14 +22,11 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const data = await fetchApi("/users/login", {
-        method: "POST",
-        body: JSON.stringify({ email, password }),
-      });
+      const data = await browserApiClient.auth.userLogin({ email, password });
       setAuth(data.accessToken, data.user);
       router.push(ROUTES.home);
-    } catch (err: any) {
-      setError(err.message || "Đăng nhập thất bại");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Đăng nhập thất bại");
     } finally {
       setLoading(false);
     }

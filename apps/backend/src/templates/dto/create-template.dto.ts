@@ -1,4 +1,5 @@
-import { ProductStatus } from '@prisma/client';
+import type { CreateTemplateRequestContract, JsonObject, ProductStatus } from '@lego-shop/shared';
+import { PRODUCT_STATUS } from '@lego-shop/shared';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import {
@@ -9,7 +10,7 @@ import {
   IsString,
 } from 'class-validator';
 
-export class CreateTemplateDto {
+export class CreateTemplateDto implements CreateTemplateRequestContract {
   @ApiProperty({
     example: 'Castle Display Template',
   })
@@ -40,14 +41,14 @@ export class CreateTemplateDto {
   })
   @IsOptional()
   @IsObject()
-  configJson?: Record<string, unknown>;
+  configJson?: JsonObject;
 
   @ApiPropertyOptional({
-    enum: ProductStatus,
-    example: ProductStatus.active,
+    enum: PRODUCT_STATUS,
+    example: PRODUCT_STATUS.ACTIVE,
   })
   @IsOptional()
-  @IsEnum(ProductStatus)
+  @IsEnum(PRODUCT_STATUS)
   status?: ProductStatus;
 
   @ApiPropertyOptional({

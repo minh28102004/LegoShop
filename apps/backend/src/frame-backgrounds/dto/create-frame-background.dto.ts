@@ -1,4 +1,5 @@
-import { ProductStatus } from '@prisma/client';
+import type { CreateFrameBackgroundRequestContract, ProductStatus } from '@lego-shop/shared';
+import { PRODUCT_STATUS } from '@lego-shop/shared';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
 import { IsEnum, IsInt, IsNotEmpty, IsOptional, IsString, Min } from 'class-validator';
@@ -6,7 +7,7 @@ import { IsEnum, IsInt, IsNotEmpty, IsOptional, IsString, Min } from 'class-vali
 const trimString = ({ value }: { value: unknown }) =>
   typeof value === 'string' ? value.trim() : value;
 
-export class CreateFrameBackgroundDto {
+export class CreateFrameBackgroundDto implements CreateFrameBackgroundRequestContract {
   @ApiProperty({ example: 'Graduation Frame Background' })
   @Transform(trimString)
   @IsString()
@@ -26,8 +27,8 @@ export class CreateFrameBackgroundDto {
   @Min(0)
   sortOrder?: number;
 
-  @ApiPropertyOptional({ enum: ProductStatus, example: ProductStatus.active })
+  @ApiPropertyOptional({ enum: PRODUCT_STATUS, example: PRODUCT_STATUS.ACTIVE })
   @IsOptional()
-  @IsEnum(ProductStatus)
+  @IsEnum(PRODUCT_STATUS)
   status?: ProductStatus;
 }

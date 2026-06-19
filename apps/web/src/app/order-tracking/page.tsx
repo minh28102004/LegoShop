@@ -4,9 +4,12 @@ import { useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Search, Package, CheckCircle, Truck, Clock, AlertCircle, ChevronRight } from "lucide-react";
 import Link from "next/link";
-import { fetchApi } from "@/lib/api";
+import { publicApiClient } from "@/lib/api/public-client";
 import { formatPrice } from "@/lib/formatters";
 import { ROUTES } from "@/constants";
+import type { OrderItem, TrackOrderResponseContract } from "@lego-shop/shared";
+
+type TrackingResult = TrackOrderResponseContract | { error: true };
 
 const ORDER_STATUSES: Record<string, { label: string; color: string }> = {
   Pending:    { label: "Chờ xác nhận", color: "bg-yellow-100 text-yellow-700" },
@@ -41,14 +44,14 @@ function TrackingContent() {
   const initialCode = searchParams.get("code") || "";
   const [orderCode, setOrderCode] = useState(initialCode);
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<any>(null);
+  const [result, setResult] = useState<TrackingResult | null>(null);
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!orderCode.trim()) return;
     setLoading(true);
     try {
-      const data = await fetchApi(`/orders/track/${orderCode.trim()}`);
+      const data = await publicApiClient.orders.trackOrder(orderCode.trim());
       setResult(data);
     } catch {
       setResult({ error: true });
@@ -57,7 +60,7 @@ function TrackingContent() {
     router.push(`${ROUTES.orderTracking}?code=${orderCode.trim()}`);
   };
 
-  const currentStepIdx = result && !result.error ? getStepIndex(result.orderStatus) : -1;
+  const currentStepIdx = result && !("error" in result) ? getStepIndex(result.orderStatus) : -1;
 
   return (
     <div className="min-h-screen bg-background py-10">
@@ -90,7 +93,7 @@ function TrackingContent() {
         </form>
 
         {/* Error */}
-        {result?.error && (
+        {result && "error" in result && (
           <div className="bg-red-50 border border-red-200 text-red-700 p-5 rounded-2xl flex items-center gap-3 mb-8">
             <AlertCircle className="w-5 h-5 shrink-0" />
             <p>Không tìm thấy đơn hàng với mã <strong className="font-mono">{orderCode}</strong>. Vui lòng kiểm tra lại.</p>
@@ -98,7 +101,7 @@ function TrackingContent() {
         )}
 
         {/* Result */}
-        {result && !result.error && (
+        {result && !("error" in result) && (
           <div className="bg-surface rounded-3xl border border-border overflow-hidden shadow-sm">
             {/* Header */}
             <div className="px-6 py-5 border-b border-border flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-background">
@@ -172,7 +175,7 @@ function TrackingContent() {
               <div className="px-6 pb-6 border-t border-border pt-5">
                 <h3 className="font-bold text-sm text-text-secondary uppercase tracking-wide mb-4">Sản phẩm</h3>
                 <div className="space-y-3">
-                  {result.items.map((item: any, idx: number) => (
+                  {result.items.map((item: OrderItem, idx: number) => (
                     <div key={idx} className="flex items-center gap-3 p-3 bg-background rounded-xl border border-border">
                       {item.previewUrl && (
                         <img src={item.previewUrl} alt="" className="w-12 h-12 rounded-lg object-cover border border-border shrink-0" />

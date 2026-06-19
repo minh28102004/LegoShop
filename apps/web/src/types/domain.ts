@@ -2,98 +2,59 @@
 // DOMAIN TYPES - Business entities cua BrickFrames
 // ============================================================
 
-// ------------------------------------------------------------
-// PRIMITIVES
-// ------------------------------------------------------------
+import {
+  DEPOSIT_STATUS,
+  INQUIRY_STATUS as BUSINESS_INQUIRY_STATUS,
+  ORDER_STATUS,
+  PAYMENT_METHOD,
+  PAYMENT_STATUS,
+  PAYMENT_TYPE,
+  PRODUCT_STATUS,
+  SHIPPING_STATUS,
+} from '@lego-shop/shared'
+import type {
+  DepositStatus,
+  ID,
+  InquiryStatus,
+  ISODateString,
+  JsonObject,
+  OrderStatus,
+  PaymentMethod,
+  PaymentStatus,
+  PaymentType,
+  PriceInVND,
+  ProductStatus,
+  ShippingStatus,
+  URLString,
+} from '@lego-shop/shared'
 
-export type ID = string
-export type ISODateString = string
-export type PriceInVND = number
-export type URLString = string
-export type JsonRecord = Record<string, unknown>
+export {
+  BUSINESS_INQUIRY_STATUS,
+  DEPOSIT_STATUS,
+  ORDER_STATUS,
+  PAYMENT_METHOD,
+  PAYMENT_STATUS,
+  PAYMENT_TYPE,
+  PRODUCT_STATUS,
+  SHIPPING_STATUS,
+}
 
-// ------------------------------------------------------------
-// SHARED STATUS VALUES - Mirror Prisma enums without TS enum
-// ------------------------------------------------------------
+export type {
+  DepositStatus,
+  ID,
+  ISODateString,
+  OrderStatus,
+  PaymentMethod,
+  PaymentStatus,
+  PaymentType,
+  PriceInVND,
+  ProductStatus,
+  ShippingStatus,
+  URLString,
+}
 
-export const PRODUCT_STATUS = {
-  ACTIVE: 'active',
-  INACTIVE: 'inactive',
-} as const
-
-export type ProductStatus =
-  (typeof PRODUCT_STATUS)[keyof typeof PRODUCT_STATUS]
-
-export const ORDER_STATUS = {
-  PENDING: 'pending',
-  CONFIRMED: 'confirmed',
-  PROCESSING: 'processing',
-  SHIPPING: 'shipping',
-  COMPLETED: 'completed',
-  CANCELLED: 'cancelled',
-} as const
-
-export type OrderStatus = typeof ORDER_STATUS[keyof typeof ORDER_STATUS]
-
-export const PAYMENT_METHOD = {
-  COD: 'COD',
-  PAYOS: 'PAYOS',
-} as const
-
-export type PaymentMethod =
-  (typeof PAYMENT_METHOD)[keyof typeof PAYMENT_METHOD]
-
-export const PAYMENT_STATUS = {
-  UNPAID: 'unpaid',
-  PENDING: 'pending',
-  DEPOSIT_PENDING: 'deposit_pending',
-  DEPOSIT_PAID: 'deposit_paid',
-  PAID: 'paid',
-  FAILED: 'failed',
-  CANCELLED: 'cancelled',
-  REFUNDED: 'refunded',
-} as const
-
-export type PaymentStatus =
-  (typeof PAYMENT_STATUS)[keyof typeof PAYMENT_STATUS]
-
-export const SHIPPING_STATUS = {
-  PENDING: 'pending',
-  PREPARING: 'preparing',
-  SHIPPING: 'shipping',
-  DELIVERED: 'delivered',
-  CANCELLED: 'cancelled',
-} as const
-
-export type ShippingStatus =
-  (typeof SHIPPING_STATUS)[keyof typeof SHIPPING_STATUS]
-
-export const PAYMENT_TYPE = {
-  FULL_PAYMENT: 'full_payment',
-  COD_DEPOSIT: 'cod_deposit',
-} as const
-
-export type PaymentType = typeof PAYMENT_TYPE[keyof typeof PAYMENT_TYPE]
-
-export const DEPOSIT_STATUS = {
-  NOT_REQUIRED: 'not_required',
-  PENDING: 'pending',
-  PAID: 'paid',
-} as const
-
-export type DepositStatus =
-  (typeof DEPOSIT_STATUS)[keyof typeof DEPOSIT_STATUS]
-
-export const BUSINESS_INQUIRY_STATUS = {
-  NEW: 'new',
-  CONTACTED: 'contacted',
-  PROCESSING: 'processing',
-  DONE: 'done',
-  CANCELLED: 'cancelled',
-} as const
-
-export type BusinessInquiryStatus =
-  (typeof BUSINESS_INQUIRY_STATUS)[keyof typeof BUSINESS_INQUIRY_STATUS]
+export type JsonRecord = JsonObject
+export type BusinessInquiryStatus = InquiryStatus
 
 // ------------------------------------------------------------
 // PRODUCT / FRAME

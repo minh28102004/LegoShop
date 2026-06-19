@@ -1,4 +1,10 @@
-import { FrameOptionType, ProductStatus } from '@prisma/client';
+import type {
+  CreateFrameOptionRequestContract,
+  FrameOptionType,
+  JsonObject,
+  ProductStatus,
+} from '@lego-shop/shared';
+import { FRAME_OPTION_TYPE, PRODUCT_STATUS } from '@lego-shop/shared';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
 import {
@@ -19,10 +25,10 @@ const trimOptionalString = ({ value }: { value: unknown }) => {
   return trimmed.length > 0 ? trimmed : undefined;
 };
 
-export class CreateFrameOptionDto {
-  @ApiProperty({ enum: FrameOptionType, example: FrameOptionType.size })
+export class CreateFrameOptionDto implements CreateFrameOptionRequestContract {
+  @ApiProperty({ enum: FRAME_OPTION_TYPE, example: FRAME_OPTION_TYPE.SIZE })
   @IsOptional()
-  @IsEnum(FrameOptionType)
+  @IsEnum(FRAME_OPTION_TYPE)
   type?: FrameOptionType;
 
   @ApiPropertyOptional({ example: 'Khung 20x30 cm' })
@@ -124,10 +130,10 @@ export class CreateFrameOptionDto {
   })
   @IsOptional()
   @IsObject()
-  metadata?: Record<string, unknown>;
+  metadata?: JsonObject;
 
-  @ApiPropertyOptional({ enum: ProductStatus, example: ProductStatus.active })
+  @ApiPropertyOptional({ enum: PRODUCT_STATUS, example: PRODUCT_STATUS.ACTIVE })
   @IsOptional()
-  @IsEnum(ProductStatus)
+  @IsEnum(PRODUCT_STATUS)
   status?: ProductStatus;
 }

@@ -1,7 +1,8 @@
 'use client';
 
 import { X } from 'lucide-react';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, type CSSProperties } from 'react';
+import type { JsonObject } from '@lego-shop/shared';
 
 type StudioElement = {
   id: string;
@@ -13,7 +14,7 @@ type StudioElement = {
   rotation: number;
   content?: string;
   src?: string;
-  style?: any;
+  style?: CSSProperties;
 };
 
 type DesignData = {
@@ -25,12 +26,13 @@ type DesignData = {
 type Props = {
   isOpen: boolean;
   onClose: () => void;
-  designData: DesignData | null;
+  designData: JsonObject | null;
   productName: string;
 };
 
 export default function DesignPreviewModal({ isOpen, onClose, designData, productName }: Props) {
   const [mounted, setMounted] = useState(false);
+  const previewData = parseDesignData(designData);
 
   useEffect(() => {
     setMounted(true);
@@ -54,19 +56,19 @@ export default function DesignPreviewModal({ isOpen, onClose, designData, produc
         </div>
 
         <div className="flex-1 overflow-y-auto p-6 bg-slate-50 flex flex-col gap-6">
-          {!designData ? (
+          {!previewData ? (
             <div className="text-center text-slate-500 p-10">Không có dữ liệu thiết kế</div>
           ) : (
             <>
               <div className="grid grid-cols-2 gap-4">
                 <div className="bg-white p-4 rounded-xl border border-slate-200">
                   <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Kích thước khung</div>
-                  <div className="font-semibold text-slate-800">{designData.frameSize}</div>
+                  <div className="font-semibold text-slate-800">{previewData.frameSize}</div>
                 </div>
                 <div className="bg-white p-4 rounded-xl border border-slate-200">
                   <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Chiều</div>
                   <div className="font-semibold text-slate-800">
-                    {designData.frameOrientation === 'landscape' ? 'Ngang' : 'Dọc'}
+                    {previewData.frameOrientation === 'landscape' ? 'Ngang' : 'Dọc'}
                   </div>
                 </div>
               </div>
@@ -76,15 +78,15 @@ export default function DesignPreviewModal({ isOpen, onClose, designData, produc
                 <div 
                   className="relative bg-zinc-100 border-2 border-dashed border-zinc-300 rounded-lg overflow-hidden flex items-center justify-center"
                   style={{
-                    width: designData.frameOrientation === 'landscape' ? '600px' : '400px',
-                    height: designData.frameOrientation === 'landscape' ? '400px' : '600px',
+                    width: previewData.frameOrientation === 'landscape' ? '600px' : '400px',
+                    height: previewData.frameOrientation === 'landscape' ? '400px' : '600px',
                     maxWidth: '100%'
                   }}
                 >
-                  {designData.elements.length === 0 ? (
+                  {previewData.elements.length === 0 ? (
                     <span className="text-zinc-400 font-medium">Khung trống</span>
                   ) : (
-                    designData.elements.map(el => (
+                    previewData.elements.map(el => (
                       <div
                         key={el.id}
                         className={`absolute border border-blue-400 bg-blue-500/10 flex items-center justify-center rounded overflow-hidden shadow-sm`}
@@ -140,4 +142,59 @@ export default function DesignPreviewModal({ isOpen, onClose, designData, produc
       </div>
     </div>
   );
+}
+
+function parseDesignData(value: JsonObject | null): DesignData | null {
+  if (!value) return null;
+
+  return {
+    frameSize: readString(value.frameSize) ?? '',
+    frameOrientation: value.frameOrientation === 'landscape' ? 'landscape' : 'portrait',
+    elements: Array.isArray(value.elements) ? value.elements.flatMap(parseStudioElement) : [],
+  };
+}
+
+function parseStudioElement(value: unknown): StudioElement[] {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return [];
+
+  const record = value as Record<string, unknown>;
+  if (!isStudioElementType(record.type)) return [];
+
+  return [
+    {
+      id: readString(record.id) ?? `${record.type}-${readNumber(record.x) ?? 0}-${readNumber(record.y) ?? 0}`,
+      type: record.type,
+      x: readNumber(record.x) ?? 0,
+      y: readNumber(record.y) ?? 0,
+      width: readNumber(record.width) ?? 0,
+      height: readNumber(record.height) ?? 0,
+      rotation: readNumber(record.rotation) ?? 0,
+      content: readString(record.content),
+      src: readString(record.src),
+      style: readStyle(record.style),
+    },
+  ];
+}
+
+function isStudioElementType(value: unknown): value is StudioElement['type'] {
+  return value === 'text' || value === 'accessory' || value === 'image';
+}
+
+function readString(value: unknown): string | undefined {
+  return typeof value === 'string' ? value : undefined;
+}
+
+function readNumber(value: unknown): number | undefined {
+  return typeof value === 'number' ? value : undefined;
+}
+
+function readStyle(value: unknown): CSSProperties | undefined {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined;
+
+  return Object.fromEntries(
+    Object.entries(value).filter((entry): entry is [string, string | number] => {
+      const [, entryValue] = entry;
+      return typeof entryValue === 'string' || typeof entryValue === 'number';
+    }),
+  ) as CSSProperties;
 }

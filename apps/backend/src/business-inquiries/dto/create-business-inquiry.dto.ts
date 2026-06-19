@@ -1,8 +1,9 @@
+import type { CreateBusinessInquiryRequestContract } from '@lego-shop/shared';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import { IsEmail, IsNotEmpty, IsString, ValidateIf } from 'class-validator';
 
-export class CreateBusinessInquiryDto {
+export class CreateBusinessInquiryDto implements CreateBusinessInquiryRequestContract {
   @ApiProperty({
     example: 'ABC Brick Company',
   })

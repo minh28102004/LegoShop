@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import Dropdown from '@/common/components/ui/Dropdown';
 import { cn } from '@/common/utils/cn';
 
 type PaginationItem = number | 'ellipsis-start' | 'ellipsis-end';
@@ -122,22 +123,76 @@ function PageSizeSelect({
   options: readonly number[];
   onChange: (pageSize: number) => void;
 }) {
+  const currentOption = options.includes(value) ? value : options[0];
+
   return (
-    <label className='inline-flex h-9 items-center gap-2 rounded-[11px] bg-slate-50 px-3 text-[13px] font-semibold text-slate-500 shadow-[inset_0_0_0_1px_rgba(226,232,240,0.95)]'>
-      <span>{label}</span>
-      <select
-        value={value}
-        aria-label={label}
-        onChange={(event) => onChange(Number(event.target.value))}
-        className='h-7 cursor-pointer rounded-md bg-white px-2 text-sm font-bold text-slate-800 outline-none transition-colors hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-[var(--admin-primary-ring)]'
-      >
-        {options.map((option) => (
-          <option key={option} value={option}>
-            {option}
-          </option>
-        ))}
-      </select>
-    </label>
+    <Dropdown
+      align='right'
+      offset={6}
+      portal
+      panelRole='listbox'
+      className='shrink-0'
+      panelClassName='w-[76px] p-1.5'
+      trigger={
+        <button
+          type='button'
+          aria-label={label}
+          className='group inline-flex h-10 min-w-[148px] overflow-hidden rounded-[14px] border border-slate-200 bg-white text-sm shadow-[0_10px_24px_-20px_rgba(15,23,42,0.45)] transition-all duration-150 hover:border-[var(--admin-primary-tint)] hover:shadow-[0_14px_28px_-22px_rgba(47,145,208,0.5)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--admin-primary-ring)]'
+        >
+          <span className='inline-flex items-center bg-slate-50 px-3 text-[13px] font-semibold text-slate-500 shadow-[inset_-1px_0_0_rgba(226,232,240,0.9)]'>
+            {label}
+          </span>
+          <span className='inline-flex flex-1 items-center justify-center gap-2 px-3 font-bold text-slate-900'>
+            {currentOption}
+            <svg
+              viewBox='0 0 20 20'
+              fill='none'
+              className='h-4 w-4 text-slate-500 transition-transform duration-200 group-aria-[expanded=true]:rotate-180'
+              aria-hidden='true'
+            >
+              <path
+                d='M5.5 7.5L10 12L14.5 7.5'
+                stroke='currentColor'
+                strokeWidth='1.8'
+                strokeLinecap='round'
+                strokeLinejoin='round'
+              />
+            </svg>
+          </span>
+        </button>
+      }
+    >
+      {({ close }) => (
+        <div className='space-y-1'>
+          {options.map((option) => {
+            const active = option === value;
+
+            return (
+              <button
+                key={option}
+                type='button'
+                role='option'
+                aria-selected={active}
+                className={cn(
+                  'flex h-9 w-full items-center justify-center rounded-[10px] px-2 text-sm font-semibold transition-all duration-150',
+                  active
+                    ? 'bg-[var(--admin-primary-soft)] text-[var(--admin-primary-strong)]'
+                    : 'text-slate-700 hover:bg-slate-50 hover:text-slate-950 hover:translate-x-0.5',
+                )}
+                onClick={() => {
+                  if (!active) {
+                    onChange(option);
+                  }
+                  close();
+                }}
+              >
+                {option}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </Dropdown>
   );
 }
 
@@ -156,7 +211,7 @@ export function TablePagination({
   className,
   itemLabel = '',
   pageSize,
-  pageSizeLabel = 'Số dòng',
+  pageSizeLabel = 'Mỗi trang',
   pageSizeOptions = DEFAULT_PAGE_SIZE_OPTIONS,
   rangeLabel,
   onPageSizeChange,
@@ -176,7 +231,7 @@ export function TablePagination({
   const paginationItems = getPaginationItems(safePage, safeTotalPages);
   const canChangePageSize = Boolean(pageSize && onPageSizeChange);
 
-  if (!hasMultiplePages) {
+  if (!hasMultiplePages && !canChangePageSize) {
     return null;
   }
 
@@ -184,12 +239,14 @@ export function TablePagination({
     <nav
       aria-label='Table pagination'
       className={cn(
-        'admin-surface -mt-2 flex min-h-[60px] flex-col gap-3 rounded-[18px] bg-white px-4 py-3 text-sm text-slate-600 sm:flex-row sm:items-center sm:justify-between',
+        'admin-surface -mt-2 flex min-h-[64px] flex-col gap-3 rounded-[18px] bg-white px-4 py-3 text-sm text-slate-600 lg:flex-row lg:items-center lg:justify-between lg:px-5',
         className,
       )}
     >
-      <div className='flex flex-wrap items-center gap-3'>
-        <p className='font-semibold text-slate-700'>{summary}</p>
+      <div className='flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:items-center sm:gap-4'>
+        <p className='min-w-0 text-[13px] font-semibold leading-5 text-slate-700 sm:text-sm'>
+          {summary}
+        </p>
         {canChangePageSize && onPageSizeChange ? (
           <PageSizeSelect
             label={pageSizeLabel}
@@ -200,66 +257,70 @@ export function TablePagination({
         ) : null}
       </div>
 
-      <div className='flex items-center gap-2 sm:hidden'>
-        <PaginationButton
-          ariaLabel={previousLabel}
-          disabled={previousDisabled}
-          onClick={onPrevious}
-        >
-          <ChevronIcon direction='left' />
-        </PaginationButton>
-        <span className='min-w-24 text-center text-sm font-bold text-slate-700'>
-          {pageLabel} {safePage}/{safeTotalPages}
-        </span>
-        <PaginationButton
-          ariaLabel={nextLabel}
-          disabled={nextDisabled}
-          onClick={onNext}
-        >
-          <ChevronIcon direction='right' />
-        </PaginationButton>
-      </div>
-
-      <div className='hidden items-center gap-1.5 sm:flex'>
-        <PaginationButton
-          ariaLabel={previousLabel}
-          disabled={previousDisabled}
-          onClick={onPrevious}
-          className='px-3'
-        >
-          <ChevronIcon direction='left' />
-        </PaginationButton>
-
-        {paginationItems.map((item) =>
-          typeof item === 'number' ? (
+      {hasMultiplePages ? (
+        <>
+          <div className='flex items-center gap-2 sm:hidden'>
             <PaginationButton
-              key={item}
-              active={item === safePage}
-              ariaLabel={`${pageLabel} ${item}`}
-              onClick={() => onPageChange(item)}
+              ariaLabel={previousLabel}
+              disabled={previousDisabled}
+              onClick={onPrevious}
             >
-              {item}
+              <ChevronIcon direction='left' />
             </PaginationButton>
-          ) : (
-            <span
-              key={item}
-              aria-hidden='true'
-              className='inline-flex h-9 min-w-9 items-center justify-center rounded-[11px] text-sm font-bold text-slate-400'
-            >
-              ...
+            <span className='min-w-24 text-center text-sm font-bold text-slate-700'>
+              {pageLabel} {safePage}/{safeTotalPages}
             </span>
-          ),
-        )}
+            <PaginationButton
+              ariaLabel={nextLabel}
+              disabled={nextDisabled}
+              onClick={onNext}
+            >
+              <ChevronIcon direction='right' />
+            </PaginationButton>
+          </div>
 
-        <PaginationButton
-          ariaLabel={nextLabel}
-          disabled={nextDisabled}
-          onClick={onNext}
-          className='px-3'
-        >
-          <ChevronIcon direction='right' />
-        </PaginationButton>
-      </div>
+          <div className='hidden shrink-0 items-center gap-1.5 sm:flex'>
+            <PaginationButton
+              ariaLabel={previousLabel}
+              disabled={previousDisabled}
+              onClick={onPrevious}
+              className='px-3'
+            >
+              <ChevronIcon direction='left' />
+            </PaginationButton>
+
+            {paginationItems.map((item) =>
+              typeof item === 'number' ? (
+                <PaginationButton
+                  key={item}
+                  active={item === safePage}
+                  ariaLabel={`${pageLabel} ${item}`}
+                  onClick={() => onPageChange(item)}
+                >
+                  {item}
+                </PaginationButton>
+              ) : (
+                <span
+                  key={item}
+                  aria-hidden='true'
+                  className='inline-flex h-9 min-w-9 items-center justify-center rounded-[11px] text-sm font-bold text-slate-400'
+                >
+                  ...
+                </span>
+              ),
+            )}
+
+            <PaginationButton
+              ariaLabel={nextLabel}
+              disabled={nextDisabled}
+              onClick={onNext}
+              className='px-3'
+            >
+              <ChevronIcon direction='right' />
+            </PaginationButton>
+          </div>
+        </>
+      ) : null}
     </nav>
   );
 }

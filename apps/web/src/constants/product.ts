@@ -3,6 +3,13 @@
 // ============================================================
 
 import type { FrameMaterial, FrameSize, GlassType, MatColor } from '@/types'
+import {
+  ORDER_STATUS,
+  PAYMENT_METHOD,
+  PAYMENT_STATUS,
+  PRODUCT_STATUS,
+  SHIPPING_STATUS,
+} from '@lego-shop/shared'
 
 // ------------------------------------------------------------
 // FRAME MATERIALS
@@ -188,43 +195,11 @@ export const GLASS_TYPES: Record<string, GlassType> = {
 // BACKEND CONTRACT VALUES
 // ------------------------------------------------------------
 
-export const PRODUCT_STATUS_VALUES = {
-  ACTIVE: 'active',
-  INACTIVE: 'inactive',
-} as const
-
-export const PAYMENT_METHOD_VALUES = {
-  COD: 'COD',
-  PAYOS: 'PAYOS',
-} as const
-
-export const ORDER_STATUS_VALUES = {
-  PENDING: 'pending',
-  CONFIRMED: 'confirmed',
-  PROCESSING: 'processing',
-  SHIPPING: 'shipping',
-  COMPLETED: 'completed',
-  CANCELLED: 'cancelled',
-} as const
-
-export const PAYMENT_STATUS_VALUES = {
-  UNPAID: 'unpaid',
-  PENDING: 'pending',
-  DEPOSIT_PENDING: 'deposit_pending',
-  DEPOSIT_PAID: 'deposit_paid',
-  PAID: 'paid',
-  FAILED: 'failed',
-  CANCELLED: 'cancelled',
-  REFUNDED: 'refunded',
-} as const
-
-export const SHIPPING_STATUS_VALUES = {
-  PENDING: 'pending',
-  PREPARING: 'preparing',
-  SHIPPING: 'shipping',
-  DELIVERED: 'delivered',
-  CANCELLED: 'cancelled',
-} as const
+export const PRODUCT_STATUS_VALUES = PRODUCT_STATUS
+export const PAYMENT_METHOD_VALUES = PAYMENT_METHOD
+export const ORDER_STATUS_VALUES = ORDER_STATUS
+export const PAYMENT_STATUS_VALUES = PAYMENT_STATUS
+export const SHIPPING_STATUS_VALUES = SHIPPING_STATUS
 
 // ------------------------------------------------------------
 // PAGINATION

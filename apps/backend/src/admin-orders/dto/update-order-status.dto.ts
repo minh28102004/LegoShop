@@ -1,12 +1,13 @@
-import { OrderStatus } from '@prisma/client';
+import type { OrderStatus, UpdateOrderStatusRequestContract } from '@lego-shop/shared';
+import { ORDER_STATUS } from '@lego-shop/shared';
 import { ApiProperty } from '@nestjs/swagger';
 import { IsEnum } from 'class-validator';
 
-export class UpdateOrderStatusDto {
+export class UpdateOrderStatusDto implements UpdateOrderStatusRequestContract {
   @ApiProperty({
-    enum: OrderStatus,
-    example: OrderStatus.confirmed,
+    enum: ORDER_STATUS,
+    example: ORDER_STATUS.CONFIRMED,
   })
-  @IsEnum(OrderStatus)
+  @IsEnum(ORDER_STATUS)
   status: OrderStatus;
 }

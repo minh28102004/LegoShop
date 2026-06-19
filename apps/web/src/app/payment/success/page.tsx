@@ -4,17 +4,18 @@ import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { CheckCircle, Search, ArrowRight } from "lucide-react";
 import { Suspense, useEffect, useState } from "react";
-import { fetchApi } from "@/lib/api";
+import { publicApiClient } from "@/lib/api/public-client";
+import type { TrackOrderResponseContract } from "@lego-shop/shared";
 
 function PaymentSuccessContent() {
   const searchParams = useSearchParams();
   const orderCode = searchParams.get("orderCode");
   const [loading, setLoading] = useState(true);
-  const [order, setOrder] = useState<any>(null);
+  const [order, setOrder] = useState<TrackOrderResponseContract | null>(null);
 
   useEffect(() => {
     if (orderCode) {
-      fetchApi(`/orders/track/${orderCode}`)
+      publicApiClient.orders.trackOrder(orderCode)
         .then(data => setOrder(data))
         .catch(err => console.error(err))
         .finally(() => setLoading(false));

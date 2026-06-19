@@ -1,4 +1,5 @@
-import { PaymentMethod } from '@prisma/client';
+import type { CreateOrderRequestContract, PaymentMethod } from '@lego-shop/shared';
+import { PAYMENT_METHOD } from '@lego-shop/shared';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
 import {
@@ -14,7 +15,7 @@ import {
 } from 'class-validator';
 import { CreateOrderItemDto } from './create-order-item.dto';
 
-export class CreateOrderDto {
+export class CreateOrderDto implements CreateOrderRequestContract {
   @ApiProperty({
     example: 'Nguyen Van A',
   })
@@ -63,10 +64,10 @@ export class CreateOrderDto {
   receiveDate?: string;
 
   @ApiProperty({
-    enum: PaymentMethod,
-    example: PaymentMethod.COD,
+    enum: PAYMENT_METHOD,
+    example: PAYMENT_METHOD.COD,
   })
-  @IsEnum(PaymentMethod)
+  @IsEnum(PAYMENT_METHOD)
   paymentMethod: PaymentMethod;
 
   @ApiProperty({

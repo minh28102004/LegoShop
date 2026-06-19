@@ -1,9 +1,10 @@
-import { ProductStatus } from '@prisma/client';
+import type { CreateAccessoryRequestContract, ProductStatus } from '@lego-shop/shared';
+import { PRODUCT_STATUS } from '@lego-shop/shared';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
 import { IsEnum, IsInt, IsNotEmpty, IsOptional, IsString, Min } from 'class-validator';
 
-export class CreateAccessoryDto {
+export class CreateAccessoryDto implements CreateAccessoryRequestContract {
   @ApiProperty({
     example: 'Dragon Sword',
   })
@@ -46,11 +47,11 @@ export class CreateAccessoryDto {
   iconUrl?: string;
 
   @ApiPropertyOptional({
-    enum: ProductStatus,
-    example: ProductStatus.active,
+    enum: PRODUCT_STATUS,
+    example: PRODUCT_STATUS.ACTIVE,
   })
   @IsOptional()
-  @IsEnum(ProductStatus)
+  @IsEnum(PRODUCT_STATUS)
   status?: ProductStatus;
 
   @ApiPropertyOptional({

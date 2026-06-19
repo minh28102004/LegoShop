@@ -1,3 +1,4 @@
+import type { AdminLoginResponseContract } from '@lego-shop/shared';
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { compare } from 'bcrypt';
@@ -11,7 +12,7 @@ export class AuthService {
     private readonly jwtService: JwtService,
   ) {}
 
-  async login(dto: LoginDto) {
+  async login(dto: LoginDto): Promise<AdminLoginResponseContract> {
     const email = dto.email.trim().toLowerCase();
 
     const admin = await this.prisma.admin.findUnique({

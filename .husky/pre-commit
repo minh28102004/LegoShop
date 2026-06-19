@@ -1,0 +1,3 @@
+echo "Running pre-commit checks..."
+pnpm --filter @lego-shop/shared typecheck
+pnpm --filter @lego-shop/api-client typecheck

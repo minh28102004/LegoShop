@@ -61,7 +61,7 @@ export function CartDrawer() {
                         <X className="w-4 h-4" />
                       </button>
                     </div>
-                    {item.designData && (
+                    {typeof item.designData?.frameSize === "string" && (
                       <p className="text-xs text-zinc-500 mt-1">{item.designData.frameSize}</p>
                     )}
                   </div>

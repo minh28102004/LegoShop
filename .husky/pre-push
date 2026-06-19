@@ -1,0 +1,12 @@
+echo "Running pre-push verification..."
+pnpm --filter @lego-shop/shared typecheck
+pnpm --filter @lego-shop/shared build
+pnpm --filter @lego-shop/api-client typecheck
+pnpm --filter @lego-shop/api-client build
+pnpm --filter backend typecheck
+pnpm --filter backend build
+pnpm --filter web typecheck
+pnpm --filter web build
+pnpm --filter admin typecheck
+pnpm --filter admin build
+pnpm build

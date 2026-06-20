@@ -148,6 +148,11 @@ export class PaymentsService {
     }
 
     const incomingStatus = this.mapWebhookPaymentStatus(body, webhookData);
+    this.assertWebhookAmountMatchesPayment(
+      payment,
+      incomingStatus,
+      this.parseOptionalPayosAmount(webhookData.amount),
+    );
     const result = await this.applyWebhookPaymentStatus(
       payment.id,
       incomingStatus,
@@ -412,6 +417,51 @@ export class PaymentsService {
 
     if (itemsTotal !== amount) {
       throw new BadRequestException('Payment items total must match amount');
+    }
+  }
+
+  private parseOptionalPayosAmount(value: unknown): number | undefined {
+    if (value === undefined || value === null || value === '') {
+      return undefined;
+    }
+
+    if (typeof value === 'number') {
+      return this.validateNonNegativeInteger(value, 'payOS webhook amount');
+    }
+
+    if (typeof value === 'string') {
+      const normalizedAmount = value.trim();
+
+      if (!normalizedAmount) {
+        return undefined;
+      }
+
+      const parsedAmount = Number(normalizedAmount);
+
+      return this.validateNonNegativeInteger(
+        parsedAmount,
+        'payOS webhook amount',
+      );
+    }
+
+    throw new BadRequestException('Invalid payOS webhook amount');
+  }
+
+  private assertWebhookAmountMatchesPayment(
+    payment: PaymentWithOrder,
+    incomingStatus: PayosPaymentLogStatus,
+    amount?: number,
+  ) {
+    if (incomingStatus !== 'paid') {
+      return;
+    }
+
+    if (amount === undefined) {
+      throw new BadRequestException('Missing payOS webhook amount');
+    }
+
+    if (amount !== payment.amount) {
+      throw new BadRequestException('payOS webhook amount does not match');
     }
   }
 

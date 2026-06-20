@@ -74,6 +74,11 @@ export default function CartPage() {
                       <div className="min-w-0">
                         <h3 className="font-bold text-base text-text-primary truncate">{item.productName}</h3>
                         <p className="text-sm text-text-muted mt-0.5">{item.frameSizeLabel} · {item.frameColorName}</p>
+                        {item.accessories?.length ? (
+                          <p className="text-xs text-text-muted mt-0.5 truncate">
+                            Phu kien: {item.accessories.map(acc => acc.name).join(", ")}
+                          </p>
+                        ) : null}
                         {item.designData && (
                           <span className="inline-block mt-1 text-xs text-primary font-semibold bg-primary/10 px-2 py-0.5 rounded-full">
                             Đã cá nhân hóa

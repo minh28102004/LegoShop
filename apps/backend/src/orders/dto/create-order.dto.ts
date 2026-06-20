@@ -1,5 +1,4 @@
-import type { CreateOrderRequestContract, PaymentMethod } from '@lego-shop/shared';
-import { PAYMENT_METHOD } from '@lego-shop/shared';
+import { PaymentMethod } from '@prisma/client';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
 import {
@@ -8,14 +7,19 @@ import {
   IsDateString,
   IsEmail,
   IsEnum,
+  IsIn,
   IsNotEmpty,
+  IsBoolean,
   IsOptional,
   IsString,
   ValidateNested,
 } from 'class-validator';
 import { CreateOrderItemDto } from './create-order-item.dto';
 
-export class CreateOrderDto implements CreateOrderRequestContract {
+const SHIPPING_METHODS = ['standard', 'fast', 'self'] as const;
+const POLAROID_OPTIONS = ['none', '2', '4'] as const;
+
+export class CreateOrderDto {
   @ApiProperty({
     example: 'Nguyen Van A',
   })
@@ -57,17 +61,80 @@ export class CreateOrderDto implements CreateOrderRequestContract {
   address: string;
 
   @ApiPropertyOptional({
+    example: 'Ha Noi',
+  })
+  @Transform(({ value }: { value: unknown }) =>
+    typeof value === 'string' ? value.trim() : value,
+  )
+  @IsOptional()
+  @IsString()
+  province?: string;
+
+  @ApiPropertyOptional({
+    example: 'Dong Anh',
+  })
+  @Transform(({ value }: { value: unknown }) =>
+    typeof value === 'string' ? value.trim() : value,
+  )
+  @IsOptional()
+  @IsString()
+  district?: string;
+
+  @ApiPropertyOptional({
+    example: 'Thu Lom',
+  })
+  @Transform(({ value }: { value: unknown }) =>
+    typeof value === 'string' ? value.trim() : value,
+  )
+  @IsOptional()
+  @IsString()
+  ward?: string;
+
+  @ApiPropertyOptional({
     example: '2026-06-10',
   })
   @IsOptional()
   @IsDateString()
   receiveDate?: string;
 
-  @ApiProperty({
-    enum: PAYMENT_METHOD,
-    example: PAYMENT_METHOD.COD,
+  @ApiPropertyOptional({
+    example: 'Call before delivery',
   })
-  @IsEnum(PAYMENT_METHOD)
+  @Transform(({ value }: { value: unknown }) =>
+    typeof value === 'string' ? value.trim() : value,
+  )
+  @IsOptional()
+  @IsString()
+  note?: string;
+
+  @ApiPropertyOptional({
+    enum: SHIPPING_METHODS,
+    example: 'standard',
+  })
+  @IsOptional()
+  @IsIn(SHIPPING_METHODS)
+  shippingMethod?: (typeof SHIPPING_METHODS)[number];
+
+  @ApiPropertyOptional({
+    example: true,
+  })
+  @IsOptional()
+  @IsBoolean()
+  giftPackage?: boolean;
+
+  @ApiPropertyOptional({
+    enum: POLAROID_OPTIONS,
+    example: 'none',
+  })
+  @IsOptional()
+  @IsIn(POLAROID_OPTIONS)
+  polaroidOption?: (typeof POLAROID_OPTIONS)[number];
+
+  @ApiProperty({
+    enum: PaymentMethod,
+    example: PaymentMethod.COD,
+  })
+  @IsEnum(PaymentMethod)
   paymentMethod: PaymentMethod;
 
   @ApiProperty({

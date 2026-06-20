@@ -24,7 +24,6 @@ import {
 import { useI18n } from '@/lib/i18n/useI18n';
 import AdminNavIcon from '@/modules/admin/components/AdminNavIcon';
 import type { Order, OrderStatus, PaymentStatus, ShippingStatus } from '@/modules/admin/types/admin.types';
-import type { JsonObject } from '@lego-shop/shared';
 import DesignPreviewModal from './design-preview-modal';
 
 type Props = {
@@ -63,9 +62,11 @@ const CURRENCY = new Intl.NumberFormat('vi-VN', {
   maximumFractionDigits: 0,
 });
 
-function isJsonObject(value: unknown): value is JsonObject {
-  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
-}
+const SHIPPING_METHOD_LABELS: Record<string, string> = {
+  standard: 'Ship thường',
+  fast: 'Ship nhanh',
+  self: 'Tự book ship / Qua lấy',
+};
 
 export default function OrderDetail({ orderId }: Props) {
   const { t, locale } = useI18n();
@@ -73,7 +74,7 @@ export default function OrderDetail({ orderId }: Props) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const [previewItem, setPreviewItem] = useState<{ designData: JsonObject | null; productName: string } | null>(null);
+  const [previewItem, setPreviewItem] = useState<{designData: any, productName: string} | null>(null);
 
   function statusLabel(value: string) {
     return getStatusBadgeLabel(value, t);
@@ -189,10 +190,41 @@ export default function OrderDetail({ orderId }: Props) {
           </div>
           <div className='rounded-[22px] border border-[var(--admin-border)] bg-slate-50 p-4'>
             <p className='text-[12px] font-semibold uppercase tracking-[0.12em] text-slate-500'>
+              Vận chuyển
+            </p>
+            <p className='mt-2 text-sm font-medium text-slate-900'>
+              {SHIPPING_METHOD_LABELS[order.shippingMethod ?? ''] ?? order.shippingMethod ?? '-'}
+            </p>
+            <p className='mt-1 text-xs text-slate-500'>{CURRENCY.format(order.shippingFee ?? 0)}</p>
+          </div>
+          <div className='rounded-[22px] border border-[var(--admin-border)] bg-slate-50 p-4'>
+            <p className='text-[12px] font-semibold uppercase tracking-[0.12em] text-slate-500'>
+              Ngày nhận
+            </p>
+            <p className='mt-2 text-sm font-medium text-slate-900'>
+              {order.receiveDate ? new Date(order.receiveDate).toLocaleDateString('vi-VN') : '-'}
+            </p>
+          </div>
+          <div className='rounded-[22px] border border-[var(--admin-border)] bg-slate-50 p-4'>
+            <p className='text-[12px] font-semibold uppercase tracking-[0.12em] text-slate-500'>
+              Tạm tính sản phẩm
+            </p>
+            <p className='mt-2 text-base font-bold tabular-nums text-slate-900'>
+              {CURRENCY.format(order.itemsAmount ?? order.totalAmount)}
+            </p>
+            <p className='mt-1 text-xs text-slate-500'>
+              Add-ons: {CURRENCY.format((order.giftFee ?? 0) + (order.polaroidFee ?? 0))}
+            </p>
+          </div>
+          <div className='rounded-[22px] border border-[var(--admin-border)] bg-slate-50 p-4'>
+            <p className='text-[12px] font-semibold uppercase tracking-[0.12em] text-slate-500'>
               {t('orderDetail.total')}
             </p>
             <p className='mt-2 text-base font-bold tabular-nums text-slate-900'>
               {CURRENCY.format(order.totalAmount)}
+            </p>
+            <p className='mt-1 text-xs text-slate-500'>
+              Gói quà: {order.giftPackage ? CURRENCY.format(order.giftFee ?? 0) : '-'} · Polaroid: {order.polaroidOption ?? 'none'}
             </p>
           </div>
           <div className='rounded-[22px] border border-[var(--admin-border)] bg-slate-50 p-4'>
@@ -206,6 +238,14 @@ export default function OrderDetail({ orderId }: Props) {
               {t('orderDetail.deposit')}: {CURRENCY.format(order.depositAmount)}
             </p>
           </div>
+          {order.note ? (
+            <div className='rounded-[22px] border border-[var(--admin-border)] bg-slate-50 p-4 md:col-span-2'>
+              <p className='text-[12px] font-semibold uppercase tracking-[0.12em] text-slate-500'>
+                Ghi chú khách hàng
+              </p>
+              <p className='mt-2 whitespace-pre-line text-sm font-medium leading-6 text-slate-900'>{order.note}</p>
+            </div>
+          ) : null}
         </div>
       </Card>
 
@@ -288,6 +328,14 @@ export default function OrderDetail({ orderId }: Props) {
                   <TableRow key={item.id} hoverable>
                     <TableCell className='font-medium text-slate-800'>
                       <span className='block max-w-[320px] truncate'>{item.productName}</span>
+                      <span className='mt-1 block text-xs font-normal text-slate-500'>
+                        {[item.frameSizeLabel, item.frameColorName].filter(Boolean).join(' · ') || '-'}
+                      </span>
+                      {item.accessories?.length ? (
+                        <span className='mt-1 block max-w-[360px] truncate text-xs font-normal text-slate-500'>
+                          Phụ kiện: {item.accessories.map((accessory) => accessory.name).join(', ')}
+                        </span>
+                      ) : null}
                     </TableCell>
                     <TableCell className='text-center'>{item.quantity}</TableCell>
                     <TableCell className='text-right font-medium text-slate-800'>
@@ -303,9 +351,9 @@ export default function OrderDetail({ orderId }: Props) {
                         >
                           {t('orderDetail.open')}
                         </a>
-                      ) : isJsonObject(item.designData) ? (
+                      ) : item.designData ? (
                         <button
-                          onClick={() => setPreviewItem({ designData: item.designData ?? null, productName: item.productName })}
+                          onClick={() => setPreviewItem({ designData: item.designData, productName: item.productName })}
                           className='text-sm font-bold text-emerald-600 hover:text-emerald-700 underline underline-offset-4 cursor-pointer'
                         >
                           Xem thiết kế
@@ -359,7 +407,7 @@ export default function OrderDetail({ orderId }: Props) {
       <DesignPreviewModal 
         isOpen={!!previewItem}
         onClose={() => setPreviewItem(null)}
-        designData={previewItem?.designData ?? null}
+        designData={previewItem?.designData}
         productName={previewItem?.productName || ''}
       />
     </PageShell>

@@ -12,46 +12,46 @@
 @layer base {
   :root {
     /* ----------------------------------------------------------
-       COLORS — Light Mode
+       COLORS — Light Mode (Premium SaaS - Vercel/Linear style)
        ---------------------------------------------------------- */
 
-    /* Brand Primary — Electric Blue (BrickStudio style) */
+    /* Brand Primary — Crisp Blue */
     --color-primary:             221 83% 53%;   /* #2563EB */
     --color-primary-hover:       221 83% 45%;
     --color-primary-foreground:  0 0% 100%;
 
-    /* Brand Accent — Light Blue */
-    --color-accent:              214 100% 97%;  /* #EFF6FF */
-    --color-accent-hover:        214 95% 93%;
-    --color-accent-foreground:   221 70% 38%;
+    /* Brand Accent */
+    --color-accent:              214 32% 91%;
+    --color-accent-hover:        214 32% 85%;
+    --color-accent-foreground:   222 47% 11%;
 
     /* CTA */
     --color-cta:                 221 83% 53%;
     --color-cta-hover:           221 83% 45%;
     --color-cta-foreground:      0 0% 100%;
 
-    /* Backgrounds — Pure white + light gray */
+    /* Backgrounds — Pure white + very subtle gray (Zinc) */
     --color-background:          0 0% 100%;
     --color-surface:             0 0% 100%;
-    --color-surface-hover:       220 14% 97%;
+    --color-surface-hover:       240 5% 96%; /* Zinc 100 */
 
     /* Borders */
-    --color-border:              220 13% 91%;
-    --color-border-strong:       220 13% 85%;
+    --color-border:              240 6% 90%; /* Zinc 200 */
+    --color-border-strong:       240 5% 84%; /* Zinc 300 */
 
     /* Text */
-    --color-text-primary:        224 71% 4%;    /* #030712 */
-    --color-text-secondary:      220 9% 46%;    /* #6B7280 */
-    --color-text-muted:          220 9% 64%;    /* #9CA3AF */
+    --color-text-primary:        240 10% 4%;    /* Zinc 950 */
+    --color-text-secondary:      240 5% 34%;    /* Zinc 600 */
+    --color-text-muted:          240 4% 46%;    /* Zinc 500 */
     --color-text-inverse:        0 0% 100%;
 
     /* Semantic */
-    --color-success:             142 71% 35%;
-    --color-error:               0 72% 51%;
-    --color-warning:             38 95% 54%;
+    --color-success:             142 76% 36%;
+    --color-error:               0 84% 60%;
+    --color-warning:             38 92% 50%;
 
     /* Decorative */
-    --color-rose:                352 75% 80%;
+    --color-rose:                346 87% 60%;
     --color-ivory:               44 40% 95%;
     --color-blush:               349 80% 93%;
 
@@ -82,26 +82,26 @@
     --space-32:  128px;
 
     /* ----------------------------------------------------------
-       BORDER RADIUS — Mềm mại, bo tròn nhẹ
+       BORDER RADIUS
        ---------------------------------------------------------- */
     --radius-xs:  4px;
-    --radius-sm:  8px;
-    --radius-md:  12px;
-    --radius-lg:  16px;
-    --radius-xl:  20px;
-    --radius-2xl: 28px;
-    --radius-3xl: 40px;
+    --radius-sm:  6px;
+    --radius-md:  8px;
+    --radius-lg:  12px;
+    --radius-xl:  16px;
+    --radius-2xl: 24px;
+    --radius-3xl: 32px;
 
     /* ----------------------------------------------------------
-       BOX SHADOWS — Mềm mại, không quá đậm
+       BOX SHADOWS — Crisp and clean layered shadows
        ---------------------------------------------------------- */
-    --shadow-xs:    0 1px 2px 0 rgb(0 0 0 / 0.04);
-    --shadow-sm:    0 2px 8px 0 rgb(0 0 0 / 0.06), 0 1px 2px -1px rgb(0 0 0 / 0.04);
-    --shadow-md:    0 4px 16px -2px rgb(0 0 0 / 0.08), 0 2px 4px -2px rgb(0 0 0 / 0.04);
-    --shadow-lg:    0 12px 32px -4px rgb(0 0 0 / 0.10), 0 4px 8px -4px rgb(0 0 0 / 0.06);
-    --shadow-xl:    0 24px 48px -8px rgb(0 0 0 / 0.12), 0 8px 12px -6px rgb(0 0 0 / 0.06);
-    --shadow-2xl:   0 32px 64px -12px rgb(0 0 0 / 0.18);
-    --shadow-inner: inset 0 2px 4px 0 rgb(0 0 0 / 0.04);
+    --shadow-xs:    0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --shadow-sm:    0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+    --shadow-md:    0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    --shadow-lg:    0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+    --shadow-xl:    0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+    --shadow-2xl:   0 25px 50px -12px rgb(0 0 0 / 0.25);
+    --shadow-inner: inset 0 2px 4px 0 rgb(0 0 0 / 0.05);
     --shadow-blue:  0 8px 24px -4px hsl(221 83% 53% / 0.25);
 
     /* ----------------------------------------------------------
@@ -137,52 +137,52 @@
     /* ----------------------------------------------------------
        LAYOUT
        ---------------------------------------------------------- */
-    --header-height:    72px;
+    --header-height:    64px;
     --footer-height:    auto;
     --sidebar-width:    280px;
     --content-max-width: 1280px;
-    --section-padding-x: clamp(1rem, 4vw, 5rem);
-    --section-padding-y: clamp(3rem, 8vw, 8rem);
+    --section-padding-x: clamp(1rem, 5vw, 2rem);
+    --section-padding-y: clamp(4rem, 8vw, 8rem);
   }
 
   /* ----------------------------------------------------------
-     DARK MODE — Override tokens (giữ minimal)
+     DARK MODE — Linear/Vercel style (pure black to very dark zinc)
      ---------------------------------------------------------- */
   .dark {
-    --color-primary:             221 80% 62%;
-    --color-primary-hover:       221 80% 68%;
-    --color-primary-foreground:  0 0% 10%;
+    --color-primary:             221 83% 53%;
+    --color-primary-hover:       221 80% 62%;
+    --color-primary-foreground:  0 0% 100%;
 
-    --color-accent:              221 50% 20%;
-    --color-accent-hover:        221 50% 25%;
-    --color-accent-foreground:   221 70% 75%;
+    --color-accent:              240 4% 16%;
+    --color-accent-hover:        240 5% 26%;
+    --color-accent-foreground:   0 0% 98%;
 
-    --color-cta:                 221 80% 62%;
-    --color-cta-hover:           221 80% 68%;
-    --color-cta-foreground:      0 0% 100%;
+    --color-cta:                 0 0% 98%;
+    --color-cta-hover:           240 5% 84%;
+    --color-cta-foreground:      240 10% 4%;
 
-    --color-background:          0 0% 8%;
-    --color-surface:             0 0% 11%;
-    --color-surface-hover:       0 0% 14%;
+    --color-background:          0 0% 0%; /* Pure black */
+    --color-surface:             240 10% 4%; /* Zinc 950 */
+    --color-surface-hover:       240 4% 16%; /* Zinc 800 */
 
-    --color-border:              0 0% 20%;
-    --color-border-strong:       0 0% 27%;
+    --color-border:              240 4% 16%; /* Zinc 800 */
+    --color-border-strong:       240 5% 26%; /* Zinc 700 */
 
-    --color-text-primary:        0 0% 96%;
-    --color-text-secondary:      0 0% 65%;
-    --color-text-muted:          0 0% 45%;
-    --color-text-inverse:        0 0% 10%;
+    --color-text-primary:        0 0% 100%;
+    --color-text-secondary:      240 5% 65%; /* Zinc 400 */
+    --color-text-muted:          240 5% 54%; /* Zinc 500 */
+    --color-text-inverse:        240 10% 4%;
 
     --color-success:             142 60% 46%;
     --color-error:               0 80% 65%;
     --color-warning:             38 90% 58%;
 
-    --shadow-xs:    0 1px 2px 0 rgb(0 0 0 / 0.3);
-    --shadow-sm:    0 2px 8px 0 rgb(0 0 0 / 0.35);
-    --shadow-md:    0 4px 16px -2px rgb(0 0 0 / 0.4);
-    --shadow-lg:    0 12px 32px -4px rgb(0 0 0 / 0.5);
-    --shadow-xl:    0 24px 48px -8px rgb(0 0 0 / 0.55);
-    --shadow-2xl:   0 32px 64px -12px rgb(0 0 0 / 0.7);
+    --shadow-xs:    0 1px 2px 0 rgb(0 0 0 / 0.5);
+    --shadow-sm:    0 2px 8px 0 rgb(0 0 0 / 0.5);
+    --shadow-md:    0 4px 16px -2px rgb(0 0 0 / 0.6);
+    --shadow-lg:    0 12px 32px -4px rgb(0 0 0 / 0.8);
+    --shadow-xl:    0 24px 48px -8px rgb(0 0 0 / 0.8);
+    --shadow-2xl:   0 32px 64px -12px rgb(0 0 0 / 0.9);
   }
 }
 

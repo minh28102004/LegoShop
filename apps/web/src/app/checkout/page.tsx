@@ -5,19 +5,20 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { formatPrice } from "@/lib/formatters";
 import { ArrowLeft, ChevronRight, Info, Gift, Lightbulb, Camera, Zap, AlertCircle } from "lucide-react";
-import { publicApiClient } from "@/lib/api/public-client";
+import { fetchApi } from "@/lib/api";
 import Link from "next/link";
 import Image from "next/image";
 import { ROUTES } from "@/constants";
-import type { CreateOrderRequestContract, JsonObject, PaymentSettingsContract } from "@lego-shop/shared";
 
-type PaymentSettings = Pick<
-  PaymentSettingsContract,
-  "codEnabled" | "payosEnabled" | "codDepositEnabled" | "codDepositPercent"
->;
+interface PaymentSettings {
+  codEnabled: boolean;
+  payosEnabled: boolean;
+  codDepositEnabled: boolean;
+  codDepositPercent: number;
+}
 
 const SHIPPING_OPTIONS = [
-  { id: "standard", label: "Ship thường (3-5 ngày)", fee: 0, note: "Miễn phí" },
+  { id: "standard", label: "Ship thường (3-5 ngày)", fee: 25000, note: "Miễn phí khi đủ 349k" },
   { id: "fast", label: "Ship nhanh (1-2 ngày)", fee: 45000, note: null },
   { id: "self", label: "Tự book ship / Qua lấy", fee: 0, note: "Kho: Thư Lôm, Đông Anh, Hà Nội" },
 ] as const;
@@ -28,24 +29,20 @@ const POLAROID_OPTIONS = [
   { id: "4", label: "In 4 ảnh (+25k)", price: 25000 },
 ] as const;
 
-type ShippingMethod = (typeof SHIPPING_OPTIONS)[number]["id"];
-type PolaroidOption = (typeof POLAROID_OPTIONS)[number]["id"];
-type CheckoutPaymentMethod = "COD" | "PAYOS" | "COD_DEPOSIT";
-
 export default function CheckoutPage() {
   const { items, totalAmount, clearCart, isEmpty, itemCount } = useCart();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [shippingMethod, setShippingMethod] = useState<ShippingMethod>("standard");
-  const [paymentMethod, setPaymentMethod] = useState<CheckoutPaymentMethod>("PAYOS");
+  const [shippingMethod, setShippingMethod] = useState<"standard" | "fast" | "self">("standard");
+  const [paymentMethod, setPaymentMethod] = useState<"COD" | "PAYOS" | "COD_DEPOSIT">("PAYOS");
   const [paymentSettings, setPaymentSettings] = useState<PaymentSettings | null>(null);
   const [giftPackage, setGiftPackage] = useState(false);
-  const [polaroid, setPolaroid] = useState<PolaroidOption>("none");
+  const [polaroid, setPolaroid] = useState<"none" | "2" | "4">("none");
   const [discountCode, setDiscountCode] = useState("");
   const [referralCode, setReferralCode] = useState("");
 
   useEffect(() => {
-    publicApiClient.public.getPaymentSettings().then(data => {
+    fetchApi("/public/payment-settings").then(data => {
       setPaymentSettings(data);
       if (data?.payosEnabled) setPaymentMethod("PAYOS");
       else if (data?.codDepositEnabled) setPaymentMethod("COD_DEPOSIT");
@@ -62,7 +59,10 @@ export default function CheckoutPage() {
     address: "", receiveDate: "", note: ""
   });
 
-  const shippingFee = SHIPPING_OPTIONS.find(s => s.id === shippingMethod)?.fee ?? 0;
+  const freeshipThreshold = 349000;
+  const isFreeShip = totalAmount >= freeshipThreshold;
+  const baseShippingFee = SHIPPING_OPTIONS.find(s => s.id === shippingMethod)?.fee ?? 0;
+  const shippingFee = shippingMethod === "standard" && isFreeShip ? 0 : baseShippingFee;
   const giftFee = giftPackage ? 30000 * itemCount : 0;
   const polaroidFee = POLAROID_OPTIONS.find(p => p.id === polaroid)?.price ?? 0;
   const subtotal = totalAmount + giftFee + polaroidFee;
@@ -75,44 +75,44 @@ export default function CheckoutPage() {
   // const needsPayment = paymentMethod === "PAYOS" || paymentMethod === "COD_DEPOSIT"; // reserved
   const amountToPayNow = paymentMethod === "COD_DEPOSIT" ? depositAmount : paymentMethod === "PAYOS" ? finalTotal : 0;
 
-  const freeshipThreshold = 349000;
-  const isFreeShip = totalAmount >= freeshipThreshold;
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (loading) return;
     setLoading(true);
     try {
-      const payload: CreateOrderRequestContract = {
+      const payload = {
         customerName: formData.name,
         phone: formData.phone,
+        email: formData.email || undefined,
         address: `${formData.address}, ${formData.ward}, ${formData.district}, ${formData.city}`,
+        province: formData.city,
+        district: formData.district,
+        ward: formData.ward,
+        receiveDate: formData.receiveDate || undefined,
+        note: [formData.note, formData.zalo ? `Zalo/SDT check demo: ${formData.zalo}` : ""].filter(Boolean).join("\n") || undefined,
+        shippingMethod,
+        giftPackage,
+        polaroidOption: polaroid,
         paymentMethod: paymentMethod === "COD_DEPOSIT" ? "COD" : paymentMethod,
         items: items.map(i => ({
+          productId: i.productId || undefined,
           productName: i.productName,
           quantity: i.quantity,
           price: i.unitPrice,
-          designData: i.designData as JsonObject,
+          frameSizeId: i.frameSizeId || undefined,
+          frameSizeLabel: i.frameSizeLabel || undefined,
+          frameColorName: i.frameColorName || undefined,
+          accessories: i.accessories?.length ? i.accessories : undefined,
+          designData: i.designData,
+          previewUrl: i.previewUrl || undefined,
         })),
       };
-      if (formData.email) {
-        payload.email = formData.email;
-      }
-      if (formData.receiveDate) {
-        payload.receiveDate = formData.receiveDate;
-      }
-      payload.items.forEach((item, index) => {
-        const cartItem = items[index];
-        if (!cartItem) return;
-        if (cartItem.productId) item.productId = cartItem.productId;
-        if (cartItem.previewUrl) item.previewUrl = cartItem.previewUrl;
-      });
-      const data = await publicApiClient.orders.createOrder(payload);
+      const data = await fetchApi("/orders", { method: "POST", body: JSON.stringify(payload) });
       if (data.checkoutUrl) {
-        window.location.href = data.checkoutUrl;
-      } else if (data.orderCode || data.orderId) {
         clearCart();
-        router.push(`/order-success?orderCode=${data.orderCode || data.orderId}`);
+        window.location.href = data.checkoutUrl;
+      } else if (data.orderCode || data.id) {
+        clearCart();
+        router.push(`/order-success?orderCode=${data.orderCode || data.id}`);
       }
     } catch (error) {
       console.error(error);
@@ -213,14 +213,14 @@ export default function CheckoutPage() {
                       {SHIPPING_OPTIONS.map(opt => (
                         <label key={opt.id} className={`flex items-center justify-between px-3 py-2.5 border-2 rounded-xl cursor-pointer transition-all ${shippingMethod === opt.id ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/30'}`}>
                           <div className="flex items-center gap-2.5">
-                            <input type="radio" name="shipping" checked={shippingMethod === opt.id} onChange={() => setShippingMethod(opt.id)}
+                            <input type="radio" name="shipping" checked={shippingMethod === opt.id} onChange={() => setShippingMethod(opt.id as any)}
                               className="text-primary focus:ring-primary w-3.5 h-3.5" />
                             <div>
                               <span className="text-sm font-semibold text-text-primary">{opt.label}</span>
                               {opt.note && <span className="block text-[11px] text-text-muted">{opt.note}</span>}
                             </div>
                           </div>
-                          <span className={`text-sm font-bold ${opt.fee === 0 && opt.id === 'standard' ? (isFreeShip ? 'text-emerald-600' : 'text-primary') : 'text-text-primary'}`}>
+                          <span className={`text-sm font-bold ${opt.id === 'standard' && isFreeShip ? 'text-emerald-600' : 'text-text-primary'}`}>
                             {opt.id === 'standard' && isFreeShip ? (
                               <span className="flex items-center gap-1"><s className="text-text-muted text-xs">{formatPrice(25000)}</s> Miễn phí</span>
                             ) : opt.fee === 0 ? '0đ' : formatPrice(opt.fee)}
@@ -297,7 +297,7 @@ export default function CheckoutPage() {
                   </div>
                   <div className="grid grid-cols-3 gap-2">
                     {POLAROID_OPTIONS.map(opt => (
-                      <button key={opt.id} type="button" onClick={() => setPolaroid(opt.id)}
+                      <button key={opt.id} type="button" onClick={() => setPolaroid(opt.id as any)}
                         className={`py-2 px-3 rounded-xl text-xs font-bold border-2 transition-all ${polaroid === opt.id ? 'border-primary bg-primary/5 text-primary' : 'border-border text-text-secondary hover:border-primary/30'}`}>
                         {opt.label}
                       </button>
@@ -374,15 +374,16 @@ export default function CheckoutPage() {
                   <div>
                     <label className="block text-xs font-bold text-text-secondary mb-1 mt-2">Mã giảm giá</label>
                     <div className="flex gap-2">
-                      <input type="text" placeholder="NHẬP MÃ" value={discountCode} onChange={e => setDiscountCode(e.target.value)}
-                        className="flex-1 border border-border rounded-lg px-3 py-2 text-sm focus:ring-1 focus:ring-primary focus:border-primary outline-none bg-background uppercase" />
-                      <button type="button" className="px-4 py-2 bg-text-primary text-white text-xs font-bold rounded-lg hover:bg-text-secondary transition-colors">Áp dụng</button>
+                      <input type="text" placeholder="NHẬP MÃ" value={discountCode} onChange={e => setDiscountCode(e.target.value)} disabled
+                        className="flex-1 border border-border rounded-lg px-3 py-2 text-sm outline-none bg-background uppercase opacity-60 cursor-not-allowed" />
+                      <button type="button" disabled className="px-4 py-2 bg-text-muted text-white text-xs font-bold rounded-lg opacity-70 cursor-not-allowed">Sắp có</button>
                     </div>
+                    <p className="mt-1 text-[11px] text-text-muted">Mã giảm giá sẽ được kết nối sau, hiện chưa tính vào tổng đơn.</p>
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-text-secondary mb-1">Mã giới thiệu (CTV)</label>
-                    <input type="text" placeholder="Nhập mã CTV (nếu có)" value={referralCode} onChange={e => setReferralCode(e.target.value)}
-                      className="w-full border border-border rounded-lg px-3 py-2 text-sm focus:ring-1 focus:ring-primary focus:border-primary outline-none bg-background" />
+                    <input type="text" placeholder="Nhập mã CTV (nếu có)" value={referralCode} onChange={e => setReferralCode(e.target.value)} disabled
+                      className="w-full border border-border rounded-lg px-3 py-2 text-sm outline-none bg-background opacity-60 cursor-not-allowed" />
                   </div>
 
                   <div className="border-t border-border pt-3 mt-3">

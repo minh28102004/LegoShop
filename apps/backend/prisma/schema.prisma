@@ -227,13 +227,25 @@ model Order {
   phone        String
   email        String?
   address      String
+  province     String?
+  district     String?
+  ward         String?
   receiveDate  DateTime?
+  note         String?
+
+  shippingMethod String?
+  shippingFee    Int     @default(0)
+  giftPackage    Boolean @default(false)
+  giftFee        Int     @default(0)
+  polaroidOption String  @default("none")
+  polaroidFee    Int     @default(0)
 
   paymentMethod  PaymentMethod
   paymentStatus  PaymentStatus  @default(unpaid)
   orderStatus    OrderStatus    @default(pending)
   shippingStatus ShippingStatus @default(pending)
 
+  itemsAmount     Int       @default(0)
   totalAmount     Int
   depositRequired Boolean   @default(false)
   depositPercent  Int       @default(0)
@@ -270,6 +282,10 @@ model OrderItem {
   quantity    Int
   price       Int
 
+  frameSizeId    String?
+  frameSizeLabel String?
+  frameColorName String?
+  accessories    Json?
   designData Json?
   previewUrl String?
 

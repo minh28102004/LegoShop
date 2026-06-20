@@ -2,10 +2,21 @@
 
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { CheckCircle, Search, ArrowRight } from "lucide-react";
+import { CheckCircle, Search, ArrowRight, Clock } from "lucide-react";
 import { Suspense, useEffect, useState } from "react";
 import { publicApiClient } from "@/lib/api/public-client";
 import type { TrackOrderResponseContract } from "@lego-shop/shared";
+
+const PAYMENT_STATUS_LABELS: Record<string, string> = {
+  unpaid: "Chưa thanh toán",
+  pending: "Đang chờ thanh toán",
+  deposit_pending: "Đang chờ thanh toán cọc",
+  deposit_paid: "Đã thanh toán cọc",
+  paid: "Đã thanh toán",
+  failed: "Thanh toán thất bại",
+  cancelled: "Đã hủy thanh toán",
+  refunded: "Đã hoàn tiền",
+};
 
 function PaymentSuccessContent() {
   const searchParams = useSearchParams();
@@ -24,15 +35,22 @@ function PaymentSuccessContent() {
     }
   }, [orderCode]);
 
+  const paymentStatus = order?.paymentStatus as string | undefined;
+  const verifiedPaid = paymentStatus === "paid" || paymentStatus === "deposit_paid";
+
   return (
     <div className="flex flex-col items-center justify-center py-20 px-4 text-center min-h-[60vh]">
-      <div className="w-24 h-24 bg-emerald-100 rounded-full flex items-center justify-center mb-6">
-        <CheckCircle className="w-12 h-12 text-emerald-600" />
+      <div className={`w-24 h-24 rounded-full flex items-center justify-center mb-6 ${verifiedPaid ? "bg-emerald-100" : "bg-amber-100"}`}>
+        {verifiedPaid ? (
+          <CheckCircle className="w-12 h-12 text-emerald-600" />
+        ) : (
+          <Clock className="w-12 h-12 text-amber-600" />
+        )}
       </div>
       
-      <h1 className="text-4xl font-black mb-4">Thanh Toán Thành Công!</h1>
+      <h1 className="text-4xl font-black mb-4">{verifiedPaid ? "Đã ghi nhận thanh toán" : "Đang xác nhận thanh toán"}</h1>
       <p className="text-zinc-600 mb-8 max-w-md">
-        Cảm ơn bạn đã thanh toán. Đơn hàng của bạn sẽ được ưu tiên xử lý sớm nhất.
+        Trạng thái thanh toán được cập nhật từ webhook PayOS. Nếu bạn vừa thanh toán xong, vui lòng tra cứu lại sau vài giây.
       </p>
 
       {loading ? (
@@ -45,7 +63,9 @@ function PaymentSuccessContent() {
           <div className="border-t border-zinc-100 pt-4 space-y-2 text-sm text-left">
             <div className="flex justify-between">
               <span className="text-zinc-500">Trạng thái thanh toán</span>
-              <span className="font-bold text-emerald-600">Đã thanh toán</span>
+              <span className={`font-bold ${verifiedPaid ? "text-emerald-600" : "text-amber-600"}`}>
+                {PAYMENT_STATUS_LABELS[paymentStatus ?? ""] ?? paymentStatus ?? "Đang kiểm tra"}
+              </span>
             </div>
             {order.depositRequired && (
               <div className="flex justify-between">

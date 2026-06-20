@@ -1,22 +1,11 @@
 import Link from "next/link";
-import { publicApiClient } from "@/lib/api/public-client";
+import { fetchApi } from "@/lib/api";
 import { ArrowRight, ChevronRight } from "lucide-react";
-
-type HomeProduct = {
-  id: string | number;
-  name: string;
-  subtitle?: string;
-  category?: string;
-  basePrice: number;
-  pieces?: number;
-  images: string[];
-  badge?: string | null;
-};
 
 export const revalidate = 0;
 
 // Fallback products with reliable images
-const DEMO_PRODUCTS: HomeProduct[] = [
+const DEMO_PRODUCTS = [
   {
     id: "1",
     name: "Classic Rangefinder",
@@ -65,20 +54,60 @@ const HOW_STEPS = [
 ];
 
 export default async function Home() {
-  let apiProducts: HomeProduct[] = [];
+  let apiProducts: any[] = [];
+  let apiBanners: any[] = [];
+  let apiCollections: any[] = [];
   try {
-    const prodRes = await publicApiClient.products.listProducts({ limit: 4, featured: true });
-    apiProducts = prodRes.slice(0, 4);
+    const [prodRes, bannerRes, collectionRes] = await Promise.all([
+      fetchApi("/public/products?limit=4&featured=true"),
+      fetchApi("/public/banners"),
+      fetchApi("/public/collections"),
+    ]);
+    apiProducts = (Array.isArray(prodRes) ? prodRes : prodRes?.data || []).slice(0, 4);
+    apiBanners = (Array.isArray(bannerRes) ? bannerRes : bannerRes?.data || []).slice(0, 3);
+    apiCollections = (Array.isArray(collectionRes) ? collectionRes : collectionRes?.data || []).slice(0, 4);
   } catch {}
 
   const products = apiProducts.length > 0 ? apiProducts : DEMO_PRODUCTS;
+  const heroBanner = apiBanners[0];
   const heroImg =
+    heroBanner?.imageUrl ||
     "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?q=80&w=900&auto=format&fit=crop";
   const bigImg =
     products[0]?.images?.[0] ||
     "https://images.unsplash.com/photo-1464618663641-bbdd760ae84a?q=80&w=900&auto=format&fit=crop";
   const smallImg =
+    apiCollections[0]?.imageUrl ||
     "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?q=80&w=800&auto=format&fit=crop";
+  const galleryCollections =
+    apiCollections.length > 0
+      ? apiCollections.map((collection) => ({
+          img: collection.imageUrl || heroImg,
+          name: collection.name,
+          tag: collection.description || "Collection",
+        }))
+      : [
+          {
+            img: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?q=80&w=600&auto=format&fit=crop",
+            name: "Gallery 1",
+            tag: "Minimalist Art",
+          },
+          {
+            img: "https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?q=80&w=600&auto=format&fit=crop",
+            name: "Gallery 2",
+            tag: "Minimalist Art",
+          },
+          {
+            img: "https://images.unsplash.com/photo-1530103862676-de8c9debad1d?q=80&w=600&auto=format&fit=crop",
+            name: "Gallery 3",
+            tag: "Minimalist Art",
+          },
+          {
+            img: "https://images.unsplash.com/photo-1524117074681-31bd4de22ad3?q=80&w=600&auto=format&fit=crop",
+            name: "Gallery 4",
+            tag: "Minimalist Art",
+          },
+        ];
 
   return (
     <main className="bg-white overflow-x-hidden">
@@ -570,28 +599,7 @@ export default async function Home() {
 
           {/* 4-column image grid */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16 }}>
-            {[
-              {
-                img: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?q=80&w=600&auto=format&fit=crop",
-                name: "Gallery 1",
-                tag: "Minimalist Art",
-              },
-              {
-                img: "https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?q=80&w=600&auto=format&fit=crop",
-                name: "Gallery 2",
-                tag: "Minimalist Art",
-              },
-              {
-                img: "https://images.unsplash.com/photo-1530103862676-de8c9debad1d?q=80&w=600&auto=format&fit=crop",
-                name: "Gallery 3",
-                tag: "Minimalist Art",
-              },
-              {
-                img: "https://images.unsplash.com/photo-1524117074681-31bd4de22ad3?q=80&w=600&auto=format&fit=crop",
-                name: "Gallery 4",
-                tag: "Minimalist Art",
-              },
-            ].map((item) => (
+            {galleryCollections.map((item) => (
               <Link
                 key={item.name}
                 href="/collection"

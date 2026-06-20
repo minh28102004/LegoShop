@@ -14,7 +14,7 @@ export function StudioStepper() {
   ];
 
   return (
-    <div className="flex items-center gap-1">
+    <div className="flex items-center gap-1 overflow-x-auto scrollbar-hide py-2">
       {steps.map((s, idx) => {
         const isPast = step > s.num;
         const isActive = step === s.num;
@@ -23,36 +23,35 @@ export function StudioStepper() {
           <div key={s.num} className="flex items-center">
             <button
               onClick={() => setStep(s.num)}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold transition-all"
-              style={
+              className={`group flex items-center gap-2.5 rounded-full px-4 py-2 text-xs font-bold transition-all duration-300 ${
                 isActive
-                  ? { backgroundColor: "#2563eb", color: "#ffffff" }
+                  ? "bg-primary text-primary-foreground shadow-md scale-105"
                   : isPast
-                  ? { color: "#2563eb", backgroundColor: "rgba(37, 99, 235, 0.1)" }
-                  : { color: "#9CA3AF" }
-              }
+                  ? "bg-primary/10 text-primary hover:bg-primary/20"
+                  : "bg-surface-hover text-text-muted hover:text-text-secondary"
+              }`}
             >
               <div
-                className="w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-black"
-                style={
+                className={`flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-black transition-colors duration-300 ${
                   isActive
-                    ? { backgroundColor: "rgba(255, 255, 255, 0.25)", color: "#ffffff" }
+                    ? "bg-white/25 text-white"
                     : isPast
-                    ? { backgroundColor: "#2563eb", color: "#ffffff" }
-                    : { backgroundColor: "#e5e7eb", color: "#9CA3AF" }
-                }
+                    ? "bg-primary text-white shadow-sm"
+                    : "bg-border text-text-muted group-hover:bg-zinc-300"
+                }`}
               >
-                {isPast ? <Check className="w-2.5 h-2.5" /> : s.num}
+                {isPast ? <Check className="h-3 w-3" /> : s.num}
               </div>
               <span>{s.label}</span>
             </button>
             {idx < steps.length - 1 && (
-              <div
-                className="w-6 h-px mx-1"
-                style={{
-                  backgroundColor: isPast ? "rgba(37, 99, 235, 0.3)" : "#e5e7eb"
-                }}
-              />
+              <div className="mx-2 flex w-8 items-center justify-center">
+                <div
+                  className={`h-[2px] w-full rounded-full transition-colors duration-300 ${
+                    isPast ? "bg-primary/30" : "bg-border"
+                  }`}
+                />
+              </div>
             )}
           </div>
         );

@@ -1,37 +1,45 @@
 "use client";
 
-import { useState, Suspense } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Search, Package, CheckCircle, Truck, Clock, AlertCircle, ChevronRight } from "lucide-react";
 import Link from "next/link";
-import { publicApiClient } from "@/lib/api/public-client";
+import { fetchApi } from "@/lib/api";
 import { formatPrice } from "@/lib/formatters";
 import { ROUTES } from "@/constants";
-import type { OrderItem, TrackOrderResponseContract } from "@lego-shop/shared";
-
-type TrackingResult = TrackOrderResponseContract | { error: true };
 
 const ORDER_STATUSES: Record<string, { label: string; color: string }> = {
-  Pending:    { label: "Chờ xác nhận", color: "bg-yellow-100 text-yellow-700" },
-  Confirmed:  { label: "Đã xác nhận",  color: "bg-blue-100 text-blue-700" },
-  Processing: { label: "Đang xử lý",   color: "bg-purple-100 text-purple-700" },
-  Shipping:   { label: "Đang giao",    color: "bg-orange-100 text-orange-700" },
-  Completed:  { label: "Hoàn thành",   color: "bg-emerald-100 text-emerald-700" },
-  Cancelled:  { label: "Đã hủy",       color: "bg-red-100 text-red-700" },
+  pending:    { label: "Chờ xác nhận", color: "bg-yellow-100 text-yellow-700" },
+  confirmed:  { label: "Đã xác nhận",  color: "bg-blue-100 text-blue-700" },
+  processing: { label: "Đang xử lý",   color: "bg-purple-100 text-purple-700" },
+  shipping:   { label: "Đang giao",    color: "bg-orange-100 text-orange-700" },
+  completed:  { label: "Hoàn thành",   color: "bg-emerald-100 text-emerald-700" },
+  cancelled:  { label: "Đã hủy",       color: "bg-red-100 text-red-700" },
 };
 
 const PAYMENT_STATUSES: Record<string, { label: string; color: string }> = {
   unpaid:        { label: "Chưa thanh toán", color: "text-yellow-600" },
+  pending:       { label: "Đang chờ thanh toán", color: "text-yellow-600" },
+  deposit_pending: { label: "Đang chờ đặt cọc", color: "text-yellow-600" },
   deposit_paid:  { label: "Đã đặt cọc",     color: "text-blue-600" },
   paid:          { label: "Đã thanh toán",   color: "text-emerald-600" },
+  failed:        { label: "Thanh toán thất bại", color: "text-red-600" },
+  cancelled:     { label: "Đã hủy thanh toán", color: "text-red-600" },
+  refunded:      { label: "Đã hoàn tiền", color: "text-slate-600" },
+};
+
+const SHIPPING_METHOD_LABELS: Record<string, string> = {
+  standard: "Ship thường",
+  fast: "Ship nhanh",
+  self: "Tự book ship / Qua lấy",
 };
 
 const STEPS = [
-  { key: "Pending",    label: "Tiếp nhận",   icon: Package },
-  { key: "Confirmed",  label: "Xác nhận",    icon: Clock },
-  { key: "Processing", label: "Đang làm",    icon: Clock },
-  { key: "Shipping",   label: "Đang giao",   icon: Truck },
-  { key: "Completed",  label: "Hoàn thành",  icon: CheckCircle },
+  { key: "pending",    label: "Tiếp nhận",   icon: Package },
+  { key: "confirmed",  label: "Xác nhận",    icon: Clock },
+  { key: "processing", label: "Đang làm",    icon: Clock },
+  { key: "shipping",   label: "Đang giao",   icon: Truck },
+  { key: "completed",  label: "Hoàn thành",  icon: CheckCircle },
 ];
 
 function getStepIndex(status: string) {
@@ -44,23 +52,38 @@ function TrackingContent() {
   const initialCode = searchParams.get("code") || "";
   const [orderCode, setOrderCode] = useState(initialCode);
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<TrackingResult | null>(null);
+  const [result, setResult] = useState<any>(null);
+
+  const loadOrder = async (code: string, pushUrl = true) => {
+    const normalizedCode = code.trim().toUpperCase();
+    if (!normalizedCode) return;
+    setLoading(true);
+    try {
+      const data = await fetchApi(`/orders/track/${normalizedCode}`);
+      setResult(data);
+      if (pushUrl) {
+        router.push(`${ROUTES.orderTracking}?code=${normalizedCode}`);
+      }
+    } catch {
+      setResult({ error: true });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (initialCode) {
+      void loadOrder(initialCode, false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialCode]);
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!orderCode.trim()) return;
-    setLoading(true);
-    try {
-      const data = await publicApiClient.orders.trackOrder(orderCode.trim());
-      setResult(data);
-    } catch {
-      setResult({ error: true });
-    }
-    setLoading(false);
-    router.push(`${ROUTES.orderTracking}?code=${orderCode.trim()}`);
+    await loadOrder(orderCode);
   };
 
-  const currentStepIdx = result && !("error" in result) ? getStepIndex(result.orderStatus) : -1;
+  const currentStepIdx = result && !result.error ? getStepIndex(result.orderStatus) : -1;
 
   return (
     <div className="min-h-screen bg-background py-10">
@@ -93,7 +116,7 @@ function TrackingContent() {
         </form>
 
         {/* Error */}
-        {result && "error" in result && (
+        {result?.error && (
           <div className="bg-red-50 border border-red-200 text-red-700 p-5 rounded-2xl flex items-center gap-3 mb-8">
             <AlertCircle className="w-5 h-5 shrink-0" />
             <p>Không tìm thấy đơn hàng với mã <strong className="font-mono">{orderCode}</strong>. Vui lòng kiểm tra lại.</p>
@@ -101,7 +124,7 @@ function TrackingContent() {
         )}
 
         {/* Result */}
-        {result && !("error" in result) && (
+        {result && !result.error && (
           <div className="bg-surface rounded-3xl border border-border overflow-hidden shadow-sm">
             {/* Header */}
             <div className="px-6 py-5 border-b border-border flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-background">
@@ -151,6 +174,8 @@ function TrackingContent() {
                   <div className="flex gap-2"><span className="font-semibold text-text-secondary w-24 shrink-0">SĐT:</span><span className="text-text-primary">{result.phone}</span></div>
                   {result.email && <div className="flex gap-2"><span className="font-semibold text-text-secondary w-24 shrink-0">Email:</span><span className="text-text-primary">{result.email}</span></div>}
                   <div className="flex gap-2"><span className="font-semibold text-text-secondary w-24 shrink-0">Địa chỉ:</span><span className="text-text-primary">{result.address}</span></div>
+                  {result.receiveDate && <div className="flex gap-2"><span className="font-semibold text-text-secondary w-24 shrink-0">Ngày nhận:</span><span className="text-text-primary">{new Date(result.receiveDate).toLocaleDateString("vi-VN")}</span></div>}
+                  {result.note && <div className="flex gap-2"><span className="font-semibold text-text-secondary w-24 shrink-0">Ghi chú:</span><span className="whitespace-pre-line text-text-primary">{result.note}</span></div>}
                 </div>
               </div>
 
@@ -158,7 +183,15 @@ function TrackingContent() {
               <div>
                 <h3 className="font-bold text-sm text-text-secondary uppercase tracking-wide mb-3">Thông tin thanh toán</h3>
                 <div className="space-y-2 text-sm">
-                  <div className="flex justify-between"><span className="text-text-secondary">Tổng đơn hàng</span><span className="font-bold text-text-primary">{formatPrice(result.totalAmount)}</span></div>
+                  <div className="flex justify-between"><span className="text-text-secondary">Tạm tính sản phẩm</span><span className="font-semibold text-text-primary">{formatPrice(result.itemsAmount ?? result.totalAmount)}</span></div>
+                  <div className="flex justify-between"><span className="text-text-secondary">Vận chuyển ({SHIPPING_METHOD_LABELS[result.shippingMethod] ?? result.shippingMethod ?? "-"})</span><span className="font-semibold text-text-primary">{result.shippingFee ? formatPrice(result.shippingFee) : "Miễn phí"}</span></div>
+                  {result.giftPackage ? (
+                    <div className="flex justify-between"><span className="text-text-secondary">Gói quà</span><span className="font-semibold text-text-primary">{formatPrice(result.giftFee ?? 0)}</span></div>
+                  ) : null}
+                  {result.polaroidOption && result.polaroidOption !== "none" ? (
+                    <div className="flex justify-between"><span className="text-text-secondary">Ảnh Polaroid ({result.polaroidOption})</span><span className="font-semibold text-text-primary">{formatPrice(result.polaroidFee ?? 0)}</span></div>
+                  ) : null}
+                  <div className="flex justify-between border-t border-border pt-2"><span className="text-text-secondary">Tổng đơn hàng</span><span className="font-bold text-text-primary">{formatPrice(result.totalAmount)}</span></div>
                   {result.depositRequired && (
                     <>
                       <div className="flex justify-between"><span className="text-text-secondary">Đặt cọc ({result.depositPercent}%)</span><span className="font-bold text-primary">{formatPrice(result.depositAmount)}</span></div>
@@ -175,14 +208,19 @@ function TrackingContent() {
               <div className="px-6 pb-6 border-t border-border pt-5">
                 <h3 className="font-bold text-sm text-text-secondary uppercase tracking-wide mb-4">Sản phẩm</h3>
                 <div className="space-y-3">
-                  {result.items.map((item: OrderItem, idx: number) => (
+                  {result.items.map((item: any, idx: number) => (
                     <div key={idx} className="flex items-center gap-3 p-3 bg-background rounded-xl border border-border">
                       {item.previewUrl && (
                         <img src={item.previewUrl} alt="" className="w-12 h-12 rounded-lg object-cover border border-border shrink-0" />
                       )}
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-semibold text-text-primary truncate">{item.productName}</p>
-                        <p className="text-xs text-text-muted">×{item.quantity}</p>
+                        <p className="text-xs text-text-muted">×{item.quantity}{item.frameSizeLabel ? ` · ${item.frameSizeLabel}` : ""}{item.frameColorName ? ` · ${item.frameColorName}` : ""}</p>
+                        {Array.isArray(item.accessories) && item.accessories.length > 0 ? (
+                          <p className="text-xs text-text-muted truncate">
+                            Phu kien: {item.accessories.map((acc: any) => acc.name).join(", ")}
+                          </p>
+                        ) : null}
                       </div>
                       <span className="text-sm font-bold text-text-primary shrink-0">{formatPrice(item.price * item.quantity)}</span>
                     </div>

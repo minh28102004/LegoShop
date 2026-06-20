@@ -1,58 +1,38 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { ChevronDown, Search, X, Heart } from "lucide-react";
-import { publicApiClient } from "@/lib/api/public-client";
+import { fetchApi } from "@/lib/api";
 import { formatPrice } from "@/lib/formatters";
 import { ROUTES, UI_MODAL_IDS } from "@/constants";
 import { useCartStore } from "@/stores/cartStore";
 import { useUIStore } from "@/stores/uiStore";
-import { useDebounce } from "@/hooks/useDebounce";
-
-type CollectionProduct = {
-  id: string | number;
-  name: string;
-  category?: string;
-  basePrice?: number;
-  price?: string | number;
-  images?: string[];
-  img?: string;
-  badge?: string | null;
-  orders?: number;
-};
 
 const PRICE_FILTERS = ["Tất cả", "Dưới 200K", "200K–300K", "Trên 300K"];
 const COMPLEXITY = ["Tất cả", "1 nhân vật", "2 nhân vật", "2+ nhân vật"];
 
-const DEMO_PRODUCTS: CollectionProduct[] = [
-  { id: 1, name: "Happy Birthday 1", category: "Anniversary", basePrice: 290000, images: ["https://images.unsplash.com/photo-1549465220-1a8b9238cd48?q=80&w=800&auto=format&fit=crop"], badge: "Bán chạy", orders: 123 },
-  { id: 2, name: "Merry Christmas", category: "Holiday", basePrice: 360000, images: ["https://images.unsplash.com/photo-1543158181-e6f9f6712055?q=80&w=800&auto=format&fit=crop"], badge: null, orders: 37 },
-  { id: 3, name: "Merry Christmas 2", category: "Holiday", basePrice: 338000, images: ["https://images.unsplash.com/photo-1516589178581-6cd7833ae3b2?q=80&w=800&auto=format&fit=crop"], badge: null, orders: 46 },
-  { id: 4, name: "Ronaldo", category: "Sport", basePrice: 305000, images: ["https://images.unsplash.com/photo-1574629810360-7efbbe195018?q=80&w=800&auto=format&fit=crop"], badge: null, orders: 38 },
-  { id: 5, name: "Gallery 1", category: "Gallery", basePrice: 320000, images: ["https://images.unsplash.com/photo-1579546929518-9e396f3cc809?q=80&w=800&auto=format&fit=crop"], badge: "Mới", orders: 6 },
-  { id: 6, name: "Gallery 2", category: "Gallery", basePrice: 355000, images: ["https://images.unsplash.com/photo-1518531933037-91b2f5f229cc?q=80&w=800&auto=format&fit=crop"], badge: null, orders: 3 },
-  { id: 7, name: "Wedding Frame", category: "Wedding", basePrice: 415000, images: ["https://images.unsplash.com/photo-1519741497674-611481863552?q=80&w=800&auto=format&fit=crop"], badge: null, orders: 1 },
-  { id: 8, name: "Family Portrait", category: "Family", basePrice: 338000, images: ["https://images.unsplash.com/photo-1602524816543-e0e78f2c3a5a?q=80&w=800&auto=format&fit=crop"], badge: null, orders: 11 },
-];
-
 const CATEGORY_TABS = ["Tất cả", "Anniversary", "Holiday", "Wedding", "Sport", "Gallery", "Family"];
 
 export default function CollectionPage() {
-  const [products, setProducts] = useState<CollectionProduct[]>([]);
+  const [products, setProducts] = useState<any[]>([]);
+  const [collections, setCollections] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState("Tất cả");
   const [activePriceFilter, setActivePriceFilter] = useState("Tất cả");
   const [activeComplexity, setActiveComplexity] = useState("Tất cả");
   const [searchQuery, setSearchQuery] = useState("");
-  const debouncedSearchQuery = useDebounce(searchQuery, 200);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const prodsRes = await publicApiClient.products.listProducts({ limit: 20 });
-        setProducts(prodsRes);
+        const [prodsRes, collectionsRes] = await Promise.all([
+          fetchApi("/public/products?limit=20"),
+          fetchApi("/public/collections"),
+        ]);
+        setProducts(prodsRes.data || []);
+        setCollections(Array.isArray(collectionsRes) ? collectionsRes : collectionsRes?.data || []);
       } catch (err) {
         console.error(err);
       } finally {
@@ -62,20 +42,16 @@ export default function CollectionPage() {
     fetchData();
   }, []);
 
-  const displayProducts = useMemo(
-    () => (products.length > 0 ? products : DEMO_PRODUCTS),
-    [products],
-  );
+  const categoryTabs = collections.length > 0
+    ? ["Tất cả", ...collections.map((collection) => collection.name)]
+    : CATEGORY_TABS;
+  const displayProducts = products;
 
-  const filtered = useMemo(() => {
-    const normalizedSearch = debouncedSearchQuery.trim().toLowerCase();
-
-    return displayProducts.filter((p) => {
-      if (normalizedSearch && !p.name.toLowerCase().includes(normalizedSearch)) return false;
-      if (activeCategory !== "Tất cả" && p.category !== activeCategory) return false;
-      return true;
-    });
-  }, [activeCategory, debouncedSearchQuery, displayProducts]);
+  const filtered = displayProducts.filter((p: any) => {
+    if (searchQuery && !p.name.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+    if (activeCategory !== "Tất cả" && p.category !== activeCategory && p.collection?.name !== activeCategory) return false;
+    return true;
+  });
 
   return (
     <div className="min-h-screen bg-background">
@@ -111,7 +87,7 @@ export default function CollectionPage() {
 
           {/* Category tabs */}
           <div className="flex items-center gap-0 overflow-x-auto scrollbar-hide mt-6">
-            {CATEGORY_TABS.map((name) => {
+            {categoryTabs.map((name) => {
               const isActive = activeCategory === name;
               return (
                 <button
@@ -198,24 +174,15 @@ export default function CollectionPage() {
           </div>
         ) : (
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
-            {filtered.map((product) => {
-              const productImage = product.images?.[0] ?? product.img ?? null;
-              const unitPrice =
-                typeof product.basePrice === "number"
-                  ? product.basePrice
-                  : typeof product.price === "number"
-                    ? product.price
-                    : 0;
-
-              return (
+            {filtered.map((product: any) => (
               <div
                 key={product.id}
                 className="group bg-white rounded-2xl overflow-hidden border border-border hover:shadow-[0_8px_32px_-4px_rgb(0_0_0/0.10)] transition-all duration-300 hover:-translate-y-0.5"
               >
                 <div className="relative aspect-square bg-[#F8F4F0] overflow-hidden">
-                  {productImage ? (
+                  {product.images?.[0] || product.img ? (
                     <Image
-                      src={productImage}
+                      src={product.images?.[0] || product.img}
                       alt={product.name}
                       fill
                       sizes="(max-width: 640px) 50vw, 25vw"
@@ -231,7 +198,12 @@ export default function CollectionPage() {
                     </span>
                   )}
 
-                  <button className="absolute top-3 right-3 w-8 h-8 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center text-text-muted hover:text-primary transition-colors shadow-sm opacity-0 group-hover:opacity-100">
+                  <button
+                    type="button"
+                    disabled
+                    title="Wishlist sắp có"
+                    className="absolute top-3 right-3 w-8 h-8 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center text-text-muted transition-colors shadow-sm opacity-0 group-hover:opacity-100 cursor-not-allowed"
+                  >
                     <Heart className="w-3.5 h-3.5" />
                   </button>
 
@@ -263,15 +235,15 @@ export default function CollectionPage() {
                     <button
                       onClick={() => {
                         useCartStore.getState().addItem({
-                          productId: String(product.id),
+                          productId: product.id,
                           productName: product.name,
                           quantity: 1,
-                          unitPrice,
-                          frameSizeId: 'M',
-                          frameSizeLabel: 'Khung vừa',
-                          frameColorName: 'White',
-                          designData: { elements: [] },
-                          previewUrl: productImage,
+                          unitPrice: product.basePrice || product.price || 0,
+                          frameSizeId: 'catalog',
+                          frameSizeLabel: 'Mẫu có sẵn',
+                          frameColorName: '-',
+                          designData: { source: 'collection', productId: product.id },
+                          previewUrl: product.images?.[0] || product.img,
                         });
                         useUIStore.getState().openModal(UI_MODAL_IDS.CART_DRAWER);
                       }}
@@ -282,8 +254,7 @@ export default function CollectionPage() {
                   </div>
                 </div>
               </div>
-            );
-            })}
+            ))}
           </div>
         )}
 

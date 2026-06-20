@@ -23,6 +23,8 @@ export interface SimpleCartItem {
   frameSizeId: string
   frameSizeLabel: string
   frameColorName: string
+  accessories?: Array<{ id: string; name: string; price: number }>
+  templateId?: string | null
   designData: Record<string, unknown>   // { elements, printText, templateId, ... }
   previewUrl: string | null
   addedAt: string
@@ -78,12 +80,14 @@ export const useCartStore = create<CartStore>()(
       addItem: (itemData) => {
         set((state) => {
           // Kiểm tra xem item đã tồn tại chưa (same product + same frameSizeId + same frameColorName)
-          const existingIndex = state.items.findIndex(
-            (i) =>
-              i.productId === itemData.productId &&
-              i.frameSizeId === itemData.frameSizeId &&
-              i.frameColorName === itemData.frameColorName,
-          )
+          const existingIndex = itemData.productId
+            ? state.items.findIndex(
+                (i) =>
+                  i.productId === itemData.productId &&
+                  i.frameSizeId === itemData.frameSizeId &&
+                  i.frameColorName === itemData.frameColorName,
+              )
+            : -1
 
           if (existingIndex !== -1) {
             // Cộng dồn số lượng

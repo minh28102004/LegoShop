@@ -26,6 +26,10 @@ export const Header = React.forwardRef<HTMLElement, HeaderProps>(
     const openMobileMenu = useUIStore((state) => state.openMobileMenu)
     const openModal = useUIStore((state) => state.openModal)
     const user = useAuthStore((state) => state.user)
+    const [mounted, setMounted] = React.useState(false)
+    React.useEffect(() => {
+      setMounted(true)
+    }, [])
     const isScrolled = scrollY > 8
 
     return (
@@ -119,7 +123,7 @@ export const Header = React.forwardRef<HTMLElement, HeaderProps>(
                 <Search size={16} />
               </button>
 
-              {user ? (
+              {mounted && user ? (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <span style={{ fontSize: 13, fontWeight: 600, color: '#374151' }}>
                     {user.name || user.email}
@@ -178,7 +182,7 @@ export const Header = React.forwardRef<HTMLElement, HeaderProps>(
                 onClick={() => openModal(UI_MODAL_IDS.CART_DRAWER)}
               >
                 <ShoppingBag size={16} />
-                {itemCount > 0 && (
+                {mounted && itemCount > 0 && (
                   <span
                     style={{
                       position: 'absolute',

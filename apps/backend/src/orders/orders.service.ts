@@ -23,13 +23,44 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { CreateOrderItemDto } from './dto/create-order-item.dto';
 
+const FREESHIP_THRESHOLD = 349_000;
+const STANDARD_SHIPPING_FEE = 25_000;
+const FAST_SHIPPING_FEE = 45_000;
+const GIFT_PACKAGE_FEE_PER_ITEM = 30_000;
+const CHARACTER_PRICE = 10_000;
+const POLAROID_PRICES: Record<string, number> = {
+  none: 0,
+  '2': 15_000,
+  '4': 25_000,
+};
+
 type ResolvedOrderItem = {
   productId?: string;
   productName: string;
   quantity: number;
   price: number;
+  frameSizeId?: string;
+  frameSizeLabel?: string;
+  frameColorName?: string;
+  accessories?: Array<{
+    id: string;
+    name: string;
+    price: number;
+  }>;
   designData?: Record<string, unknown>;
   previewUrl?: string;
+};
+
+type OrderPricingSummary = {
+  itemsAmount: number;
+  itemCount: number;
+  shippingMethod: string;
+  shippingFee: number;
+  giftPackage: boolean;
+  giftFee: number;
+  polaroidOption: string;
+  polaroidFee: number;
+  totalAmount: number;
 };
 
 type OrderPaymentPlan = {
@@ -65,10 +96,7 @@ export class OrdersService {
     }
 
     const resolvedItems = await this.resolveOrderItems(dto.items);
-    const totalAmount = resolvedItems.reduce(
-      (sum, item) => sum + item.quantity * item.price,
-      0,
-    );
+    const pricing = this.createPricingSummary(dto, resolvedItems);
     const paymentSettings = await this.paymentSettingsService.getSettings();
 
     if (
@@ -88,13 +116,14 @@ export class OrdersService {
     const orderCode = await this.generateUniqueOrderCode();
     const paymentPlan = this.createPaymentPlan(
       dto.paymentMethod,
-      totalAmount,
+      pricing.totalAmount,
       paymentSettings,
     );
     const paymentLink = await this.createInitialPaymentLink({
       dto,
       orderCode,
       resolvedItems,
+      pricing,
       paymentPlan,
     });
 
@@ -109,13 +138,24 @@ export class OrdersService {
             phone: dto.phone,
             email: dto.email,
             address: dto.address,
+            province: dto.province,
+            district: dto.district,
+            ward: dto.ward,
             receiveDate: dto.receiveDate
               ? new Date(dto.receiveDate)
               : undefined,
+            note: dto.note,
+            shippingMethod: pricing.shippingMethod,
+            shippingFee: pricing.shippingFee,
+            giftPackage: pricing.giftPackage,
+            giftFee: pricing.giftFee,
+            polaroidOption: pricing.polaroidOption,
+            polaroidFee: pricing.polaroidFee,
             paymentMethod: dto.paymentMethod,
             paymentStatus: paymentPlan.paymentStatus,
             orderStatus: paymentPlan.orderStatus,
-            totalAmount,
+            itemsAmount: pricing.itemsAmount,
+            totalAmount: pricing.totalAmount,
             depositRequired: paymentPlan.depositRequired,
             depositPercent: paymentPlan.depositPercent,
             depositAmount: paymentPlan.depositAmount,
@@ -161,6 +201,13 @@ export class OrdersService {
       orderCode: order.orderCode,
       paymentMethod: order.paymentMethod,
       paymentStatus: order.paymentStatus,
+      itemsAmount: order.itemsAmount,
+      shippingMethod: order.shippingMethod,
+      shippingFee: order.shippingFee,
+      giftPackage: order.giftPackage,
+      giftFee: order.giftFee,
+      polaroidOption: order.polaroidOption,
+      polaroidFee: order.polaroidFee,
       totalAmount: order.totalAmount,
       depositRequired: order.depositRequired,
       depositPercent: order.depositPercent,
@@ -194,9 +241,20 @@ export class OrdersService {
       phone: order.phone,
       email: order.email,
       address: order.address,
+      province: order.province,
+      district: order.district,
+      ward: order.ward,
       receiveDate: order.receiveDate,
+      note: order.note,
       paymentMethod: order.paymentMethod,
       paymentStatus: order.paymentStatus,
+      itemsAmount: order.itemsAmount,
+      shippingMethod: order.shippingMethod,
+      shippingFee: order.shippingFee,
+      giftPackage: order.giftPackage,
+      giftFee: order.giftFee,
+      polaroidOption: order.polaroidOption,
+      polaroidFee: order.polaroidFee,
       totalAmount: order.totalAmount,
       depositRequired: order.depositRequired,
       depositPercent: order.depositPercent,
@@ -225,6 +283,10 @@ export class OrdersService {
         productName: item.productName,
         quantity: item.quantity,
         price: item.price,
+        frameSizeId: item.frameSizeId,
+        frameSizeLabel: item.frameSizeLabel,
+        frameColorName: item.frameColorName,
+        accessories: item.accessories,
         designData: item.designData,
         previewUrl: item.previewUrl,
       })),
@@ -292,6 +354,11 @@ export class OrdersService {
         retryPlan.paymentAmount,
         order.orderCode,
         order.items,
+        {
+          shippingFee: order.shippingFee,
+          giftFee: order.giftFee,
+          polaroidFee: order.polaroidFee,
+        },
       ),
     });
 
@@ -345,6 +412,13 @@ export class OrdersService {
       orderCode: updatedOrder.orderCode,
       paymentMethod: updatedOrder.paymentMethod,
       paymentStatus: updatedOrder.paymentStatus,
+      itemsAmount: updatedOrder.itemsAmount,
+      shippingMethod: updatedOrder.shippingMethod,
+      shippingFee: updatedOrder.shippingFee,
+      giftPackage: updatedOrder.giftPackage,
+      giftFee: updatedOrder.giftFee,
+      polaroidOption: updatedOrder.polaroidOption,
+      polaroidFee: updatedOrder.polaroidFee,
       totalAmount: updatedOrder.totalAmount,
       depositRequired: updatedOrder.depositRequired,
       depositPercent: updatedOrder.depositPercent,
@@ -358,23 +432,70 @@ export class OrdersService {
   private async resolveOrderItems(
     items: CreateOrderItemDto[],
   ): Promise<ResolvedOrderItem[]> {
-    const productIds = items.map((item) => item.productId).filter((id): id is string => !!id);
+    const productIds = items
+      .map((item) => item.productId)
+      .filter((id): id is string => !!id);
     const uniqueProductIds = Array.from(new Set(productIds));
-    const products = await this.prisma.product.findMany({
-      where: {
-        id: {
-          in: uniqueProductIds,
+    const frameSizeIds = Array.from(
+      new Set(
+        items
+          .map((item) => item.frameSizeId)
+          .filter((id): id is string => Boolean(id)),
+      ),
+    );
+    const accessoryIds = Array.from(
+      new Set(items.flatMap((item) => this.extractAccessoryIds(item))),
+    );
+
+    const [products, frameSizes, accessories] = await this.prisma.$transaction([
+      this.prisma.product.findMany({
+        where: {
+          id: {
+            in: uniqueProductIds,
+          },
+          status: ProductStatus.active,
         },
-        status: ProductStatus.active,
-      },
-      select: {
-        id: true,
-        name: true,
-        basePrice: true,
-      },
-    });
+        select: {
+          id: true,
+          name: true,
+          basePrice: true,
+        },
+      }),
+      this.prisma.frameSize.findMany({
+        where: {
+          id: {
+            in: frameSizeIds,
+          },
+          status: ProductStatus.active,
+        },
+        select: {
+          id: true,
+          label: true,
+          price: true,
+        },
+      }),
+      this.prisma.accessory.findMany({
+        where: {
+          id: {
+            in: accessoryIds,
+          },
+          status: ProductStatus.active,
+        },
+        select: {
+          id: true,
+          name: true,
+          price: true,
+        },
+      }),
+    ]);
     const productsById = new Map(
       products.map((product) => [product.id, product]),
+    );
+    const frameSizesById = new Map(
+      frameSizes.map((frameSize) => [frameSize.id, frameSize]),
+    );
+    const accessoriesById = new Map(
+      accessories.map((accessory) => [accessory.id, accessory]),
     );
 
     return items.map((item) => {
@@ -392,21 +513,169 @@ export class OrdersService {
           productName: product.name,
           quantity: item.quantity,
           price: product.basePrice,
-          designData: item.designData,
-          previewUrl: item.previewUrl,
-        };
-      } else {
-        // Custom item without productId
-        return {
-          productId: undefined,
-          productName: item.productName || 'Thiết kế khung LEGO',
-          quantity: item.quantity,
-          price: item.price, // Use price from frontend for custom items
+          frameSizeId: item.frameSizeId,
+          frameSizeLabel: item.frameSizeLabel,
+          frameColorName: item.frameColorName,
+          accessories: this.resolveAccessorySnapshot(item, accessoriesById),
           designData: item.designData,
           previewUrl: item.previewUrl,
         };
       }
+      const frameSize = item.frameSizeId
+        ? frameSizesById.get(item.frameSizeId)
+        : undefined;
+
+      if (item.frameSizeId && !frameSize) {
+        throw new BadRequestException(
+          `Frame size ${item.frameSizeId} is not available`,
+        );
+      }
+
+      const resolvedAccessories = this.resolveAccessorySnapshot(
+        item,
+        accessoriesById,
+      );
+      const accessoriesTotal = resolvedAccessories.reduce(
+        (sum, accessory) => sum + accessory.price,
+        0,
+      );
+      const characterCount = this.getCharacterCount(item.designData);
+      const serverComputedPrice =
+        (frameSize?.price ?? 0) +
+        accessoriesTotal +
+        characterCount * CHARACTER_PRICE;
+
+      return {
+        productId: undefined,
+        productName: item.productName || 'Khung LEGO tuy chinh',
+        quantity: item.quantity,
+        price: serverComputedPrice > 0 ? serverComputedPrice : item.price,
+        frameSizeId: item.frameSizeId,
+        frameSizeLabel: frameSize?.label ?? item.frameSizeLabel,
+        frameColorName: item.frameColorName,
+        accessories: resolvedAccessories,
+        designData: item.designData,
+        previewUrl: item.previewUrl,
+      };
+
     });
+  }
+
+  private createPricingSummary(
+    dto: CreateOrderDto,
+    items: ResolvedOrderItem[],
+  ): OrderPricingSummary {
+    const itemsAmount = items.reduce(
+      (sum, item) => sum + item.price * item.quantity,
+      0,
+    );
+    const itemCount = items.reduce((sum, item) => sum + item.quantity, 0);
+    const shippingMethod = dto.shippingMethod ?? 'standard';
+    const shippingFee = this.getShippingFee(shippingMethod, itemsAmount);
+    const giftPackage = dto.giftPackage === true;
+    const giftFee = giftPackage ? itemCount * GIFT_PACKAGE_FEE_PER_ITEM : 0;
+    const polaroidOption = dto.polaroidOption ?? 'none';
+    const polaroidFee = POLAROID_PRICES[polaroidOption] ?? 0;
+
+    return {
+      itemsAmount,
+      itemCount,
+      shippingMethod,
+      shippingFee,
+      giftPackage,
+      giftFee,
+      polaroidOption,
+      polaroidFee,
+      totalAmount: itemsAmount + shippingFee + giftFee + polaroidFee,
+    };
+  }
+
+  private getShippingFee(shippingMethod: string, itemsAmount: number) {
+    if (shippingMethod === 'fast') {
+      return FAST_SHIPPING_FEE;
+    }
+
+    if (shippingMethod === 'self') {
+      return 0;
+    }
+
+    return itemsAmount >= FREESHIP_THRESHOLD ? 0 : STANDARD_SHIPPING_FEE;
+  }
+
+  private extractAccessoryIds(item: CreateOrderItemDto): string[] {
+    const accessoryIds = new Set<string>();
+
+    item.accessories?.forEach((accessory) => {
+      if (this.isRecord(accessory) && typeof accessory.id === 'string') {
+        accessoryIds.add(accessory.id);
+      }
+    });
+
+    const elements = item.designData?.elements;
+
+    if (Array.isArray(elements)) {
+      elements.forEach((element) => {
+        if (
+          this.isRecord(element) &&
+          typeof element.accessoryId === 'string'
+        ) {
+          accessoryIds.add(element.accessoryId);
+        }
+      });
+    }
+
+    return Array.from(accessoryIds);
+  }
+
+  private resolveAccessorySnapshot(
+    item: CreateOrderItemDto,
+    accessoriesById: Map<string, { id: string; name: string; price: number }>,
+  ) {
+    return this.extractAccessoryIds(item).map((accessoryId) => {
+      const accessory = accessoriesById.get(accessoryId);
+
+      if (!accessory) {
+        throw new BadRequestException(
+          `Accessory ${accessoryId} is not available`,
+        );
+      }
+
+      return {
+        id: accessory.id,
+        name: accessory.name,
+        price: accessory.price,
+      };
+    });
+  }
+
+  private getCharacterCount(designData?: Record<string, unknown>) {
+    if (!designData) {
+      return 0;
+    }
+
+    if (typeof designData.characterCount === 'number') {
+      return Math.max(0, Math.floor(designData.characterCount));
+    }
+
+    if (typeof designData.characterCount === 'string') {
+      const parsedCount = Number(designData.characterCount);
+
+      if (Number.isFinite(parsedCount)) {
+        return Math.max(0, Math.floor(parsedCount));
+      }
+    }
+
+    if (Array.isArray(designData.elements)) {
+      return designData.elements.filter(
+        (element) => this.isRecord(element) && element.type === 'character',
+      ).length;
+    }
+
+    return 0;
+  }
+
+  private isRecord(value: unknown): value is Record<string, unknown> {
+    return typeof value === 'object' && value !== null && !Array.isArray(value);
   }
 
   private createPaymentPlan(
@@ -473,6 +742,7 @@ export class OrdersService {
     dto: CreateOrderDto;
     orderCode: string;
     resolvedItems: ResolvedOrderItem[];
+    pricing: OrderPricingSummary;
     paymentPlan: OrderPaymentPlan;
   }): Promise<PayosPaymentLinkResult | undefined> {
     if (
@@ -497,6 +767,11 @@ export class OrdersService {
         input.paymentPlan.paymentAmount,
         input.orderCode,
         input.resolvedItems,
+        {
+          shippingFee: input.pricing.shippingFee,
+          giftFee: input.pricing.giftFee,
+          polaroidFee: input.pricing.polaroidFee,
+        },
       ),
     });
   }
@@ -558,6 +833,11 @@ export class OrdersService {
     paymentAmount: number,
     orderCode: string,
     items: Array<Pick<ResolvedOrderItem, 'productName' | 'quantity' | 'price'>>,
+    fees?: {
+      shippingFee?: number;
+      giftFee?: number;
+      polaroidFee?: number;
+    },
   ): PayosPaymentItem[] {
     if (paymentType === PaymentType.cod_deposit) {
       return [
@@ -569,25 +849,75 @@ export class OrdersService {
       ];
     }
 
-    return items.map((item) => ({
+    const payosItems: PayosPaymentItem[] = items.map((item) => ({
       name: item.productName.slice(0, 100),
       quantity: item.quantity,
       price: item.price,
     }));
+
+    if (fees?.shippingFee) {
+      payosItems.push({
+        name: 'Shipping fee',
+        quantity: 1,
+        price: fees.shippingFee,
+      });
+    }
+
+    if (fees?.giftFee) {
+      payosItems.push({
+        name: 'Gift package',
+        quantity: 1,
+        price: fees.giftFee,
+      });
+    }
+
+    if (fees?.polaroidFee) {
+      payosItems.push({
+        name: 'Polaroid photos',
+        quantity: 1,
+        price: fees.polaroidFee,
+      });
+    }
+
+    const itemTotal = payosItems.reduce(
+      (sum, item) => sum + item.price * item.quantity,
+      0,
+    );
+
+    if (itemTotal !== paymentAmount) {
+      return [
+        {
+          name: `Order ${orderCode}`.slice(0, 100),
+          quantity: 1,
+          price: paymentAmount,
+        },
+      ];
+    }
+
+    return payosItems;
   }
 
   private toOrderItemCreateInput(
     item: ResolvedOrderItem,
   ): Prisma.OrderItemCreateWithoutOrderInput {
     return {
-      product: {
-        connect: {
-          id: item.productId,
-        },
-      },
+      product: item.productId
+        ? {
+            connect: {
+              id: item.productId,
+            },
+          }
+        : undefined,
       productName: item.productName,
       quantity: item.quantity,
       price: item.price,
+      frameSizeId: item.frameSizeId,
+      frameSizeLabel: item.frameSizeLabel,
+      frameColorName: item.frameColorName,
+      accessories:
+        item.accessories !== undefined
+          ? (item.accessories as Prisma.InputJsonValue)
+          : undefined,
       designData:
         item.designData !== undefined
           ? (item.designData as Prisma.InputJsonValue)

@@ -3,6 +3,7 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
 import {
   IsInt,
+  IsArray,
   IsNotEmpty,
   IsObject,
   IsOptional,
@@ -48,6 +49,44 @@ export class CreateOrderItemDto implements CreateOrderItemRequestContract {
   @IsInt()
   @Min(0)
   price: number;
+
+  @ApiPropertyOptional({
+    example: '23x23cm',
+  })
+  @Transform(({ value }: { value: unknown }) =>
+    typeof value === 'string' ? value.trim() : value,
+  )
+  @IsOptional()
+  @IsString()
+  frameSizeId?: string;
+
+  @ApiPropertyOptional({
+    example: '23x23cm',
+  })
+  @Transform(({ value }: { value: unknown }) =>
+    typeof value === 'string' ? value.trim() : value,
+  )
+  @IsOptional()
+  @IsString()
+  frameSizeLabel?: string;
+
+  @ApiPropertyOptional({
+    example: 'White',
+  })
+  @Transform(({ value }: { value: unknown }) =>
+    typeof value === 'string' ? value.trim() : value,
+  )
+  @IsOptional()
+  @IsString()
+  frameColorName?: string;
+
+  @ApiPropertyOptional({
+    type: Array,
+    example: [{ id: 'acc-1', name: 'Cup', price: 10000 }],
+  })
+  @IsOptional()
+  @IsArray()
+  accessories?: Array<Record<string, unknown>>;
 
   @ApiPropertyOptional({
     type: Object,

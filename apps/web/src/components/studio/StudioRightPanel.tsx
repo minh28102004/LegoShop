@@ -3,14 +3,13 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useStudio } from "./StudioContext";
 import { formatPrice } from "@/lib/formatters";
-import { Search, ShoppingCart, Zap, UploadCloud, Check } from "lucide-react";
+import { Search, ShoppingCart, Zap, UploadCloud, Check, ChevronLeft, ChevronRight, Save, ArrowRight } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCartStore } from "@/stores/cartStore";
 import { useUIStore } from "@/stores/uiStore";
 import { UI_MODAL_IDS } from "@/constants";
 import { useAuthStore } from "@/stores/authStore";
-import { browserApiClient } from "@/lib/api/browser-client";
-import type { JsonObject } from "@lego-shop/shared";
+import { fetchApi } from "@/lib/api";
 
 const getFrameColorHex = (name: string, apiHex?: string | null): string => {
   if (apiHex && apiHex.startsWith('#')) return apiHex;
@@ -25,19 +24,24 @@ const getFrameColorHex = (name: string, apiHex?: string | null): string => {
 function FreeshipBar({ amount, progress }: { amount: number; progress: number }) {
   if (progress >= 100) {
     return (
-      <div className="text-xs font-semibold text-emerald-600 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2 flex items-center gap-2">
-        🎉 Bạn đã được Miễn phí vận chuyển!
+      <div className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700 shadow-sm animate-fade-in">
+        <span className="text-lg">🎉</span> Bạn đã được Miễn phí vận chuyển!
       </div>
     );
   }
   return (
-    <div className="space-y-1.5">
-      <div className="flex justify-between items-center text-xs">
-        <span className="text-text-secondary">Thêm <span className="font-bold text-text-primary">{formatPrice(amount)}</span> để Freeship</span>
-        <span className="text-text-muted font-medium">{progress}%</span>
+    <div className="space-y-2 rounded-xl border border-border bg-surface p-4 shadow-sm animate-fade-in">
+      <div className="flex items-center justify-between text-xs">
+        <span className="text-text-secondary">
+          Thêm <span className="font-bold text-text-primary">{formatPrice(amount)}</span> để Freeship
+        </span>
+        <span className="font-bold text-primary">{progress}%</span>
       </div>
-      <div className="h-1.5 rounded-full bg-border overflow-hidden">
-        <div className="h-full rounded-full bg-primary transition-all duration-500" style={{ width: `${progress}%` }} />
+      <div className="h-2 w-full overflow-hidden rounded-full bg-surface-hover shadow-inner">
+        <div 
+          className="h-full rounded-full bg-gradient-to-r from-primary to-blue-400 transition-all duration-700 ease-out" 
+          style={{ width: `${progress}%` }} 
+        />
       </div>
     </div>
   );
@@ -50,50 +54,30 @@ export function StudioRightPanel() {
   const handleBack = () => setStep(Math.max(1, step - 1));
 
   return (
-    <div
-      style={{
-        width: 420,
-        minWidth: 420,
-        maxWidth: 420,
-        background: "#fff",
-        borderLeft: "1px solid #e5e7eb",
-        display: "flex",
-        flexDirection: "column",
-        zIndex: 20,
-        boxShadow: "-4px 0 16px rgba(0,0,0,0.04)",
-        flexShrink: 0,
-      }}
-    >
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {step === 1 && <Step1Frame />}
-        {step === 2 && <Step2Content />}
-        {step === 3 && <Step3Characters />}
-        {step === 4 && <Step4Finish />}
+    <div className="z-20 flex w-[420px] shrink-0 flex-col border-l border-border bg-surface shadow-2xl">
+      <div className="flex-1 overflow-y-auto p-6 space-y-6 scrollbar-hide">
+        <div className="animate-fade-in">
+          {step === 1 && <Step1Frame />}
+          {step === 2 && <Step2Content />}
+          {step === 3 && <Step3Characters />}
+          {step === 4 && <Step4Finish />}
+        </div>
       </div>
 
-      <div style={{ padding: 16, background: "#fff", borderTop: "1px solid #e5e7eb", flexShrink: 0 }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12, padding: "0 4px" }}>
-          <span style={{ fontSize: 12, color: "#6b7280", fontWeight: 500 }}>Giá tạm tính:</span>
-          <span style={{ fontSize: 20, fontWeight: 900, color: "#2563eb" }}>{formatPrice(totalPrice)}</span>
+      <div className="shrink-0 border-t border-border bg-surface p-6 shadow-[0_-4px_24px_rgba(0,0,0,0.02)]">
+        <div className="mb-4 flex items-center justify-between px-1">
+          <span className="text-sm font-semibold text-text-muted uppercase tracking-wider">Giá tạm tính:</span>
+          <span className="text-2xl font-black text-primary drop-shadow-sm">{formatPrice(totalPrice)}</span>
         </div>
         
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <div className="flex items-center gap-3">
           {step > 1 && (
             <button 
               type="button"
               onClick={handleBack}
-              style={{
-                padding: "10px 16px",
-                borderRadius: 12,
-                border: "1px solid #e5e7eb",
-                color: "#6b7280",
-                fontWeight: 700,
-                fontSize: 13,
-                background: "#fff",
-                cursor: "pointer",
-              }}
+              className="flex items-center justify-center gap-1 rounded-xl border border-border bg-surface px-4 py-3 text-sm font-bold text-text-secondary shadow-sm transition-all hover:bg-surface-hover hover:text-text-primary"
             >
-              ← Quay lại
+              <ChevronLeft className="h-4 w-4" /> Quay lại
             </button>
           )}
           
@@ -101,19 +85,9 @@ export function StudioRightPanel() {
             <button 
               type="button"
               onClick={handleNext}
-              style={{
-                flex: 1,
-                padding: "10px 16px",
-                borderRadius: 12,
-                background: "#2563eb",
-                color: "#fff",
-                fontWeight: 700,
-                fontSize: 13,
-                border: "none",
-                cursor: "pointer",
-              }}
+              className="flex flex-1 items-center justify-center gap-1 rounded-xl bg-primary px-6 py-3 text-sm font-bold text-primary-foreground shadow-md transition-all hover:-translate-y-0.5 hover:bg-primary-hover hover:shadow-lg active:translate-y-0"
             >
-              Tiếp theo →
+              Tiếp theo <ChevronRight className="h-4 w-4" />
             </button>
           )}
         </div>
@@ -128,89 +102,100 @@ function Step1Frame() {
 
   if (isLoadingData) {
     return (
-      <div className="space-y-4">
-        {[1,2,3].map(i => <div key={i} className="h-20 rounded-xl bg-border animate-pulse" />)}
+      <div className="space-y-6">
+        {[1,2,3].map(i => <div key={i} className="h-24 rounded-2xl bg-surface-hover animate-pulse" />)}
       </div>
     );
   }
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-8">
       <div>
-        <h3 style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", color: "#6b7280", marginBottom: 12, fontFamily: "var(--font-body)" }}>CHỌN KÍCH THƯỚC</h3>
-        <div className="grid grid-cols-3 gap-2">
+        <h3 className="mb-4 text-xs font-bold tracking-widest text-text-muted uppercase font-body">Kích thước khung</h3>
+        <div className="grid grid-cols-3 gap-3">
           {frameSizes.map(s => (
-            <button key={s.id} type="button" onClick={() => setFrameSize(s.id)}
-              className={`relative rounded-xl border-2 cursor-pointer flex flex-col items-center text-center gap-0.5 transition-all ${
-                frameSize === s.id ? 'border-primary bg-primary/8 shadow-sm' : 'border-border hover:border-primary/40 hover:bg-surface-hover'
+            <button 
+              key={s.id} 
+              type="button" 
+              onClick={() => setFrameSize(s.id)}
+              className={`group relative flex cursor-pointer flex-col items-center justify-center gap-1 rounded-2xl border-2 transition-all duration-300 ${
+                frameSize === s.id 
+                  ? 'border-primary bg-primary/5 shadow-md' 
+                  : 'border-border bg-surface hover:border-primary/30 hover:bg-surface-hover hover:shadow-sm'
               }`}
               style={{
-                paddingTop: s.popular ? 28 : 14,
-                paddingBottom: 14,
+                paddingTop: s.popular ? 32 : 16,
+                paddingBottom: 16,
                 paddingLeft: 8,
                 paddingRight: 8,
               }}
             >
               {s.popular && (
-                <span 
-                  className="absolute bg-yellow-400 text-yellow-900 text-[9px] font-black px-2.5 py-0.5 rounded-full whitespace-nowrap shadow-xs"
-                  style={{
-                    top: -10,
-                    left: '50%',
-                    transform: 'translateX(-50%)',
-                    zIndex: 10,
-                  }}
-                >
+                <span className="absolute -top-3 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-gradient-to-r from-amber-400 to-orange-400 px-3 py-1 text-[10px] font-black uppercase tracking-wider text-amber-950 shadow-md">
                   Phổ biến nhất
                 </span>
               )}
-              <span className={`font-bold text-sm ${frameSize === s.id ? 'text-primary' : 'text-text-primary'}`}>{s.label}</span>
-              <span className="text-[11px] text-text-muted">{formatPrice(s.price)}</span>
+              <span className={`text-sm font-bold transition-colors ${frameSize === s.id ? 'text-primary' : 'text-text-primary'}`}>
+                {s.label}
+              </span>
+              <span className="text-xs font-semibold text-text-muted">
+                {formatPrice(s.price)}
+              </span>
             </button>
           ))}
         </div>
       </div>
 
       <div>
-        <h3 style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", color: "#6b7280", marginBottom: 12, fontFamily: "var(--font-body)" }}>MÀU KHUNG</h3>
-        <div className="flex flex-wrap gap-2">
+        <h3 className="mb-4 text-xs font-bold tracking-widest text-text-muted uppercase font-body">Màu sắc khung</h3>
+        <div className="flex flex-wrap gap-3">
           {frameColors.map(c => (
-            <button key={c.id} type="button" onClick={() => setFrameColor(c.name)}
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-full border-2 text-sm transition-all ${
-                frameColor === c.name ? 'border-primary bg-primary/8' : 'border-border hover:border-primary/30'
+            <button 
+              key={c.id} 
+              type="button" 
+              onClick={() => setFrameColor(c.name)}
+              className={`flex items-center gap-2.5 rounded-full border-2 px-4 py-2 text-sm transition-all duration-300 ${
+                frameColor === c.name 
+                  ? 'border-primary bg-primary/5 shadow-sm' 
+                  : 'border-border bg-surface hover:border-primary/30 hover:bg-surface-hover'
               }`}
             >
-              <span className="w-3.5 h-3.5 rounded-full border border-zinc-300 shadow-sm shrink-0" style={{ backgroundColor: getFrameColorHex(c.name, c.colorHex) }} />
-              <span className={`font-semibold text-xs ${frameColor === c.name ? 'text-primary' : 'text-text-secondary'}`}>{c.name}</span>
-              {frameColor === c.name && <Check className="w-3 h-3 text-primary" />}
+              <span 
+                className="h-4 w-4 shrink-0 rounded-full border border-zinc-200 shadow-inner" 
+                style={{ backgroundColor: getFrameColorHex(c.name, c.colorHex) }} 
+              />
+              <span className={`font-bold text-xs ${frameColor === c.name ? 'text-primary' : 'text-text-secondary'}`}>
+                {c.name}
+              </span>
+              {frameColor === c.name && <Check className="h-3.5 w-3.5 text-primary" />}
             </button>
           ))}
         </div>
       </div>
 
-      <div className="bg-surface rounded-xl border border-border p-4">
-        <p className="text-[11px] font-bold text-text-secondary uppercase tracking-wider mb-3 flex items-center gap-1.5">
-          <span className="w-1.5 h-1.5 rounded-full bg-primary" />
-          GIÁ CÓ BẢN BAO GỒM:
+      <div className="rounded-2xl border border-border bg-surface p-5 shadow-sm">
+        <p className="mb-4 flex items-center gap-2 text-xs font-black tracking-widest text-text-secondary uppercase">
+          <span className="h-2 w-2 rounded-full bg-primary animate-pulse" />
+          Giá cơ bản bao gồm:
         </p>
-        <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+        <div className="grid grid-cols-2 gap-x-4 gap-y-3">
           {[
             { icon: "🖼️", label: "1 Khung tranh LEGO" },
-            { icon: "🎨", label: "1 Nền thiết kế theo yêu cầu" },
-            { icon: "👤", label: "1-2 Nhân vật LEGO" },
-            { icon: "🎁", label: "Hộp quà" },
-            { icon: "👜", label: "Túi" },
-            { icon: "💌", label: "Thiệp" },
+            { icon: "🎨", label: "1 Nền thiết kế" },
+            { icon: "👤", label: "1-2 Nhân vật" },
+            { icon: "🎁", label: "Hộp quà tặng" },
+            { icon: "👜", label: "Túi xách tay" },
+            { icon: "💌", label: "Thiệp chúc mừng" },
           ].map(item => (
-            <div key={item.label} className="flex items-center gap-1.5">
-              <span className="text-sm">{item.icon}</span>
-              <span className="text-[11px] text-text-secondary">{item.label}</span>
+            <div key={item.label} className="flex items-center gap-2">
+              <span className="text-base drop-shadow-sm">{item.icon}</span>
+              <span className="text-xs font-medium text-text-secondary">{item.label}</span>
             </div>
           ))}
         </div>
       </div>
 
-      <p className="text-[11px] text-text-muted bg-background rounded-lg px-3 py-2.5 border border-border leading-relaxed">
+      <p className="rounded-xl border border-border bg-surface-hover px-4 py-3 text-xs leading-relaxed text-text-muted shadow-inner font-medium">
         * Đây là bản xem trước mô phỏng. Sau khi đặt hàng, Designer sẽ thiết kế lại bố cục & màu sắc đẹp nhất và gửi bạn duyệt trước khi in ấn.
       </p>
     </div>
@@ -228,71 +213,141 @@ function Step2Content() {
   }, [templates, activeCategoryId]);
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <FreeshipBar amount={freeshipAmount} progress={freeshipProgress} />
 
-      <div className="border border-border rounded-xl overflow-hidden">
-        <div className="flex items-center justify-between px-4 pt-4 pb-3">
-          <h3 style={{ fontSize: 13, fontWeight: 700, color: "#111827", fontFamily: "var(--font-body)", margin: 0 }}>CHỌN ẢNH NỀN</h3>
-          <span className="text-xs text-text-muted">{filteredTemplates.length} mẫu</span>
+      <div className="rounded-2xl border border-border bg-surface shadow-sm overflow-hidden">
+        <div className="flex items-center justify-between border-b border-border px-5 py-4 bg-background">
+          <h3 className="text-sm font-bold text-text-primary">CHỌN ẢNH NỀN</h3>
+          <span className="rounded-full bg-surface-hover px-2.5 py-0.5 text-xs font-bold text-text-muted">
+            {filteredTemplates.length} mẫu
+          </span>
         </div>
-        <div className="flex gap-1.5 overflow-x-auto px-4 pb-3 scrollbar-hide">
-          <button type="button" onClick={() => setActiveCategoryId(null)}
-            className={`shrink-0 px-3 py-1 rounded-full text-[11px] font-bold transition-colors ${!activeCategoryId ? 'bg-primary text-white' : 'bg-surface border border-border text-text-secondary hover:border-primary/50'}`}
-          >TẤT CẢ</button>
+        
+        <div className="flex gap-2 overflow-x-auto px-5 py-4 scrollbar-hide">
+          <button 
+            type="button" 
+            onClick={() => setActiveCategoryId(null)}
+            className={`shrink-0 rounded-full px-4 py-1.5 text-xs font-bold transition-all ${
+              !activeCategoryId 
+                ? 'bg-text-primary text-background shadow-md' 
+                : 'border border-border bg-surface text-text-secondary hover:border-text-muted hover:bg-surface-hover'
+            }`}
+          >
+            TẤT CẢ
+          </button>
           {templateCategories.map(cat => (
-            <button key={cat.id} type="button" onClick={() => setActiveCategoryId(cat.id)}
-              className={`shrink-0 px-3 py-1 rounded-full text-[11px] font-bold transition-colors ${activeCategoryId === cat.id ? 'bg-primary text-white' : 'bg-surface border border-border text-text-secondary hover:border-primary/50'}`}
-            >{cat.name.toUpperCase()}</button>
+            <button 
+              key={cat.id} 
+              type="button" 
+              onClick={() => setActiveCategoryId(cat.id)}
+              className={`shrink-0 rounded-full px-4 py-1.5 text-xs font-bold transition-all ${
+                activeCategoryId === cat.id 
+                  ? 'bg-text-primary text-background shadow-md' 
+                  : 'border border-border bg-surface text-text-secondary hover:border-text-muted hover:bg-surface-hover'
+              }`}
+            >
+              {cat.name.toUpperCase()}
+            </button>
           ))}
         </div>
-        <div className="grid grid-cols-5 gap-2 px-4 pb-4 max-h-52 overflow-y-auto">
-          {isLoadingData ? Array.from({ length: 10 }).map((_, i) => <div key={i} className="aspect-square rounded-lg bg-border animate-pulse" />) :
-           filteredTemplates.length === 0 ? <div className="col-span-5 text-center text-xs text-text-muted py-8">Chưa có mẫu nào</div> :
+        
+        <div className="grid max-h-[280px] grid-cols-4 gap-3 overflow-y-auto px-5 pb-5 scrollbar-hide">
+          {isLoadingData ? Array.from({ length: 12 }).map((_, i) => <div key={i} className="aspect-square rounded-xl bg-surface-hover animate-pulse" />) :
+           filteredTemplates.length === 0 ? <div className="col-span-4 py-10 text-center text-sm font-medium text-text-muted">Chưa có mẫu nào</div> :
            filteredTemplates.map(tpl => (
-            <button key={tpl.id} type="button" onClick={() => setActiveTemplate(tpl.id)}
-              className={`aspect-square rounded-lg border-2 overflow-hidden relative transition-all ${activeTemplate === tpl.id ? 'border-primary shadow-sm' : 'border-border hover:border-primary/40'}`}
+            <button 
+              key={tpl.id} 
+              type="button" 
+              onClick={() => setActiveTemplate(tpl.id)}
+              className={`group relative aspect-square overflow-hidden rounded-xl border-2 transition-all duration-300 ${
+                activeTemplate === tpl.id 
+                  ? 'border-primary shadow-md scale-95 ring-4 ring-primary/20' 
+                  : 'border-transparent bg-surface-hover hover:border-primary/40 hover:shadow-md'
+              }`}
             >
-              {tpl.imageUrl ? <img src={tpl.imageUrl} alt={tpl.name} loading="lazy" className="w-full h-full object-cover" /> :
-               <div className="w-full h-full bg-surface-hover flex items-center justify-center"><span className="text-[10px] text-text-muted text-center px-1 leading-tight">{tpl.name}</span></div>}
-              {activeTemplate === tpl.id && <div className="absolute inset-0 bg-primary/20 flex items-center justify-center"><Check className="w-4 h-4 text-primary drop-shadow" /></div>}
-              <div className="absolute bottom-0 inset-x-0 bg-black/50 text-center py-0.5">
-                <span className="text-[8px] font-bold text-white truncate block px-0.5">{tpl.name.toUpperCase()}</span>
+              {tpl.imageUrl ? (
+                <img src={tpl.imageUrl} alt={tpl.name} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110" />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center bg-surface-hover p-2">
+                  <span className="text-center text-[10px] font-medium leading-tight text-text-muted">{tpl.name}</span>
+                </div>
+              )}
+              
+              {activeTemplate === tpl.id && (
+                <div className="absolute inset-0 flex items-center justify-center bg-primary/20 backdrop-blur-[1px]">
+                  <div className="rounded-full bg-primary p-1 shadow-lg">
+                    <Check className="h-4 w-4 text-white" />
+                  </div>
+                </div>
+              )}
+              
+              <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-2 text-center pt-6">
+                <span className="block truncate text-[9px] font-extrabold uppercase tracking-wider text-white drop-shadow-md">
+                  {tpl.name}
+                </span>
               </div>
             </button>
           ))}
         </div>
-        <div className="mx-4 mb-4">
-          <button type="button" className="w-full py-2.5 border-2 border-dashed border-border rounded-xl flex items-center justify-center gap-2 text-xs font-semibold text-text-secondary hover:border-primary/50 hover:text-primary hover:bg-primary/5 transition-all">
-            <UploadCloud className="w-4 h-4" />
-            TẢI ẢNH NỀN CỦA RIÊNG BẠN
+        
+        <div className="border-t border-border bg-background p-4">
+          <button type="button" className="group flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border bg-surface py-3 text-xs font-bold text-text-secondary transition-all hover:border-primary hover:bg-primary/5 hover:text-primary">
+            <UploadCloud className="h-4 w-4 transition-transform group-hover:-translate-y-1" />
+            TẢI ẢNH NỀN CỦA BẠN LÊN
           </button>
         </div>
       </div>
 
-      <div className="border border-border rounded-xl p-4">
-        <div className="flex items-center justify-between mb-4">
-          <h3 style={{ fontSize: 13, fontWeight: 700, color: "#2563eb", fontFamily: "var(--font-body)", margin: 0, display: "flex", alignItems: "center", gap: 8 }}>
-            <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#2563eb", display: "inline-block" }} />
-            2. NHẬP THÔNG TIN IN ẤN
+      <div className="rounded-2xl border border-border bg-surface p-5 shadow-sm">
+        <div className="mb-5 flex items-center justify-between">
+          <h3 className="flex items-center gap-2 text-sm font-bold text-primary">
+            <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-xs text-primary">2</div>
+            NHẬP THÔNG TIN IN ẤN
           </h3>
-          <button type="button" className="text-[11px] text-text-muted hover:text-error" onClick={() => setPrintText({ title: '', date: '', message: '' })}>XÓA TẤT CẢ</button>
+          <button 
+            type="button" 
+            className="text-xs font-bold text-text-muted transition-colors hover:text-error" 
+            onClick={() => setPrintText({ title: '', date: '', message: '' })}
+          >
+            XÓA TẤT CẢ
+          </button>
         </div>
-        <div className="space-y-3">
+        <div className="space-y-4">
           <div>
-            <label className="block text-[11px] font-bold text-text-secondary mb-1">TÊN / LỜI TỰA NGẮN <span className="text-error">*</span></label>
-            <input type="text" placeholder="VD: Tú & Lan" value={printText.title} onChange={e => setPrintText({ ...printText, title: e.target.value })}
-              className="w-full border border-border rounded-lg p-2.5 text-sm focus:ring-1 focus:ring-primary focus:border-primary outline-none bg-surface" />
+            <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-wider text-text-secondary">
+              Tên / Lời tựa ngắn <span className="text-error">*</span>
+            </label>
+            <input 
+              type="text" 
+              placeholder="VD: Tú & Lan" 
+              value={printText.title} 
+              onChange={e => setPrintText({ ...printText, title: e.target.value })}
+              className="w-full rounded-xl border border-border bg-background p-3 text-sm font-medium text-text-primary shadow-sm outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20" 
+            />
           </div>
           <div>
-            <label className="block text-[11px] font-bold text-text-secondary mb-1">NGÀY KỶ NIỆM (NẾU CÓ)</label>
-            <input type="date" value={printText.date} onChange={e => setPrintText({ ...printText, date: e.target.value })}
-              className="w-full border border-border rounded-lg p-2.5 text-sm focus:ring-1 focus:ring-primary focus:border-primary outline-none bg-surface" />
+            <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-wider text-text-secondary">
+              Ngày kỷ niệm (nếu có)
+            </label>
+            <input 
+              type="date" 
+              value={printText.date} 
+              onChange={e => setPrintText({ ...printText, date: e.target.value })}
+              className="w-full rounded-xl border border-border bg-background p-3 text-sm font-medium text-text-primary shadow-sm outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20" 
+            />
           </div>
           <div>
-            <label className="block text-[11px] font-bold text-text-secondary mb-1">LỜI NHẮN (NẾU CÓ)</label>
-            <textarea placeholder="VD: Chúc mừng sinh nhật..." value={printText.message} onChange={e => setPrintText({ ...printText, message: e.target.value })}
-              rows={2} className="w-full border border-border rounded-lg p-2.5 text-sm focus:ring-1 focus:ring-primary focus:border-primary outline-none bg-surface resize-none" />
+            <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-wider text-text-secondary">
+              Lời nhắn (nếu có)
+            </label>
+            <textarea 
+              placeholder="VD: Chúc mừng sinh nhật..." 
+              value={printText.message} 
+              onChange={e => setPrintText({ ...printText, message: e.target.value })}
+              rows={3} 
+              className="w-full resize-none rounded-xl border border-border bg-background p-3 text-sm font-medium text-text-primary shadow-sm outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20" 
+            />
           </div>
         </div>
       </div>
@@ -316,64 +371,124 @@ function Step3Characters() {
   const addedAccessoryIds = new Set(elements.filter(e => e.accessoryId).map(e => e.accessoryId));
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <FreeshipBar amount={freeshipAmount} progress={freeshipProgress} />
       
-      <div className="border border-border rounded-xl p-4">
-        <h3 style={{ fontSize: 13, fontWeight: 700, color: "#111827", fontFamily: "var(--font-body)", margin: "0 0 12px 0" }}>QUẢN LÝ NHÂN VẬT</h3>
-        <div className="flex items-center gap-3">
-          <button type="button" onClick={() => setCharacterCount(characterCount + 1)}
-            className="px-4 py-2 bg-[hsl(var(--color-cta))] text-white font-bold text-sm rounded-lg hover:bg-[hsl(var(--color-cta-hover))] transition-colors shadow-sm">
-            + Thêm ({formatPrice(characterPrice)})
+      <div className="rounded-2xl border border-border bg-surface p-5 shadow-sm">
+        <h3 className="mb-4 text-sm font-bold text-text-primary uppercase">Quản lý nhân vật</h3>
+        <div className="flex items-center gap-4">
+          <button 
+            type="button" 
+            onClick={() => setCharacterCount(characterCount + 1)}
+            className="flex items-center gap-2 rounded-xl bg-text-primary px-5 py-2.5 text-sm font-bold text-background shadow-md transition-all hover:-translate-y-0.5 hover:bg-text-secondary hover:shadow-lg active:translate-y-0"
+          >
+            <span>+</span> Thêm nhân vật
           </button>
+          
           {characterCount > 0 && (
-            <div className="flex items-center gap-2">
-              <button type="button" onClick={() => setCharacterCount(Math.max(0, characterCount - 1))}
-                className="w-7 h-7 rounded-lg border border-border flex items-center justify-center text-text-secondary hover:bg-error/10 hover:text-error transition-colors font-bold">−</button>
-              <span className="font-bold text-sm text-text-primary">{characterCount} NV</span>
+            <div className="flex items-center gap-3 rounded-xl border border-border bg-background px-4 py-2 shadow-sm">
+              <span className="text-sm font-black text-text-primary">{characterCount} NV</span>
+              <div className="h-4 w-px bg-border" />
+              <button 
+                type="button" 
+                onClick={() => setCharacterCount(Math.max(0, characterCount - 1))}
+                className="flex h-7 w-7 items-center justify-center rounded-lg bg-surface-hover text-lg font-bold text-text-secondary transition-colors hover:bg-error/10 hover:text-error"
+              >
+                −
+              </button>
             </div>
           )}
         </div>
         {characterCount > 0 && (
-          <p className="text-[11px] text-text-muted mt-2">
-            {characterCount} nhân vật × {formatPrice(characterPrice)} = <strong className="text-text-primary">{formatPrice(characterCount * characterPrice)}</strong>
-          </p>
+          <div className="mt-4 flex items-center justify-between rounded-lg bg-surface-hover px-3 py-2 text-xs font-medium text-text-secondary">
+            <span>{characterCount} nhân vật × {formatPrice(characterPrice)}</span>
+            <span className="font-bold text-text-primary">{formatPrice(characterCount * characterPrice)}</span>
+          </div>
         )}
       </div>
 
-      <div className="border border-border rounded-xl overflow-hidden">
-        <div className="px-4 pt-4 pb-3">
-          <h3 style={{ fontSize: 13, fontWeight: 700, color: "#111827", fontFamily: "var(--font-body)", margin: "0 0 12px 0" }}>THÊM PHỤ KIỆN & CHARM</h3>
-          <div className="relative mb-3">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-text-muted" />
-            <input type="text" placeholder="Tìm charm (hoa, túi, bóng bay...)" value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
-              className="w-full pl-8 pr-3 py-2 border border-border rounded-lg text-xs focus:ring-1 focus:ring-primary focus:border-primary outline-none bg-surface" />
+      <div className="rounded-2xl border border-border bg-surface shadow-sm overflow-hidden flex flex-col">
+        <div className="border-b border-border bg-background px-5 py-4">
+          <h3 className="mb-4 text-sm font-bold text-text-primary uppercase">Thêm phụ kiện & Charm</h3>
+          
+          <div className="relative mb-4">
+            <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
+            <input 
+              type="text" 
+              placeholder="Tìm phụ kiện (hoa, xe, bóng bay...)" 
+              value={searchQuery} 
+              onChange={e => setSearchQuery(e.target.value)}
+              className="w-full rounded-xl border border-border bg-surface py-2.5 pl-10 pr-4 text-sm font-medium shadow-inner outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20" 
+            />
           </div>
-          <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide">
-            <button type="button" onClick={() => setActiveCategoryId(null)}
-              className={`shrink-0 px-3 py-1 rounded-full text-[11px] font-bold transition-colors ${!activeCategoryId ? 'bg-[hsl(var(--color-cta))] text-white' : 'bg-surface border border-border text-text-secondary'}`}>Tất cả</button>
+          
+          <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
+            <button 
+              type="button" 
+              onClick={() => setActiveCategoryId(null)}
+              className={`shrink-0 rounded-full px-4 py-1.5 text-xs font-bold transition-all ${
+                !activeCategoryId 
+                  ? 'bg-text-primary text-background shadow-md' 
+                  : 'border border-border bg-surface text-text-secondary hover:border-text-muted hover:bg-surface-hover'
+              }`}
+            >
+              TẤT CẢ
+            </button>
             {accessoryCategories.map(cat => (
-              <button key={cat.id} type="button" onClick={() => setActiveCategoryId(cat.id)}
-                className={`shrink-0 px-3 py-1 rounded-full text-[11px] font-bold transition-colors ${activeCategoryId === cat.id ? 'bg-[hsl(var(--color-cta))] text-white' : 'bg-surface border border-border text-text-secondary hover:border-primary/40'}`}>{cat.name}</button>
+              <button 
+                key={cat.id} 
+                type="button" 
+                onClick={() => setActiveCategoryId(cat.id)}
+                className={`shrink-0 rounded-full px-4 py-1.5 text-xs font-bold transition-all ${
+                  activeCategoryId === cat.id 
+                    ? 'bg-text-primary text-background shadow-md' 
+                    : 'border border-border bg-surface text-text-secondary hover:border-text-muted hover:bg-surface-hover'
+                }`}
+              >
+                {cat.name.toUpperCase()}
+              </button>
             ))}
           </div>
         </div>
-        <div className="grid grid-cols-5 gap-2 px-4 pb-4 max-h-64 overflow-y-auto">
-          {isLoadingData ? Array.from({ length: 10 }).map((_, i) => <div key={i} className="aspect-square rounded-xl bg-border animate-pulse" />) :
-           filteredAccessories.length === 0 ? <div className="col-span-5 text-center text-xs text-text-muted py-8">Không có phụ kiện</div> :
+        
+        <div className="grid max-h-[340px] grid-cols-4 gap-3 overflow-y-auto bg-surface p-5 scrollbar-hide">
+          {isLoadingData ? Array.from({ length: 12 }).map((_, i) => <div key={i} className="aspect-square rounded-xl bg-surface-hover animate-pulse" />) :
+           filteredAccessories.length === 0 ? <div className="col-span-4 py-10 text-center text-sm font-medium text-text-muted">Không tìm thấy phụ kiện phù hợp</div> :
            filteredAccessories.map(acc => {
             const isAdded = addedAccessoryIds.has(acc.id);
             return (
-              <button key={acc.id} type="button" onClick={() => {
-                if (isAdded) { const el = elements.find(e => e.accessoryId === acc.id); if (el) removeElement(el.id); }
-                else addElement({ type: 'accessory', x: 80 + Math.random() * 200, y: 80 + Math.random() * 200, imageUrl: acc.imageUrl || acc.iconUrl || '', content: acc.name, width: 60, height: 60, price: acc.price, accessoryId: acc.id });
-              }}
-                className={`relative aspect-square rounded-xl border-2 overflow-hidden flex flex-col items-center justify-center p-1 transition-all ${isAdded ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/40 bg-surface'}`}
+              <button 
+                key={acc.id} 
+                type="button" 
+                onClick={() => {
+                  if (isAdded) { const el = elements.find(e => e.accessoryId === acc.id); if (el) removeElement(el.id); }
+                  else addElement({ type: 'accessory', x: 80 + Math.random() * 200, y: 80 + Math.random() * 200, imageUrl: acc.imageUrl || acc.iconUrl || '', content: acc.name, width: 60, height: 60, price: acc.price, accessoryId: acc.id });
+                }}
+                className={`group relative flex aspect-square flex-col items-center justify-center overflow-hidden rounded-xl border-2 p-2 transition-all duration-300 ${
+                  isAdded 
+                    ? 'border-primary bg-primary/10 shadow-inner' 
+                    : 'border-border bg-surface hover:border-primary/40 hover:bg-surface-hover hover:shadow-md'
+                }`}
               >
-                {acc.imageUrl || acc.iconUrl ? <img src={acc.imageUrl || acc.iconUrl || ''} alt={acc.name} loading="lazy" className="w-9 h-9 object-contain" /> : <div className="w-9 h-9 bg-border rounded-lg" />}
-                <span className="text-[9px] font-medium text-text-secondary mt-0.5 text-center leading-tight line-clamp-1 w-full px-0.5">{acc.name}</span>
-                <span className="text-[9px] font-bold text-primary">{formatPrice(acc.price)}</span>
-                {isAdded && <div className="absolute top-1 right-1 w-3.5 h-3.5 bg-primary rounded-full flex items-center justify-center"><Check className="w-2 h-2 text-white" /></div>}
+                {acc.imageUrl || acc.iconUrl ? (
+                  <img src={acc.imageUrl || acc.iconUrl || ''} alt={acc.name} className="h-10 w-10 object-contain transition-transform duration-300 group-hover:scale-110 drop-shadow-sm" />
+                ) : (
+                  <div className="h-10 w-10 rounded-lg bg-surface-hover" />
+                )}
+                
+                <span className="mt-2 w-full truncate px-1 text-center text-[10px] font-bold text-text-secondary">
+                  {acc.name}
+                </span>
+                
+                <span className="mt-0.5 text-[10px] font-black text-primary">
+                  {formatPrice(acc.price)}
+                </span>
+                
+                {isAdded && (
+                  <div className="absolute right-1.5 top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-primary shadow-sm">
+                    <Check className="h-3 w-3 text-white" />
+                  </div>
+                )}
               </button>
             );
           })}
@@ -385,7 +500,7 @@ function Step3Characters() {
 
 // ─── Step 4: Hoàn tất ──────────────────────────────────────────────────────
 function Step4Finish() {
-  const { totalPrice, freeshipAmount, frameSize, frameSizes, frameColor, characterCount, characterPrice, elements, printText, activeTemplate } = useStudio();
+  const { totalPrice, freeshipAmount, frameSize, frameSizes, frameColor, characterCount, characterPrice, elements, printText, activeTemplate, templates } = useStudio();
   const router = useRouter();
   const addItem = useCartStore(state => state.addItem);
   const openModal = useUIStore(state => state.openModal);
@@ -395,11 +510,20 @@ function Step4Finish() {
     const interval = setInterval(() => setSeconds(s => Math.max(0, s - 1)), 1000);
     return () => clearInterval(interval);
   }, []);
+  
   const timerMins = String(Math.floor(seconds / 60)).padStart(2, '0');
   const timerSecs = String(seconds % 60).padStart(2, '0');
 
   const frameObj = frameSizes.find(s => s.id === frameSize);
   const accessoryItems = elements.filter(e => e.type === 'accessory' && e.price && e.price > 0);
+  const selectedTemplate = templates.find(t => t.id === activeTemplate);
+  const accessorySnapshot = accessoryItems
+    .filter(el => typeof el.accessoryId === 'string')
+    .map(el => ({
+      id: el.accessoryId as string,
+      name: el.content || 'Accessory',
+      price: el.price || 0,
+    }));
   const charactersTotalPrice = characterCount * characterPrice;
 
   const buildCartItem = () => ({
@@ -410,153 +534,147 @@ function Step4Finish() {
     frameSizeId: frameSize,
     frameSizeLabel: frameObj?.label ?? frameSize,
     frameColorName: frameColor,
-    designData: { elements, printText, templateId: activeTemplate, characterCount },
-    previewUrl: null,
-  });
-
-  const buildUserDesignData = (): JsonObject => ({
-    elements: elements.map((element): JsonObject => ({
-      id: element.id,
-      type: element.type,
-      x: element.x,
-      y: element.y,
-      ...(element.content !== undefined ? { content: element.content } : {}),
-      ...(element.imageUrl !== undefined ? { imageUrl: element.imageUrl } : {}),
-      ...(element.fontSize !== undefined ? { fontSize: element.fontSize } : {}),
-      ...(element.color !== undefined ? { color: element.color } : {}),
-      ...(element.width !== undefined ? { width: element.width } : {}),
-      ...(element.height !== undefined ? { height: element.height } : {}),
-      ...(element.price !== undefined ? { price: element.price } : {}),
-      ...(element.accessoryId !== undefined ? { accessoryId: element.accessoryId } : {}),
-    })),
-    printText: {
-      title: printText.title,
-      date: printText.date,
-      message: printText.message,
-    },
+    accessories: accessorySnapshot,
     templateId: activeTemplate,
-    characterCount,
+    designData: {
+      elements,
+      printText,
+      templateId: activeTemplate,
+      templateName: selectedTemplate?.name,
+      characterCount,
+      accessories: accessorySnapshot,
+    },
+    previewUrl: selectedTemplate?.imageUrl ?? null,
   });
 
   const handleAddToCart = () => { addItem(buildCartItem()); openModal(UI_MODAL_IDS.CART_DRAWER); };
   const handleBuyNow = () => { addItem(buildCartItem()); router.push('/checkout'); };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {seconds > 0 && (
-        <div className="bg-gradient-to-r from-orange-400 to-amber-400 rounded-xl p-3 flex items-center justify-between text-white">
+        <div className="flex items-center justify-between rounded-2xl bg-gradient-to-r from-orange-400 to-amber-500 p-4 text-white shadow-md animate-fade-in">
           <div>
-            <div className="font-bold text-sm flex items-center gap-1.5"><Zap className="w-4 h-4" /> ƯU ĐÃI PHÚT CHÓT!</div>
-            <div className="text-xs opacity-90 mt-0.5">Hoàn tất đơn để nhận 1 Sticker quà tặng</div>
+            <div className="flex items-center gap-1.5 text-sm font-black tracking-wide"><Zap className="h-4 w-4 fill-white" /> ƯU ĐÃI PHÚT CHÓT!</div>
+            <div className="mt-1 text-xs font-medium text-white/90">Hoàn tất thiết kế ngay để nhận 1 Sticker quà tặng</div>
           </div>
-          <div className="bg-white/20 rounded-lg px-3 py-1.5 font-mono font-black text-xl">{timerMins}:{timerSecs}</div>
+          <div className="rounded-xl bg-black/20 px-3 py-2 font-mono text-xl font-black tracking-widest backdrop-blur-sm shadow-inner">
+            {timerMins}:{timerSecs}
+          </div>
         </div>
       )}
 
-      <div className="border border-border rounded-xl overflow-hidden">
-        <div className="flex items-center justify-between px-4 py-3 bg-surface">
-          <h3 style={{ fontSize: 13, fontWeight: 700, color: "#111827", fontFamily: "var(--font-body)", margin: 0 }}>CHI TIẾT HÓA ĐƠN</h3>
-          <span className="text-xs text-text-muted font-medium">{characterCount} NV</span>
+      <div className="overflow-hidden rounded-2xl border border-border bg-surface shadow-sm">
+        <div className="flex items-center justify-between border-b border-border bg-background px-5 py-4">
+          <h3 className="text-sm font-bold text-text-primary uppercase tracking-wide">Chi tiết thiết kế</h3>
+          <span className="rounded-full bg-surface-hover px-2.5 py-1 text-xs font-bold text-text-secondary shadow-inner">
+            {characterCount} NV
+          </span>
         </div>
+        
         <div className="divide-y divide-border">
           {frameObj && (
-            <div className="flex justify-between items-start px-4 py-3">
-              <div><p className="text-sm font-semibold text-text-primary">{frameObj.label}</p><p className="text-xs text-text-muted">Nhỏ gọn, tinh tế</p></div>
+            <div className="flex items-start justify-between px-5 py-4 transition-colors hover:bg-surface-hover/50">
+              <div>
+                <p className="text-sm font-bold text-text-primary">{frameObj.label}</p>
+                <p className="mt-0.5 text-xs font-medium text-text-muted">Màu {frameColor}</p>
+              </div>
               <span className="text-sm font-bold text-text-primary">{formatPrice(frameObj.price)}</span>
             </div>
           )}
+          
           {characterCount > 0 && (
-            <div className="flex justify-between items-start px-4 py-3">
-              <div><p className="text-sm font-semibold text-text-primary">Nhân vật LEGO</p><p className="text-xs text-text-muted">{characterCount} × {formatPrice(characterPrice)}</p></div>
+            <div className="flex items-start justify-between px-5 py-4 transition-colors hover:bg-surface-hover/50">
+              <div>
+                <p className="text-sm font-bold text-text-primary">Nhân vật LEGO</p>
+                <p className="mt-0.5 text-xs font-medium text-text-muted">{characterCount} × {formatPrice(characterPrice)}</p>
+              </div>
               <span className="text-sm font-bold text-text-primary">{formatPrice(charactersTotalPrice)}</span>
             </div>
           )}
+          
           {accessoryItems.map(el => (
-            <div key={el.id} className="flex justify-between items-start px-4 py-3">
-              <div><p className="text-sm font-semibold text-text-primary">{el.content}</p><p className="text-xs text-text-muted">Sl: 1</p></div>
+            <div key={el.id} className="flex items-start justify-between px-5 py-4 transition-colors hover:bg-surface-hover/50">
+              <div>
+                <p className="text-sm font-bold text-text-primary">{el.content}</p>
+                <p className="mt-0.5 text-xs font-medium text-text-muted">Số lượng: 1</p>
+              </div>
               <span className="text-sm font-bold text-text-primary">{formatPrice(el.price || 0)}</span>
             </div>
           ))}
         </div>
-        <div className="px-4 py-3 bg-background border-t border-border">
-          <div className="flex justify-between items-center">
-            <span className="text-sm font-bold text-text-secondary">Tạm tính</span>
-            <span className="text-lg font-black" style={{ color: "#2563eb" }}>{formatPrice(totalPrice)}</span>
+        
+        <div className="border-t-2 border-dashed border-border bg-background px-5 py-5">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-black uppercase text-text-secondary tracking-widest">Tổng cộng</span>
+            <span className="text-2xl font-black text-primary drop-shadow-sm">{formatPrice(totalPrice)}</span>
           </div>
           {freeshipAmount > 0 && (
-            <p className="text-[11px] text-text-muted mt-1">Mua thêm <span className="font-bold text-text-primary">{formatPrice(freeshipAmount)}</span> để được <strong>FREESHIP</strong></p>
+            <p className="mt-2 text-right text-xs font-medium text-text-muted">
+              Thêm <span className="font-bold text-text-primary">{formatPrice(freeshipAmount)}</span> để được <strong className="text-emerald-600">FREESHIP</strong>
+            </p>
           )}
         </div>
       </div>
 
-      <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
-        <div className="flex items-start gap-2">
-          <span className="text-lg">📅</span>
-          <div>
-            <p className="text-xs font-bold text-blue-700 mb-1">Mẹo: Đặt Lịch Sớm (Early Bird)</p>
-            <p className="text-[11px] text-blue-600 leading-relaxed">Sản phẩm thủ công cần <strong>1-2 ngày hoàn thiện</strong> và 2-4 ngày vận chuyển. Nếu bạn có kế hoạch tặng quà xa, hãy chọn ngày nhận <strong>sau 20 ngày</strong> để được <span className="font-bold text-blue-800">Giảm ngay 5%!</span></p>
-          </div>
+      <div className="flex items-start gap-3 rounded-2xl border border-blue-200 bg-blue-50/50 p-4 shadow-sm">
+        <span className="text-xl">💡</span>
+        <div>
+          <p className="mb-1 text-xs font-black text-blue-700 uppercase tracking-wider">Mẹo: Đặt sớm (Early Bird)</p>
+          <p className="text-xs font-medium leading-relaxed text-blue-600/90">
+            Sản phẩm cần <strong>1-2 ngày</strong> hoàn thiện. Chọn ngày nhận <strong>sau 20 ngày</strong> để được giảm ngay <span className="font-bold text-blue-800">5%</span>!
+          </p>
         </div>
       </div>
 
-      <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4">
-        <div className="flex items-center justify-between mb-2">
-          <p className="text-xs font-black text-emerald-700">🛡 AN TÂM TUYỆT ĐỐI</p>
-          <span className="text-[10px] font-bold bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">MIỄN PHÍ 100%</span>
-        </div>
-        <p className="text-[11px] text-emerald-600 leading-relaxed">Sau khi đặt hàng, <strong className="text-emerald-700">Designer chuyên nghiệp</strong> sẽ trực tiếp căn chỉnh lại bố cục, font chữ đẹp nhất và <strong>gửi ảnh thực tế</strong> cho bạn duyệt trước khi gửi đi.</p>
-      </div>
-
-      <div className="grid grid-cols-2 gap-2">
+      <div className="flex flex-col gap-3 pt-2">
         <button
           type="button"
           onClick={handleBuyNow}
-          className="py-3 px-4 rounded-xl font-bold text-sm transition-all shadow-sm flex items-center justify-center gap-1.5"
-          style={{
-            backgroundColor: "#2563eb",
-            color: "#ffffff",
-            border: "none",
-            cursor: "pointer",
-          }}
+          className="group relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-xl bg-text-primary px-4 py-4 text-sm font-bold text-background shadow-lg transition-all duration-300 hover:-translate-y-1 hover:bg-text-secondary hover:shadow-xl active:translate-y-0"
         >
-          🔥 Mua ngay & Thanh toán
+          <div className="absolute inset-0 flex h-full w-full justify-center [transform:skew(-12deg)_translateX(-150%)] group-hover:duration-1000 group-hover:[transform:skew(-12deg)_translateX(150%)]">
+            <div className="relative h-full w-8 bg-white/20" />
+          </div>
+          <span>Thanh toán ngay</span> <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
         </button>
-        <button
-          type="button"
-          onClick={handleAddToCart}
-          className="py-3 px-4 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-1.5"
-          style={{
-            backgroundColor: "transparent",
-            color: "#2563eb",
-            border: "2px solid #2563eb",
-            cursor: "pointer",
-          }}
-        >
-          <ShoppingCart className="w-4 h-4" /> Thêm vào giỏ
-        </button>
-        <button
-          type="button"
-          onClick={async () => {
-            const user = useAuthStore.getState().user;
-            if (!user) {
-              alert("Vui lòng đăng nhập để lưu thiết kế!");
-              router.push('/login');
-              return;
-            }
-            try {
-              await browserApiClient.userDesigns.createUserDesign({
-                name: `Thiết kế ${new Date().toLocaleDateString()}`,
-                designData: buildUserDesignData(),
-              });
-              alert("Lưu thiết kế thành công!");
-            } catch (err) {
-              alert(err instanceof Error ? err.message : "Lỗi khi lưu thiết kế");
-            }
-          }}
-          className="col-span-2 py-3 px-4 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-1.5 bg-surface border border-border text-text-secondary hover:bg-gray-50"
-        >
-          💾 Lưu bản nháp thiết kế
-        </button>
+        
+        <div className="grid grid-cols-2 gap-3">
+          <button
+            type="button"
+            onClick={handleAddToCart}
+            className="flex items-center justify-center gap-2 rounded-xl border-2 border-border bg-surface px-4 py-3.5 text-sm font-bold text-text-primary shadow-sm transition-all hover:border-primary/50 hover:bg-surface-hover hover:text-primary"
+          >
+            <ShoppingCart className="h-4 w-4" /> Thêm vào giỏ
+          </button>
+          
+          <button
+            type="button"
+            onClick={async () => {
+              const user = useAuthStore.getState().user;
+              if (!user) {
+                alert("Vui lòng đăng nhập để lưu thiết kế!");
+                router.push('/login');
+                return;
+              }
+              try {
+                await fetchApi('/user-designs', {
+                  method: 'POST',
+                  body: JSON.stringify({
+                    name: `Thiết kế ${new Date().toLocaleDateString()}`,
+                    designData: buildCartItem().designData
+                  })
+                });
+                alert("Lưu thiết kế thành công!");
+              } catch (err: any) {
+                alert(err.message || "Lỗi khi lưu thiết kế");
+              }
+            }}
+            className="flex items-center justify-center gap-2 rounded-xl bg-surface-hover px-4 py-3.5 text-sm font-bold text-text-secondary shadow-sm transition-all hover:bg-border hover:text-text-primary"
+          >
+            <Save className="h-4 w-4" /> Lưu bản nháp
+          </button>
+        </div>
       </div>
     </div>
   );

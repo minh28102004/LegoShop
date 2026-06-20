@@ -296,7 +296,7 @@ export default function InquiriesManager() {
         }}
       />
 
-      <Table containerClassName='min-h-0'>
+      <Table containerClassName='min-h-0' minWidth='980px'>
         <TableHeader>
           <tr>
             <SortableTableHead

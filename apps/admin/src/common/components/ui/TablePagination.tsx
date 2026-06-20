@@ -137,12 +137,12 @@ function PageSizeSelect({
         <button
           type='button'
           aria-label={label}
-          className='group inline-flex h-10 min-w-[148px] overflow-hidden rounded-[14px] border border-slate-200 bg-white text-sm shadow-[0_10px_24px_-20px_rgba(15,23,42,0.45)] transition-all duration-150 hover:border-[var(--admin-primary-tint)] hover:shadow-[0_14px_28px_-22px_rgba(47,145,208,0.5)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--admin-primary-ring)]'
+          className='group inline-flex h-9 min-w-[126px] overflow-hidden rounded-[14px] border border-slate-200 bg-white text-[13px] shadow-[0_10px_24px_-20px_rgba(15,23,42,0.45)] transition-all duration-150 hover:border-[var(--admin-primary-tint)] hover:shadow-[0_14px_28px_-22px_rgba(47,145,208,0.5)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--admin-primary-ring)] sm:h-10 sm:min-w-[148px] sm:text-sm'
         >
-          <span className='inline-flex items-center bg-slate-50 px-3 text-[13px] font-semibold text-slate-500 shadow-[inset_-1px_0_0_rgba(226,232,240,0.9)]'>
+          <span className='inline-flex items-center bg-slate-50 px-2.5 text-[12px] font-semibold text-slate-500 shadow-[inset_-1px_0_0_rgba(226,232,240,0.9)] sm:px-3 sm:text-[13px]'>
             {label}
           </span>
-          <span className='inline-flex flex-1 items-center justify-center gap-2 px-3 font-bold text-slate-900'>
+          <span className='inline-flex flex-1 items-center justify-center gap-1.5 px-2.5 font-bold text-slate-900 sm:gap-2 sm:px-3'>
             {currentOption}
             <svg
               viewBox='0 0 20 20'
@@ -235,91 +235,101 @@ export function TablePagination({
     return null;
   }
 
+  const pageSizeControl =
+    canChangePageSize && onPageSizeChange ? (
+      <PageSizeSelect
+        label={pageSizeLabel}
+        value={pageSizeValue}
+        options={pageSizeOptions}
+        onChange={onPageSizeChange}
+      />
+    ) : null;
+
+  const compactPaginationControls = hasMultiplePages ? (
+    <div className='flex shrink-0 items-center gap-2'>
+      <PaginationButton
+        ariaLabel={previousLabel}
+        disabled={previousDisabled}
+        onClick={onPrevious}
+      >
+        <ChevronIcon direction='left' />
+      </PaginationButton>
+      <span className='min-w-24 text-center text-sm font-bold text-slate-700'>
+        {pageLabel} {safePage}/{safeTotalPages}
+      </span>
+      <PaginationButton
+        ariaLabel={nextLabel}
+        disabled={nextDisabled}
+        onClick={onNext}
+      >
+        <ChevronIcon direction='right' />
+      </PaginationButton>
+    </div>
+  ) : null;
+
   return (
     <nav
       aria-label='Table pagination'
       className={cn(
-        'admin-surface -mt-2 flex min-h-[64px] flex-col gap-3 rounded-[18px] bg-white px-4 py-3 text-sm text-slate-600 lg:flex-row lg:items-center lg:justify-between lg:px-5',
+        'admin-surface -mt-2 min-h-[64px] rounded-[18px] bg-white px-3 py-4 text-sm text-slate-600 md:flex md:items-center md:justify-between md:gap-x-4 md:gap-y-3 md:px-5 lg:px-5',
         className,
       )}
     >
-      <div className='flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:items-center sm:gap-4'>
-        <p className='min-w-0 text-[13px] font-semibold leading-5 text-slate-700 sm:text-sm'>
+      <div className='flex justify-center md:hidden'>
+        <div className='flex w-full max-w-[430px] min-w-0 items-center justify-center gap-2 px-2'>
+          {pageSizeControl}
+          {compactPaginationControls}
+        </div>
+      </div>
+
+      <div className='hidden min-w-0 flex-1 flex-wrap items-center gap-x-4 gap-y-2 md:flex'>
+        <p className='min-w-0 text-sm font-semibold leading-5 text-slate-700'>
           {summary}
         </p>
-        {canChangePageSize && onPageSizeChange ? (
-          <PageSizeSelect
-            label={pageSizeLabel}
-            value={pageSizeValue}
-            options={pageSizeOptions}
-            onChange={onPageSizeChange}
-          />
-        ) : null}
+        {pageSizeControl}
       </div>
 
       {hasMultiplePages ? (
-        <>
-          <div className='flex items-center gap-2 sm:hidden'>
-            <PaginationButton
-              ariaLabel={previousLabel}
-              disabled={previousDisabled}
-              onClick={onPrevious}
-            >
-              <ChevronIcon direction='left' />
-            </PaginationButton>
-            <span className='min-w-24 text-center text-sm font-bold text-slate-700'>
-              {pageLabel} {safePage}/{safeTotalPages}
-            </span>
-            <PaginationButton
-              ariaLabel={nextLabel}
-              disabled={nextDisabled}
-              onClick={onNext}
-            >
-              <ChevronIcon direction='right' />
-            </PaginationButton>
-          </div>
+        <div className='hidden shrink-0 items-center gap-1.5 md:flex'>
+          <PaginationButton
+            ariaLabel={previousLabel}
+            disabled={previousDisabled}
+            onClick={onPrevious}
+            className='px-3'
+          >
+            <ChevronIcon direction='left' />
+          </PaginationButton>
 
-          <div className='hidden shrink-0 items-center gap-1.5 sm:flex'>
-            <PaginationButton
-              ariaLabel={previousLabel}
-              disabled={previousDisabled}
-              onClick={onPrevious}
-              className='px-3'
-            >
-              <ChevronIcon direction='left' />
-            </PaginationButton>
+          {paginationItems.map((item) =>
+            typeof item === 'number' ? (
+              <PaginationButton
+                key={item}
+                active={item === safePage}
+                ariaLabel={`${pageLabel} ${item}`}
+                onClick={() => onPageChange(item)}
+              >
+                {item}
+              </PaginationButton>
+            ) : (
+              <span
+                key={item}
+                aria-hidden='true'
+                className='inline-flex h-9 min-w-9 items-center justify-center rounded-[11px] text-sm font-bold text-slate-400'
+              >
+                ...
+              </span>
+            ),
+          )}
 
-            {paginationItems.map((item) =>
-              typeof item === 'number' ? (
-                <PaginationButton
-                  key={item}
-                  active={item === safePage}
-                  ariaLabel={`${pageLabel} ${item}`}
-                  onClick={() => onPageChange(item)}
-                >
-                  {item}
-                </PaginationButton>
-              ) : (
-                <span
-                  key={item}
-                  aria-hidden='true'
-                  className='inline-flex h-9 min-w-9 items-center justify-center rounded-[11px] text-sm font-bold text-slate-400'
-                >
-                  ...
-                </span>
-              ),
-            )}
-
-            <PaginationButton
-              ariaLabel={nextLabel}
-              disabled={nextDisabled}
-              onClick={onNext}
-              className='px-3'
-            >
-              <ChevronIcon direction='right' />
-            </PaginationButton>
-          </div>
-        </>
+          <PaginationButton
+            ariaLabel={nextLabel}
+            disabled={nextDisabled}
+            onClick={onNext}
+            className='px-3'
+          >
+            <ChevronIcon direction='right' />
+          </PaginationButton>
+        </div>
       ) : null}
     </nav>
   );

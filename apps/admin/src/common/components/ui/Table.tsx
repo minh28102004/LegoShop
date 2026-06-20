@@ -1,5 +1,6 @@
 import {
   type ButtonHTMLAttributes,
+  type CSSProperties,
   type HTMLAttributes,
   type PropsWithChildren,
   type ReactNode,
@@ -11,6 +12,7 @@ import { cn } from '@/common/utils/cn';
 type TableWrapperProps = PropsWithChildren<{
   className?: string;
   containerClassName?: string;
+  minWidth?: string;
 }>;
 
 type TableSectionProps = TableHTMLAttributes<HTMLTableSectionElement>;
@@ -149,13 +151,19 @@ export default function Table({
   className,
   containerClassName,
   children,
+  minWidth,
 }: TableWrapperProps) {
+  const tableStyle = minWidth
+    ? ({ '--admin-table-min-width': minWidth } as CSSProperties)
+    : undefined;
+
   return (
     <div
       className={cn(
         'admin-surface admin-table-shell min-h-0 bg-white',
         containerClassName,
       )}
+      style={tableStyle}
     >
       <table className={cn('w-full table-fixed text-sm text-slate-700', className)}>
         {children}

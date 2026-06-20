@@ -1878,7 +1878,7 @@ export default function EntityManager<K extends ResourceKey>({
       />
       ) : null}
 
-      <Table containerClassName='min-h-0'>
+      <Table containerClassName='min-h-0' minWidth='1080px'>
         <TableHeader>
           <tr>
             {visibleColumns.map((column) => {

@@ -48,6 +48,19 @@ function ChevronLeft({ className }: { className?: string }) {
   );
 }
 
+function CloseIcon() {
+  return (
+    <svg viewBox='0 0 24 24' fill='none' className='h-5 w-5' aria-hidden='true'>
+      <path
+        d='M6.5 6.5L17.5 17.5M17.5 6.5L6.5 17.5'
+        stroke='currentColor'
+        strokeWidth='2'
+        strokeLinecap='round'
+      />
+    </svg>
+  );
+}
+
 export default function AdminSidebar() {
   const pathname = usePathname();
   const { t } = useI18n();
@@ -86,7 +99,7 @@ export default function AdminSidebar() {
             onClick={closeMobileSidebar}
             aria-label={t('sidebar.dashboard')}
             className={cn(
-              'mx-auto flex h-[54px] items-center justify-center gap-[13px] rounded-[16px] bg-transparent px-[6px] transition-colors duration-200 hover:bg-[var(--admin-primary-soft)]',
+              'mx-auto flex h-[54px] min-w-0 items-center justify-center gap-[13px] rounded-[16px] bg-transparent px-[6px] transition-colors duration-200 hover:bg-[var(--admin-primary-soft)]',
               expanded ? 'w-full justify-start' : 'w-[51px] px-0',
             )}
           >
@@ -101,11 +114,26 @@ export default function AdminSidebar() {
               />
             </span>
             {expanded ? (
-              <span className='min-w-0 overflow-visible pb-0.5 text-left'>
-                <span className='block truncate text-[20px] font-semibold leading-[1.18] text-slate-900'>Figure Lab</span>
+              <span className='min-w-0 overflow-visible py-1 text-left'>
+                <span className='block whitespace-nowrap text-[20px] font-semibold leading-[1.35] text-slate-900'>Figure Lab</span>
               </span>
             ) : null}
           </Link>
+
+          {isMobileOpen ? (
+            <button
+              type='button'
+              aria-label={t('header.closeMenu')}
+              onClick={closeMobileSidebar}
+              className={cn(
+                'ml-2 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-[13px] bg-transparent text-slate-500 lg:hidden',
+                'transition-all duration-200 hover:rotate-90 hover:bg-[var(--admin-primary-soft)] hover:text-[var(--admin-primary-strong)]',
+                'focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--admin-primary-ring)]',
+              )}
+            >
+              <CloseIcon />
+            </button>
+          ) : null}
         </div>
 
         <nav

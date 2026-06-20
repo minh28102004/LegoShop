@@ -217,7 +217,7 @@ export default function OrdersManager() {
         total={payload?.meta.total ?? 0}
       />
 
-      <Table containerClassName='min-h-0'>
+      <Table containerClassName='min-h-0' minWidth='1180px'>
         <TableHeader>
           <tr>
             <SortableTableHead

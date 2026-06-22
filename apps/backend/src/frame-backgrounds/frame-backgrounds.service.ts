@@ -60,8 +60,8 @@ export class FrameBackgroundsService {
       if (query?.search) {
         const searchFields = getAllowedSearchFields(
           query.search_fields,
-          ['title', 'imageUrl'],
-          ['title', 'imageUrl'],
+          ['title', 'description', 'instructions', 'imageUrl'],
+          ['title', 'description', 'instructions', 'imageUrl'],
         );
         where.OR = searchFields.map((field) => ({
           [field]: { contains: query.search, mode: 'insensitive' },
@@ -112,7 +112,13 @@ export class FrameBackgroundsService {
     return this.prisma.frameBackground.create({
       data: {
         title: dto.title,
+        description: dto.description,
+        instructions: dto.instructions,
         imageUrl: dto.imageUrl,
+        contentFields:
+          dto.contentFields !== undefined
+            ? (dto.contentFields as Prisma.InputJsonValue)
+            : undefined,
         sortOrder: dto.sortOrder,
         status: dto.status,
       },
@@ -133,7 +139,12 @@ export class FrameBackgroundsService {
       where: { id },
       data: {
         ...(dto.title !== undefined ? { title: dto.title } : {}),
+        ...(dto.description !== undefined ? { description: dto.description } : {}),
+        ...(dto.instructions !== undefined ? { instructions: dto.instructions } : {}),
         ...(dto.imageUrl !== undefined ? { imageUrl: dto.imageUrl } : {}),
+        ...(dto.contentFields !== undefined
+          ? { contentFields: dto.contentFields as Prisma.InputJsonValue }
+          : {}),
         ...(dto.sortOrder !== undefined ? { sortOrder: dto.sortOrder } : {}),
         ...(dto.status !== undefined ? { status: dto.status } : {}),
       },

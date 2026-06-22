@@ -17,11 +17,12 @@ export function StudioCanvas() {
   const { 
     elements, selectedId, setSelectedId, updateElement, removeElement, 
     activeTemplate, zoom, addElement, templates, frameSize, frameSizes,
-    frameColor, frameColors
+    frameColor, frameColors, printText, contentFields, contentValues, customBackgroundUrl, setCustomBackgroundUrl
   } = useStudio();
   
   const currentTemplate = templates.find(t => t.id === activeTemplate);
-  const activeTemplateImage = currentTemplate?.imageUrl;
+  const activeTemplateImage = customBackgroundUrl ?? currentTemplate?.imageUrl;
+  const backgroundInputRef = useRef<HTMLInputElement | null>(null);
 
   const selectedColorObj = frameColors.find(c => c.name === frameColor);
   const frameColorHex = getFrameColorHex(frameColor, selectedColorObj?.colorHex);
@@ -43,7 +44,10 @@ export function StudioCanvas() {
 
   const maxDim = parsedSizes.length > 0 ? Math.max(...parsedSizes.map(s => Math.max(s.w, s.h)), 30) : 30;
 
-  const currentSizeObj = parsedSizes.find(s => s.id === frameSize) || { w: 20, h: 20 };
+  const selectedFrameSize = frameSizes.find(s => s.id === frameSize);
+  const currentSizeObj = selectedFrameSize?.widthCm && selectedFrameSize?.heightCm
+    ? { w: selectedFrameSize.widthCm, h: selectedFrameSize.heightCm }
+    : parsedSizes.find(s => s.id === frameSize) || { w: 20, h: 20 };
 
   const maxBound = 360;
   const minBound = 180;
@@ -76,6 +80,17 @@ export function StudioCanvas() {
     (e.target as HTMLElement).releasePointerCapture(e.pointerId);
   };
 
+  const handleBackgroundUpload = (file?: File) => {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === "string") {
+        setCustomBackgroundUrl(reader.result);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.key === 'Delete' || e.key === 'Backspace') && selectedId && !isDragging) {
@@ -88,6 +103,32 @@ export function StudioCanvas() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [selectedId, isDragging, removeElement]);
+
+  const extraContentLines = contentFields
+    .filter((field) => {
+      const key = field.key.toLowerCase();
+      return (
+        field.type !== "image" &&
+        Boolean(contentValues[field.key]?.trim()) &&
+        key !== "title" &&
+        key !== "name" &&
+        !key.includes("title") &&
+        !key.includes("name") &&
+        !key.includes("date") &&
+        !key.includes("day") &&
+        !key.includes("message") &&
+        !key.includes("note") &&
+        !key.includes("description")
+      );
+    })
+    .map((field) => contentValues[field.key]?.trim())
+    .filter(Boolean);
+  const hasPrintText = Boolean(
+    printText.title.trim() ||
+    printText.date ||
+    printText.message.trim() ||
+    extraContentLines.length > 0,
+  );
 
   return (
     <div className="flex-1 flex flex-col h-full relative" onClick={() => setSelectedId(null)}>
@@ -107,11 +148,19 @@ export function StudioCanvas() {
           </button>
           <button
             type="button"
+            onClick={() => backgroundInputRef.current?.click()}
             className="flex items-center gap-1.5 px-2.5 py-1.5 bg-surface border border-border text-xs font-semibold rounded-lg hover:bg-surface-hover shadow-sm transition-colors text-emerald-600"
           >
             <ImageIcon className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">Hình ảnh</span>
           </button>
+          <input
+            ref={backgroundInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={(event) => handleBackgroundUpload(event.target.files?.[0])}
+          />
           <div className="flex items-center bg-surface border border-border rounded-lg shadow-sm overflow-hidden">
             <button type="button" className="px-2 py-1.5 text-text-muted hover:text-text-primary hover:bg-surface-hover transition-colors" title="Hoàn tác">
               <Undo className="w-3.5 h-3.5" />
@@ -164,6 +213,32 @@ export function StudioCanvas() {
               <span className="text-xs text-center mt-1 opacity-60">Chọn mẫu hoặc thêm chữ/phụ kiện</span>
             </div>
           )}
+          {hasPrintText && (
+            <div className="pointer-events-none absolute inset-x-6 bottom-6 rounded-xl bg-white/72 px-4 py-3 text-center shadow-sm backdrop-blur-sm">
+              {printText.title.trim() && (
+                <p className="font-serif text-xl font-black leading-tight text-zinc-950">
+                  {printText.title.trim()}
+                </p>
+              )}
+              {printText.date && (
+                <p className="mt-1 text-[11px] font-bold uppercase tracking-[0.22em] text-zinc-600">
+                  {new Date(printText.date).toLocaleDateString("vi-VN")}
+                </p>
+              )}
+              {extraContentLines.length > 0 && (
+                <div className="mt-1 space-y-0.5 text-[11px] font-bold uppercase tracking-[0.08em] text-zinc-700">
+                  {extraContentLines.map((line, index) => (
+                    <p key={`${line}-${index}`}>{line}</p>
+                  ))}
+                </div>
+              )}
+              {printText.message.trim() && (
+                <p className="mt-2 text-xs font-medium leading-snug text-zinc-700">
+                  {printText.message.trim()}
+                </p>
+              )}
+            </div>
+          )}
           {elements.map(el => (
             <div
               key={el.id}
@@ -176,6 +251,14 @@ export function StudioCanvas() {
             >
               {el.type === 'accessory' && el.imageUrl ? (
                 <img src={el.imageUrl} alt={el.content} className="w-full h-full object-contain pointer-events-none" />
+              ) : el.type === 'character' ? (
+                <div className="pointer-events-none flex h-full w-full flex-col items-center justify-end">
+                  <div className="h-5 w-5 rounded-full border-2 border-zinc-950 bg-amber-200 shadow-sm" />
+                  <div className="mt-0.5 h-9 w-7 rounded-md border-2 border-zinc-950 bg-primary shadow-sm" />
+                  <span className="mt-1 rounded-full bg-white/85 px-1.5 py-0.5 text-[9px] font-black text-zinc-900 shadow-sm">
+                    {el.content}
+                  </span>
+                </div>
               ) : (
                 <span className="pointer-events-none whitespace-nowrap">{el.content}</span>
               )}

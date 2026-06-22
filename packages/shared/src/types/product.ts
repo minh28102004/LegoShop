@@ -2,6 +2,7 @@ import type { FrameOptionType, ProductStatus } from '../constants/status';
 import type {
   ID,
   JsonObject,
+  JsonValue,
   Nullable,
   PriceInVND,
   Timestamped,
@@ -58,7 +59,10 @@ export type Banner = Timestamped & {
 export type FrameBackground = Timestamped & {
   id: ID;
   title: string;
+  description: Nullable<string>;
+  instructions: Nullable<string>;
   imageUrl: URLString;
+  contentFields: Nullable<JsonValue>;
   sortOrder: number;
   status: ProductStatus;
 };

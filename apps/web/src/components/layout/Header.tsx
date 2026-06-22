@@ -20,7 +20,7 @@ export const Header = React.forwardRef<HTMLElement, HeaderProps>(
   ({ className, transparent = false, ...props }, ref) => {
     const scrollY = useScrollY()
     const pathname = usePathname()
-    const { itemCount } = useCart()
+    const { itemCount, openCart } = useCart()
     const isMobileMenuOpen = useUIStore(selectIsMobileMenuOpen)
     const closeMobileMenu = useUIStore((state) => state.closeMobileMenu)
     const openMobileMenu = useUIStore((state) => state.openMobileMenu)
@@ -30,6 +30,19 @@ export const Header = React.forwardRef<HTMLElement, HeaderProps>(
     React.useEffect(() => {
       setMounted(true)
     }, [])
+    const openCartDrawer = React.useCallback(() => {
+      openCart()
+      openModal(UI_MODAL_IDS.CART_DRAWER)
+      window.dispatchEvent(new CustomEvent('legoshop:open-cart'))
+    }, [openCart, openModal])
+    const handleCartKeyDown = React.useCallback((event: React.KeyboardEvent<HTMLButtonElement>) => {
+      if (event.key !== 'Enter' && event.key !== ' ') {
+        return
+      }
+
+      event.preventDefault()
+      openCartDrawer()
+    }, [openCartDrawer])
     const isScrolled = scrollY > 8
 
     return (
@@ -178,8 +191,13 @@ export const Header = React.forwardRef<HTMLElement, HeaderProps>(
                   justifyContent: 'center',
                   cursor: 'pointer',
                   position: 'relative',
+                  touchAction: 'manipulation',
                 }}
-                onClick={() => openModal(UI_MODAL_IDS.CART_DRAWER)}
+                data-cart-trigger="true"
+                onMouseDown={openCartDrawer}
+                onTouchStart={openCartDrawer}
+                onKeyDown={handleCartKeyDown}
+                onClick={openCartDrawer}
               >
                 <ShoppingBag size={16} />
                 {mounted && itemCount > 0 && (
@@ -198,6 +216,7 @@ export const Header = React.forwardRef<HTMLElement, HeaderProps>(
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
+                      pointerEvents: 'none',
                     }}
                   >
                     {itemCount}

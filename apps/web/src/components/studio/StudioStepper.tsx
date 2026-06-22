@@ -25,19 +25,19 @@ export function StudioStepper() {
               onClick={() => setStep(s.num)}
               className={`group flex items-center gap-2.5 rounded-full px-4 py-2 text-xs font-bold transition-all duration-300 ${
                 isActive
-                  ? "bg-primary text-primary-foreground shadow-md scale-105"
+                  ? "border border-[#ef9ab3] bg-[#fff4f7] text-[#d94f77] shadow-sm scale-105"
                   : isPast
-                  ? "bg-primary/10 text-primary hover:bg-primary/20"
-                  : "bg-surface-hover text-text-muted hover:text-text-secondary"
+                  ? "border border-[#ef9ab3] bg-white text-slate-700 hover:bg-[#fff4f7]"
+                  : "border border-slate-200 bg-white text-slate-500 hover:border-[#ef9ab3]/60 hover:text-slate-700"
               }`}
             >
               <div
                 className={`flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-black transition-colors duration-300 ${
                   isActive
-                    ? "bg-white/25 text-white"
+                    ? "bg-[#ef9ab3] text-white"
                     : isPast
-                    ? "bg-primary text-white shadow-sm"
-                    : "bg-border text-text-muted group-hover:bg-zinc-300"
+                    ? "bg-[#ef9ab3] text-white shadow-sm"
+                    : "bg-slate-200 text-slate-600 group-hover:bg-[#f8d6df]"
                 }`}
               >
                 {isPast ? <Check className="h-3 w-3" /> : s.num}
@@ -48,7 +48,7 @@ export function StudioStepper() {
               <div className="mx-2 flex w-8 items-center justify-center">
                 <div
                   className={`h-[2px] w-full rounded-full transition-colors duration-300 ${
-                    isPast ? "bg-primary/30" : "bg-border"
+                    isPast ? "bg-[#ef9ab3]/50" : "bg-slate-200"
                   }`}
                 />
               </div>

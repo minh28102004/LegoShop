@@ -1,5 +1,5 @@
 import type { FrameOptionType, ProductStatus } from '../constants/status';
-import type { ID, JsonObject, PriceInVND, URLString } from '../types/common';
+import type { ID, JsonObject, JsonValue, PriceInVND, URLString } from '../types/common';
 import type {
   Accessory,
   Banner,
@@ -68,6 +68,9 @@ export type UpdateBannerRequestContract = Partial<CreateBannerRequestContract>;
 export type CreateFrameBackgroundRequestContract = {
   title: string;
   imageUrl: URLString;
+  description?: string;
+  instructions?: string;
+  contentFields?: JsonValue;
   sortOrder?: number;
   status?: ProductStatus;
 };

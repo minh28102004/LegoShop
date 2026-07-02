@@ -5,6 +5,7 @@ import {
   type AdminUpdateResourcePayloadMap,
   type QueryParams,
 } from '@lego-shop/api-client';
+import type { ChangeAdminPasswordResponseContract } from '@lego-shop/shared';
 import { apiRequest } from '@/lib/api';
 import { adminApiClient } from '@/lib/api/admin-client';
 import { clearAccessToken } from '@/modules/auth/services/authStorage';
@@ -137,6 +138,19 @@ async function withAdminAuth<T>(request: Promise<T>): Promise<T> {
 
 export async function me() {
   return withAdminAuth(adminApiClient.auth.adminMe()) as Promise<AdminProfile>;
+}
+
+export async function updateAdminProfile(payload: { name?: string | null }) {
+  return withAdminAuth(adminApiClient.auth.updateAdminProfile(payload)) as Promise<AdminProfile>;
+}
+
+export async function changeAdminPassword(payload: {
+  currentPassword: string;
+  newPassword: string;
+}) {
+  return withAdminAuth(
+    adminApiClient.auth.changeAdminPassword(payload),
+  ) as Promise<ChangeAdminPasswordResponseContract>;
 }
 
 export async function uploadImage(file: File) {

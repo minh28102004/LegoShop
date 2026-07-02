@@ -15,6 +15,20 @@ export type AdminLoginResponse = {
   admin: AdminProfile;
 };
 
+export type UpdateAdminProfilePayload = {
+  name?: string | null;
+};
+
+export type ChangeAdminPasswordPayload = {
+  currentPassword: string;
+  newPassword: string;
+};
+
+export type ChangeAdminPasswordResponse = {
+  success: boolean;
+  message: string;
+};
+
 export type UserAuthResponse = {
   accessToken: string;
   user: PublicUser;

@@ -1,7 +1,7 @@
 'use client';
 
-import dynamic from 'next/dynamic';
 import Image from 'next/image';
+import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import {
   type ChangeEvent,
@@ -17,9 +17,9 @@ import { ADMIN_ROUTES } from '@/common/constants/routes';
 import { cn } from '@/common/utils/cn';
 import { useI18n } from '@/lib/i18n/useI18n';
 import LanguageSwitcher from '@/modules/admin/components/LanguageSwitcher';
+import BannerCarousel from '@/modules/auth/components/BannerCarousel';
 import { login } from '@/modules/auth/services/authApi';
 import { setAccessToken } from '@/modules/auth/services/authStorage';
-import BannerCarousel from '@/modules/auth/components/BannerCarousel';
 
 const LegoScene = dynamic(() => import('@/components/LegoScene'), {
   ssr: false,
@@ -105,8 +105,8 @@ function LoginField({
   return (
     <label className='block' htmlFor={id}>
       <span className='mb-2 block text-sm font-semibold text-slate-700'>{label}</span>
-      <div className='group relative rounded-2xl border border-[var(--admin-border)] bg-white shadow-[0_1px_2px_rgba(15,23,42,0.03)] transition-colors duration-150 ease-out hover:border-slate-300 focus-within:border-[var(--admin-primary)]'>
-        <span className='pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 transition-colors duration-200 group-focus-within:text-[#2F91D0]'>
+      <div className='group relative rounded-[14px] border border-[var(--admin-border)] bg-white shadow-[0_1px_2px_rgba(15,23,42,0.03)] transition-[border-color,box-shadow] duration-75 ease-out hover:border-[var(--admin-border-strong)] focus-within:border-[var(--admin-primary)] focus-within:shadow-[var(--admin-focus-ring)]'>
+        <span className='pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 transition-colors duration-75 group-focus-within:text-[#2F91D0]'>
           {icon}
         </span>
         <input
@@ -119,12 +119,12 @@ function LoginField({
           onChange={onChange}
           onInvalid={onInvalid}
           className={cn(
-            'h-13 w-full rounded-2xl bg-transparent pl-12 text-base font-medium text-slate-950 outline-none placeholder:text-slate-400',
-            rightAction ? 'pr-13' : 'pr-4',
+            'h-11 w-full rounded-[14px] bg-transparent pl-12 text-sm font-medium text-slate-950 outline-none placeholder:text-slate-400 focus-visible:ring-0 sm:text-base',
+            rightAction ? 'pr-12' : 'pr-4',
           )}
         />
         {rightAction ? (
-          <span className='absolute right-2 top-1/2 -translate-y-1/2'>{rightAction}</span>
+          <span className='absolute right-3 top-1/2 -translate-y-1/2'>{rightAction}</span>
         ) : null}
       </div>
     </label>
@@ -186,7 +186,7 @@ export default function LoginForm() {
           variants={shellVariants}
           initial={motionEnabled ? 'hidden' : false}
           animate='show'
-          className='relative grid w-full overflow-hidden rounded-[24px] border border-white/70 bg-white/46 shadow-[0_34px_110px_-58px_rgba(15,23,42,0.56)] backdrop-blur-2xl lg:min-h-[660px] lg:grid-cols-[minmax(0,0.98fr)_minmax(392px,0.9fr)] xl:rounded-[28px]'
+          className='relative grid w-full overflow-hidden rounded-[24px] border border-white/70 bg-white/46 shadow-[0_34px_110px_-58px_rgba(15,23,42,0.56)] backdrop-blur-lg lg:min-h-[660px] lg:grid-cols-[minmax(0,0.98fr)_minmax(392px,0.9fr)] xl:rounded-[28px]'
         >
           <div className='pointer-events-none absolute inset-0 bg-[linear-gradient(135deg,rgba(255,255,255,0.58),rgba(255,255,255,0.2)_42%,rgba(255,255,255,0.48))]' />
           <div className='pointer-events-none absolute inset-x-6 top-0 h-px bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.95),transparent)]' />
@@ -198,54 +198,58 @@ export default function LoginForm() {
             className='relative flex min-h-[500px] flex-col justify-center gap-6 overflow-hidden px-5 py-6 sm:px-7 sm:py-7 lg:min-h-0 lg:px-8 lg:py-8 xl:px-9'
           >
             <div className='w-full max-w-[500px]'>
-              <div className='relative rounded-[22px] border border-white/72 bg-white/50 p-2.5 shadow-[0_20px_58px_-44px_rgba(15,23,42,0.54)] backdrop-blur-xl'>
+              <div className='relative rounded-[22px] border border-white/72 bg-white/50 p-2.5 shadow-[0_20px_58px_-44px_rgba(15,23,42,0.54)] backdrop-blur-lg'>
                 <div className='grid min-h-[218px] grid-cols-12 grid-rows-[101px_101px] gap-2.5 sm:min-h-[238px] sm:grid-rows-[111px_111px]'>
-                  <div className='relative col-span-7 row-span-2 overflow-hidden rounded-[18px] border border-white/70 bg-white shadow-[0_16px_34px_-28px_rgba(15,23,42,0.48)]'>
+                  <div className='relative col-span-7 row-span-2 overflow-hidden rounded-[18px] border border-white/70 bg-white shadow-[0_12px_28px_-24px_rgba(15,23,42,0.42)]'>
                     <Image
                       src='/login-lego-shop-banner.png'
                       alt='Figure Lab Lego minifigure shop showcase'
                       width={1920}
                       height={768}
                       priority
+                      sizes='(min-width: 1024px) 340px, 60vw'
                       className='h-full w-full object-cover object-center'
                     />
                     <div className='pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0),rgba(255,255,255,0.14))]' />
                   </div>
 
-                  <div className='relative col-span-5 overflow-hidden rounded-[18px] border border-white/70 bg-white shadow-[0_14px_30px_-28px_rgba(15,23,42,0.44)]'>
+                  <div className='relative col-span-5 overflow-hidden rounded-[18px] border border-white/70 bg-white shadow-[0_10px_24px_-22px_rgba(15,23,42,0.38)]'>
                     <Image
                       src='/login-template-birthday.png'
                       alt='Birthday figure template preview'
                       width={1000}
                       height={1000}
+                      sizes='(min-width: 1024px) 150px, 40vw'
                       className='h-full w-full object-cover object-[50%_34%]'
                     />
                   </div>
 
                   <div className='relative col-span-5 grid grid-cols-2 gap-2.5'>
-                    <div className='relative overflow-hidden rounded-2xl border border-white/70 bg-white shadow-[0_14px_30px_-28px_rgba(15,23,42,0.44)]'>
+                    <div className='relative overflow-hidden rounded-2xl border border-white/70 bg-white shadow-[0_10px_24px_-22px_rgba(15,23,42,0.38)]'>
                       <Image
                         src='/login-template-graduation-b.png'
                         alt='Graduation frame template preview'
                         width={1000}
                         height={1000}
+                        sizes='(min-width: 1024px) 72px, 20vw'
                         className='h-full w-full object-cover object-[50%_26%]'
                       />
                     </div>
-                    <div className='relative overflow-hidden rounded-2xl border border-white/70 bg-white shadow-[0_14px_30px_-28px_rgba(15,23,42,0.44)]'>
+                    <div className='relative overflow-hidden rounded-2xl border border-white/70 bg-white shadow-[0_10px_24px_-22px_rgba(15,23,42,0.38)]'>
                       <Image
                         src='/login-template-valentine.png'
                         alt='Valentine figure template preview'
                         width={1000}
                         height={1000}
+                        sizes='(min-width: 1024px) 72px, 20vw'
                         className='h-full w-full object-cover object-[58%_30%]'
                       />
                     </div>
                   </div>
                 </div>
 
-                <div className='pointer-events-none absolute -bottom-3 left-9 h-11 w-24 rounded-2xl border border-white/70 bg-white/58 shadow-[0_16px_34px_-30px_rgba(15,23,42,0.54)] backdrop-blur-xl' />
-                <div className='pointer-events-none absolute -right-2 top-8 h-14 w-12 rotate-6 rounded-2xl border border-white/70 bg-[#F5C542]/66 shadow-[0_16px_34px_-30px_rgba(15,23,42,0.54)] backdrop-blur-xl' />
+                <div className='pointer-events-none absolute -bottom-3 left-9 h-11 w-24 rounded-2xl border border-white/70 bg-white/58 shadow-[0_12px_26px_-24px_rgba(15,23,42,0.46)] backdrop-blur-md' />
+                <div className='pointer-events-none absolute -right-2 top-8 h-14 w-12 rotate-6 rounded-2xl border border-white/70 bg-[#F5C542]/66 shadow-[0_12px_26px_-24px_rgba(15,23,42,0.46)] backdrop-blur-md' />
               </div>
             </div>
 
@@ -264,7 +268,7 @@ export default function LoginForm() {
                 className='mb-5 flex items-center justify-between gap-4'
               >
                 <div className='flex min-w-0 items-center gap-3'>
-                  <span className='grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-2xl bg-white shadow-[0_14px_30px_-24px_rgba(15,23,42,0.55)] ring-1 ring-white/80'>
+                  <span className='grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-2xl bg-white shadow-[0_10px_24px_-20px_rgba(15,23,42,0.48)] ring-1 ring-white/80'>
                     <Image
                       src='/figure-lab-logo.png'
                       alt='Figure Lab'
@@ -275,9 +279,8 @@ export default function LoginForm() {
                     />
                   </span>
                   <div className='min-w-0'>
-                    <p className='text-sm font-bold text-slate-500'>Figure Lab</p>
-                    <p className='truncate text-lg font-bold leading-6 text-slate-950'>
-                      Admin Console
+                    <p className='truncate pb-0.5 text-2xl font-bold leading-[1.2] text-slate-950'>
+                      Figure Lab
                     </p>
                   </div>
                 </div>
@@ -297,14 +300,14 @@ export default function LoginForm() {
                   variants={formCardVariants}
                   initial={motionEnabled ? 'hidden' : false}
                   animate='show'
-                  className='rounded-[22px] border border-white/76 bg-white/78 p-5 shadow-[0_24px_70px_-44px_rgba(15,23,42,0.48)] backdrop-blur-2xl sm:p-7'
+                  className='rounded-[22px] border border-white/76 bg-white/78 p-5 shadow-[0_24px_70px_-44px_rgba(15,23,42,0.48)] backdrop-blur-lg sm:p-7'
                 >
                   <motion.div variants={formItemVariants}>
                     <h2 className='text-[30px] font-bold leading-tight tracking-normal text-[#0F172A]'>
-                      Đăng nhập quản trị
+                      {t('auth.loginTitle')}
                     </h2>
                     <p className='mt-2 text-[15px] font-medium leading-6 text-slate-500'>
-                      Quản lý hệ thống bán hàng Lego & Figure
+                      {t('auth.loginSubtitle')}
                     </p>
                   </motion.div>
 
@@ -313,7 +316,7 @@ export default function LoginForm() {
                       id='admin-login-email'
                       type='email'
                       autoComplete='email'
-                      label='Email'
+                      label={t('auth.email')}
                       icon={<Mail className='h-5 w-5' aria-hidden='true' />}
                       value={email}
                       onChange={(event) => setEmail(event.target.value)}
@@ -323,7 +326,7 @@ export default function LoginForm() {
                       id='admin-login-password'
                       type={showPassword ? 'text' : 'password'}
                       autoComplete='current-password'
-                      label='Password'
+                      label={t('auth.password')}
                       icon={<LockKeyhole className='h-5 w-5' aria-hidden='true' />}
                       value={password}
                       onChange={(event) => setPassword(event.target.value)}
@@ -331,9 +334,9 @@ export default function LoginForm() {
                       rightAction={
                         <button
                           type='button'
-                          aria-label={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
+                          aria-label={showPassword ? t('auth.hidePassword') : t('auth.showPassword')}
                           onClick={() => setShowPassword((current) => !current)}
-                          className='grid h-10 w-10 place-items-center rounded-full text-slate-400 transition-colors duration-200 hover:bg-[#EEF6FF] hover:text-slate-800 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[rgba(77,163,255,0.14)]'
+                          className='grid h-8 w-8 place-items-center rounded-full text-slate-400 transition-colors duration-75 hover:bg-[#EEF6FF] hover:text-slate-800 active:bg-[#DFF0FF] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[rgba(77,163,255,0.22)]'
                         >
                           {showPassword ? (
                             <EyeOff className='h-5 w-5' aria-hidden='true' />
@@ -348,9 +351,9 @@ export default function LoginForm() {
                   <motion.div variants={formItemVariants} className='mt-4 flex items-center justify-end'>
                     <a
                       href='mailto:support@figurelab.local'
-                      className='text-sm font-semibold text-[#2F91D0] transition-colors duration-200 hover:text-[#1F6FB0] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[rgba(77,163,255,0.14)]'
+                      className='group relative rounded-lg text-sm font-semibold text-[#2F91D0] transition-colors duration-75 after:absolute after:-bottom-0.5 after:left-0 after:h-px after:w-full after:origin-left after:scale-x-0 after:bg-current after:transition-transform after:duration-200 after:ease-out hover:text-[#1F6FB0] hover:after:scale-x-100 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[rgba(77,163,255,0.22)] focus-visible:after:scale-x-100'
                     >
-                      Quên mật khẩu?
+                      {t('auth.forgotPassword')}
                     </a>
                   </motion.div>
 
@@ -366,9 +369,9 @@ export default function LoginForm() {
                       rightIcon={
                         !loading ? <ArrowRight className='h-4 w-4' aria-hidden='true' /> : undefined
                       }
-                      className='mt-7 min-h-13 w-full rounded-2xl bg-[#4DA3FF] py-3.5 text-base shadow-[0_18px_34px_-24px_rgba(47,145,208,0.78)] hover:bg-[#2F91D0] hover:shadow-[0_24px_44px_-26px_rgba(47,145,208,0.9)]'
+                      className='mt-7 min-h-13 w-full rounded-2xl bg-[#4DA3FF] py-3.5 text-base shadow-[0_16px_30px_-24px_rgba(47,145,208,0.72)] hover:bg-[#2F91D0] active:bg-[#1F78B8] active:shadow-[0_10px_20px_-18px_rgba(47,145,208,0.78)]'
                     >
-                      {loading ? t('auth.signingIn') : 'Đăng nhập'}
+                      {loading ? t('auth.signingIn') : t('auth.signIn')}
                     </Button>
                   </motion.div>
                 </motion.form>

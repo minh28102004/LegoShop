@@ -3,29 +3,30 @@
 import { useEffect, useRef, useState } from 'react';
 import { ArrowUpRight, BarChart3, Boxes, CircleDollarSign, Layers3 } from 'lucide-react';
 import { cn } from '@/common/utils/cn';
+import { useI18n } from '@/lib/i18n/useI18n';
 
 const BANNERS = [
   {
-    eyebrow: 'Catalog intelligence',
-    headline: 'Cleaner catalog control.',
+    eyebrowKey: 'auth.carousel.catalogEyebrow',
+    headlineKey: 'auth.carousel.catalogHeadline',
     metric: '+34%',
-    metricLabel: 'faster catalog updates',
+    metricLabelKey: 'auth.carousel.catalogMetricLabel',
     accent: '#4DA3FF',
     icon: Boxes,
   },
   {
-    eyebrow: 'Order operations',
-    headline: 'Track every order flow.',
+    eyebrowKey: 'auth.carousel.ordersEyebrow',
+    headlineKey: 'auth.carousel.ordersHeadline',
     metric: '128',
-    metricLabel: 'orders in motion',
+    metricLabelKey: 'auth.carousel.ordersMetricLabel',
     accent: '#F5C542',
     icon: Layers3,
   },
   {
-    eyebrow: 'Revenue clarity',
-    headline: 'See daily revenue faster.',
+    eyebrowKey: 'auth.carousel.revenueEyebrow',
+    headlineKey: 'auth.carousel.revenueHeadline',
     metric: '2.4x',
-    metricLabel: 'clearer revenue reads',
+    metricLabelKey: 'auth.carousel.revenueMetricLabel',
     accent: '#E94B5A',
     icon: CircleDollarSign,
   },
@@ -77,6 +78,7 @@ function ProductMock({ accent }: { accent: string }) {
 }
 
 export default function BannerCarousel() {
+  const { t } = useI18n();
   const [activeIndex, setActiveIndex] = useState(0);
   const pointerStartX = useRef<number | null>(null);
 
@@ -122,7 +124,7 @@ export default function BannerCarousel() {
 
           return (
             <article
-              key={banner.headline}
+              key={banner.headlineKey}
               className={cn(
                 'absolute inset-0 grid gap-3 rounded-[20px] transition-opacity duration-300 ease-out sm:grid-cols-[minmax(0,0.9fr)_minmax(190px,1.1fr)]',
                 active
@@ -136,15 +138,15 @@ export default function BannerCarousel() {
                   <div className='mb-4 inline-flex h-10 w-10 items-center justify-center rounded-2xl text-white shadow-[0_14px_28px_-20px_rgba(15,23,42,0.62)]' style={{ backgroundColor: banner.accent }}>
                     <Icon className='h-4 w-4' aria-hidden='true' />
                   </div>
-                  <p className='text-xs font-bold uppercase text-slate-500'>{banner.eyebrow}</p>
+                  <p className='text-xs font-bold uppercase text-slate-500'>{t(banner.eyebrowKey)}</p>
                   <h2 className='mt-2 text-[21px] font-semibold leading-[1.12] tracking-normal text-[#0F172A]'>
-                    {banner.headline}
+                    {t(banner.headlineKey)}
                   </h2>
                 </div>
                 <div className='mt-4 flex items-end justify-between gap-3'>
                   <div>
                     <p className='text-[28px] font-bold leading-none text-[#0F172A]'>{banner.metric}</p>
-                    <p className='mt-1 text-xs font-semibold text-slate-500'>{banner.metricLabel}</p>
+                    <p className='mt-1 text-xs font-semibold text-slate-500'>{t(banner.metricLabelKey)}</p>
                   </div>
                   <span className='grid h-9 w-9 place-items-center rounded-full border border-white/74 bg-white/72 text-slate-700 shadow-[0_12px_28px_-22px_rgba(15,23,42,0.55)]'>
                     <ArrowUpRight className='h-4 w-4' aria-hidden='true' />
@@ -161,9 +163,9 @@ export default function BannerCarousel() {
       <div className='relative mt-3 flex justify-center gap-2'>
         {BANNERS.map((banner, index) => (
           <button
-            key={banner.eyebrow}
+            key={banner.eyebrowKey}
             type='button'
-            aria-label={`Show banner ${index + 1}`}
+            aria-label={`${t('auth.showBanner')} ${index + 1}`}
             aria-current={index === activeIndex}
             onClick={() => goTo(index)}
             className={cn(

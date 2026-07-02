@@ -18,6 +18,8 @@ export const ADMIN_ROUTES = {
   paymentSettings: '/payment-settings',
   templateCategories: '/template-categories',
   accessoryCategories: '/accessory-categories',
+  profile: '/profile',
+  changePassword: '/change-password',
 } as const;
 
 export type AdminNavIcon =

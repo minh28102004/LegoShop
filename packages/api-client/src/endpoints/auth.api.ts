@@ -1,9 +1,12 @@
 import type {
   AdminLoginResponseContract,
   AdminProfile,
+  ChangeAdminPasswordRequestContract,
+  ChangeAdminPasswordResponseContract,
   LoginRequestContract,
   PublicUser,
   RegisterRequestContract,
+  UpdateAdminProfileRequestContract,
   UserLoginResponseContract,
   UserRegisterResponseContract,
 } from '@lego-shop/shared';
@@ -21,6 +24,24 @@ export function createAuthApi(request: ApiRequester) {
     adminMe(): Promise<AdminProfile> {
       return request('auth/me', {
         auth: true,
+      });
+    },
+
+    updateAdminProfile(payload: UpdateAdminProfileRequestContract): Promise<AdminProfile> {
+      return request('auth/profile', {
+        method: 'PATCH',
+        auth: true,
+        body: payload,
+      });
+    },
+
+    changeAdminPassword(
+      payload: ChangeAdminPasswordRequestContract,
+    ): Promise<ChangeAdminPasswordResponseContract> {
+      return request('auth/change-password', {
+        method: 'POST',
+        auth: true,
+        body: payload,
       });
     },
 

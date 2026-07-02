@@ -47,6 +47,8 @@ function AdminShell({
       { href: ADMIN_ROUTES.frameBackgrounds, label: t('sidebar.frameBackgrounds') },
       { href: ADMIN_ROUTES.businessInquiries, label: t('sidebar.businessInquiries') },
       { href: ADMIN_ROUTES.paymentSettings, label: t('sidebar.paymentSettings') },
+      { href: ADMIN_ROUTES.profile, label: t('account.profileTitle') },
+      { href: ADMIN_ROUTES.changePassword, label: t('account.changePasswordTitle') },
     ];
 
     const found = routeMap.find((item) =>

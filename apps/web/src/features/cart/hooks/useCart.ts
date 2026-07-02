@@ -23,8 +23,10 @@ interface UseCartResult {
   isOpen: boolean
   isEmpty: boolean
   addItem: (item: Omit<SimpleCartItem, 'id' | 'addedAt' | 'totalPrice'>) => void
+  updateItem: (id: string, item: Omit<SimpleCartItem, 'id' | 'addedAt' | 'totalPrice'>) => void
   removeItem: (id: string) => void
   updateQuantity: (id: string, quantity: number) => void
+  updateItemNote: (id: string, note: string) => void
   clearCart: () => void
   toggleCart: () => void
   openCart: () => void
@@ -39,8 +41,10 @@ export function useCart(): UseCartResult {
   const totalAmount = useCartStore(selectCartTotalAmount)
   const isOpen = useCartStore(selectCartIsOpen)
   const addItem = useCartStore((state) => state.addItem)
+  const updateItem = useCartStore((state) => state.updateItem)
   const removeItem = useCartStore((state) => state.removeItem)
   const updateQuantity = useCartStore((state) => state.updateQuantity)
+  const updateItemNote = useCartStore((state) => state.updateItemNote)
   const clearCart = useCartStore((state) => state.clearCart)
   const toggleCart = useCartStore((state) => state.toggleCart)
   const openCart = useCartStore((state) => state.openCart)
@@ -65,8 +69,10 @@ export function useCart(): UseCartResult {
     isOpen,
     isEmpty,
     addItem,
+    updateItem,
     removeItem,
     updateQuantity,
+    updateItemNote,
     clearCart,
     toggleCart,
     openCart,

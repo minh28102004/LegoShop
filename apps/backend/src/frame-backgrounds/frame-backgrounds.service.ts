@@ -20,9 +20,19 @@ import { UpdateFrameBackgroundDto } from './dto/update-frame-background.dto';
 export class FrameBackgroundsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  findPublicBackgrounds() {
+  findPublicBackgrounds(frameOptionId?: string) {
     return this.prisma.frameBackground.findMany({
-      where: { status: ProductStatus.active },
+      where: {
+        status: ProductStatus.active,
+        ...(frameOptionId
+          ? {
+              OR: [
+                { frameOptionIds: { isEmpty: true } },
+                { frameOptionIds: { has: frameOptionId } },
+              ],
+            }
+          : {}),
+      },
       orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }],
     });
   }
@@ -119,6 +129,7 @@ export class FrameBackgroundsService {
           dto.contentFields !== undefined
             ? (dto.contentFields as Prisma.InputJsonValue)
             : undefined,
+        frameOptionIds: dto.frameOptionIds,
         sortOrder: dto.sortOrder,
         status: dto.status,
       },
@@ -145,6 +156,7 @@ export class FrameBackgroundsService {
         ...(dto.contentFields !== undefined
           ? { contentFields: dto.contentFields as Prisma.InputJsonValue }
           : {}),
+        ...(dto.frameOptionIds !== undefined ? { frameOptionIds: dto.frameOptionIds } : {}),
         ...(dto.sortOrder !== undefined ? { sortOrder: dto.sortOrder } : {}),
         ...(dto.status !== undefined ? { status: dto.status } : {}),
       },

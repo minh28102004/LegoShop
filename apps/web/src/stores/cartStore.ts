@@ -13,6 +13,18 @@ import { immer } from 'zustand/middleware/immer'
 // TYPES
 // ------------------------------------------------------------
 
+export type CartItemPartType = 'frame' | 'background' | 'character' | 'accessory' | 'product' | 'retail'
+
+export interface CartItemPart {
+  id?: string
+  type: CartItemPartType
+  name: string
+  quantity: number
+  unitPrice: number
+  totalPrice: number
+  imageUrl?: string | null
+}
+
 export interface SimpleCartItem {
   id: string               // generated UUID
   productId: string | null
@@ -20,10 +32,13 @@ export interface SimpleCartItem {
   quantity: number
   unitPrice: number        // giá per unit (từ frameSize.price)
   totalPrice: number       // unitPrice * quantity
+  note?: string
+  frameOptionId?: string
   frameSizeId: string
   frameSizeLabel: string
   frameColorName: string
-  accessories?: Array<{ id: string; name: string; price: number }>
+  accessories?: Array<{ id: string; name: string; price: number; quantity?: number }>
+  parts?: CartItemPart[]
   templateId?: string | null
   designData: Record<string, unknown>   // { elements, printText, templateId, ... }
   previewUrl: string | null
@@ -39,8 +54,10 @@ interface CartState {
 
 interface CartActions {
   addItem: (item: Omit<SimpleCartItem, 'id' | 'addedAt' | 'totalPrice'>) => void
+  updateItem: (id: string, item: Omit<SimpleCartItem, 'id' | 'addedAt' | 'totalPrice'>) => void
   removeItem: (id: string) => void
   updateQuantity: (id: string, quantity: number) => void
+  updateItemNote: (id: string, note: string) => void
   clearCart: () => void
   openCart: () => void
   closeCart: () => void
@@ -112,6 +129,23 @@ export const useCartStore = create<CartStore>()(
         })
       },
 
+      updateItem: (id, itemData) => {
+        set((state) => {
+          const existing = state.items.find((item) => item.id === id)
+          if (!existing) return
+
+          Object.assign(existing, {
+            ...itemData,
+            id,
+            totalPrice: itemData.unitPrice * itemData.quantity,
+          })
+
+          const totals = computeTotals(state.items)
+          state.totalAmount = totals.totalAmount
+          state.itemCount = totals.itemCount
+        })
+      },
+
       removeItem: (id) => {
         set((state) => {
           state.items = state.items.filter((item) => item.id !== id)
@@ -135,6 +169,15 @@ export const useCartStore = create<CartStore>()(
           const totals = computeTotals(state.items)
           state.totalAmount = totals.totalAmount
           state.itemCount = totals.itemCount
+        })
+      },
+
+      updateItemNote: (id, note) => {
+        set((state) => {
+          const item = state.items.find((i) => i.id === id)
+          if (item) {
+            item.note = note
+          }
         })
       },
 

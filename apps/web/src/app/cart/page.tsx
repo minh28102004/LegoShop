@@ -4,14 +4,14 @@ import { useCart } from "@/features/cart/hooks/useCart";
 import Link from "next/link";
 import Image from "next/image";
 import { Trash2, Minus, Plus, ShoppingBag, ArrowRight, Pencil, ChevronRight } from "lucide-react";
+import { resolveApiAssetUrl } from "@/lib/api/assets";
+import { getCartItemParts } from "@/lib/cart-parts";
 import { formatPrice } from "@/lib/formatters";
 import { ROUTES } from "@/constants";
-import { FREESHIP_THRESHOLD } from "@/components/studio/StudioContext";
+import { getDesignCharacterCount, getDesignTemplateName } from "@/components/studio/design-data";
 
 export default function CartPage() {
-  const { items, updateQuantity, removeItem, totalAmount, isEmpty, itemCount } = useCart();
-  const freeshipRemaining = Math.max(0, FREESHIP_THRESHOLD - totalAmount);
-  const isFree = freeshipRemaining === 0;
+  const { items, updateQuantity, updateItemNote, removeItem, totalAmount, isEmpty, itemCount } = useCart();
 
   return (
     <div className="min-h-screen bg-background">
@@ -42,26 +42,27 @@ export default function CartPage() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
             {/* Items */}
             <div className="lg:col-span-2 space-y-4">
-              {/* Freeship bar */}
+              {/* Shipping note */}
               <div className="bg-surface rounded-2xl border border-border p-4">
-                {isFree ? (
-                  <p className="text-sm font-semibold text-emerald-600 flex items-center gap-2">🎉 Bạn đã được Miễn phí vận chuyển thường!</p>
-                ) : (
-                  <div className="space-y-2">
-                    <p className="text-sm text-text-secondary">Thêm <strong className="text-text-primary">{formatPrice(freeshipRemaining)}</strong> để được miễn phí vận chuyển</p>
-                    <div className="h-2 bg-border rounded-full overflow-hidden">
-                      <div className="h-full bg-primary rounded-full transition-all duration-500" style={{ width: `${Math.min(100, (totalAmount / FREESHIP_THRESHOLD) * 100)}%` }} />
-                    </div>
-                  </div>
-                )}
+                <p className="text-sm font-semibold text-text-primary">Phí vận chuyển chưa cộng vào đơn.</p>
+                <p className="mt-1 text-sm text-text-secondary">
+                  Shop sẽ báo phí trước khi giao; khách thanh toán phí ship trực tiếp cho tài xế.
+                </p>
               </div>
 
-              {items.map(item => (
+              {items.map(item => {
+                const previewUrl = resolveApiAssetUrl(item.previewUrl);
+                const templateName = getDesignTemplateName(item.designData);
+                const characterCount = getDesignCharacterCount(item.designData);
+                const parts = getCartItemParts(item);
+                const canEditDesign = item.designData?.type === "CUSTOM_FRAME";
+
+                return (
                 <div key={item.id} className="flex gap-5 p-5 bg-surface rounded-2xl border border-border hover:border-primary/20 transition-colors">
                   {/* Preview */}
                   <div className="w-28 h-28 bg-background rounded-xl overflow-hidden shrink-0 relative border border-border">
-                    {item.previewUrl ? (
-                      <Image src={item.previewUrl} alt={item.productName} fill className="object-cover" sizes="112px" />
+                    {previewUrl ? (
+                      <Image src={previewUrl} alt={item.productName} fill className="object-cover" sizes="112px" />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">
                         <ShoppingBag className="w-8 h-8 text-text-muted" />
@@ -73,17 +74,58 @@ export default function CartPage() {
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
                         <h3 className="font-bold text-base text-text-primary truncate">{item.productName}</h3>
-                        <p className="text-sm text-text-muted mt-0.5">{item.frameSizeLabel} · {item.frameColorName}</p>
+                        <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                          {parts.map((part, index) => {
+                            const partImage = resolveApiAssetUrl(part.imageUrl);
+                            return (
+                              <div key={`${part.type}-${part.id ?? index}`} className="flex items-center gap-3 rounded-xl border border-border bg-background px-3 py-2">
+                                <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-border bg-white">
+                                  {partImage ? (
+                                    <img src={partImage} alt={part.name} className="h-full w-full object-cover" />
+                                  ) : (
+                                    <ShoppingBag className="h-4 w-4 text-text-muted" />
+                                  )}
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <p className="truncate text-xs font-bold text-text-primary">{part.name}</p>
+                                  <p className="text-[11px] text-text-muted">x{part.quantity}</p>
+                                </div>
+                                <span className="shrink-0 text-xs font-black text-text-primary">{formatPrice(part.totalPrice)}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                        <div className="hidden">
+                        <p className="text-sm text-text-muted mt-0.5">
+                          {[item.frameSizeLabel, item.frameColorName].filter(Boolean).join(" · ")}
+                        </p>
                         {item.accessories?.length ? (
                           <p className="text-xs text-text-muted mt-0.5 truncate">
-                            Phu kien: {item.accessories.map(acc => acc.name).join(", ")}
+                            Phụ kiện: {item.accessories.map(acc => acc.name).join(", ")}
                           </p>
                         ) : null}
+                        {templateName ? (
+                          <p className="text-xs text-text-muted mt-0.5 truncate">Nền: {templateName}</p>
+                        ) : null}
+                        {characterCount > 0 ? (
+                          <p className="text-xs text-text-muted mt-0.5">{characterCount} nhân vật</p>
+                        ) : null}
+                        </div>
                         {item.designData && (
                           <span className="inline-block mt-1 text-xs text-primary font-semibold bg-primary/10 px-2 py-0.5 rounded-full">
                             Đã cá nhân hóa
                           </span>
                         )}
+                        <label className="mt-3 block">
+                          <span className="mb-1 block text-xs font-semibold text-text-muted">Ghi chú nội dung cho sản phẩm</span>
+                          <textarea
+                            rows={2}
+                            value={item.note ?? ""}
+                            onChange={(event) => updateItemNote(item.id, event.target.value)}
+                            placeholder="VD: in tên, lời chúc, nội dung cần shop thay vào mẫu..."
+                            className="w-full resize-none rounded-xl border border-border bg-background px-3 py-2 text-sm text-text-primary outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
+                          />
+                        </label>
                       </div>
                       <button type="button" onClick={() => removeItem(item.id)}
                         className="shrink-0 p-1.5 text-text-muted hover:text-error hover:bg-error/10 rounded-lg transition-all">
@@ -111,12 +153,15 @@ export default function CartPage() {
                       </div>
                     </div>
 
-                    <Link href={ROUTES.studio} className="inline-flex items-center gap-1 mt-2 text-xs font-semibold text-text-muted hover:text-primary transition-colors">
+                    {canEditDesign ? (
+                    <Link href={`${ROUTES.studio}?editCartItemId=${encodeURIComponent(item.id)}`} className="inline-flex items-center gap-1 mt-2 text-xs font-semibold text-text-muted hover:text-primary transition-colors">
                       <Pencil className="w-3 h-3" /> Chỉnh sửa thiết kế
                     </Link>
+                    ) : null}
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
 
             {/* Summary */}
@@ -130,9 +175,7 @@ export default function CartPage() {
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-text-secondary">Phí vận chuyển</span>
-                  <span className={`font-semibold ${isFree ? 'text-emerald-600' : 'text-text-muted'}`}>
-                    {isFree ? 'Miễn phí' : 'Tính khi thanh toán'}
-                  </span>
+                  <span className="font-semibold text-text-muted">Shop báo trước khi giao</span>
                 </div>
                 <div className="border-t border-border pt-3 flex justify-between items-center">
                   <span className="font-black text-text-primary">Tổng cộng</span>

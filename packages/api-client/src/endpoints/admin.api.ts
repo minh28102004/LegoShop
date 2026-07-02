@@ -3,10 +3,12 @@ import type {
   AccessoryCategory,
   Banner,
   BusinessInquiryContract,
+  Character,
   Collection,
   CreateAccessoryRequestContract,
   CreateBannerRequestContract,
   CreateCategoryRequestContract,
+  CreateCharacterRequestContract,
   CreateCollectionRequestContract,
   CreateFrameBackgroundRequestContract,
   CreateFrameColorRequestContract,
@@ -14,6 +16,7 @@ import type {
   CreateFrameSizeRequestContract,
   CreateProductRequestContract,
   CreateTemplateRequestContract,
+  CreateVoucherRequestContract,
   FrameBackground,
   FrameColor,
   FrameOption,
@@ -28,6 +31,7 @@ import type {
   UpdateBannerRequestContract,
   UpdateBusinessInquiryStatusRequestContract,
   UpdateCategoryRequestContract,
+  UpdateCharacterRequestContract,
   UpdateCollectionRequestContract,
   UpdateFrameBackgroundRequestContract,
   UpdateFrameColorRequestContract,
@@ -39,6 +43,8 @@ import type {
   UpdateProductRequestContract,
   UpdateShippingStatusRequestContract,
   UpdateTemplateRequestContract,
+  UpdateVoucherRequestContract,
+  Voucher,
 } from '@lego-shop/shared';
 import type { ApiRequester, QueryParams } from '../client';
 
@@ -48,12 +54,14 @@ export const ADMIN_RESOURCE_PATHS = {
   'frame-options': 'admin/frame-options',
   'template-categories': 'admin/template-categories',
   accessories: 'admin/accessories',
+  characters: 'admin/characters',
   'accessory-categories': 'admin/accessory-categories',
   banners: 'admin/banners',
   'frame-backgrounds': 'admin/frame-backgrounds',
   collections: 'admin/collections',
   'frame-sizes': 'admin/frame-sizes',
   'frame-colors': 'admin/frame-colors',
+  vouchers: 'admin/vouchers',
 } as const;
 
 export type AdminResourceKey = keyof typeof ADMIN_RESOURCE_PATHS;
@@ -64,12 +72,14 @@ export type AdminResourceMap = {
   'frame-options': FrameOption;
   'template-categories': TemplateCategory;
   accessories: Accessory;
+  characters: Character;
   'accessory-categories': AccessoryCategory;
   banners: Banner;
   'frame-backgrounds': FrameBackground;
   collections: Collection;
   'frame-sizes': FrameSize;
   'frame-colors': FrameColor;
+  vouchers: Voucher;
 };
 
 export type AdminCreateResourcePayloadMap = {
@@ -78,12 +88,14 @@ export type AdminCreateResourcePayloadMap = {
   'frame-options': CreateFrameOptionRequestContract;
   'template-categories': CreateCategoryRequestContract;
   accessories: CreateAccessoryRequestContract;
+  characters: CreateCharacterRequestContract;
   'accessory-categories': CreateCategoryRequestContract;
   banners: CreateBannerRequestContract;
   'frame-backgrounds': CreateFrameBackgroundRequestContract;
   collections: CreateCollectionRequestContract;
   'frame-sizes': CreateFrameSizeRequestContract;
   'frame-colors': CreateFrameColorRequestContract;
+  vouchers: CreateVoucherRequestContract;
 };
 
 export type AdminUpdateResourcePayloadMap = {
@@ -92,12 +104,14 @@ export type AdminUpdateResourcePayloadMap = {
   'frame-options': UpdateFrameOptionRequestContract;
   'template-categories': UpdateCategoryRequestContract;
   accessories: UpdateAccessoryRequestContract;
+  characters: UpdateCharacterRequestContract;
   'accessory-categories': UpdateCategoryRequestContract;
   banners: UpdateBannerRequestContract;
   'frame-backgrounds': UpdateFrameBackgroundRequestContract;
   collections: UpdateCollectionRequestContract;
   'frame-sizes': UpdateFrameSizeRequestContract;
   'frame-colors': UpdateFrameColorRequestContract;
+  vouchers: UpdateVoucherRequestContract;
 };
 
 export type AdminListResourceResponse<TResource> = TResource[] | PaginatedResponse<TResource>;

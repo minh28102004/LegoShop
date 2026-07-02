@@ -16,7 +16,7 @@ import {
 } from 'class-validator';
 import { CreateOrderItemDto } from './create-order-item.dto';
 
-const SHIPPING_METHODS = ['standard', 'fast', 'self'] as const;
+const SHIPPING_METHODS = ['shop_support', 'self', 'standard', 'fast'] as const;
 const POLAROID_OPTIONS = ['none', '2', '4'] as const;
 
 export class CreateOrderDto {
@@ -36,9 +36,21 @@ export class CreateOrderDto {
   @Transform(({ value }: { value: unknown }) =>
     typeof value === 'string' ? value.trim() : value,
   )
+  @IsOptional()
   @IsString()
   @IsNotEmpty()
   phone: string;
+
+  @ApiPropertyOptional({
+    example: '0909123456',
+  })
+  @Transform(({ value }: { value: unknown }) =>
+    typeof value === 'string' ? value.trim() : value,
+  )
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  customerPhone?: string;
 
   @ApiPropertyOptional({
     example: 'a@example.com',
@@ -50,15 +62,47 @@ export class CreateOrderDto {
   @IsEmail()
   email?: string;
 
+  @ApiPropertyOptional({
+    example: 'a@example.com',
+  })
+  @Transform(({ value }: { value: unknown }) =>
+    typeof value === 'string' ? value.trim() : value,
+  )
+  @IsOptional()
+  @IsEmail()
+  customerEmail?: string;
+
+  @ApiPropertyOptional({
+    example: '0909123456',
+  })
+  @Transform(({ value }: { value: unknown }) =>
+    typeof value === 'string' ? value.trim() : value,
+  )
+  @IsOptional()
+  @IsString()
+  customerZalo?: string;
+
   @ApiProperty({
     example: '123 Nguyen Trai, HCM',
   })
   @Transform(({ value }: { value: unknown }) =>
     typeof value === 'string' ? value.trim() : value,
   )
+  @IsOptional()
   @IsString()
   @IsNotEmpty()
   address: string;
+
+  @ApiPropertyOptional({
+    example: '123 Nguyen Trai',
+  })
+  @Transform(({ value }: { value: unknown }) =>
+    typeof value === 'string' ? value.trim() : value,
+  )
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  addressLine?: string;
 
   @ApiPropertyOptional({
     example: 'Ha Noi',
@@ -69,6 +113,16 @@ export class CreateOrderDto {
   @IsOptional()
   @IsString()
   province?: string;
+
+  @ApiPropertyOptional({
+    example: 'Ha Noi',
+  })
+  @Transform(({ value }: { value: unknown }) =>
+    typeof value === 'string' ? value.trim() : value,
+  )
+  @IsOptional()
+  @IsString()
+  city?: string;
 
   @ApiPropertyOptional({
     example: 'Dong Anh',
@@ -108,8 +162,18 @@ export class CreateOrderDto {
   note?: string;
 
   @ApiPropertyOptional({
+    example: 'SUMMER20',
+  })
+  @Transform(({ value }: { value: unknown }) =>
+    typeof value === 'string' ? value.trim().toUpperCase() : value,
+  )
+  @IsOptional()
+  @IsString()
+  voucherCode?: string;
+
+  @ApiPropertyOptional({
     enum: SHIPPING_METHODS,
-    example: 'standard',
+    example: 'shop_support',
   })
   @IsOptional()
   @IsIn(SHIPPING_METHODS)

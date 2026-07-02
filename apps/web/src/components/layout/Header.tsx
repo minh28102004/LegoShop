@@ -3,14 +3,13 @@
 import * as React from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Menu, Search, ShoppingBag, User, X } from 'lucide-react'
+import { Menu, Search, ShoppingBag, X } from 'lucide-react'
 
 import { Drawer } from '@/components/ui'
 import { HEADER_NAV, ROUTES, SITE, UI_MODAL_IDS } from '@/constants'
 import { useCart } from '@/features/cart/hooks/useCart'
 import { useScrollY } from '@/hooks/useScrollY'
 import { selectIsMobileMenuOpen, useUIStore } from '@/stores/uiStore'
-import { useAuthStore } from '@/stores/authStore'
 
 export interface HeaderProps extends React.ComponentPropsWithoutRef<'header'> {
   transparent?: boolean
@@ -25,7 +24,6 @@ export const Header = React.forwardRef<HTMLElement, HeaderProps>(
     const closeMobileMenu = useUIStore((state) => state.closeMobileMenu)
     const openMobileMenu = useUIStore((state) => state.openMobileMenu)
     const openModal = useUIStore((state) => state.openModal)
-    const user = useAuthStore((state) => state.user)
     const [mounted, setMounted] = React.useState(false)
     React.useEffect(() => {
       setMounted(true)
@@ -33,7 +31,6 @@ export const Header = React.forwardRef<HTMLElement, HeaderProps>(
     const openCartDrawer = React.useCallback(() => {
       openCart()
       openModal(UI_MODAL_IDS.CART_DRAWER)
-      window.dispatchEvent(new CustomEvent('legoshop:open-cart'))
     }, [openCart, openModal])
     const handleCartKeyDown = React.useCallback((event: React.KeyboardEvent<HTMLButtonElement>) => {
       if (event.key !== 'Enter' && event.key !== ' ') {
@@ -136,46 +133,6 @@ export const Header = React.forwardRef<HTMLElement, HeaderProps>(
                 <Search size={16} />
               </button>
 
-              {mounted && user ? (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{ fontSize: 13, fontWeight: 600, color: '#374151' }}>
-                    {user.name || user.email}
-                  </span>
-                  <button
-                    onClick={() => useAuthStore.getState().logout()}
-                    style={{
-                      fontSize: 12,
-                      color: '#ef4444',
-                      background: 'none',
-                      border: 'none',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    Thoát
-                  </button>
-                </div>
-              ) : (
-                <Link
-                  href="/login"
-                  aria-label="Tài khoản"
-                  style={{
-                    width: 32,
-                    height: 32,
-                    borderRadius: 6,
-                    border: 'none',
-                    background: 'transparent',
-                    color: '#6b7280',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: 'pointer',
-                    textDecoration: 'none'
-                  }}
-                >
-                  <User size={16} />
-                </Link>
-              )}
-
               <button
                 type="button"
                 aria-label="Mở giỏ hàng"
@@ -194,8 +151,6 @@ export const Header = React.forwardRef<HTMLElement, HeaderProps>(
                   touchAction: 'manipulation',
                 }}
                 data-cart-trigger="true"
-                onMouseDown={openCartDrawer}
-                onTouchStart={openCartDrawer}
                 onKeyDown={handleCartKeyDown}
                 onClick={openCartDrawer}
               >

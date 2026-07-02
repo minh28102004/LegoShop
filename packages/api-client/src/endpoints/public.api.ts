@@ -1,4 +1,9 @@
-import type { Banner, PaymentSettingsContract } from '@lego-shop/shared';
+import type {
+  ApplyVoucherRequestContract,
+  ApplyVoucherResponseContract,
+  Banner,
+  PaymentSettingsContract,
+} from '@lego-shop/shared';
 import type { ApiRequester, QueryParams } from '../client';
 
 export function createPublicApi(request: ApiRequester) {
@@ -9,6 +14,13 @@ export function createPublicApi(request: ApiRequester) {
 
     getPaymentSettings(): Promise<PaymentSettingsContract> {
       return request('public/payment-settings');
+    },
+
+    applyVoucher(payload: ApplyVoucherRequestContract): Promise<ApplyVoucherResponseContract> {
+      return request('public/vouchers/apply', {
+        method: 'POST',
+        body: payload,
+      });
     },
   };
 }

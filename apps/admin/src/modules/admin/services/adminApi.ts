@@ -14,6 +14,7 @@ import type {
   AdminProfile,
   Banner,
   BusinessInquiry,
+  Character,
   Collection,
   DashboardStats,
   FrameBackground,
@@ -31,6 +32,7 @@ import type {
   ShippingStatus,
   Template,
   TemplateCategory,
+  Voucher,
 } from '@/modules/admin/types/admin.types';
 
 export type ResourceKey =
@@ -39,12 +41,14 @@ export type ResourceKey =
   | 'frame-options'
   | 'template-categories'
   | 'accessories'
+  | 'characters'
   | 'accessory-categories'
   | 'banners'
   | 'frame-backgrounds'
   | 'collections'
   | 'frame-sizes'
-  | 'frame-colors';
+  | 'frame-colors'
+  | 'vouchers';
 
 const ADMIN_RESOURCE_ENDPOINTS: Record<ResourceKey, string> = {
   products: ADMIN_RESOURCE_PATHS.products,
@@ -52,12 +56,14 @@ const ADMIN_RESOURCE_ENDPOINTS: Record<ResourceKey, string> = {
   'frame-options': ADMIN_RESOURCE_PATHS['frame-options'],
   'template-categories': ADMIN_RESOURCE_PATHS['template-categories'],
   accessories: ADMIN_RESOURCE_PATHS.accessories,
+  characters: ADMIN_RESOURCE_PATHS.characters,
   'accessory-categories': ADMIN_RESOURCE_PATHS['accessory-categories'],
   banners: ADMIN_RESOURCE_PATHS.banners,
   'frame-backgrounds': ADMIN_RESOURCE_PATHS['frame-backgrounds'],
   collections: ADMIN_RESOURCE_PATHS.collections,
   'frame-sizes': ADMIN_RESOURCE_PATHS['frame-sizes'],
   'frame-colors': ADMIN_RESOURCE_PATHS['frame-colors'],
+  vouchers: ADMIN_RESOURCE_PATHS.vouchers,
 };
 
 export type ResourceDataMap = {
@@ -66,12 +72,14 @@ export type ResourceDataMap = {
   'frame-options': FrameOption;
   'template-categories': TemplateCategory;
   accessories: Accessory;
+  characters: Character;
   'accessory-categories': AccessoryCategory;
   banners: Banner;
   'frame-backgrounds': FrameBackground;
   collections: Collection;
   'frame-sizes': FrameSize;
   'frame-colors': FrameColor;
+  vouchers: Voucher;
 };
 
 export type ResourceListParams = {
@@ -126,7 +134,7 @@ export async function uploadImage(file: File) {
   const formData = new FormData();
   formData.append('file', file);
 
-  return apiRequest<{ url: string; fileName: string; originalName: string }>('uploads/image', {
+  return apiRequest<{ url: string; fileName: string; originalName: string }>('uploads/admin/image', {
     method: 'POST',
     body: formData,
   });

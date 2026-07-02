@@ -3,6 +3,7 @@
 import { Undo, Redo, Trash2, Share2, Image as ImageIcon, Type } from "lucide-react";
 import { useStudio } from "./StudioContext";
 import { useState, useRef, useEffect } from "react";
+import { uploadCustomerImage } from "@/lib/api/uploads";
 
 const getFrameColorHex = (name: string, apiHex?: string | null): string => {
   if (apiHex && apiHex.startsWith('#')) return apiHex;
@@ -17,15 +18,15 @@ export function StudioCanvas() {
   const { 
     elements, selectedId, setSelectedId, updateElement, removeElement, 
     activeTemplate, zoom, addElement, templates, frameSize, frameSizes,
-    frameColor, frameColors, printText, contentFields, contentValues, customBackgroundUrl, setCustomBackgroundUrl
+    customBackgroundUrl, setCustomBackgroundUrl,
+    setCustomBackgroundOriginalName
   } = useStudio();
   
   const currentTemplate = templates.find(t => t.id === activeTemplate);
   const activeTemplateImage = customBackgroundUrl ?? currentTemplate?.imageUrl;
   const backgroundInputRef = useRef<HTMLInputElement | null>(null);
-
-  const selectedColorObj = frameColors.find(c => c.name === frameColor);
-  const frameColorHex = getFrameColorHex(frameColor, selectedColorObj?.colorHex);
+  const [uploadingBackground, setUploadingBackground] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
   const parseFrameDimensions = (lbl: string) => {
     const match = lbl.match(/(\d+)\s*x\s*(\d+)/i);
@@ -45,6 +46,7 @@ export function StudioCanvas() {
   const maxDim = parsedSizes.length > 0 ? Math.max(...parsedSizes.map(s => Math.max(s.w, s.h)), 30) : 30;
 
   const selectedFrameSize = frameSizes.find(s => s.id === frameSize);
+  const frameColorHex = getFrameColorHex("", selectedFrameSize?.colorHex);
   const currentSizeObj = selectedFrameSize?.widthCm && selectedFrameSize?.heightCm
     ? { w: selectedFrameSize.widthCm, h: selectedFrameSize.heightCm }
     : parsedSizes.find(s => s.id === frameSize) || { w: 20, h: 20 };
@@ -80,15 +82,19 @@ export function StudioCanvas() {
     (e.target as HTMLElement).releasePointerCapture(e.pointerId);
   };
 
-  const handleBackgroundUpload = (file?: File) => {
+  const handleBackgroundUpload = async (file?: File) => {
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      if (typeof reader.result === "string") {
-        setCustomBackgroundUrl(reader.result);
-      }
-    };
-    reader.readAsDataURL(file);
+    setUploadingBackground(true);
+    setUploadError(null);
+    try {
+      const uploaded = await uploadCustomerImage(file);
+      setCustomBackgroundUrl(uploaded.url);
+      setCustomBackgroundOriginalName(uploaded.originalName);
+    } catch (error) {
+      setUploadError(error instanceof Error ? error.message : "Không tải được ảnh lên");
+    } finally {
+      setUploadingBackground(false);
+    }
   };
 
   useEffect(() => {
@@ -103,32 +109,6 @@ export function StudioCanvas() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [selectedId, isDragging, removeElement]);
-
-  const extraContentLines = contentFields
-    .filter((field) => {
-      const key = field.key.toLowerCase();
-      return (
-        field.type !== "image" &&
-        Boolean(contentValues[field.key]?.trim()) &&
-        key !== "title" &&
-        key !== "name" &&
-        !key.includes("title") &&
-        !key.includes("name") &&
-        !key.includes("date") &&
-        !key.includes("day") &&
-        !key.includes("message") &&
-        !key.includes("note") &&
-        !key.includes("description")
-      );
-    })
-    .map((field) => contentValues[field.key]?.trim())
-    .filter(Boolean);
-  const hasPrintText = Boolean(
-    printText.title.trim() ||
-    printText.date ||
-    printText.message.trim() ||
-    extraContentLines.length > 0,
-  );
 
   return (
     <div className="flex-1 flex flex-col h-full relative" onClick={() => setSelectedId(null)}>
@@ -149,15 +129,16 @@ export function StudioCanvas() {
           <button
             type="button"
             onClick={() => backgroundInputRef.current?.click()}
+            disabled={uploadingBackground}
             className="flex items-center gap-1.5 px-2.5 py-1.5 bg-surface border border-border text-xs font-semibold rounded-lg hover:bg-surface-hover shadow-sm transition-colors text-emerald-600"
           >
             <ImageIcon className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Hình ảnh</span>
+            <span className="hidden sm:inline">{uploadingBackground ? "Đang tải..." : "Hình ảnh"}</span>
           </button>
           <input
             ref={backgroundInputRef}
             type="file"
-            accept="image/*"
+            accept="image/jpeg,image/png,image/webp"
             className="hidden"
             onChange={(event) => handleBackgroundUpload(event.target.files?.[0])}
           />
@@ -213,32 +194,11 @@ export function StudioCanvas() {
               <span className="text-xs text-center mt-1 opacity-60">Chọn mẫu hoặc thêm chữ/phụ kiện</span>
             </div>
           )}
-          {hasPrintText && (
-            <div className="pointer-events-none absolute inset-x-6 bottom-6 rounded-xl bg-white/72 px-4 py-3 text-center shadow-sm backdrop-blur-sm">
-              {printText.title.trim() && (
-                <p className="font-serif text-xl font-black leading-tight text-zinc-950">
-                  {printText.title.trim()}
-                </p>
-              )}
-              {printText.date && (
-                <p className="mt-1 text-[11px] font-bold uppercase tracking-[0.22em] text-zinc-600">
-                  {new Date(printText.date).toLocaleDateString("vi-VN")}
-                </p>
-              )}
-              {extraContentLines.length > 0 && (
-                <div className="mt-1 space-y-0.5 text-[11px] font-bold uppercase tracking-[0.08em] text-zinc-700">
-                  {extraContentLines.map((line, index) => (
-                    <p key={`${line}-${index}`}>{line}</p>
-                  ))}
-                </div>
-              )}
-              {printText.message.trim() && (
-                <p className="mt-2 text-xs font-medium leading-snug text-zinc-700">
-                  {printText.message.trim()}
-                </p>
-              )}
+          {uploadError ? (
+            <div className="absolute left-4 right-4 top-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-semibold text-red-700">
+              {uploadError}
             </div>
-          )}
+          ) : null}
           {elements.map(el => (
             <div
               key={el.id}
@@ -249,7 +209,7 @@ export function StudioCanvas() {
               className={`absolute cursor-move select-none ${selectedId === el.id ? 'ring-2 ring-primary ring-offset-1' : 'hover:ring-1 hover:ring-primary/40'}`}
               style={{ left: el.x, top: el.y, fontSize: el.fontSize, color: el.color, width: el.width, height: el.height, touchAction: 'none' }}
             >
-              {el.type === 'accessory' && el.imageUrl ? (
+              {(el.type === 'accessory' || el.type === 'character') && el.imageUrl ? (
                 <img src={el.imageUrl} alt={el.content} className="w-full h-full object-contain pointer-events-none" />
               ) : el.type === 'character' ? (
                 <div className="pointer-events-none flex h-full w-full flex-col items-center justify-end">

@@ -64,6 +64,15 @@ export class CreateFrameOptionDto implements CreateFrameOptionRequestContract {
   @IsString()
   colorHex?: string;
 
+  @ApiPropertyOptional({
+    example: 'Đen #111111\nTrắng #ffffff',
+    description: 'One color per line. Supports "Tên màu #hex".',
+  })
+  @Transform(trimOptionalString)
+  @IsOptional()
+  @IsString()
+  colorVariantsText?: string;
+
   @ApiPropertyOptional({ example: 'https://example.com/frame-preview.png' })
   @Transform(trimOptionalString)
   @IsOptional()
@@ -91,12 +100,16 @@ export class CreateFrameOptionDto implements CreateFrameOptionRequestContract {
   @Min(0)
   price?: number;
 
-  @ApiPropertyOptional({ example: 25, default: 0 })
-  @Type(() => Number)
+  @ApiPropertyOptional({ example: 25, nullable: true })
+  @Transform(({ value }: { value: unknown }) => {
+    if (value === '' || value === null) return null;
+    const numberValue = Number(value);
+    return Number.isFinite(numberValue) ? numberValue : value;
+  })
   @IsOptional()
   @IsInt()
   @Min(0)
-  stock?: number;
+  stock?: number | null;
 
   @ApiPropertyOptional({ example: 1, default: 1 })
   @Type(() => Number)

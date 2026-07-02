@@ -7,11 +7,13 @@ export const ADMIN_ROUTES = {
   frameColors: '/frame-colors',
   templates: '/templates',
   accessories: '/accessories',
+  characters: '/characters',
   banners: '/banners',
   frameBackgrounds: '/frame-backgrounds',
   collections: '/collections',
   orders: '/orders',
   businessInquiries: '/business-inquiries',
+  vouchers: '/vouchers',
   paymentSettings: '/payment-settings',
   templateCategories: '/template-categories',
   accessoryCategories: '/accessory-categories',
@@ -25,11 +27,13 @@ export type AdminNavIcon =
   | 'frameColors'
   | 'templates'
   | 'accessories'
+  | 'characters'
   | 'banners'
   | 'frameBackgrounds'
   | 'collections'
   | 'orders'
   | 'businessInquiries'
+  | 'vouchers'
   | 'paymentSettings';
 
 export type AdminNavItem = {
@@ -81,6 +85,12 @@ export const ADMIN_NAV_SECTIONS: AdminNavSection[] = [
         icon: 'accessories',
       },
       {
+        id: 'characters',
+        href: ADMIN_ROUTES.characters,
+        labelKey: 'sidebar.characters',
+        icon: 'characters',
+      },
+      {
         id: 'banners',
         href: ADMIN_ROUTES.banners,
         labelKey: 'sidebar.banners',
@@ -115,6 +125,12 @@ export const ADMIN_NAV_SECTIONS: AdminNavSection[] = [
         href: ADMIN_ROUTES.businessInquiries,
         labelKey: 'sidebar.businessInquiries',
         icon: 'businessInquiries',
+      },
+      {
+        id: 'vouchers',
+        href: ADMIN_ROUTES.vouchers,
+        labelKey: 'sidebar.vouchers',
+        icon: 'vouchers',
       },
     ],
   },

@@ -20,7 +20,6 @@ export function CartDrawer() {
   if (!isOpen) return null;
 
   const total = totalAmount;
-  const isFreeship = total >= 500000;
 
   return (
     <>
@@ -41,7 +40,7 @@ export function CartDrawer() {
 
         <div className="bg-emerald-50 text-emerald-600 px-4 py-3 text-sm font-bold flex items-center gap-2 border-b border-emerald-100">
           <CheckCircle2 className="w-4 h-4" />
-          {isFreeship ? "✨ Bạn đã được Miễn phí vận chuyển!" : `Mua thêm ${formatCurrency(500000 - total)} để được Freeship!`}
+          Phí ship không cộng vào đơn. Shop báo phí trước khi giao.
         </div>
 
         <div className="flex-1 overflow-y-auto p-4 space-y-4">

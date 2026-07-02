@@ -32,22 +32,37 @@ const FRAME_OPTION_SORT_FIELDS = [
   'updatedAt',
 ] as const;
 
+type FrameOptionResponse = {
+  type: FrameOptionType;
+  name: string;
+  label: string | null;
+  widthCm: number | null;
+  heightCm: number | null;
+};
+
+type FrameColorVariant = {
+  name?: string;
+  hex?: string;
+};
+
 @Injectable()
 export class FrameOptionsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  findPublicOptions(type?: FrameOptionType) {
+  async findPublicOptions(type?: FrameOptionType) {
     if (type && !Object.values(FrameOptionType).includes(type)) {
       throw new BadRequestException('Invalid frame option type');
     }
 
-    return this.prisma.frameOption.findMany({
+    const options = await this.prisma.frameOption.findMany({
       where: {
         status: ProductStatus.active,
         ...(type ? { type } : {}),
       },
       orderBy: [{ type: 'asc' }, { sortOrder: 'asc' }, { createdAt: 'desc' }],
     });
+
+    return options.map((option) => this.serializeFrameOption(option));
   }
 
   async findAdminOptions(query?: FrameOptionsQueryDto) {
@@ -117,7 +132,7 @@ export class FrameOptionsService {
       ]);
 
       return {
-        data,
+        data: data.map((option) => this.serializeFrameOption(option)),
         meta: buildAdminListMeta({
           page: pagination.page,
           limit: pagination.limit,
@@ -132,9 +147,11 @@ export class FrameOptionsService {
       };
     }
 
-    return this.prisma.frameOption.findMany({
+    const options = await this.prisma.frameOption.findMany({
       orderBy: [{ type: 'asc' }, { sortOrder: 'asc' }, { createdAt: 'desc' }],
     });
+
+    return options.map((option) => this.serializeFrameOption(option));
   }
 
   async findAdminOptionById(id: string) {
@@ -146,7 +163,7 @@ export class FrameOptionsService {
       throw new NotFoundException('Frame option not found');
     }
 
-    return frameOption;
+    return this.serializeFrameOption(frameOption);
   }
 
   async createOption(dto: CreateFrameOptionDto) {
@@ -156,36 +173,53 @@ export class FrameOptionsService {
     const generatedLabel = this.buildFrameOptionLabel(dto);
     const name = dto.name ?? generatedLabel;
     const label = dto.label ?? generatedLabel;
-    const slugSource = dto.slug ?? `${type}-${name}-${dto.colorHex ?? ''}`;
-    const slug = slugSource ? this.normalizeSlug(slugSource) : undefined;
-    if (slug) {
-      await this.assertSlugAvailable(slug);
-    }
+    const variants = this.parseFrameColorVariants(dto.colorVariantsText);
+    const colorVariants = variants.length > 0
+      ? variants
+      : [{ hex: dto.colorHex }];
+    const createdOptions = await this.prisma.$transaction(async (tx) => {
+      const options: Awaited<ReturnType<typeof tx.frameOption.create>>[] = [];
 
-    return this.prisma.frameOption.create({
-      data: {
-        type,
-        name,
-        label,
-        slug,
-        description: dto.description,
-        colorHex: dto.colorHex,
-        imageUrl: dto.imageUrl,
-        widthCm: dto.widthCm,
-        heightCm: dto.heightCm,
-        price: dto.price,
-        stock: dto.stock,
-        minQuantity: dto.minQuantity,
-        maxQuantity: dto.maxQuantity,
-        sortOrder: dto.sortOrder,
-        popular: dto.popular,
-        metadata:
-          dto.metadata !== undefined
-            ? (dto.metadata as Prisma.InputJsonValue)
-            : undefined,
-        status: dto.status,
-      },
+      for (const [index, variant] of colorVariants.entries()) {
+        const variantSlugSuffix = variant.name ?? variant.hex ?? '';
+        const slugSource =
+          index === 0 && dto.slug
+            ? dto.slug
+            : `${type}-${name}-${variantSlugSuffix}`;
+        const slug = slugSource ? this.normalizeSlug(slugSource) : undefined;
+        if (slug) {
+          await this.assertSlugAvailable(slug);
+        }
+
+        options.push(
+          await tx.frameOption.create({
+            data: {
+              type,
+              name,
+              label,
+              slug,
+              description: dto.description,
+              colorHex: variant.hex ?? dto.colorHex,
+              imageUrl: dto.imageUrl,
+              widthCm: dto.widthCm,
+              heightCm: dto.heightCm,
+              price: dto.price,
+              stock: dto.stock,
+              minQuantity: dto.minQuantity,
+              maxQuantity: dto.maxQuantity,
+              sortOrder: (dto.sortOrder ?? 0) + index,
+              popular: dto.popular,
+              metadata: this.buildFrameOptionMetadata(dto.metadata, variant),
+              status: dto.status,
+            },
+          }),
+        );
+      }
+
+      return options;
     });
+
+    return this.serializeFrameOption(createdOptions[0]);
   }
 
   async updateOption(id: string, dto: UpdateFrameOptionDto) {
@@ -233,10 +267,12 @@ export class FrameOptionsService {
       data.slug = slug;
     }
 
-    return this.prisma.frameOption.update({
+    const option = await this.prisma.frameOption.update({
       where: { id },
       data,
     });
+
+    return this.serializeFrameOption(option);
   }
 
   async deleteOption(id: string) {
@@ -289,21 +325,105 @@ export class FrameOptionsService {
       .replace(/^-+|-+$/g, '');
   }
 
+  private parseFrameColorVariants(value?: string): FrameColorVariant[] {
+    if (!value) return [];
+
+    return value
+      .split(/[\n;,]+/)
+      .map((item) => item.trim())
+      .filter(Boolean)
+      .flatMap((item) => {
+        const hexMatch = item.match(/#?[0-9a-f]{3}(?:[0-9a-f]{3})?/i);
+        const hex = hexMatch ? this.normalizeHex(hexMatch[0]) : undefined;
+        const name = item
+          .replace(hexMatch?.[0] ?? '', '')
+          .replace(/[:\-()]+/g, ' ')
+          .replace(/\s+/g, ' ')
+          .trim();
+
+        if (!hex && !name) return [];
+        return [{ ...(name ? { name } : {}), ...(hex ? { hex } : {}) }];
+      });
+  }
+
+  private normalizeHex(value: string) {
+    const normalized = value.trim().startsWith('#')
+      ? value.trim()
+      : `#${value.trim()}`;
+
+    if (/^#[0-9a-f]{3}$/i.test(normalized)) {
+      return `#${normalized
+        .slice(1)
+        .split('')
+        .map((char) => `${char}${char}`)
+        .join('')}`.toLowerCase();
+    }
+
+    if (/^#[0-9a-f]{6}$/i.test(normalized)) {
+      return normalized.toLowerCase();
+    }
+
+    return undefined;
+  }
+
+  private buildFrameOptionMetadata(
+    metadata: CreateFrameOptionDto['metadata'],
+    variant: FrameColorVariant,
+  ): Prisma.InputJsonValue | undefined {
+    const base =
+      metadata && typeof metadata === 'object' && !Array.isArray(metadata)
+        ? { ...metadata }
+        : {};
+
+    if (variant.name) {
+      return {
+        ...base,
+        colorName: variant.name,
+        frameColorName: variant.name,
+      } as Prisma.InputJsonValue;
+    }
+
+    return Object.keys(base).length > 0
+      ? (base as Prisma.InputJsonValue)
+      : undefined;
+  }
+
   private buildFrameOptionLabel(dto: {
     widthCm?: number;
     heightCm?: number;
-    colorHex?: string;
   }) {
-    const dimensions =
-      dto.widthCm !== undefined && dto.heightCm !== undefined
-        ? `${this.formatDimension(dto.widthCm)}x${this.formatDimension(dto.heightCm)}`
-        : 'Khung';
-    const color = dto.colorHex ? ` ${dto.colorHex}` : '';
-
-    return `${dimensions}${color}`.trim();
+    return dto.widthCm !== undefined && dto.heightCm !== undefined
+      ? `${this.formatDimension(dto.widthCm)}x${this.formatDimension(dto.heightCm)}`
+      : 'Khung';
   }
 
   private formatDimension(value: number) {
     return Number.isInteger(value) ? String(value) : String(value).replace(/\.?0+$/, '');
+  }
+
+  private serializeFrameOption<T extends FrameOptionResponse>(option: T) {
+    const sizeLabel = this.getFrameOptionSizeLabel(option);
+
+    if (!sizeLabel) {
+      return option;
+    }
+
+    return {
+      ...option,
+      name: sizeLabel,
+      label: sizeLabel,
+    };
+  }
+
+  private getFrameOptionSizeLabel(option: FrameOptionResponse) {
+    if (
+      option.type !== FrameOptionType.size ||
+      option.widthCm === null ||
+      option.heightCm === null
+    ) {
+      return undefined;
+    }
+
+    return `${this.formatDimension(option.widthCm)}x${this.formatDimension(option.heightCm)}`;
   }
 }

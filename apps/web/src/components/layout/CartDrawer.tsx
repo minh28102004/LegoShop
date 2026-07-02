@@ -8,13 +8,25 @@ import { X, ShoppingBag, Package, Pencil } from 'lucide-react'
 // Framer motion removed temporarily for debugging
 import { ROUTES, UI_MODAL_IDS } from '@/constants'
 import { useCart } from '@/features/cart/hooks/useCart'
+import { resolveApiAssetUrl } from '@/lib/api/assets'
+import { getCartItemParts } from '@/lib/cart-parts'
 import { formatPrice } from '@/lib/formatters'
 import { selectActiveModal, useUIStore } from '@/stores/uiStore'
 import type { SimpleCartItem } from '@/stores/cartStore'
-import { FREESHIP_THRESHOLD } from '@/components/studio/StudioContext'
+import { getDesignCharacterCount, getDesignTemplateName } from '@/components/studio/design-data'
 
 export interface CartDrawerProps {
   className?: string
+}
+
+function readCartDesignText(item: SimpleCartItem, key: string) {
+  const value = item.designData?.[key]
+  return typeof value === 'string' && value.trim() ? value.trim() : null
+}
+
+function readCartCharacterCount(item: SimpleCartItem) {
+  const value = item.designData?.characterCount
+  return typeof value === 'number' && value > 0 ? value : 0
 }
 
 function CartItemRow({ item, onRemove, onQuantityChange }: {
@@ -22,11 +34,18 @@ function CartItemRow({ item, onRemove, onQuantityChange }: {
   onRemove: () => void
   onQuantityChange: (qty: number) => void
 }) {
+  const previewUrl = resolveApiAssetUrl(item.previewUrl)
+  const parts = getCartItemParts(item)
+  const canEditDesign = item.designData?.type === 'CUSTOM_FRAME'
+  const templateName = getDesignTemplateName(item.designData) ?? readCartDesignText(item, 'templateName')
+  const characterCount = getDesignCharacterCount(item.designData) || readCartCharacterCount(item)
+  const accessoryNames = item.accessories?.map((accessory) => accessory.name).filter(Boolean) ?? []
+
   return (
     <div className="flex gap-3 py-4 border-b border-border last:border-0">
       <div className="w-16 h-16 rounded-xl bg-background shrink-0 overflow-hidden flex items-center justify-center border border-border relative">
-        {item.previewUrl ? (
-          <img src={item.previewUrl} alt={item.productName} className="h-full w-full object-cover" />
+        {previewUrl ? (
+          <img src={previewUrl} alt={item.productName} className="h-full w-full object-cover" />
         ) : (
           <Package className="w-6 h-6 text-text-muted" />
         )}
@@ -35,10 +54,45 @@ function CartItemRow({ item, onRemove, onQuantityChange }: {
         <div className="flex items-start justify-between gap-1">
           <div className="min-w-0">
             <p className="text-sm font-bold text-text-primary truncate">{item.productName}</p>
-            <p className="text-xs text-text-muted mt-0.5">{item.frameSizeLabel}</p>
-            {item.frameColorName && <p className="text-xs text-text-muted mt-0.5">Mau: {item.frameColorName}</p>}
-            {item.accessories?.length ? (
-              <p className="text-xs text-text-muted mt-0.5">{item.accessories.length} phu kien</p>
+            <div className="mt-2 space-y-1.5">
+              {parts.map((part, index) => {
+                const partImage = resolveApiAssetUrl(part.imageUrl)
+                return (
+                  <div key={`${part.type}-${part.id ?? index}`} className="flex items-center gap-2 rounded-lg bg-background/70 px-2 py-1.5">
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-md border border-border bg-white">
+                      {partImage ? (
+                        <img src={partImage} alt={part.name} className="h-full w-full object-cover" />
+                      ) : (
+                        <Package className="h-3.5 w-3.5 text-text-muted" />
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-[11px] font-semibold text-text-primary">{part.name}</p>
+                      <p className="text-[10px] text-text-muted">x{part.quantity}</p>
+                    </div>
+                    <span className="shrink-0 text-[11px] font-bold text-text-primary">{formatPrice(part.totalPrice)}</span>
+                  </div>
+                )
+              })}
+            </div>
+            <p className="hidden">
+              {[item.frameSizeLabel, item.frameColorName].filter(Boolean).join(' · ')}
+            </p>
+            <div className="hidden">
+            {templateName ? (
+              <p className="text-xs text-text-muted mt-0.5 truncate">Nền: {templateName}</p>
+            ) : null}
+            {characterCount > 0 ? (
+              <p className="text-xs text-text-muted mt-0.5">{characterCount} nhân vật</p>
+            ) : null}
+            {accessoryNames.length ? (
+              <p className="text-xs text-text-muted mt-0.5 truncate">
+                Phụ kiện: {accessoryNames.join(', ')}
+              </p>
+            ) : null}
+            </div>
+            {item.note ? (
+              <p className="text-xs text-text-muted mt-0.5 line-clamp-2">Ghi chú: {item.note}</p>
             ) : null}
           </div>
           <button type="button" aria-label="Xóa" onClick={onRemove}
@@ -56,9 +110,11 @@ function CartItemRow({ item, onRemove, onQuantityChange }: {
           </div>
           <span className="text-sm font-black text-primary">{formatPrice(item.totalPrice)}</span>
         </div>
-        <Link href={ROUTES.studio} className="inline-flex items-center gap-1 mt-1.5 text-[11px] font-semibold text-text-muted hover:text-primary transition-colors">
-          <Pencil className="w-2.5 h-2.5" /> SỬA
+        {canEditDesign ? (
+        <Link href={`${ROUTES.studio}?editCartItemId=${encodeURIComponent(item.id)}`} className="inline-flex items-center gap-1 mt-1.5 text-[11px] font-semibold text-text-muted hover:text-primary transition-colors">
+          <Pencil className="w-2.5 h-2.5" /> Chỉnh sửa thiết kế
         </Link>
+        ) : null}
       </div>
     </div>
   )
@@ -94,26 +150,10 @@ export const CartDrawer = React.forwardRef<HTMLDivElement, CartDrawerProps>(
         openedAtRef.current = Date.now()
         setIsEventOpen(true)
       }
-      const handleOpenCart = () => openDrawer()
-      const handleDocumentClick = (event: MouseEvent) => {
-        const target = event.target
-        if (!(target instanceof Element)) {
-          return
-        }
 
-        if (!target.closest('[data-cart-trigger="true"]')) {
-          return
-        }
-
-        event.preventDefault()
-        openDrawer()
-      }
-
-      window.addEventListener('legoshop:open-cart', handleOpenCart)
-      document.addEventListener('click', handleDocumentClick, true)
+      window.addEventListener('legoshop:open-cart', openDrawer)
       return () => {
-        window.removeEventListener('legoshop:open-cart', handleOpenCart)
-        document.removeEventListener('click', handleDocumentClick, true)
+        window.removeEventListener('legoshop:open-cart', openDrawer)
       }
     }, [])
 
@@ -122,9 +162,6 @@ export const CartDrawer = React.forwardRef<HTMLDivElement, CartDrawerProps>(
         openedAtRef.current = Date.now()
       }
     }, [isOpen])
-
-    const freeshipRemaining = Math.max(0, FREESHIP_THRESHOLD - totalAmount)
-    const isFree = freeshipRemaining === 0
 
     if (!mounted) {
       return null
@@ -138,7 +175,13 @@ export const CartDrawer = React.forwardRef<HTMLDivElement, CartDrawerProps>(
             <div
               data-cart-drawer-backdrop="true"
               className="fixed inset-0 bg-black/40 backdrop-blur-[2px]"
-              style={{ zIndex: 1200 }}
+              style={{
+                position: 'fixed',
+                inset: 0,
+                zIndex: 1200,
+                background: 'rgba(0, 0, 0, 0.4)',
+                backdropFilter: 'blur(2px)',
+              }}
               onClick={handleBackdropClick}
             />
             {/* Drawer */}
@@ -146,7 +189,20 @@ export const CartDrawer = React.forwardRef<HTMLDivElement, CartDrawerProps>(
               ref={ref}
               data-cart-drawer-panel="true"
               className="fixed right-0 top-0 bottom-0 w-full max-w-md bg-surface flex flex-col shadow-2xl border-l border-border"
-              style={{ zIndex: 1210 }}
+              style={{
+                position: 'fixed',
+                top: 0,
+                right: 0,
+                bottom: 0,
+                zIndex: 1210,
+                display: 'flex',
+                flexDirection: 'column',
+                width: '100%',
+                maxWidth: '28rem',
+                background: 'hsl(var(--color-surface))',
+                borderLeft: '1px solid hsl(var(--color-border))',
+                boxShadow: 'var(--shadow-2xl)',
+              }}
               {...props}
             >
               {/* Header */}
@@ -157,22 +213,9 @@ export const CartDrawer = React.forwardRef<HTMLDivElement, CartDrawerProps>(
                 </button>
               </div>
 
-              {/* Freeship banner */}
-              {isFree ? (
-                <div className="mx-4 mt-3 px-3 py-2 bg-emerald-50 border border-emerald-200 rounded-lg flex items-center gap-2 text-xs font-semibold text-emerald-700">
-                  🎉 Bạn đã được Miễn phí vận chuyển!
-                </div>
-              ) : (
-                <div className="mx-4 mt-3 px-3 py-2 bg-background border border-border rounded-lg">
-                  <div className="flex justify-between text-xs mb-1.5">
-                    <span className="text-text-secondary">Thêm <strong className="text-text-primary">{formatPrice(freeshipRemaining)}</strong> để Freeship</span>
-                    <span className="text-text-muted">{Math.round((totalAmount / FREESHIP_THRESHOLD) * 100)}%</span>
-                  </div>
-                  <div className="h-1.5 bg-border rounded-full overflow-hidden">
-                    <div className="h-full bg-primary rounded-full transition-all duration-500" style={{ width: `${Math.min(100, (totalAmount / FREESHIP_THRESHOLD) * 100)}%` }} />
-                  </div>
-                </div>
-              )}
+              <div className="mx-4 mt-3 px-3 py-2 bg-background border border-border rounded-lg text-xs font-semibold leading-5 text-text-secondary">
+                Phí ship không cộng vào đơn. Shop báo phí trước khi giao, khách trả trực tiếp cho tài xế.
+              </div>
 
               {/* Content */}
               <div className="flex-1 overflow-y-auto px-5">

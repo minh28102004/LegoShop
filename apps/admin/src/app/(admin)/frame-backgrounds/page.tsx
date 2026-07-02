@@ -13,10 +13,14 @@ export default function FrameBackgroundsPage() {
     { key: 'instructions', label: 'Huong dan khach dien noi dung', type: 'textarea' },
     {
       key: 'contentFields',
-      label: 'Cau hinh truong noi dung (JSON)',
+      label: 'Cấu hình nội dung khách cần điền',
+      type: 'content-fields',
+    },
+    {
+      key: 'frameOptionIds',
+      label: 'FrameOption IDs áp dụng (JSON array, trống = mọi khung)',
       type: 'json',
-      placeholder:
-        '[{"key":"title","label":"Ten / loi tua ngan","type":"text","required":true,"placeholder":"VD: Tu & Lan"},{"key":"date","label":"Ngay ky niem","type":"date","required":false},{"key":"message","label":"Loi nhan","type":"textarea","required":false}]',
+      placeholder: '["frame-option-id-1", "frame-option-id-2"]',
     },
     { key: 'sortOrder', label: t('frameBackgroundsPage.sortOrder'), type: 'number' },
     {

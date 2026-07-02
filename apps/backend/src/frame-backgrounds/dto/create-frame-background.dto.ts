@@ -6,7 +6,7 @@ import type {
 import { PRODUCT_STATUS } from '@lego-shop/shared';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
-import { IsEnum, IsInt, IsNotEmpty, IsOptional, IsString, Min } from 'class-validator';
+import { IsArray, IsEnum, IsInt, IsNotEmpty, IsOptional, IsString, Min } from 'class-validator';
 
 const trimString = ({ value }: { value: unknown }) =>
   typeof value === 'string' ? value.trim() : value;
@@ -27,6 +27,25 @@ const parseJsonValue = ({ value }: { value: unknown }) => {
   } catch {
     return value;
   }
+};
+
+const parseStringArray = ({ value }: { value: unknown }) => {
+  if (Array.isArray(value)) return value;
+  if (typeof value !== 'string') return value;
+  const trimmed = value.trim();
+  if (!trimmed) return undefined;
+
+  try {
+    const parsed = JSON.parse(trimmed);
+    if (Array.isArray(parsed)) return parsed;
+  } catch {
+    return trimmed
+      .split(',')
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
+
+  return undefined;
 };
 
 export class CreateFrameBackgroundDto implements CreateFrameBackgroundRequestContract {
@@ -75,6 +94,16 @@ export class CreateFrameBackgroundDto implements CreateFrameBackgroundRequestCon
   @Transform(parseJsonValue)
   @IsOptional()
   contentFields?: JsonValue;
+
+  @ApiPropertyOptional({
+    type: [String],
+    example: ['frame-option-id-1', 'frame-option-id-2'],
+  })
+  @Transform(parseStringArray)
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  frameOptionIds?: string[];
 
   @ApiPropertyOptional({ example: 1, default: 0 })
   @Type(() => Number)

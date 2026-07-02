@@ -1,5 +1,6 @@
 import type {
   Accessory,
+  Character,
   Collection,
   FrameBackground,
   FrameColor,
@@ -39,6 +40,14 @@ export function createProductsApi(request: ApiRequester) {
 
     getAccessoryById(id: string): Promise<Accessory> {
       return request(`public/accessories/${encodeURIComponent(id)}`);
+    },
+
+    listCharacters(query?: QueryParams): Promise<Character[]> {
+      return request('public/characters', { query });
+    },
+
+    getCharacterById(id: string): Promise<Character> {
+      return request(`public/characters/${encodeURIComponent(id)}`);
     },
 
     listCollections(query?: QueryParams): Promise<Collection[]> {

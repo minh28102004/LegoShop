@@ -22,8 +22,8 @@ export class PaymentSettingsService {
         id: PaymentSettingsService.DEFAULT_ID,
         codEnabled: true,
         payosEnabled: true,
-        codDepositEnabled: false,
-        codDepositPercent: 0,
+        codDepositEnabled: true,
+        codDepositPercent: 30,
       },
     });
   }

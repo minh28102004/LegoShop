@@ -1,12 +1,13 @@
 "use client";
 
-import { createContext, useCallback, useContext, useMemo, useState, ReactNode, useEffect } from "react";
+import { createContext, useCallback, useContext, useMemo, useRef, useState, ReactNode, useEffect } from "react";
+import { resolveApiAssetUrl } from "@/lib/api/assets";
 import { publicApiClient } from "@/lib/api/public-client";
-import type { FrameBackground, FrameOption, JsonObject, JsonValue } from "@lego-shop/shared";
+import { useCartStore, type SimpleCartItem } from "@/stores/cartStore";
+import { isCustomFrameDesignData } from "./design-data";
+import type { Character, FrameBackground, FrameOption, JsonObject, JsonValue } from "@lego-shop/shared";
 
 export type ElementType = "text" | "accessory" | "character";
-
-export const FREESHIP_THRESHOLD = 349000; // Ngưỡng miễn phí vận chuyển
 
 export interface StudioElement {
   id: string;
@@ -21,9 +22,10 @@ export interface StudioElement {
   height?: number;
   price?: number;
   accessoryId?: string; // link back to original accessory
+  characterId?: string; // link back to admin character catalog
 }
 
-interface PrintText {
+export interface PrintText {
   title: string;
   date: string;
   message: string;
@@ -38,6 +40,14 @@ export interface StudioContentField {
   required: boolean;
   placeholder?: string;
   helpText?: string;
+  x?: number;
+  y?: number;
+  width?: number;
+  height?: number;
+  fontSize?: number;
+  fontWeight?: number;
+  align?: "left" | "center" | "right";
+  maxLines?: number;
 }
 
 export interface ApiTemplate {
@@ -62,6 +72,8 @@ export interface ApiAccessory {
   categoryId: string | null;
 }
 
+export type ApiCharacter = Character;
+
 export interface ApiCategory {
   id: string;
   name: string;
@@ -75,13 +87,8 @@ export interface ApiFrameSize {
   status: string;
   widthCm: number | null;
   heightCm: number | null;
-}
-
-export interface ApiFrameColor {
-  id: string;
-  name: string;
   colorHex: string | null;
-  status: string;
+  colorName: string | null;
 }
 
 export interface ApiFrameBackground {
@@ -100,8 +107,6 @@ export interface StudioContextType {
   setStep: (step: number) => void;
   frameSize: string;
   setFrameSize: (size: string) => void;
-  frameColor: string;
-  setFrameColor: (color: string) => void;
   printText: PrintText;
   setPrintText: (text: PrintText) => void;
   contentFields: StudioContentField[];
@@ -116,8 +121,12 @@ export interface StudioContextType {
   setActiveTemplate: (id: string | null) => void;
   customBackgroundUrl: string | null;
   setCustomBackgroundUrl: (url: string | null) => void;
+  customBackgroundOriginalName: string | null;
+  setCustomBackgroundOriginalName: (name: string | null) => void;
   zoom: number;
   setZoom: (zoom: number) => void;
+  editCartItemId: string | null;
+  isEditMode: boolean;
   
   // Characters (nhân vật LEGO)
   characterCount: number;
@@ -125,11 +134,9 @@ export interface StudioContextType {
   characterPrice: number;
 
   totalPrice: number;
-  freeshipAmount: number; // Amount needed to reach freeship
-  freeshipProgress: number; // % progress toward freeship
   
   addElement: (el: Omit<StudioElement, "id">) => void;
-  addCharacter: () => void;
+  addCharacter: (character?: ApiCharacter) => void;
   removeLastCharacter: () => void;
   updateElement: (id: string, updates: Partial<StudioElement>) => void;
   removeElement: (id: string) => void;
@@ -139,9 +146,9 @@ export interface StudioContextType {
   templates: ApiTemplate[];
   templateCategories: ApiCategory[];
   accessories: ApiAccessory[];
+  characters: ApiCharacter[];
   accessoryCategories: ApiCategory[];
   frameSizes: ApiFrameSize[];
-  frameColors: ApiFrameColor[];
   isLoadingData: boolean;
   dataError: string | null;
 }
@@ -184,19 +191,23 @@ const DEFAULT_CONTENT_FIELDS: StudioContentField[] = [
   },
 ];
 
+function getNextCharacterNumber(elements: StudioElement[]): number {
+  return elements
+    .filter((element) => element.type === "character")
+    .reduce((max, element) => {
+      const match = element.content?.match(/^NV\s*(\d+)$/i);
+      const value = match?.[1] ? Number(match[1]) : 0;
+      return Number.isFinite(value) ? Math.max(max, value) : max;
+    }, 0) + 1;
+}
+
 function resolveStudioImageUrl(imageUrl: string | null, fallbackIndex = 0): string | null {
   if (!imageUrl) return null;
   if (imageUrl.includes("example.com")) {
     return STUDIO_BACKGROUND_FALLBACKS[fallbackIndex % STUDIO_BACKGROUND_FALLBACKS.length] ?? ACCESSORY_FALLBACK_IMAGE;
   }
 
-  if (imageUrl.startsWith("/shared/images/bg_template/")) {
-    const match = imageUrl.match(/(\d+)\.png$/);
-    const index = match?.[1] ? Number(match[1]) - 1 : fallbackIndex;
-    return STUDIO_BACKGROUND_FALLBACKS[index % STUDIO_BACKGROUND_FALLBACKS.length] ?? STUDIO_BACKGROUND_FALLBACKS[0] ?? imageUrl;
-  }
-
-  return imageUrl;
+  return resolveApiAssetUrl(imageUrl) || imageUrl;
 }
 
 function getTemplateElements(configJson: JsonObject | null): TemplateElement[] {
@@ -239,7 +250,7 @@ function parseTemplateElement(value: unknown): TemplateElement | null {
   const accessoryId = readString(record.accessoryId);
 
   if (content !== undefined) element.content = content;
-  if (imageUrl !== undefined) element.imageUrl = imageUrl;
+  if (imageUrl !== undefined) element.imageUrl = resolveApiAssetUrl(imageUrl) || imageUrl;
   if (fontSize !== undefined) element.fontSize = fontSize;
   if (color !== undefined) element.color = color;
   if (width !== undefined) element.width = width;
@@ -275,6 +286,16 @@ function normalizeContentFieldType(value: unknown): StudioContentFieldType {
   return "text";
 }
 
+function beautifyContentFieldLabel(label: string): string {
+  return label
+    .replace(/[_-]+/g, " ")
+    .replace(/(\p{Ll})(\p{Lu})/gu, "$1 $2")
+    .replace(/([0-9])(\p{L})/gu, "$1 $2")
+    .replace(/(\p{L})([0-9])/gu, "$1 $2")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 function readContentFieldList(value: JsonValue | null | undefined): unknown[] {
   if (Array.isArray(value)) return value;
   if (!isRecord(value)) return [];
@@ -289,10 +310,19 @@ function normalizeContentFields(value: JsonValue | null | undefined): StudioCont
       if (!isRecord(field)) return null;
 
       const key = readString(field.key)?.trim() || `field_${index + 1}`;
-      const label = readString(field.label)?.trim() || readString(field.name)?.trim() || `Thông tin ${index + 1}`;
+      const rawLabel = readString(field.label)?.trim() || readString(field.name)?.trim() || `Thông tin ${index + 1}`;
+      const label = beautifyContentFieldLabel(rawLabel);
       const type = normalizeContentFieldType(field.type);
       const placeholder = readString(field.placeholder)?.trim();
       const helpText = readString(field.helpText)?.trim() || readString(field.description)?.trim();
+      const align = readString(field.align);
+      const x = readNumber(field.x);
+      const y = readNumber(field.y);
+      const width = readNumber(field.width);
+      const height = readNumber(field.height);
+      const fontSize = readNumber(field.fontSize);
+      const fontWeight = readNumber(field.fontWeight);
+      const maxLines = readNumber(field.maxLines);
 
       return {
         key,
@@ -301,6 +331,14 @@ function normalizeContentFields(value: JsonValue | null | undefined): StudioCont
         required: readBoolean(field.required, index === 0),
         ...(placeholder ? { placeholder } : {}),
         ...(helpText ? { helpText } : {}),
+        ...(x !== undefined ? { x } : {}),
+        ...(y !== undefined ? { y } : {}),
+        ...(width !== undefined ? { width } : {}),
+        ...(height !== undefined ? { height } : {}),
+        ...(fontSize !== undefined ? { fontSize } : {}),
+        ...(fontWeight !== undefined ? { fontWeight } : {}),
+        ...(align === "left" || align === "center" || align === "right" ? { align } : {}),
+        ...(maxLines !== undefined ? { maxLines } : {}),
       };
     })
     .filter((field): field is StudioContentField => Boolean(field));
@@ -347,44 +385,131 @@ function normalizeFrameColorName(name: string): string {
   return trimmed;
 }
 
+function normalizeSearchText(value: string): string {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+}
+
+function normalizeHex(value?: string | null): string | null {
+  if (!value) return null;
+  const trimmed = value.trim();
+  if (/^#[0-9a-f]{3}$/i.test(trimmed)) {
+    return `#${trimmed
+      .slice(1)
+      .split("")
+      .map((char) => `${char}${char}`)
+      .join("")}`.toLowerCase();
+  }
+  if (/^#[0-9a-f]{6}$/i.test(trimmed)) return trimmed.toLowerCase();
+  if (/^[0-9a-f]{6}$/i.test(trimmed)) return `#${trimmed.toLowerCase()}`;
+  return null;
+}
+
+const KNOWN_FRAME_COLORS = [
+  { label: "Trắng", hex: "#ffffff", names: ["trang", "white"], hexes: ["#ffffff"] },
+  { label: "Đen", hex: "#1f1f21", names: ["den", "black"], hexes: ["#000000", "#111111", "#1a1a1a", "#1f1f21"] },
+  { label: "Gỗ", hex: "#d7a15c", names: ["go", "wood"], hexes: ["#d7a15c"] },
+  { label: "Xám", hex: "#808080", names: ["xam", "gray", "grey"], hexes: ["#808080", "#6b7280", "#9ca3af"] },
+  { label: "Nâu", hex: "#8b4513", names: ["nau", "brown"], hexes: ["#8b4513"] },
+  { label: "Đỏ", hex: "#ef4444", names: ["do", "red"], hexes: ["#ff0000", "#ef4444", "#dc2626"] },
+  { label: "Vàng", hex: "#facc15", names: ["vang", "yellow"], hexes: ["#facc15", "#fbbf24", "#ffd700"] },
+  { label: "Xanh", hex: "#3b82f6", names: ["xanh", "blue"], hexes: ["#3b82f6", "#2563eb"] },
+] as const;
+
+function getKnownFrameColorByHex(colorHex?: string | null) {
+  const normalizedHex = normalizeHex(colorHex);
+  if (!normalizedHex) return null;
+  return KNOWN_FRAME_COLORS.find((color) => (color.hexes as readonly string[]).includes(normalizedHex)) ?? null;
+}
+
+function getKnownFrameColorByName(name: string) {
+  const normalizedName = normalizeSearchText(name);
+  return KNOWN_FRAME_COLORS.find((color) => (color.names as readonly string[]).includes(normalizedName)) ?? null;
+}
+
+function readFrameOptionMetadataString(option: FrameOption, keys: string[]): string | null {
+  const metadata = option.metadata;
+  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) return null;
+  const record = metadata as Record<string, unknown>;
+
+  for (const key of keys) {
+    const value = record[key];
+    if (typeof value === "string" && value.trim()) {
+      return value.trim();
+    }
+  }
+
+  return null;
+}
+
+function getFrameOptionColorName(option: FrameOption, sizeLabel: string): string {
+  const metadataColorName = readFrameOptionMetadataString(option, [
+    "colorName",
+    "frameColorName",
+    "color",
+    "mauKhung",
+  ]);
+
+  if (metadataColorName) return normalizeFrameColorName(metadataColorName);
+
+  const knownByHex = getKnownFrameColorByHex(option.colorHex);
+  if (knownByHex) return knownByHex.label;
+
+  const normalizedOptionHex = normalizeHex(option.colorHex);
+  if (normalizedOptionHex) return normalizedOptionHex.toUpperCase();
+
+  const optionName = normalizeFrameColorName(option.name);
+  const knownByName = getKnownFrameColorByName(optionName);
+  if (knownByName && optionName !== sizeLabel) return knownByName.label;
+
+  return "Trắng";
+}
+
+function getFrameOptionColorHex(option: FrameOption, colorName: string): string {
+  const normalizedHex = normalizeHex(option.colorHex);
+  if (normalizedHex) return normalizedHex;
+  return getKnownFrameColorByName(colorName)?.hex ?? "#ffffff";
+}
+
 function formatDimension(value: number): string {
   return Number.isInteger(value) ? String(value) : String(value).replace(/\.?0+$/, "");
 }
 
 function getFrameSizeLabel(option: FrameOption): string {
-  if (option.label) return option.label;
   if (option.widthCm !== null && option.heightCm !== null) {
     return `${formatDimension(option.widthCm)}x${formatDimension(option.heightCm)}`;
   }
-  return option.name;
+  if (option.label) return option.label;
+  return normalizeFrameColorName(option.name);
 }
 
 function mapFrameOptionSize(option: FrameOption): ApiFrameSize {
+  const label = getFrameSizeLabel(option);
+  const colorName = getFrameOptionColorName(option, label);
+
   return {
     id: option.id,
-    label: getFrameSizeLabel(option),
+    label,
     price: option.price,
     popular: option.popular,
     status: option.status,
     widthCm: option.widthCm,
     heightCm: option.heightCm,
+    colorHex: getFrameOptionColorHex(option, colorName),
+    colorName,
   };
 }
 
-function mapFrameOptionColor(option: FrameOption): ApiFrameColor {
-  return {
-    id: option.id,
-    name: normalizeFrameColorName(option.label ?? option.name),
-    colorHex: option.colorHex,
-    status: option.status,
-  };
-}
-
-function mapLegacyFrameSize(size: Omit<ApiFrameSize, "widthCm" | "heightCm">): ApiFrameSize {
+function mapLegacyFrameSize(size: Omit<ApiFrameSize, "widthCm" | "heightCm" | "colorHex" | "colorName">): ApiFrameSize {
   return {
     ...size,
     widthCm: null,
     heightCm: null,
+    colorHex: "#ffffff",
+    colorName: "Trắng",
   };
 }
 
@@ -406,7 +531,6 @@ function mapFrameBackground(background: FrameBackground, index = 0): ApiTemplate
 export function StudioProvider({ children }: { children: ReactNode }) {
   const [step, setStep] = useState<number>(1);
   const [frameSize, setFrameSize] = useState<string>("");
-  const [frameColor, setFrameColor] = useState<string>("");
   const [printText, setPrintText] = useState<PrintText>({ title: "", date: "", message: "" });
   const [contentValues, setContentValues] = useState<Record<string, string>>({});
   const [characterCount, setCharacterCount] = useState<number>(0);
@@ -416,50 +540,46 @@ export function StudioProvider({ children }: { children: ReactNode }) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [activeTemplate, setActiveTemplate] = useState<string | null>(null);
   const [customBackgroundUrl, setCustomBackgroundUrl] = useState<string | null>(null);
+  const [customBackgroundOriginalName, setCustomBackgroundOriginalName] = useState<string | null>(null);
   const [zoom, setZoom] = useState<number>(1);
+  const [editCartItemId, setEditCartItemId] = useState<string | null>(null);
+  const hasRestoredCartItemRef = useRef(false);
+  const skipNextTemplateResetRef = useRef(false);
 
   // API State
   const [templates, setTemplates] = useState<ApiTemplate[]>([]);
   const [templateCategories, setTemplateCategories] = useState<ApiCategory[]>([]);
   const [accessories, setAccessories] = useState<ApiAccessory[]>([]);
+  const [characters, setCharacters] = useState<ApiCharacter[]>([]);
   const [accessoryCategories, setAccessoryCategories] = useState<ApiCategory[]>([]);
   const [frameSizes, setFrameSizes] = useState<ApiFrameSize[]>([]);
-  const [frameColors, setFrameColors] = useState<ApiFrameColor[]>([]);
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [dataError, setDataError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    setEditCartItemId(params.get("editCartItemId"));
+  }, []);
 
   useEffect(() => {
     async function loadData() {
       try {
         setDataError(null);
-        const [tpls, tplCats, accs, accCats, frameOptions, fSizes, fColors, backgrounds] = await Promise.all([
-          publicApiClient.products.listTemplates(),
-          publicApiClient.categories.listTemplateCategories(),
+        const [accs, accCats, frameOptions, fSizes, backgrounds, characterItems] = await Promise.all([
           publicApiClient.products.listAccessories(),
           publicApiClient.categories.listAccessoryCategories(),
-          publicApiClient.products.listFrameOptions(),
+          publicApiClient.products.listFrameOptions({ type: "size" }),
           publicApiClient.products.listFrameSizes(),
-          publicApiClient.products.listFrameColors(),
           publicApiClient.products.listFrameBackgrounds(),
+          publicApiClient.products.listCharacters().catch(() => []),
         ]);
-        const activeTemplates: ApiTemplate[] = tpls
-          .filter(t => t.status === 'active')
-          .map((t, index) => ({
-            ...t,
-            description: null,
-            instructions: null,
-            imageUrl: resolveStudioImageUrl(t.imageUrl, index),
-            contentFields: t.configJson?.contentFields ?? null,
-            source: "template",
-          }));
         const activeBackgrounds = backgrounds
           .filter(bg => bg.status === "active")
           .sort((a, b) => a.sortOrder - b.sortOrder)
           .map(mapFrameBackground);
-        const studioBackgrounds = [...activeBackgrounds, ...activeTemplates];
 
-        setTemplates(studioBackgrounds);
-        setTemplateCategories(tplCats);
+        setTemplates(activeBackgrounds);
+        setTemplateCategories([]);
         setAccessories(accs
           .filter(a => a.status === 'active')
           .map((accessory, index) => ({
@@ -467,34 +587,29 @@ export function StudioProvider({ children }: { children: ReactNode }) {
             imageUrl: resolveStudioImageUrl(accessory.imageUrl, index) ?? accessory.imageUrl,
             iconUrl: resolveStudioImageUrl(accessory.iconUrl, index) ?? accessory.iconUrl,
           })));
+        setCharacters(characterItems
+          .filter(character => character.status === "active")
+          .map((character, index) => ({
+            ...character,
+            imageUrl: resolveStudioImageUrl(character.imageUrl, index) ?? character.imageUrl,
+          })));
         setAccessoryCategories(accCats);
 
         const activeFrameOptions = frameOptions.filter(option => option.status === "active");
         const optionFrameSizes = activeFrameOptions
           .filter(option => option.type === "size")
           .map(mapFrameOptionSize);
-        const optionFrameColors = activeFrameOptions
-          .filter(option => option.type === "color")
-          .map(mapFrameOptionColor);
         
         const activeFrameSizes = (optionFrameSizes.length > 0 ? optionFrameSizes : fSizes.map(mapLegacyFrameSize))
           .filter(f => f.status === 'active');
-        const activeFrameColors = (optionFrameColors.length > 0 ? optionFrameColors : fColors.map(color => ({
-          ...color,
-          name: normalizeFrameColorName(color.name),
-        })))
-          .filter(c => c.status === 'active');
         
         setFrameSizes(activeFrameSizes);
-        setFrameColors(activeFrameColors);
         
         const firstFrameSize = activeFrameSizes[0];
-        const firstFrameColor = activeFrameColors[0];
 
         if (firstFrameSize) setFrameSize(firstFrameSize.id);
-        if (firstFrameColor) setFrameColor(firstFrameColor.name);
         
-        const firstTemplate = studioBackgrounds[0];
+        const firstTemplate = activeBackgrounds[0];
         if (firstTemplate) {
           setActiveTemplate(firstTemplate.id);
         }
@@ -508,9 +623,45 @@ export function StudioProvider({ children }: { children: ReactNode }) {
     loadData();
   }, []);
 
+  useEffect(() => {
+    if (!frameSize || isLoadingData) return;
+
+    let cancelled = false;
+    publicApiClient.products
+      .listFrameBackgrounds({ frameOptionId: frameSize })
+      .then((backgrounds) => {
+        if (cancelled) return;
+        const activeBackgrounds = backgrounds
+          .filter(bg => bg.status === "active")
+          .sort((a, b) => a.sortOrder - b.sortOrder)
+          .map(mapFrameBackground);
+
+        setTemplates(activeBackgrounds);
+        setActiveTemplate((current) => {
+          if (!current || current.startsWith("background:")) {
+            return activeBackgrounds.some((tpl) => tpl.id === current)
+              ? current
+              : (activeBackgrounds[0]?.id ?? null);
+          }
+          return current;
+        });
+      })
+      .catch((error) => {
+        console.error("Failed to reload frame backgrounds:", error);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [frameSize, isLoadingData]);
+
   // When activeTemplate changes, reload its default elements
   useEffect(() => {
     if (!activeTemplate || isLoadingData) return;
+    if (skipNextTemplateResetRef.current) {
+      skipNextTemplateResetRef.current = false;
+      return;
+    }
     const tpl = templates.find(t => t.id === activeTemplate);
     const templateElements = tpl ? getTemplateElements(tpl.configJson) : [];
     if (templateElements.length > 0) {
@@ -539,15 +690,149 @@ export function StudioProvider({ children }: { children: ReactNode }) {
     () => frameSizes.find(s => s.id === frameSize),
     [frameSize, frameSizes],
   );
+
+  useEffect(() => {
+    if (!editCartItemId || isLoadingData || hasRestoredCartItemRef.current) {
+      return;
+    }
+
+    const cartItem = useCartStore.getState().items.find((item) => item.id === editCartItemId);
+    hasRestoredCartItemRef.current = true;
+
+    if (!cartItem) {
+      alert("Không tìm thấy thiết kế trong giỏ hàng. Bạn có thể bắt đầu thiết kế mới.");
+      setEditCartItemId(null);
+      window.history.replaceState(null, "", "/studio");
+      return;
+    }
+
+    restoreCartItem(cartItem);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editCartItemId, isLoadingData, templates.length]);
+
+  function restoreCartItem(cartItem: SimpleCartItem) {
+    const designData = cartItem.designData;
+    const accessoryPriceById = new Map(
+      (cartItem.accessories ?? []).map((accessory) => [accessory.id, accessory.price]),
+    );
+    const accessoryById = new Map(accessories.map((accessory) => [accessory.id, accessory]));
+    const characterById = new Map(characters.map((character) => [character.id, character]));
+
+    setFrameSize(cartItem.frameSizeId);
+    setSelectedId(null);
+    setStep(4);
+
+    if (isCustomFrameDesignData(designData)) {
+      const backgroundTemplateId = designData.backgroundId
+        ? `background:${designData.backgroundId}`
+        : null;
+      const uploadedBackground = designData.uploadedImages.find(
+        (image) => image.type === "background",
+      );
+
+      skipNextTemplateResetRef.current = true;
+      if (backgroundTemplateId && templates.some((tpl) => tpl.id === backgroundTemplateId)) {
+        setActiveTemplate(backgroundTemplateId);
+        setCustomBackgroundUrl(null);
+        setCustomBackgroundOriginalName(null);
+      } else if (uploadedBackground?.url) {
+        setActiveTemplate(null);
+        setCustomBackgroundUrl(uploadedBackground.url);
+        setCustomBackgroundOriginalName(uploadedBackground.originalName);
+      }
+
+      setPrintText({
+        title: designData.content.recipientName,
+        date: designData.content.graduationDate,
+        message: designData.content.message,
+      });
+      setContentValues({
+        recipientName: designData.content.recipientName,
+        graduationDate: designData.content.graduationDate,
+        majorOrSchool: designData.content.majorOrSchool,
+        message: designData.content.message,
+      });
+      setCharacterCount(designData.characters.length);
+      setElements([
+        ...designData.accessories.map((accessory) => ({
+          id: `${accessory.id}-${Math.random().toString(36).substring(2, 8)}`,
+          type: "accessory" as const,
+          x: accessory.position.x,
+          y: accessory.position.y,
+          width: 60 * accessory.position.scale,
+          height: 60 * accessory.position.scale,
+          content: accessory.name,
+          imageUrl: accessoryById.get(accessory.id)?.imageUrl ?? accessoryById.get(accessory.id)?.iconUrl ?? "",
+          price: accessoryPriceById.get(accessory.id) ?? 0,
+          accessoryId: accessory.id,
+        })),
+        ...designData.characters.map((character, index) => {
+          const catalogCharacter = character.catalogId ? characterById.get(character.catalogId) : null;
+          const imageUrl = character.imageUrl ?? catalogCharacter?.imageUrl ?? null;
+          const element: StudioElement = {
+            id: character.id || `character-${index + 1}`,
+            type: "character",
+            x: character.position.x,
+            y: character.position.y,
+            width: 46 * character.position.scale,
+            height: 74 * character.position.scale,
+            content: character.name ?? catalogCharacter?.name ?? `NV ${index + 1}`,
+            price: character.price ?? catalogCharacter?.price ?? CHARACTER_PRICE,
+          };
+
+          if (character.catalogId) element.characterId = character.catalogId;
+          if (imageUrl) element.imageUrl = imageUrl;
+
+          return element;
+        }),
+      ]);
+      return;
+    }
+
+    const legacyTemplateId = typeof designData.templateId === "string" ? designData.templateId : null;
+    skipNextTemplateResetRef.current = true;
+    setActiveTemplate(legacyTemplateId);
+    setCustomBackgroundUrl(typeof designData.backgroundImageUrl === "string" ? designData.backgroundImageUrl : cartItem.previewUrl);
+    setCustomBackgroundOriginalName(null);
+    setPrintText({
+      title: typeof designData.printText === "object" && designData.printText && !Array.isArray(designData.printText)
+        ? String((designData.printText as Record<string, unknown>).title ?? "")
+        : "",
+      date: typeof designData.printText === "object" && designData.printText && !Array.isArray(designData.printText)
+        ? String((designData.printText as Record<string, unknown>).date ?? "")
+        : "",
+      message: typeof designData.printText === "object" && designData.printText && !Array.isArray(designData.printText)
+        ? String((designData.printText as Record<string, unknown>).message ?? "")
+        : "",
+    });
+    setContentValues(
+      typeof designData.contentValues === "object" && designData.contentValues && !Array.isArray(designData.contentValues)
+        ? Object.fromEntries(
+            Object.entries(designData.contentValues).filter(([, value]) => typeof value === "string"),
+          ) as Record<string, string>
+        : {},
+    );
+    const legacyElements = Array.isArray(designData.elements)
+      ? designData.elements.filter((element): element is StudioElement => isRecord(element) && isElementType(element.type))
+      : [];
+    setElements(legacyElements);
+    setCharacterCount(legacyElements.filter((element) => element.type === "character").length);
+  }
+
   const baseFramePrice = activeFrameSizeObj ? activeFrameSizeObj.price : 0;
   const accessoriesPrice = useMemo(
-    () => elements.reduce((acc, el) => acc + (el.price || 0), 0),
+    () => elements
+      .filter((el) => el.type === "accessory")
+      .reduce((acc, el) => acc + (el.price || 0), 0),
     [elements],
   );
-  const charactersTotalPrice = characterCount * CHARACTER_PRICE;
+  const charactersTotalPrice = useMemo(
+    () => elements
+      .filter((el) => el.type === "character")
+      .reduce((acc, el) => acc + (el.price ?? CHARACTER_PRICE), 0),
+    [elements],
+  );
   const totalPrice = baseFramePrice + accessoriesPrice + charactersTotalPrice;
-  const freeshipAmount = Math.max(0, FREESHIP_THRESHOLD - totalPrice);
-  const freeshipProgress = Math.min(100, Math.round((totalPrice / FREESHIP_THRESHOLD) * 100));
 
   const addElement = useCallback((el: Omit<StudioElement, "id">) => {
     const newEl = { ...el, id: Math.random().toString(36).substring(2, 9) };
@@ -569,21 +854,33 @@ export function StudioProvider({ children }: { children: ReactNode }) {
     setPrintText({ title: "", date: "", message: "" });
   }, []);
 
-  const addCharacter = useCallback(() => {
+  const addCharacter = useCallback((character?: ApiCharacter) => {
+    const id = Math.random().toString(36).substring(2, 9);
+
+    setElements((prev) => {
+      const characters = prev.filter((element) => element.type === "character");
+      const characterIndex = characters.length;
+      const nextNumber = getNextCharacterNumber(prev);
+      const imageUrl = character?.imageUrl ? resolveStudioImageUrl(character.imageUrl, characterIndex) : null;
+      const newEl: StudioElement = {
+        id,
+        type: "character",
+        x: 90 + (characterIndex % 4) * 70,
+        y: 165 + Math.floor(characterIndex / 4) * 35,
+        content: character?.name ?? `NV ${nextNumber}`,
+        width: 46,
+        height: 74,
+        price: character?.price ?? CHARACTER_PRICE,
+      };
+
+      if (character?.id) newEl.characterId = character.id;
+      if (imageUrl) newEl.imageUrl = imageUrl;
+
+      return [...prev, newEl];
+    });
     setCharacterCount((count) => count + 1);
-    const offset = Math.min(characterCount, 5) * 22;
-    const newEl: StudioElement = {
-      id: Math.random().toString(36).substring(2, 9),
-      type: "character",
-      x: 110 + offset,
-      y: 190,
-      content: `NV ${characterCount + 1}`,
-      width: 46,
-      height: 74,
-    };
-    setElements(prev => [...prev, newEl]);
-    setSelectedId(newEl.id);
-  }, [characterCount]);
+    setSelectedId(id);
+  }, []);
 
   const removeLastCharacter = useCallback(() => {
     setElements(prev => {
@@ -625,10 +922,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
       setStep,
       frameSize,
       setFrameSize,
-      frameColor,
-      setFrameColor,
       frameSizes,
-      frameColors,
       printText,
       setPrintText,
       contentFields,
@@ -639,16 +933,18 @@ export function StudioProvider({ children }: { children: ReactNode }) {
       setCharacterCount,
       characterPrice: CHARACTER_PRICE,
       totalPrice,
-      freeshipAmount,
-      freeshipProgress,
       elements,
       selectedId,
       activeTemplate,
       customBackgroundUrl,
+      customBackgroundOriginalName,
       zoom,
       setZoom,
+      editCartItemId,
+      isEditMode: Boolean(editCartItemId),
       setActiveTemplate,
       setCustomBackgroundUrl,
+      setCustomBackgroundOriginalName,
       setSelectedId,
       addElement,
       addCharacter,
@@ -659,6 +955,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
       templates,
       templateCategories,
       accessories,
+      characters,
       accessoryCategories,
       isLoadingData,
       dataError,
@@ -666,9 +963,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
     [
       step,
       frameSize,
-      frameColor,
       frameSizes,
-      frameColors,
       printText,
       contentFields,
       contentValues,
@@ -676,13 +971,13 @@ export function StudioProvider({ children }: { children: ReactNode }) {
       clearContentValues,
       characterCount,
       totalPrice,
-      freeshipAmount,
-      freeshipProgress,
       elements,
       selectedId,
       activeTemplate,
       customBackgroundUrl,
+      customBackgroundOriginalName,
       zoom,
+      editCartItemId,
       addElement,
       addCharacter,
       removeLastCharacter,
@@ -692,6 +987,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
       templates,
       templateCategories,
       accessories,
+      characters,
       accessoryCategories,
       isLoadingData,
       dataError,

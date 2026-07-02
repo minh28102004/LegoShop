@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect, useRef } from "react";
-import { useStudio, type StudioContentField } from "./StudioContext";
+import { useStudio, type ApiFrameSize, type StudioContentField } from "./StudioContext";
 import { formatPrice } from "@/lib/formatters";
 import {
   Search,
@@ -11,16 +11,15 @@ import {
   Check,
   ChevronLeft,
   ChevronRight,
-  Save,
   ArrowRight,
+  AlertCircle,
 } from "lucide-react";
-import { useRouter } from "next/navigation";
-import { useCartStore } from "@/stores/cartStore";
+import { useCartStore, type CartItemPart } from "@/stores/cartStore";
 import { useUIStore } from "@/stores/uiStore";
 import { UI_MODAL_IDS } from "@/constants";
-import { useAuthStore } from "@/stores/authStore";
-import { browserApiClient } from "@/lib/api/browser-client";
-import type { JsonObject } from "@lego-shop/shared";
+import { uploadCustomerImage } from "@/lib/api/uploads";
+import { isPersistableImageUrl } from "./design-data";
+import type { CustomFrameDesignData } from "@lego-shop/shared";
 
 const getFrameColorHex = (name: string, apiHex?: string | null): string => {
   if (apiHex && apiHex.startsWith("#")) return apiHex;
@@ -38,50 +37,12 @@ function getMissingRequiredContentField(
   return fields.find((field) => field.required && !values[field.key]?.trim());
 }
 
-// ─── Freeship Progress Bar ─────────────────────────────────────────────────
-function FreeshipBar({
-  amount,
-  progress,
-}: {
-  amount: number;
-  progress: number;
-}) {
-  if (progress >= 100) {
-    return (
-      <div className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700 shadow-sm animate-fade-in">
-        <span className="text-lg">🎉</span> Bạn đã được Miễn phí vận chuyển!
-      </div>
-    );
-  }
-  return (
-    <div className="space-y-2 rounded-xl border border-border bg-surface p-4 shadow-sm animate-fade-in">
-      <div className="flex items-center justify-between text-xs">
-        <span className="text-text-secondary">
-          Thêm{" "}
-          <span className="font-bold text-text-primary">
-            {formatPrice(amount)}
-          </span>{" "}
-          để Freeship
-        </span>
-        <span className="font-bold text-[#d94f77]">{progress}%</span>
-      </div>
-      <div className="h-2 w-full overflow-hidden rounded-full bg-surface-hover shadow-inner">
-        <div
-          className="h-full rounded-full bg-[#ef9ab3] transition-all duration-700 ease-out"
-          style={{ width: `${progress}%` }}
-        />
-      </div>
-    </div>
-  );
-}
-
 export function StudioRightPanel() {
   const {
     step,
     setStep,
     totalPrice,
     frameSize,
-    frameColor,
     contentFields,
     contentValues,
     isLoadingData,
@@ -91,8 +52,8 @@ export function StudioRightPanel() {
   const validationMessage = useMemo(() => {
     if (isLoadingData) return "Đang tải dữ liệu thiết kế...";
     if (dataError) return dataError;
-    if (step === 1 && (!frameSize || !frameColor))
-      return "Vui lòng chọn kích thước và màu khung.";
+    if (step === 1 && !frameSize)
+      return "Vui lòng chọn khung.";
     if (step === 2) {
       const missingField = getMissingRequiredContentField(
         contentFields,
@@ -106,7 +67,6 @@ export function StudioRightPanel() {
     contentFields,
     contentValues,
     dataError,
-    frameColor,
     frameSize,
     isLoadingData,
     step,
@@ -172,136 +132,184 @@ export function StudioRightPanel() {
   );
 }
 
+type FrameSizeGroup = {
+  key: string;
+  label: string;
+  price: number;
+  popular: boolean;
+  variants: ApiFrameSize[];
+};
+
+function getFrameSizeGroupKey(size: ApiFrameSize): string {
+  if (typeof size.widthCm === "number" && typeof size.heightCm === "number") {
+    return `${size.widthCm}x${size.heightCm}`;
+  }
+  return size.label.trim().toLowerCase();
+}
+
+function buildFrameSizeGroups(frameSizes: ApiFrameSize[]): FrameSizeGroup[] {
+  const groups = new Map<string, FrameSizeGroup>();
+
+  frameSizes.forEach((size) => {
+    const key = getFrameSizeGroupKey(size);
+    const current = groups.get(key);
+    if (!current) {
+      groups.set(key, {
+        key,
+        label: size.label,
+        price: size.price,
+        popular: size.popular,
+        variants: [size],
+      });
+      return;
+    }
+
+    current.price = Math.min(current.price, size.price);
+    current.popular = current.popular || size.popular;
+    current.variants.push(size);
+  });
+
+  return Array.from(groups.values());
+}
+
 // ─── Step 1: Chọn khung ────────────────────────────────────────────────────
 function Step1Frame() {
   const {
     frameSize,
     setFrameSize,
-    frameColor,
-    setFrameColor,
     frameSizes,
-    frameColors,
     isLoadingData,
   } = useStudio();
 
+  const frameSizeGroups = useMemo(
+    () => buildFrameSizeGroups(frameSizes),
+    [frameSizes],
+  );
+  const selectedFrameVariant = useMemo(
+    () => frameSizes.find((size) => size.id === frameSize) ?? null,
+    [frameSize, frameSizes],
+  );
+  const selectedGroupKey = selectedFrameVariant
+    ? getFrameSizeGroupKey(selectedFrameVariant)
+    : null;
+  const selectedFrameGroup = frameSizeGroups.find(
+    (group) => group.key === selectedGroupKey,
+  );
+
+  const selectFrameGroup = (group: FrameSizeGroup) => {
+    const preferredColor = selectedFrameVariant?.colorName;
+    const preferredHex = selectedFrameVariant?.colorHex;
+    const nextVariant =
+      group.variants.find((variant) => preferredColor && variant.colorName === preferredColor) ??
+      group.variants.find((variant) => preferredHex && variant.colorHex === preferredHex) ??
+      group.variants[0];
+
+    if (nextVariant) setFrameSize(nextVariant.id);
+  };
+
   if (isLoadingData) {
     return (
-      <div className="space-y-6">
-        {[1, 2, 3].map((i) => (
-          <div
-            key={i}
-            className="h-24 rounded-2xl bg-surface-hover animate-pulse"
-          />
-        ))}
+      <div className="rounded-lg border border-border bg-white p-4 shadow-sm">
+        <div className="mb-4 h-4 w-36 rounded bg-surface-hover animate-pulse" />
+        <div className="grid grid-cols-3 gap-2">
+          {[1, 2, 3, 4].map((i) => (
+            <div
+              key={i}
+              className="h-[72px] rounded-md bg-surface-hover animate-pulse"
+            />
+          ))}
+        </div>
+        <div className="my-4 h-px bg-border" />
+        <div className="flex gap-2">
+          {[1, 2].map((i) => (
+            <div
+              key={i}
+              className="h-9 w-20 rounded-md bg-surface-hover animate-pulse"
+            />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (frameSizeGroups.length === 0) {
+    return (
+      <div className="rounded-lg border border-border bg-white p-4 text-sm font-semibold text-text-muted shadow-sm">
+        Chưa có kích thước khung.
       </div>
     );
   }
 
   return (
-    <div className="space-y-8">
-      <div>
-        <h3 className="mb-4 text-xs font-bold tracking-widest text-text-muted uppercase font-body">
-          Kích thước khung
-        </h3>
-        <div className="grid grid-cols-3 gap-3">
-          {frameSizes.map((s) => (
+    <div className="rounded-lg border border-border bg-white p-4 shadow-sm">
+      <h3 className="mb-4 text-xs font-black tracking-wide text-text-primary uppercase">
+        Chọn kích thước
+      </h3>
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+        {frameSizeGroups.map((group) => {
+          const active = group.key === selectedGroupKey;
+          const activeVariant = active
+            ? group.variants.find((variant) => variant.id === frameSize)
+            : null;
+          const displayPrice = activeVariant?.price ?? group.price;
+
+          return (
             <button
-              key={s.id}
+              key={group.key}
               type="button"
-              onClick={() => setFrameSize(s.id)}
-              className={`group relative flex cursor-pointer flex-col items-center justify-center gap-1 rounded-2xl border-2 transition-all duration-300 ${
-                frameSize === s.id
-                  ? "border-[#ef9ab3] bg-[#fff4f7] shadow-md"
-                  : "border-border bg-surface hover:border-[#ef9ab3]/50 hover:bg-[#fff4f7]/50 hover:shadow-sm"
+              onClick={() => selectFrameGroup(group)}
+              className={`relative flex h-[72px] min-w-0 flex-col items-center justify-center gap-1 rounded-md border px-2 text-center transition-all ${
+                active
+                  ? "border-[#ef9ab3] bg-[#ef9ab3] text-white shadow-md"
+                  : "border-border bg-white text-text-primary hover:border-[#ef9ab3] hover:bg-[#fff4f7]"
               }`}
-              style={{
-                paddingTop: s.popular ? 32 : 16,
-                paddingBottom: 16,
-                paddingLeft: 8,
-                paddingRight: 8,
-              }}
             >
-              {s.popular && (
-                <span className="absolute -top-3 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-gradient-to-r from-amber-400 to-orange-400 px-3 py-1 text-[10px] font-black uppercase tracking-wider text-amber-950 shadow-md">
+              {group.popular && (
+                <span className="absolute right-2 top-[-7px] max-w-[88px] truncate rounded-[4px] bg-amber-400 px-1.5 py-0.5 text-[9px] font-black leading-none text-amber-950 shadow-sm">
                   Phổ biến nhất
                 </span>
               )}
-              <span
-                className={`text-sm font-bold transition-colors ${frameSize === s.id ? "text-[#d94f77]" : "text-text-primary"}`}
-              >
-                {s.label}
+              <span className="max-w-full truncate text-[13px] font-bold leading-tight">
+                {group.label}
               </span>
-              <span className="text-xs font-semibold text-text-muted">
-                {formatPrice(s.price)}
+              <span className={`text-xs font-semibold ${active ? "text-white/90" : "text-text-muted"}`}>
+                {formatPrice(displayPrice)}
               </span>
             </button>
-          ))}
-        </div>
+          );
+        })}
       </div>
 
-      <div>
-        <h3 className="mb-4 text-xs font-bold tracking-widest text-text-muted uppercase font-body">
-          Màu sắc khung
-        </h3>
-        <div className="flex flex-wrap gap-3">
-          {frameColors.map((c) => (
+      <div className="my-4 h-px bg-border" />
+
+      <p className="mb-2 text-[11px] font-black tracking-wide text-text-muted uppercase">
+        Màu khung
+      </p>
+      <div className="flex flex-wrap gap-2">
+        {(selectedFrameGroup?.variants ?? []).map((variant) => {
+          const active = variant.id === frameSize;
+          const colorName = variant.colorName ?? "Màu khung";
+
+          return (
             <button
-              key={c.id}
+              key={variant.id}
               type="button"
-              onClick={() => setFrameColor(c.name)}
-              className={`flex items-center gap-2.5 rounded-full border-2 px-4 py-2 text-sm transition-all duration-300 ${
-                frameColor === c.name
-                  ? "border-[#ef9ab3] bg-[#fff4f7] shadow-sm"
-                  : "border-border bg-surface hover:border-[#ef9ab3]/50 hover:bg-[#fff4f7]/50"
+              onClick={() => setFrameSize(variant.id)}
+              className={`inline-flex h-9 items-center gap-2 rounded-md border px-3 text-xs font-bold transition-all ${
+                active
+                  ? "border-[#ef9ab3] bg-[#fff4f7] text-[#d94f77]"
+                  : "border-border bg-white text-text-primary hover:border-[#ef9ab3]"
               }`}
             >
               <span
-                className="h-4 w-4 shrink-0 rounded-full border border-zinc-200 shadow-inner"
-                style={{
-                  backgroundColor: getFrameColorHex(c.name, c.colorHex),
-                }}
+                className="h-3.5 w-3.5 rounded-full border border-zinc-300 shadow-inner"
+                style={{ backgroundColor: getFrameColorHex(colorName, variant.colorHex) }}
               />
-              <span
-                className={`font-bold text-xs ${frameColor === c.name ? "text-[#d94f77]" : "text-text-secondary"}`}
-              >
-                {c.name}
-              </span>
-              {frameColor === c.name && (
-                <Check className="h-3.5 w-3.5 text-[#d94f77]" />
-              )}
+              {colorName}
             </button>
-          ))}
-        </div>
+          );
+        })}
       </div>
-
-      <div className="rounded-2xl border border-border bg-surface p-5 shadow-sm">
-        <p className="mb-4 flex items-center gap-2 text-xs font-black tracking-widest text-text-secondary uppercase">
-          <span className="h-2 w-2 rounded-full bg-[#ef9ab3] animate-pulse" />
-          Giá cơ bản bao gồm:
-        </p>
-        <div className="grid grid-cols-2 gap-x-4 gap-y-3">
-          {[
-            { icon: "🖼️", label: "1 Khung tranh LEGO" },
-            { icon: "🎨", label: "1 Nền thiết kế" },
-            { icon: "👤", label: "1-2 Nhân vật" },
-            { icon: "🎁", label: "Hộp quà tặng" },
-            { icon: "👜", label: "Túi xách tay" },
-            { icon: "💌", label: "Thiệp chúc mừng" },
-          ].map((item) => (
-            <div key={item.label} className="flex items-center gap-2">
-              <span className="text-base drop-shadow-sm">{item.icon}</span>
-              <span className="text-xs font-medium text-text-secondary">
-                {item.label}
-              </span>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <p className="rounded-xl border border-border bg-surface-hover px-4 py-3 text-xs leading-relaxed text-text-muted shadow-inner font-medium">
-        * Đây là bản xem trước mô phỏng. Sau khi đặt hàng, Designer sẽ thiết kế
-        lại bố cục & màu sắc đẹp nhất và gửi bạn duyệt trước khi in ấn.
-      </p>
     </div>
   );
 }
@@ -313,6 +321,7 @@ function Step2Content() {
     setActiveTemplate,
     customBackgroundUrl,
     setCustomBackgroundUrl,
+    setCustomBackgroundOriginalName,
     templates,
     templateCategories,
     printText,
@@ -322,11 +331,11 @@ function Step2Content() {
     setContentValue,
     clearContentValues,
     isLoadingData,
-    freeshipAmount,
-    freeshipProgress,
   } = useStudio();
   const [activeCategoryId, setActiveCategoryId] = useState<string | null>(null);
   const backgroundInputRef = useRef<HTMLInputElement | null>(null);
+  const [isUploadingBackground, setIsUploadingBackground] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
   const filteredTemplates = useMemo(() => {
     if (!activeCategoryId) return templates;
@@ -337,32 +346,34 @@ function Step2Content() {
     [activeTemplate, templates],
   );
 
-  const handleBackgroundUpload = (file?: File) => {
+  const handleBackgroundUpload = async (file?: File) => {
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      if (typeof reader.result === "string") {
-        setCustomBackgroundUrl(reader.result);
-        setActiveTemplate(null);
-        clearContentValues();
-      }
-    };
-    reader.readAsDataURL(file);
+    setIsUploadingBackground(true);
+    setUploadError(null);
+    try {
+      const uploaded = await uploadCustomerImage(file);
+      setCustomBackgroundUrl(uploaded.url);
+      setCustomBackgroundOriginalName(uploaded.originalName);
+      setActiveTemplate(null);
+      clearContentValues();
+    } catch (error) {
+      setUploadError(error instanceof Error ? error.message : "Không tải được ảnh lên");
+    } finally {
+      setIsUploadingBackground(false);
+    }
   };
 
   return (
     <div className="space-y-6">
-      <FreeshipBar amount={freeshipAmount} progress={freeshipProgress} />
-
-      <div className="rounded-2xl border border-border bg-surface shadow-sm overflow-hidden">
-        <div className="flex items-center justify-between border-b border-border px-5 py-4 bg-background">
+      <div className="rounded-2xl border border-border bg-white p-5 shadow-sm">
+        <div className="mb-4 flex items-center justify-between">
           <h3 className="text-sm font-bold text-text-primary">CHỌN ẢNH NỀN</h3>
           <span className="rounded-full bg-surface-hover px-2.5 py-0.5 text-xs font-bold text-text-muted">
             {filteredTemplates.length + (customBackgroundUrl ? 1 : 0)} mẫu
           </span>
         </div>
 
-        <div className="flex gap-2 overflow-x-auto px-5 py-4 scrollbar-hide">
+        <div className="mb-4 flex gap-2 overflow-x-auto scrollbar-hide">
           <button
             type="button"
             onClick={() => setActiveCategoryId(null)}
@@ -390,12 +401,13 @@ function Step2Content() {
           ))}
         </div>
 
-        <div className="grid max-h-[280px] grid-cols-4 gap-3 overflow-y-auto px-5 pb-5 scrollbar-hide">
+        <div className="grid max-h-[320px] grid-cols-4 gap-3 overflow-y-auto pr-1 scrollbar-hide">
           {customBackgroundUrl && (
             <button
               type="button"
               onClick={() => {
                 setActiveTemplate(null);
+                setCustomBackgroundOriginalName(null);
                 clearContentValues();
               }}
               className={`group relative aspect-square overflow-hidden rounded-xl border-2 transition-all duration-300 ${
@@ -441,6 +453,7 @@ function Step2Content() {
                 type="button"
                 onClick={() => {
                   setCustomBackgroundUrl(null);
+                  setCustomBackgroundOriginalName(null);
                   setActiveTemplate(tpl.id);
                 }}
                 className={`group relative aspect-square overflow-hidden rounded-xl border-2 transition-all duration-300 ${
@@ -482,35 +495,33 @@ function Step2Content() {
           )}
         </div>
 
-        <div className="border-t border-border bg-background p-4">
+        <div className="mt-4 border-t border-border pt-4">
           <button
             type="button"
             onClick={() => backgroundInputRef.current?.click()}
+            disabled={isUploadingBackground}
             className="group flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border bg-surface py-3 text-xs font-bold text-text-secondary transition-all hover:border-[#ef9ab3] hover:bg-[#fff4f7] hover:text-[#d94f77]"
           >
             <UploadCloud className="h-4 w-4 transition-transform group-hover:-translate-y-1" />
-            TẢI ẢNH NỀN CỦA BẠN LÊN
+            {isUploadingBackground ? "ĐANG TẢI ẢNH..." : "TẢI ẢNH NỀN CỦA BẠN LÊN"}
           </button>
           <input
             ref={backgroundInputRef}
             type="file"
-            accept="image/*"
+            accept="image/jpeg,image/png,image/webp"
             className="hidden"
             onChange={(event) =>
               handleBackgroundUpload(event.target.files?.[0])
             }
           />
+          {uploadError ? (
+            <p className="mt-2 text-xs font-semibold text-red-600">{uploadError}</p>
+          ) : null}
         </div>
       </div>
 
       <div className="rounded-2xl border border-border bg-surface p-5 shadow-sm">
-        <div className="mb-5 flex items-center justify-between">
-          <h3 className="flex items-center gap-2 text-sm font-bold text-primary">
-            <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-xs text-primary">
-              2
-            </div>
-            NHẬP THÔNG TIN IN ẤN
-          </h3>
+        <div className="mb-4 flex justify-end">
           <button
             type="button"
             className="text-xs font-bold text-text-muted transition-colors hover:text-error"
@@ -604,11 +615,11 @@ function ContentFieldInput({
   onChange: (value: string) => void;
 }) {
   const inputClass =
-    "w-full rounded-xl border border-slate-200 bg-white p-3 text-sm font-semibold text-slate-900 shadow-sm outline-none transition-all placeholder:text-slate-400 focus:border-[#ef9ab3] focus:ring-2 focus:ring-[#ef9ab3]/20";
+    "w-full rounded-[18px] border border-slate-200 bg-white px-4 py-3.5 text-sm font-semibold text-slate-900 shadow-sm outline-none transition-all placeholder:text-slate-400 focus:border-[#ef9ab3] focus:ring-2 focus:ring-[#ef9ab3]/20";
 
   return (
     <div>
-      <label className="mb-1.5 block text-[11px] font-black uppercase tracking-wider text-slate-600">
+      <label className="mb-2 block text-[12px] font-bold text-slate-700">
         {field.label}{" "}
         {field.required && <span className="text-[#ef5f86]">*</span>}
       </label>
@@ -655,15 +666,15 @@ function Step3Characters() {
   const {
     characterCount,
     characterPrice,
+    characters,
     accessories,
     accessoryCategories,
     addElement,
     addCharacter,
-    removeLastCharacter,
     elements,
     removeElement,
-    freeshipAmount,
-    freeshipProgress,
+    selectedId,
+    setSelectedId,
     isLoadingData,
   } = useStudio();
   const [searchQuery, setSearchQuery] = useState("");
@@ -683,39 +694,86 @@ function Step3Characters() {
   const addedAccessoryIds = new Set(
     elements.filter((e) => e.accessoryId).map((e) => e.accessoryId),
   );
+  const characterElements = useMemo(
+    () => elements.filter((element) => element.type === "character"),
+    [elements],
+  );
+  const charactersTotalPrice = useMemo(
+    () => characterElements.reduce((sum, character) => sum + (character.price ?? characterPrice), 0),
+    [characterElements, characterPrice],
+  );
 
   return (
     <div className="space-y-6">
-      <FreeshipBar amount={freeshipAmount} progress={freeshipProgress} />
+      <div className="rounded-xl border border-border bg-surface p-4 text-xs font-semibold leading-5 text-text-secondary shadow-sm">
+        Phí vận chuyển chưa cộng vào đơn. Shop sẽ báo phí trước khi giao và khách trả trực tiếp cho tài xế.
+      </div>
 
       <div className="rounded-2xl border border-border bg-surface p-5 shadow-sm">
         <h3 className="mb-4 text-sm font-bold text-text-primary uppercase">
           Quản lý nhân vật
         </h3>
-        <div className="flex items-center gap-4">
+        {characters.length > 0 ? (
+          <div className="mb-4 grid max-h-[220px] grid-cols-2 gap-2 overflow-y-auto pr-1 scrollbar-hide">
+            {characters.map((character) => (
+              <button
+                key={character.id}
+                type="button"
+                onClick={() => addCharacter(character)}
+                className="flex min-w-0 items-center gap-3 rounded-xl border border-border bg-white p-2 text-left transition hover:border-[#ef9ab3]/60 hover:bg-[#fff4f7]"
+              >
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-border bg-surface-hover">
+                  {character.imageUrl ? (
+                    <img src={character.imageUrl} alt={character.name} className="h-full w-full object-cover" />
+                  ) : (
+                    <span className="text-xs font-black text-text-muted">NV</span>
+                  )}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-xs font-black text-text-primary">{character.name}</p>
+                  <p className="text-[11px] font-semibold text-[#ef5f86]">{formatPrice(character.price)}</p>
+                </div>
+              </button>
+            ))}
+          </div>
+        ) : null}
+        <div className="flex flex-wrap items-center gap-2">
+          {characterElements.map((character, index) => {
+            const active = selectedId === character.id;
+            return (
+              <div key={character.id} className="relative">
+                <button
+                  type="button"
+                  onClick={() => setSelectedId(character.id)}
+                  className={`h-10 rounded-xl border px-4 text-sm font-black transition-all ${
+                    active
+                      ? "border-[#ef9ab3] bg-[#fff4f7] text-[#ef5f86] shadow-sm"
+                      : "border-border bg-surface-hover text-text-secondary hover:border-[#ef9ab3]/60 hover:bg-[#fff4f7]"
+                  }`}
+                >
+                  {character.content || `NV ${index + 1}`}
+                </button>
+                <button
+                  type="button"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    removeElement(character.id);
+                  }}
+                  className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-error text-xs font-black leading-none text-white shadow-sm transition-transform hover:scale-105"
+                  aria-label={`Xóa ${character.content || `NV ${index + 1}`}`}
+                >
+                  ×
+                </button>
+              </div>
+            );
+          })}
           <button
             type="button"
-            onClick={addCharacter}
-            className="flex items-center gap-2 rounded-xl bg-text-primary px-5 py-2.5 text-sm font-bold text-background shadow-md transition-all hover:-translate-y-0.5 hover:bg-text-secondary hover:shadow-lg active:translate-y-0"
+            onClick={() => addCharacter()}
+            className="flex h-10 items-center gap-2 rounded-xl bg-emerald-500 px-5 text-sm font-black text-white shadow-md transition-all hover:-translate-y-0.5 hover:bg-emerald-600 hover:shadow-lg active:translate-y-0"
           >
-            <span>+</span> Thêm nhân vật
+            <span>+</span> Thêm ({formatPrice(characterPrice)})
           </button>
-
-          {characterCount > 0 && (
-            <div className="flex items-center gap-3 rounded-xl border border-border bg-background px-4 py-2 shadow-sm">
-              <span className="text-sm font-black text-text-primary">
-                {characterCount} NV
-              </span>
-              <div className="h-4 w-px bg-border" />
-              <button
-                type="button"
-                onClick={removeLastCharacter}
-                className="flex h-7 w-7 items-center justify-center rounded-lg bg-surface-hover text-lg font-bold text-text-secondary transition-colors hover:bg-error/10 hover:text-error"
-              >
-                −
-              </button>
-            </div>
-          )}
         </div>
         {characterCount > 0 && (
           <div className="mt-4 flex items-center justify-between rounded-lg bg-surface-hover px-3 py-2 text-xs font-medium text-text-secondary">
@@ -723,7 +781,7 @@ function Step3Characters() {
               {characterCount} nhân vật × {formatPrice(characterPrice)}
             </span>
             <span className="font-bold text-text-primary">
-              {formatPrice(characterCount * characterPrice)}
+              {formatPrice(charactersTotalPrice)}
             </span>
           </div>
         )}
@@ -855,10 +913,8 @@ function Step3Characters() {
 function Step4Finish() {
   const {
     totalPrice,
-    freeshipAmount,
     frameSize,
     frameSizes,
-    frameColor,
     characterCount,
     characterPrice,
     elements,
@@ -867,10 +923,14 @@ function Step4Finish() {
     contentValues,
     activeTemplate,
     customBackgroundUrl,
+    customBackgroundOriginalName,
     templates,
+    isEditMode,
+    editCartItemId,
+    setStep,
   } = useStudio();
-  const router = useRouter();
   const addItem = useCartStore((state) => state.addItem);
+  const updateItem = useCartStore((state) => state.updateItem);
   const openCart = useCartStore((state) => state.openCart);
   const openModal = useUIStore((state) => state.openModal);
 
@@ -887,113 +947,209 @@ function Step4Finish() {
   const timerSecs = String(seconds % 60).padStart(2, "0");
 
   const frameObj = frameSizes.find((s) => s.id === frameSize);
-  const accessoryItems = elements.filter(
-    (e) => e.type === "accessory" && e.price && e.price > 0,
-  );
+  const accessoryItems = elements.filter((e) => e.type === "accessory");
+  const characterItems = elements.filter((e) => e.type === "character");
   const selectedTemplate = templates.find((t) => t.id === activeTemplate);
   const previewUrl = customBackgroundUrl ?? selectedTemplate?.imageUrl ?? null;
   const missingRequiredContent = getMissingRequiredContentField(
     contentFields,
     contentValues,
   );
+  const hasPersistablePreview = isPersistableImageUrl(previewUrl);
   const canCheckout = Boolean(
-    frameSize && frameColor && !missingRequiredContent,
+    frameSize && !missingRequiredContent && hasPersistablePreview,
   );
+  const checkoutBlockMessage = !frameSize
+    ? "Vui lòng chọn khung trước khi thanh toán."
+    : missingRequiredContent
+      ? `Vui lòng nhập ${missingRequiredContent.label.toLowerCase()} trước khi thanh toán.`
+      : !hasPersistablePreview
+        ? "Vui lòng chọn mẫu nền hoặc tải ảnh để tiếp tục thanh toán."
+        : null;
   const accessorySnapshot = accessoryItems
     .filter((el) => typeof el.accessoryId === "string")
     .map((el) => ({
       id: el.accessoryId as string,
       name: el.content || "Accessory",
       price: el.price || 0,
+      quantity: 1,
     }));
-  const charactersTotalPrice = characterCount * characterPrice;
+  const charactersTotalPrice = characterItems.reduce(
+    (sum, character) => sum + (character.price ?? characterPrice),
+    0,
+  );
+
+  const getContentValue = (candidates: string[], fallback = "") => {
+    for (const candidate of candidates) {
+      const directValue = contentValues[candidate];
+      if (directValue?.trim()) return directValue.trim();
+    }
+
+    const matchedField = contentFields.find((field) => {
+      const haystack = `${field.key} ${field.label}`.toLowerCase();
+      return candidates.some((candidate) => haystack.includes(candidate.toLowerCase()));
+    });
+    const matchedValue = matchedField ? contentValues[matchedField.key] : undefined;
+
+    return matchedValue?.trim() || fallback;
+  };
+
+  const backgroundId =
+    selectedTemplate?.source === "background" && selectedTemplate.id.startsWith("background:")
+      ? selectedTemplate.id.replace("background:", "")
+      : null;
+
+  const buildDesignData = (): CustomFrameDesignData => ({
+    version: 1,
+    type: "CUSTOM_FRAME",
+    frameOptionId: frameSize,
+    frameOptionLabel: frameObj?.label ?? frameSize,
+    ...(frameObj?.colorName ? { frameColorName: frameObj.colorName } : {}),
+    ...(frameObj?.colorHex ? { frameColorHex: frameObj.colorHex } : {}),
+    backgroundId,
+    backgroundName: selectedTemplate?.name ?? null,
+    content: {
+      recipientName: getContentValue(["recipientName", "title", "name", "ten"], printText.title),
+      graduationDate: getContentValue(["graduationDate", "date", "ngay"], printText.date),
+      majorOrSchool: getContentValue(["majorOrSchool", "major", "school", "nganh", "truong"]),
+      message: getContentValue(["message", "note", "loi", "thong"], printText.message),
+    },
+    uploadedImages: customBackgroundUrl
+      ? [
+          {
+            id: "background-upload",
+            url: customBackgroundUrl,
+            type: "background",
+            originalName: customBackgroundOriginalName,
+            position: { x: 0, y: 0, scale: 1, rotate: 0 },
+          },
+        ]
+      : [],
+    accessories: accessoryItems
+      .filter((el) => typeof el.accessoryId === "string")
+      .map((el) => ({
+        id: el.accessoryId as string,
+        name: el.content || "Accessory",
+        quantity: 1,
+        position: {
+          x: el.x,
+          y: el.y,
+          scale: el.width ? el.width / 60 : 1,
+          rotate: 0,
+        },
+      })),
+    characters: characterItems
+      .map((el, index) => ({
+        id: el.id,
+        ...(el.characterId ? { catalogId: el.characterId } : {}),
+        name: el.content || `NV ${index + 1}`,
+        imageUrl: el.imageUrl ?? null,
+        price: el.price ?? characterPrice,
+        position: {
+          x: el.x,
+          y: el.y,
+          scale: el.width ? el.width / 46 : 1,
+          rotate: 0,
+        },
+      })),
+    previewUrl,
+  });
+
+  const buildCartParts = (): CartItemPart[] => {
+    const parts: CartItemPart[] = [];
+
+    if (frameObj) {
+      parts.push({
+        id: frameSize,
+        type: "frame",
+        name: [frameObj.label, frameObj.colorName].filter(Boolean).join(" - "),
+        quantity: 1,
+        unitPrice: frameObj.price,
+        totalPrice: frameObj.price,
+      });
+    }
+
+    if (selectedTemplate || customBackgroundUrl) {
+      const imageUrl = customBackgroundUrl ?? selectedTemplate?.imageUrl ?? null;
+      parts.push({
+        ...(backgroundId ? { id: backgroundId } : {}),
+        type: "background",
+        name: selectedTemplate?.name ?? customBackgroundOriginalName ?? "Anh nen tuy chinh",
+        quantity: 1,
+        unitPrice: 0,
+        totalPrice: 0,
+        imageUrl,
+      });
+    }
+
+    characterItems.forEach((character, index) => {
+      parts.push({
+        ...(character.characterId ? { id: character.characterId } : {}),
+        type: "character",
+        name: character.content || `NV ${index + 1}`,
+        quantity: 1,
+        unitPrice: character.price ?? characterPrice,
+        totalPrice: character.price ?? characterPrice,
+        ...(character.imageUrl ? { imageUrl: character.imageUrl } : {}),
+      });
+    });
+
+    accessoryItems.forEach((accessory) => {
+      parts.push({
+        ...(accessory.accessoryId ? { id: accessory.accessoryId } : {}),
+        type: "accessory",
+        name: accessory.content || "Accessory",
+        quantity: 1,
+        unitPrice: accessory.price || 0,
+        totalPrice: accessory.price || 0,
+        ...(accessory.imageUrl ? { imageUrl: accessory.imageUrl } : {}),
+      });
+    });
+
+    return parts;
+  };
 
   const buildCartItem = () => ({
     productId: null,
     productName: `Khung LEGO tùy chỉnh${printText.title ? ` - ${printText.title}` : ""}`,
     quantity: 1,
     unitPrice: totalPrice,
+    frameOptionId: frameSize,
     frameSizeId: frameSize,
     frameSizeLabel: frameObj?.label ?? frameSize,
-    frameColorName: frameColor,
+    frameColorName: frameObj?.colorName ?? "",
     accessories: accessorySnapshot,
+    parts: buildCartParts(),
     templateId: activeTemplate,
-    designData: {
-      elements,
-      printText,
-      contentFields,
-      contentValues,
-      templateId: activeTemplate,
-      templateName: selectedTemplate?.name,
-      templateInstructions: selectedTemplate?.instructions,
-      backgroundImageUrl: previewUrl,
-      backgroundSource: customBackgroundUrl
-        ? "upload"
-        : (selectedTemplate?.source ?? "template"),
-      characterCount,
-      accessories: accessorySnapshot,
-    },
+    designData: buildDesignData(),
     previewUrl,
   });
 
-  const buildUserDesignData = (): JsonObject => ({
-    elements: elements.map(
-      (element): JsonObject => ({
-        id: element.id,
-        type: element.type,
-        x: element.x,
-        y: element.y,
-        ...(element.content !== undefined ? { content: element.content } : {}),
-        ...(element.imageUrl !== undefined
-          ? { imageUrl: element.imageUrl }
-          : {}),
-        ...(element.fontSize !== undefined
-          ? { fontSize: element.fontSize }
-          : {}),
-        ...(element.color !== undefined ? { color: element.color } : {}),
-        ...(element.width !== undefined ? { width: element.width } : {}),
-        ...(element.height !== undefined ? { height: element.height } : {}),
-        ...(element.price !== undefined ? { price: element.price } : {}),
-        ...(element.accessoryId !== undefined
-          ? { accessoryId: element.accessoryId }
-          : {}),
-      }),
-    ),
-    printText: {
-      title: printText.title,
-      date: printText.date,
-      message: printText.message,
-    },
-    contentFields: contentFields.map(
-      (field): JsonObject => ({
-        key: field.key,
-        label: field.label,
-        type: field.type,
-        required: field.required,
-        ...(field.placeholder ? { placeholder: field.placeholder } : {}),
-        ...(field.helpText ? { helpText: field.helpText } : {}),
-      }),
-    ),
-    contentValues,
-    templateId: activeTemplate,
-    backgroundImageUrl: previewUrl,
-    backgroundSource: customBackgroundUrl
-      ? "upload"
-      : (selectedTemplate?.source ?? "template"),
-    characterCount,
-  });
+  const persistCartItem = () => {
+    const cartItem = buildCartItem();
+    if (isEditMode && editCartItemId) {
+      updateItem(editCartItemId, cartItem);
+      return;
+    }
 
-  const handleAddToCart = () => {
-    if (!canCheckout) return;
-    addItem(buildCartItem());
+    addItem(cartItem);
+  };
+
+  const openCartDrawer = () => {
     openCart();
     openModal(UI_MODAL_IDS.CART_DRAWER);
     window.dispatchEvent(new CustomEvent("legoshop:open-cart"));
   };
+
+  const handleAddToCart = () => {
+    if (!canCheckout) return;
+    persistCartItem();
+    openCartDrawer();
+  };
   const handleBuyNow = () => {
     if (!canCheckout) return;
-    addItem(buildCartItem());
-    router.push("/checkout");
+    persistCartItem();
+    openCartDrawer();
   };
 
   return (
@@ -1031,9 +1187,11 @@ function Step4Finish() {
                 <p className="text-sm font-bold text-text-primary">
                   {frameObj.label}
                 </p>
-                <p className="mt-0.5 text-xs font-medium text-text-muted">
-                  Màu {frameColor}
-                </p>
+                {frameObj.colorName ? (
+                  <p className="mt-0.5 text-xs font-medium text-text-muted">
+                    Màu: {frameObj.colorName}
+                  </p>
+                ) : null}
               </div>
               <span className="text-sm font-bold text-text-primary">
                 {formatPrice(frameObj.price)}
@@ -1086,15 +1244,9 @@ function Step4Finish() {
               {formatPrice(totalPrice)}
             </span>
           </div>
-          {freeshipAmount > 0 && (
-            <p className="mt-2 text-right text-xs font-medium text-text-muted">
-              Thêm{" "}
-              <span className="font-bold text-text-primary">
-                {formatPrice(freeshipAmount)}
-              </span>{" "}
-              để được <strong className="text-emerald-600">FREESHIP</strong>
-            </p>
-          )}
+          <p className="mt-2 text-right text-xs font-medium text-text-muted">
+            Chưa bao gồm phí ship. Shop báo phí trước khi giao.
+          </p>
         </div>
       </div>
 
@@ -1113,6 +1265,27 @@ function Step4Finish() {
       </div>
 
       <div className="flex flex-col gap-3 pt-2">
+        {checkoutBlockMessage ? (
+          <div
+            role="alert"
+            className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold leading-relaxed text-amber-800 shadow-sm"
+          >
+            <div className="flex items-start gap-2">
+              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+              <span>{checkoutBlockMessage}</span>
+            </div>
+            {missingRequiredContent ? (
+              <button
+                type="button"
+                onClick={() => setStep(2)}
+                className="mt-3 inline-flex h-9 items-center justify-center rounded-xl border border-amber-300 bg-white px-3 text-xs font-black text-amber-900 transition-colors hover:bg-amber-100"
+              >
+                Điền nội dung
+              </button>
+            ) : null}
+          </div>
+        ) : null}
+
         <button
           type="button"
           onClick={handleBuyNow}
@@ -1126,40 +1299,14 @@ function Step4Finish() {
           <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
         </button>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid gap-3">
           <button
             type="button"
             onClick={handleAddToCart}
             disabled={!canCheckout}
             className="flex items-center justify-center gap-2 rounded-xl border-2 border-border bg-surface px-4 py-3.5 text-sm font-bold text-text-primary shadow-sm transition-all hover:border-[#ef9ab3]/60 hover:bg-[#fff4f7] hover:text-[#d94f77] disabled:cursor-not-allowed disabled:bg-zinc-100 disabled:text-zinc-400"
           >
-            <ShoppingCart className="h-4 w-4" /> Thêm vào giỏ
-          </button>
-
-          <button
-            type="button"
-            onClick={async () => {
-              const user = useAuthStore.getState().user;
-              if (!user) {
-                alert("Vui lòng đăng nhập để lưu thiết kế!");
-                router.push("/login");
-                return;
-              }
-              try {
-                await browserApiClient.userDesigns.createUserDesign({
-                  name: `Thiết kế ${new Date().toLocaleDateString()}`,
-                  designData: buildUserDesignData(),
-                });
-                alert("Lưu thiết kế thành công!");
-              } catch (err) {
-                alert(
-                  err instanceof Error ? err.message : "Lỗi khi lưu thiết kế",
-                );
-              }
-            }}
-            className="flex items-center justify-center gap-2 rounded-xl bg-surface-hover px-4 py-3.5 text-sm font-bold text-text-secondary shadow-sm transition-all hover:bg-border hover:text-text-primary"
-          >
-            <Save className="h-4 w-4" /> Lưu bản nháp
+            <ShoppingCart className="h-4 w-4" /> {isEditMode ? "Cập nhật thiết kế" : "Thêm vào giỏ"}
           </button>
         </div>
       </div>

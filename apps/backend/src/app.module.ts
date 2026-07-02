@@ -25,11 +25,13 @@ import { FrameColorsModule } from './frame-colors/frame-colors.module';
 import { FrameOptionsModule } from './frame-options/frame-options.module';
 import { UsersModule } from './users/users.module';
 import { UserDesignsModule } from './user-designs/user-designs.module';
+import { VouchersModule } from './vouchers/vouchers.module';
+import { CharactersModule } from './characters/characters.module';
 
 @Module({
   imports: [ConfigModule.forRoot({
       isGlobal: true
-    }), AuthModule, ProductsModule, TemplatesModule, AccessoriesModule, BannersModule, CollectionsModule, FrameBackgroundsModule, UploadsModule, PaymentSettingsModule, PaymentsModule, OrdersModule, AdminOrdersModule, BusinessInquiriesModule, AdminBusinessInquiriesModule, AdminDashboardModule, TemplateCategoriesModule, AccessoryCategoriesModule, FrameSizesModule, FrameColorsModule, FrameOptionsModule, PrismaModule, UsersModule, UserDesignsModule],
+    }), AuthModule, ProductsModule, TemplatesModule, AccessoriesModule, BannersModule, CollectionsModule, FrameBackgroundsModule, UploadsModule, PaymentSettingsModule, PaymentsModule, OrdersModule, AdminOrdersModule, BusinessInquiriesModule, AdminBusinessInquiriesModule, AdminDashboardModule, TemplateCategoriesModule, AccessoryCategoriesModule, FrameSizesModule, FrameColorsModule, FrameOptionsModule, PrismaModule, UsersModule, UserDesignsModule, VouchersModule, CharactersModule],
   controllers: [AppController],
   providers: [AppService]
 })

@@ -30,6 +30,9 @@ export class ProductsService {
       where: {
         status: ProductStatus.active,
       },
+      include: {
+        collection: true,
+      },
       orderBy: {
         createdAt: 'desc',
       },
@@ -41,6 +44,9 @@ export class ProductsService {
       where: {
         slug,
         status: ProductStatus.active,
+      },
+      include: {
+        collection: true,
       },
     });
 
@@ -102,6 +108,9 @@ export class ProductsService {
       const [data, total] = await this.prisma.$transaction([
         this.prisma.product.findMany({
           where,
+          include: {
+            collection: true,
+          },
           orderBy,
           skip: pagination.skip,
           take: pagination.take,
@@ -123,6 +132,9 @@ export class ProductsService {
     }
 
     return this.prisma.product.findMany({
+      include: {
+        collection: true,
+      },
       orderBy: {
         createdAt: 'desc',
       },
@@ -132,6 +144,9 @@ export class ProductsService {
   async findAdminProductById(id: string) {
     const product = await this.prisma.product.findUnique({
       where: { id },
+      include: {
+        collection: true,
+      },
     });
 
     if (!product) {
@@ -160,8 +175,17 @@ export class ProductsService {
         description: dto.description,
         basePrice: dto.basePrice,
         images: dto.images,
+        productType: dto.productType,
+        componentConfig:
+          dto.componentConfig !== undefined
+            ? (dto.componentConfig as Prisma.InputJsonValue)
+            : undefined,
+        collectionId: dto.collectionId,
         status: dto.status,
         featured: dto.featured,
+      },
+      include: {
+        collection: true,
       },
     });
   }
@@ -176,20 +200,17 @@ export class ProductsService {
       throw new NotFoundException('Product not found');
     }
 
-    const data: {
-      name?: string;
-      slug?: string;
-      description?: string | null;
-      basePrice?: number;
-      images?: string[];
-      status?: ProductStatus;
-      featured?: boolean;
-    } = {};
+    const data: Prisma.ProductUncheckedUpdateInput = {};
 
     if (dto.name !== undefined) data.name = dto.name;
     if (dto.description !== undefined) data.description = dto.description;
     if (dto.basePrice !== undefined) data.basePrice = dto.basePrice;
     if (dto.images !== undefined) data.images = dto.images;
+    if (dto.productType !== undefined) data.productType = dto.productType;
+    if (dto.componentConfig !== undefined) {
+      data.componentConfig = dto.componentConfig as Prisma.InputJsonValue;
+    }
+    if (dto.collectionId !== undefined) data.collectionId = dto.collectionId || null;
     if (dto.status !== undefined) data.status = dto.status;
     if (dto.featured !== undefined) data.featured = dto.featured;
 
@@ -210,6 +231,9 @@ export class ProductsService {
     return this.prisma.product.update({
       where: { id },
       data,
+      include: {
+        collection: true,
+      },
     });
   }
 

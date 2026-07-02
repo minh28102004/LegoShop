@@ -1,4 +1,4 @@
-import type { FrameOptionType, ProductStatus } from '../constants/status';
+import type { FrameOptionType, ProductStatus, ProductType } from '../constants/status';
 import type {
   ID,
   JsonObject,
@@ -8,7 +8,24 @@ import type {
   Timestamped,
   URLString,
 } from './common';
-import type { AccessoryCategory, TemplateCategory } from './category';
+import type { AccessoryCategory, Collection, TemplateCategory } from './category';
+
+export type ProductComponentPart = JsonObject & {
+  id?: ID;
+  type: 'frame' | 'background' | 'character' | 'accessory' | 'product';
+  name: string;
+  price?: PriceInVND;
+  quantity?: number;
+  imageUrl?: Nullable<URLString>;
+};
+
+export type ProductComponentConfig = JsonObject & {
+  frame?: ProductComponentPart;
+  background?: ProductComponentPart;
+  characters?: ProductComponentPart[];
+  accessories?: ProductComponentPart[];
+  parts?: ProductComponentPart[];
+};
 
 export type Product = Timestamped & {
   id: ID;
@@ -17,13 +34,27 @@ export type Product = Timestamped & {
   description: Nullable<string>;
   basePrice: PriceInVND;
   images: URLString[];
+  productType: ProductType | string;
+  componentConfig: Nullable<ProductComponentConfig>;
   status: ProductStatus;
   featured: boolean;
+  collectionId: Nullable<ID>;
+  collection?: Nullable<Collection>;
 };
 
 export type ProductSummary = Pick<
   Product,
-  'id' | 'name' | 'slug' | 'description' | 'basePrice' | 'images' | 'status' | 'featured'
+  | 'id'
+  | 'name'
+  | 'slug'
+  | 'description'
+  | 'basePrice'
+  | 'images'
+  | 'productType'
+  | 'componentConfig'
+  | 'status'
+  | 'featured'
+  | 'collectionId'
 >;
 
 export type Template = Timestamped & {
@@ -47,6 +78,15 @@ export type Accessory = Timestamped & {
   category?: Nullable<AccessoryCategory>;
 };
 
+export type Character = Timestamped & {
+  id: ID;
+  name: string;
+  price: PriceInVND;
+  imageUrl: Nullable<URLString>;
+  sortOrder: number;
+  status: ProductStatus;
+};
+
 export type Banner = Timestamped & {
   id: ID;
   title: Nullable<string>;
@@ -63,6 +103,7 @@ export type FrameBackground = Timestamped & {
   instructions: Nullable<string>;
   imageUrl: URLString;
   contentFields: Nullable<JsonValue>;
+  frameOptionIds: ID[];
   sortOrder: number;
   status: ProductStatus;
 };
@@ -94,7 +135,7 @@ export type FrameOption = Timestamped & {
   widthCm: Nullable<number>;
   heightCm: Nullable<number>;
   price: PriceInVND;
-  stock: number;
+  stock: Nullable<number>;
   minQuantity: number;
   maxQuantity: number;
   sortOrder: number;

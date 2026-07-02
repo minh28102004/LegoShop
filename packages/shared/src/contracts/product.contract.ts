@@ -1,13 +1,15 @@
-import type { FrameOptionType, ProductStatus } from '../constants/status';
+import type { FrameOptionType, ProductStatus, ProductType } from '../constants/status';
 import type { ID, JsonObject, JsonValue, PriceInVND, URLString } from '../types/common';
 import type {
   Accessory,
   Banner,
+  Character,
   FrameBackground,
   FrameColor,
   FrameOption,
   FrameSize,
   Product,
+  ProductComponentConfig,
   ProductSummary,
   Template,
 } from '../types/product';
@@ -16,6 +18,7 @@ export type ProductContract = Product;
 export type ProductSummaryContract = ProductSummary;
 export type TemplateContract = Template;
 export type AccessoryContract = Accessory;
+export type CharacterContract = Character;
 export type BannerContract = Banner;
 export type FrameBackgroundContract = FrameBackground;
 export type FrameSizeContract = FrameSize;
@@ -28,8 +31,11 @@ export type CreateProductRequestContract = {
   description?: string;
   basePrice: PriceInVND;
   images?: URLString[];
+  productType?: ProductType;
+  componentConfig?: ProductComponentConfig;
   status?: ProductStatus;
   featured?: boolean;
+  collectionId?: ID;
 };
 
 export type UpdateProductRequestContract = Partial<CreateProductRequestContract>;
@@ -55,6 +61,16 @@ export type CreateAccessoryRequestContract = {
 
 export type UpdateAccessoryRequestContract = Partial<CreateAccessoryRequestContract>;
 
+export type CreateCharacterRequestContract = {
+  name: string;
+  price?: PriceInVND;
+  imageUrl?: URLString;
+  sortOrder?: number;
+  status?: ProductStatus;
+};
+
+export type UpdateCharacterRequestContract = Partial<CreateCharacterRequestContract>;
+
 export type CreateBannerRequestContract = {
   title?: string;
   imageUrl: URLString;
@@ -71,6 +87,7 @@ export type CreateFrameBackgroundRequestContract = {
   description?: string;
   instructions?: string;
   contentFields?: JsonValue;
+  frameOptionIds?: ID[];
   sortOrder?: number;
   status?: ProductStatus;
 };
@@ -99,11 +116,12 @@ export type CreateFrameOptionRequestContract = {
   slug?: string;
   description?: string;
   colorHex?: string;
+  colorVariantsText?: string;
   imageUrl?: URLString;
   widthCm?: number;
   heightCm?: number;
   price?: PriceInVND;
-  stock?: number;
+  stock?: number | null;
   minQuantity?: number;
   maxQuantity?: number;
   sortOrder?: number;

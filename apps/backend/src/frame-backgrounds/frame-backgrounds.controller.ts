@@ -22,8 +22,8 @@ export class FrameBackgroundsController {
   constructor(private readonly frameBackgroundsService: FrameBackgroundsService) {}
 
   @Get('public/frame-backgrounds')
-  findPublicBackgrounds() {
-    return this.frameBackgroundsService.findPublicBackgrounds();
+  findPublicBackgrounds(@Query('frameOptionId') frameOptionId?: string) {
+    return this.frameBackgroundsService.findPublicBackgrounds(frameOptionId);
   }
 
   @Get('admin/frame-backgrounds')

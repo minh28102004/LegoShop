@@ -63,8 +63,28 @@ import {
 } from '@/modules/admin/components/entities/entity-filter.types';
 import type { PaginatedResourceResponse } from '@/modules/admin/types/admin.types';
 
-type FieldType = 'text' | 'number' | 'textarea' | 'checkbox' | 'select' | 'json' | 'image' | 'images';
+type FieldType =
+  | 'text'
+  | 'number'
+  | 'datetime'
+  | 'textarea'
+  | 'checkbox'
+  | 'select'
+  | 'json'
+  | 'content-fields'
+  | 'image'
+  | 'images';
 type ImageInputMode = 'file' | 'url';
+type ContentFieldInputType = 'text' | 'date' | 'textarea' | 'image';
+
+type ContentFieldFormValue = {
+  key: string;
+  label: string;
+  type: ContentFieldInputType;
+  required: boolean;
+  placeholder: string;
+  helpText: string;
+};
 
 export type EntityField = {
   key: string;
@@ -110,10 +130,12 @@ const ENTITY_DATE_FILTER_RESOURCES = new Set<ResourceKey>([
   'frame-options',
   'template-categories',
   'accessories',
+  'characters',
   'accessory-categories',
   'banners',
   'frame-backgrounds',
   'collections',
+  'vouchers',
 ]);
 const DATE_TIME_FORMATTERS = {
   vi: new Intl.DateTimeFormat('vi-VN', {
@@ -144,10 +166,11 @@ function getFieldLayoutClass(field: EntityField, resource: ResourceKey) {
   const normalizedKey = field.key.toLowerCase();
 
   if (field.type === 'textarea') return 'lg:col-span-12';
-  if (field.type === 'json') return 'lg:col-span-12';
+  if (field.type === 'json' || field.type === 'content-fields') return 'lg:col-span-12';
   if (field.type === 'image' || field.type === 'images') return 'lg:col-span-12';
   if (field.type === 'checkbox') return 'lg:col-span-4 xl:col-span-3 max-w-[320px]';
   if (field.type === 'number') return 'lg:col-span-3';
+  if (field.type === 'datetime') return 'lg:col-span-5';
   if (field.type === 'select') {
     if (normalizedKey === 'status') {
       return resource === 'products' || resource === 'banners' || resource === 'collections'
@@ -310,6 +333,7 @@ function getEntityTableColumns(fields: EntityField[], resource: ResourceKey, loc
     templates: ['name', 'imageUrl', 'categoryId', 'status', 'createdAt', 'updatedAt'],
     'frame-options': ['frameSize', 'imageUrl', 'price', 'stock', 'createdAt', 'updatedAt'],
     accessories: ['name', 'imageUrl', 'categoryId', 'status', 'createdAt', 'updatedAt'],
+    characters: ['name', 'imageUrl', 'price', 'sortOrder', 'status', 'updatedAt'],
     banners: ['title', 'imageUrl', 'sortOrder', 'status', 'createdAt', 'updatedAt'],
     'frame-backgrounds': ['title', 'description', 'imageUrl', 'sortOrder', 'status', 'updatedAt'],
     collections: ['name', 'imageUrl', 'slug', 'status', 'createdAt', 'updatedAt'],
@@ -317,6 +341,7 @@ function getEntityTableColumns(fields: EntityField[], resource: ResourceKey, loc
     'accessory-categories': ['name', 'slug', 'createdAt', 'updatedAt'],
     'frame-sizes': ['label', 'price', 'createdAt', 'updatedAt'],
     'frame-colors': ['name', 'colorHex', 'createdAt', 'updatedAt'],
+    vouchers: ['code', 'discountType', 'discountValue', 'minOrderAmount', 'usedCount', 'status', 'expiresAt'],
   };
 
   const addField = (field?: EntityField) => {
@@ -343,12 +368,14 @@ const ENTITY_SORT_FIELDS = {
   'frame-options': ['type', 'name', 'price', 'stock', 'sortOrder', 'status', 'createdAt', 'updatedAt'],
   'template-categories': ['name', 'slug', 'createdAt', 'updatedAt'],
   accessories: ['name', 'status', 'categoryId', 'createdAt', 'updatedAt'],
+  characters: ['name', 'price', 'sortOrder', 'status', 'createdAt', 'updatedAt'],
   'accessory-categories': ['name', 'slug', 'createdAt', 'updatedAt'],
   banners: ['title', 'sortOrder', 'status', 'createdAt', 'updatedAt'],
     'frame-backgrounds': ['title', 'sortOrder', 'status', 'updatedAt'],
   collections: ['name', 'slug', 'status', 'createdAt', 'updatedAt'],
   'frame-sizes': ['name', 'createdAt', 'updatedAt'],
   'frame-colors': ['name', 'createdAt', 'updatedAt'],
+  vouchers: ['code', 'discountType', 'discountValue', 'minOrderAmount', 'status', 'expiresAt', 'createdAt', 'updatedAt'],
 } satisfies Record<ResourceKey, string[]>;
 
 function isEntityColumnSortable(column: EntityTableColumn, resource: ResourceKey) {
@@ -622,6 +649,10 @@ function getInitialImageInputModes(
 function toInitialValues(fields: EntityField[]): Record<string, unknown> {
   const values: Record<string, unknown> = {};
   fields.forEach((field) => {
+    if (field.type === 'content-fields') {
+      values[field.key] = [];
+      return;
+    }
     if (field.type === 'images') {
       values[field.key] = [];
       return;
@@ -635,7 +666,7 @@ function toInitialValues(fields: EntityField[]): Record<string, unknown> {
       return;
     }
     if (field.type === 'number') {
-      values[field.key] = 0;
+      values[field.key] = field.required ? 0 : '';
       return;
     }
     values[field.key] = '';
@@ -643,26 +674,146 @@ function toInitialValues(fields: EntityField[]): Record<string, unknown> {
   return values;
 }
 
-function serializeFormValue(type: FieldType, rawValue: unknown): unknown {
-  if (type === 'checkbox') return Boolean(rawValue);
-  if (type === 'number') {
+function toDatetimeLocalValue(value: unknown) {
+  const date =
+    typeof value === 'string' || typeof value === 'number'
+      ? new Date(value)
+      : value instanceof Date
+        ? value
+        : null;
+
+  if (!date || Number.isNaN(date.getTime())) return '';
+
+  const offsetMs = date.getTimezoneOffset() * 60 * 1000;
+  return new Date(date.getTime() - offsetMs).toISOString().slice(0, 16);
+}
+
+const CONTENT_FIELD_TYPE_OPTIONS: Array<{ value: ContentFieldInputType; label: string }> = [
+  { value: 'text', label: 'Văn bản ngắn' },
+  { value: 'textarea', label: 'Lời nhắn dài' },
+  { value: 'date', label: 'Ngày tháng' },
+  { value: 'image', label: 'Ảnh tải lên' },
+];
+
+function createContentFieldFormValue(index: number): ContentFieldFormValue {
+  return {
+    key: `field_${index + 1}`,
+    label: '',
+    type: 'text',
+    required: index === 0,
+    placeholder: '',
+    helpText: '',
+  };
+}
+
+function isContentFieldInputType(value: unknown): value is ContentFieldInputType {
+  return value === 'text' || value === 'date' || value === 'textarea' || value === 'image';
+}
+
+function readStringValue(value: unknown): string {
+  return typeof value === 'string' ? value : '';
+}
+
+function buildContentFieldKey(label: string, index: number) {
+  const normalized = label
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '');
+
+  return normalized || `field_${index + 1}`;
+}
+
+function readContentFieldArray(value: unknown): unknown[] {
+  if (Array.isArray(value)) return value;
+  if (typeof value === 'string' && value.trim()) {
+    try {
+      return readContentFieldArray(JSON.parse(value));
+    } catch {
+      return [];
+    }
+  }
+  if (value && typeof value === 'object') {
+    const record = value as Record<string, unknown>;
+    if (Array.isArray(record.fields)) return record.fields;
+    if (Array.isArray(record.contentFields)) return record.contentFields;
+    if (Array.isArray(record.inputs)) return record.inputs;
+  }
+  return [];
+}
+
+function normalizeContentFieldFormValues(value: unknown): ContentFieldFormValue[] {
+  return readContentFieldArray(value).flatMap((item, index) => {
+    if (!item || typeof item !== 'object' || Array.isArray(item)) return [];
+
+    const record = item as Record<string, unknown>;
+    const type = isContentFieldInputType(record.type) ? record.type : 'text';
+
+    return [
+      {
+        key: readStringValue(record.key).trim() || buildContentFieldKey(readStringValue(record.label), index),
+        label: readStringValue(record.label) || readStringValue(record.name),
+        type,
+        required: typeof record.required === 'boolean' ? record.required : index === 0,
+        placeholder: readStringValue(record.placeholder),
+        helpText: readStringValue(record.helpText) || readStringValue(record.description),
+      },
+    ];
+  });
+}
+
+function serializeContentFieldFormValues(value: unknown) {
+  const fields = normalizeContentFieldFormValues(value)
+    .map((field, index) => {
+      const label = field.label.trim();
+      const key = field.key.trim() || buildContentFieldKey(label, index);
+
+      if (!label && !field.placeholder.trim() && !field.helpText.trim()) return null;
+
+      return {
+        key,
+        label: label || `Thông tin ${index + 1}`,
+        type: field.type,
+        required: field.required,
+        ...(field.placeholder.trim() ? { placeholder: field.placeholder.trim() } : {}),
+        ...(field.helpText.trim() ? { helpText: field.helpText.trim() } : {}),
+      };
+    })
+    .filter(Boolean);
+
+  return fields.length > 0 ? fields : undefined;
+}
+
+function serializeFormValue(field: EntityField, rawValue: unknown): unknown {
+  if (field.type === 'checkbox') return Boolean(rawValue);
+  if (field.type === 'number') {
+    if (rawValue === '') return field.key === 'stock' ? null : undefined;
     const asNumber = Number(rawValue);
     return Number.isFinite(asNumber) ? asNumber : 0;
   }
-  if (type === 'image') {
+  if (field.type === 'datetime') {
+    if (typeof rawValue !== 'string' || !rawValue.trim()) return undefined;
+    const date = new Date(rawValue);
+    return Number.isNaN(date.getTime()) ? undefined : date.toISOString();
+  }
+  if (field.type === 'image') {
     return typeof rawValue === 'string' ? rawValue.trim() : '';
   }
-  if (type === 'images') {
+  if (field.type === 'images') {
     if (!Array.isArray(rawValue)) return [];
     return rawValue
       .map((value) => (typeof value === 'string' ? value.trim() : ''))
       .filter((value) => value.length > 0);
   }
-  if (type === 'json') {
+  if (field.type === 'json') {
     if (typeof rawValue !== 'string' || !rawValue.trim()) return undefined;
     return JSON.parse(rawValue);
   }
-  if (type === 'text' || type === 'textarea' || type === 'select') {
+  if (field.type === 'content-fields') {
+    return serializeContentFieldFormValues(rawValue);
+  }
+  if (field.type === 'text' || field.type === 'textarea' || field.type === 'select') {
     if (typeof rawValue !== 'string') return '';
     return rawValue;
   }
@@ -687,6 +838,7 @@ function getEntityEmptyMessage(resource: ResourceKey, locale: string) {
       templates: 'Không có mẫu thiết kế nào.',
       'template-categories': 'Không có danh mục mẫu nào.',
       accessories: 'Không có phụ kiện nào.',
+      characters: 'Không có nhân vật nào.',
       'accessory-categories': 'Không có danh mục phụ kiện nào.',
       banners: 'Không có banner nào.',
       'frame-backgrounds': 'Chưa có nền ảnh khung nào.',
@@ -694,12 +846,14 @@ function getEntityEmptyMessage(resource: ResourceKey, locale: string) {
       'frame-options': 'Chưa có khung tranh nào.',
       'frame-sizes': 'Không có kích thước khung nào.',
       'frame-colors': 'Không có màu khung nào.',
+      vouchers: 'Chưa có voucher nào.',
     },
     en: {
       products: 'No products found.',
       templates: 'No templates found.',
       'template-categories': 'No template categories found.',
       accessories: 'No accessories found.',
+      characters: 'No characters found.',
       'accessory-categories': 'No accessory categories found.',
       banners: 'No banners found.',
       'frame-backgrounds': 'No frame image backgrounds found.',
@@ -707,6 +861,7 @@ function getEntityEmptyMessage(resource: ResourceKey, locale: string) {
       'frame-options': 'No picture frames found.',
       'frame-sizes': 'No frame sizes found.',
       'frame-colors': 'No frame colors found.',
+      vouchers: 'No vouchers found.',
     },
   } satisfies Record<string, Record<ResourceKey, string>>;
 
@@ -720,6 +875,7 @@ function getEntityNoun(resource: ResourceKey, locale: string, count?: number) {
       templates: 'mẫu thiết kế',
       'template-categories': 'danh mục mẫu',
       accessories: 'phụ kiện',
+      characters: 'nhân vật',
       'accessory-categories': 'danh mục phụ kiện',
       banners: 'banner',
       'frame-backgrounds': 'nền ảnh khung',
@@ -727,12 +883,14 @@ function getEntityNoun(resource: ResourceKey, locale: string, count?: number) {
       'frame-options': 'khung tranh',
       'frame-sizes': 'kích thước khung',
       'frame-colors': 'màu khung',
+      vouchers: 'voucher',
     },
     en: {
       products: count === 1 ? 'product' : 'products',
       templates: count === 1 ? 'template' : 'templates',
       'template-categories': count === 1 ? 'template category' : 'template categories',
       accessories: count === 1 ? 'accessory' : 'accessories',
+      characters: count === 1 ? 'character' : 'characters',
       'accessory-categories': count === 1 ? 'accessory category' : 'accessory categories',
       banners: count === 1 ? 'banner' : 'banners',
       'frame-backgrounds': count === 1 ? 'frame image background' : 'frame image backgrounds',
@@ -740,6 +898,7 @@ function getEntityNoun(resource: ResourceKey, locale: string, count?: number) {
       'frame-options': count === 1 ? 'picture frame' : 'picture frames',
       'frame-sizes': count === 1 ? 'frame size' : 'frame sizes',
       'frame-colors': count === 1 ? 'frame color' : 'frame colors',
+      vouchers: count === 1 ? 'voucher' : 'vouchers',
     },
   } satisfies Record<string, Record<ResourceKey, string>>;
 
@@ -837,6 +996,7 @@ function getEntityIconName(resource: ResourceKey): AdminNavIconName {
     templates: 'templates',
     'template-categories': 'templates',
     accessories: 'accessories',
+    characters: 'characters',
     'accessory-categories': 'accessories',
     banners: 'banners',
     'frame-backgrounds': 'frameBackgrounds',
@@ -844,6 +1004,7 @@ function getEntityIconName(resource: ResourceKey): AdminNavIconName {
     'frame-options': 'frameOptions',
     'frame-sizes': 'products',
     'frame-colors': 'products',
+    vouchers: 'vouchers',
   } satisfies Record<ResourceKey, AdminNavIconName>;
 
   return icons[resource];
@@ -1066,12 +1227,16 @@ export default function EntityManager<K extends ResourceKey>({
       const value = (item as unknown as Record<string, unknown>)[field.key];
       if (field.type === 'json') {
         nextValues[field.key] = value ? JSON.stringify(value, null, 2) : '';
+      } else if (field.type === 'content-fields') {
+        nextValues[field.key] = normalizeContentFieldFormValues(value);
       } else if (field.type === 'checkbox') {
         nextValues[field.key] = Boolean(value);
       } else if (field.type === 'images') {
         nextValues[field.key] = Array.isArray(value) ? [...value] : [];
       } else if (field.type === 'image') {
         nextValues[field.key] = typeof value === 'string' ? value : '';
+      } else if (field.type === 'datetime') {
+        nextValues[field.key] = toDatetimeLocalValue(value);
       } else {
         nextValues[field.key] = value ?? nextValues[field.key];
       }
@@ -1150,8 +1315,8 @@ export default function EntityManager<K extends ResourceKey>({
       const payload: Record<string, unknown> = {};
       for (const field of fields) {
         const raw = formValues[field.key];
-        const value = serializeFormValue(field.type, raw);
-        if (value === '' || value === undefined || value === null) continue;
+        const value = serializeFormValue(field, raw);
+        if (value === '' || value === undefined || (value === null && field.key !== 'stock')) continue;
         payload[field.key] = value;
       }
 
@@ -1328,6 +1493,7 @@ export default function EntityManager<K extends ResourceKey>({
 
   function renderImagePreview(imageUrl: string, label: string, errorKey: string) {
     if (!imageUrl.trim()) return null;
+    const previewUrl = resolveApiAssetUrl(imageUrl);
 
     return (
       <div className='overflow-hidden rounded-[16px] border border-slate-200 bg-white p-2'>
@@ -1337,7 +1503,7 @@ export default function EntityManager<K extends ResourceKey>({
           </div>
         ) : (
           <img
-            src={imageUrl}
+            src={previewUrl}
             alt={label}
             loading='lazy'
             className='max-h-[240px] w-full rounded-[12px] object-cover'
@@ -1586,6 +1752,191 @@ export default function EntityManager<K extends ResourceKey>({
     );
   }
 
+  function updateContentFieldValue(
+    fieldKey: string,
+    index: number,
+    patch: Partial<ContentFieldFormValue>,
+  ) {
+    setFormValues((prev) => {
+      const current = normalizeContentFieldFormValues(prev[fieldKey]);
+      const next = current.length ? [...current] : [createContentFieldFormValue(0)];
+      const existing = next[index] ?? createContentFieldFormValue(index);
+      next[index] = { ...existing, ...patch };
+      return { ...prev, [fieldKey]: next };
+    });
+  }
+
+  function addContentFieldValue(fieldKey: string) {
+    setFormValues((prev) => {
+      const current = normalizeContentFieldFormValues(prev[fieldKey]);
+      return {
+        ...prev,
+        [fieldKey]: [...current, createContentFieldFormValue(current.length)],
+      };
+    });
+  }
+
+  function removeContentFieldValue(fieldKey: string, index: number) {
+    setFormValues((prev) => {
+      const current = normalizeContentFieldFormValues(prev[fieldKey]);
+      return {
+        ...prev,
+        [fieldKey]: current.filter((_, itemIndex) => itemIndex !== index),
+      };
+    });
+  }
+
+  function renderContentFieldsEditor(field: EntityField, value: unknown) {
+    const contentFields = normalizeContentFieldFormValues(value);
+
+    return (
+      <div className='rounded-[18px] border border-slate-200 bg-white p-4'>
+        <div className='flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between'>
+          <div>
+            <p className='text-sm font-semibold text-slate-900'>
+              {locale === 'vi' ? 'Trường khách cần điền' : 'Customer input fields'}
+            </p>
+            <p className='mt-1 text-[13px] leading-5 text-slate-500'>
+              {locale === 'vi'
+                ? 'Các trường này sẽ hiện ở bước Nội dung của Studio, theo đúng ảnh nền đang chọn.'
+                : 'These fields appear in the Studio content step for this background.'}
+            </p>
+          </div>
+          <Button
+            type='button'
+            variant='secondary'
+            leftIcon={<PlusIcon />}
+            className='h-10 rounded-[12px] px-4'
+            onClick={() => addContentFieldValue(field.key)}
+          >
+            {locale === 'vi' ? 'Thêm trường' : 'Add field'}
+          </Button>
+        </div>
+
+        {contentFields.length === 0 ? (
+          <div className='mt-4 rounded-[14px] border border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-center text-sm font-medium text-slate-500'>
+            {locale === 'vi'
+              ? 'Chưa có trường nội dung nào. Bấm “Thêm trường” để tạo ô khách cần nhập.'
+              : 'No content fields yet. Add one to collect customer input.'}
+          </div>
+        ) : (
+          <div className='mt-4 space-y-3'>
+            {contentFields.map((contentField, index) => (
+              <div
+                key={`${field.key}-${index}`}
+                className='rounded-[16px] border border-slate-200 bg-slate-50 p-3'
+              >
+                <div className='grid grid-cols-1 gap-3 lg:grid-cols-12'>
+                  <label className='space-y-1 lg:col-span-3'>
+                    <span className='text-[12px] font-semibold text-slate-600'>
+                      {locale === 'vi' ? 'Nhãn hiển thị' : 'Label'}
+                    </span>
+                    <Input
+                      value={contentField.label}
+                      size='md'
+                      placeholder={locale === 'vi' ? 'VD: Tên người nhận' : 'Recipient name'}
+                      onKeyDown={(event) => event.stopPropagation()}
+                      onChange={(event) => {
+                        const label = event.target.value;
+                        updateContentFieldValue(field.key, index, {
+                          label,
+                          key: contentField.key || buildContentFieldKey(label, index),
+                        });
+                      }}
+                    />
+                  </label>
+
+                  <label className='space-y-1 lg:col-span-2'>
+                    <span className='text-[12px] font-semibold text-slate-600'>Key</span>
+                    <Input
+                      value={contentField.key}
+                      size='md'
+                      placeholder='title'
+                      onChange={(event) =>
+                        updateContentFieldValue(field.key, index, { key: event.target.value })
+                      }
+                    />
+                  </label>
+
+                  <label className='space-y-1 lg:col-span-2'>
+                    <span className='text-[12px] font-semibold text-slate-600'>
+                      {locale === 'vi' ? 'Loại ô nhập' : 'Input type'}
+                    </span>
+                    <Select
+                      value={contentField.type}
+                      onChange={(event) =>
+                        updateContentFieldValue(field.key, index, {
+                          type: event.target.value as ContentFieldInputType,
+                        })
+                      }
+                    >
+                      {CONTENT_FIELD_TYPE_OPTIONS.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </Select>
+                  </label>
+
+                  <label className='space-y-1 lg:col-span-3'>
+                    <span className='text-[12px] font-semibold text-slate-600'>
+                      Placeholder
+                    </span>
+                    <Input
+                      value={contentField.placeholder}
+                      size='md'
+                      placeholder={locale === 'vi' ? 'VD: Nguyễn Văn A' : 'Example value'}
+                      onKeyDown={(event) => event.stopPropagation()}
+                      onChange={(event) =>
+                        updateContentFieldValue(field.key, index, { placeholder: event.target.value })
+                      }
+                    />
+                  </label>
+
+                  <div className='flex items-end gap-2 lg:col-span-2'>
+                    <label className='flex h-10 flex-1 items-center gap-2 rounded-[12px] border border-slate-200 bg-white px-3 text-[13px] font-semibold text-slate-700'>
+                      <input
+                        type='checkbox'
+                        checked={contentField.required}
+                        onChange={(event) =>
+                          updateContentFieldValue(field.key, index, { required: event.target.checked })
+                        }
+                      />
+                      {locale === 'vi' ? 'Bắt buộc' : 'Required'}
+                    </label>
+                    <Button
+                      type='button'
+                      variant='remove'
+                      className='h-10 rounded-[12px] px-3'
+                      onClick={() => removeContentFieldValue(field.key, index)}
+                    >
+                      <TrashIcon />
+                    </Button>
+                  </div>
+
+                  <label className='space-y-1 lg:col-span-12'>
+                    <span className='text-[12px] font-semibold text-slate-600'>
+                      {locale === 'vi' ? 'Ghi chú nhỏ dưới ô nhập' : 'Help text'}
+                    </span>
+                    <Input
+                      value={contentField.helpText}
+                      size='md'
+                      placeholder={locale === 'vi' ? 'VD: Dòng này in ở góc dưới ảnh' : 'Short hint shown under the field'}
+                      onKeyDown={(event) => event.stopPropagation()}
+                      onChange={(event) =>
+                        updateContentFieldValue(field.key, index, { helpText: event.target.value })
+                      }
+                    />
+                  </label>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+
   function renderTableCell(column: EntityTableColumn, row: Record<string, unknown>) {
     const field = column.field;
     const value = getRelatedDisplayValue(row, field.key);
@@ -1705,7 +2056,11 @@ export default function EntityManager<K extends ResourceKey>({
     const safeTextValue = textValue.trim() ? textValue : '-';
     const normalizedKey = field.key.toLowerCase();
 
-    if (normalizedKey === 'createdat' || normalizedKey === 'updatedat') {
+    if (
+      field.type === 'datetime' ||
+      normalizedKey === 'createdat' ||
+      normalizedKey === 'updatedat'
+    ) {
       const formattedDate = formatEntityDateTime(value, locale);
 
       return (
@@ -2054,6 +2409,8 @@ export default function EntityManager<K extends ResourceKey>({
                       />
                     ) : null}
 
+                    {field.type === 'content-fields' ? renderContentFieldsEditor(field, value) : null}
+
                     {field.type === 'select' ? (
                       <Select
                         value={String(value ?? '')}
@@ -2083,6 +2440,19 @@ export default function EntityManager<K extends ResourceKey>({
                         label={field.label}
                         description={field.key === 'featured' ? undefined : `${t('entity.toggle')} ${field.label}`}
                         containerClassName='rounded-[16px] border-slate-200 bg-white px-4 py-3 shadow-none'
+                      />
+                    ) : null}
+
+                    {field.type === 'datetime' ? (
+                      <Input
+                        type='datetime-local'
+                        value={String(value ?? '')}
+                        required={field.required}
+                        aria-label={field.label}
+                        onChange={(event) =>
+                          setFormValues((prev) => ({ ...prev, [field.key]: event.target.value }))
+                        }
+                        size='md'
                       />
                     ) : null}
 

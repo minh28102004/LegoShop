@@ -7,6 +7,7 @@ import { cva, type VariantProps } from 'class-variance-authority'
 
 import { Badge, Button, Card } from '@/components/ui'
 import { ROUTES } from '@/constants'
+import { resolveApiAssetUrl } from '@/lib/api/assets'
 import { cn } from '@/lib/cn'
 import type { Product } from '@/types'
 import { LazyImage } from './LazyImage'
@@ -40,7 +41,7 @@ export interface ProductCardProps
 const PRODUCT_IMAGE_PLACEHOLDER = '/window.svg'
 
 function getProductImage(product: Product): string {
-  return product.images[0] ?? PRODUCT_IMAGE_PLACEHOLDER
+  return resolveApiAssetUrl(product.images[0]) || PRODUCT_IMAGE_PLACEHOLDER
 }
 
 export const ProductCard = React.forwardRef<HTMLDivElement, ProductCardProps>(

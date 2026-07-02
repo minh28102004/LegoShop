@@ -3,6 +3,11 @@ export const PRODUCT_STATUS = {
   INACTIVE: 'inactive',
 } as const;
 
+export const PRODUCT_TYPE = {
+  RETAIL: 'retail',
+  FINISHED: 'finished',
+} as const;
+
 export const FRAME_OPTION_TYPE = {
   SIZE: 'size',
   COLOR: 'color',
@@ -51,6 +56,11 @@ export const PAYMENT_TYPE = {
   COD_DEPOSIT: 'cod_deposit',
 } as const;
 
+export const VOUCHER_DISCOUNT_TYPE = {
+  PERCENTAGE: 'percentage',
+  FIXED: 'fixed',
+} as const;
+
 export const DEPOSIT_STATUS = {
   NOT_REQUIRED: 'not_required',
   PENDING: 'pending',
@@ -66,21 +76,25 @@ export const INQUIRY_STATUS = {
 } as const;
 
 export const PRODUCT_STATUS_VALUES = Object.values(PRODUCT_STATUS);
+export const PRODUCT_TYPE_VALUES = Object.values(PRODUCT_TYPE);
 export const FRAME_OPTION_TYPE_VALUES = Object.values(FRAME_OPTION_TYPE);
 export const ORDER_STATUS_VALUES = Object.values(ORDER_STATUS);
 export const PAYMENT_METHOD_VALUES = Object.values(PAYMENT_METHOD);
 export const PAYMENT_STATUS_VALUES = Object.values(PAYMENT_STATUS);
 export const SHIPPING_STATUS_VALUES = Object.values(SHIPPING_STATUS);
 export const PAYMENT_TYPE_VALUES = Object.values(PAYMENT_TYPE);
+export const VOUCHER_DISCOUNT_TYPE_VALUES = Object.values(VOUCHER_DISCOUNT_TYPE);
 export const DEPOSIT_STATUS_VALUES = Object.values(DEPOSIT_STATUS);
 export const INQUIRY_STATUS_VALUES = Object.values(INQUIRY_STATUS);
 
 export type ProductStatus = (typeof PRODUCT_STATUS)[keyof typeof PRODUCT_STATUS];
+export type ProductType = (typeof PRODUCT_TYPE)[keyof typeof PRODUCT_TYPE];
 export type FrameOptionType = (typeof FRAME_OPTION_TYPE)[keyof typeof FRAME_OPTION_TYPE];
 export type OrderStatus = (typeof ORDER_STATUS)[keyof typeof ORDER_STATUS];
 export type PaymentMethod = (typeof PAYMENT_METHOD)[keyof typeof PAYMENT_METHOD];
 export type PaymentStatus = (typeof PAYMENT_STATUS)[keyof typeof PAYMENT_STATUS];
 export type ShippingStatus = (typeof SHIPPING_STATUS)[keyof typeof SHIPPING_STATUS];
 export type PaymentType = (typeof PAYMENT_TYPE)[keyof typeof PAYMENT_TYPE];
+export type VoucherDiscountType = (typeof VOUCHER_DISCOUNT_TYPE)[keyof typeof VOUCHER_DISCOUNT_TYPE];
 export type DepositStatus = (typeof DEPOSIT_STATUS)[keyof typeof DEPOSIT_STATUS];
 export type InquiryStatus = (typeof INQUIRY_STATUS)[keyof typeof INQUIRY_STATUS];

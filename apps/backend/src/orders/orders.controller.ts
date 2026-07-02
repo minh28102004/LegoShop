@@ -1,6 +1,7 @@
 import { Body, Controller, Get, Param, Post } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { CreateOrderDto } from './dto/create-order.dto';
+import { TrackOrderDto } from './dto/track-order.dto';
 import { OrdersService } from './orders.service';
 
 @ApiTags('Orders')
@@ -16,6 +17,14 @@ export class OrdersController {
   @Get('orders/track/:orderCode')
   trackOrder(@Param('orderCode') orderCode: string) {
     return this.ordersService.trackOrder(orderCode);
+  }
+
+  @Post('orders/track')
+  trackOrderByPhone(@Body() trackOrderDto: TrackOrderDto) {
+    return this.ordersService.trackOrderByPhone(
+      trackOrderDto.orderCode,
+      trackOrderDto.phone,
+    );
   }
 
   @Post('orders/:orderCode/create-payment-link')

@@ -26,7 +26,7 @@ function PaymentSuccessContent() {
 
   useEffect(() => {
     if (orderCode) {
-      publicApiClient.orders.trackOrder(orderCode)
+      publicApiClient.orders.trackOrderByCode(orderCode)
         .then(data => setOrder(data))
         .catch(err => console.error(err))
         .finally(() => setLoading(false));
@@ -37,6 +37,7 @@ function PaymentSuccessContent() {
 
   const paymentStatus = order?.paymentStatus as string | undefined;
   const verifiedPaid = paymentStatus === "paid" || paymentStatus === "deposit_paid";
+  const displayOrderCode = order?.orderCode ?? orderCode;
 
   return (
     <div className="flex flex-col items-center justify-center py-20 px-4 text-center min-h-[60vh]">
@@ -58,7 +59,7 @@ function PaymentSuccessContent() {
       ) : order ? (
         <div className="bg-white border border-emerald-200 rounded-2xl p-6 mb-8 w-full max-w-md shadow-sm">
           <p className="text-sm text-zinc-500 mb-2">Mã đơn hàng</p>
-          <p className="text-2xl font-bold tracking-widest text-zinc-900 mb-4">{orderCode}</p>
+          <p className="text-2xl font-bold tracking-widest text-zinc-900 mb-4">{displayOrderCode}</p>
           
           <div className="border-t border-zinc-100 pt-4 space-y-2 text-sm text-left">
             <div className="flex justify-between">
@@ -82,13 +83,13 @@ function PaymentSuccessContent() {
       ) : (
         <div className="bg-zinc-50 border border-zinc-200 rounded-xl p-6 mb-8 w-full max-w-md">
           <p className="text-sm text-zinc-500 mb-2">Mã đơn hàng của bạn</p>
-          <p className="text-2xl font-bold tracking-widest text-zinc-900">{orderCode}</p>
+          <p className="text-2xl font-bold tracking-widest text-zinc-900">{displayOrderCode}</p>
         </div>
       )}
 
       <div className="flex flex-col sm:flex-row gap-4">
         <Link 
-          href={`/order-tracking${orderCode ? `?code=${orderCode}` : ""}`}
+          href={`/order-tracking${displayOrderCode ? `?code=${displayOrderCode}` : ""}`}
           className="px-8 py-3 bg-red-400 hover:bg-red-500 text-white font-medium rounded-full transition-colors flex items-center justify-center gap-2"
         >
           <Search className="w-4 h-4" /> Tra cứu tiến độ đơn

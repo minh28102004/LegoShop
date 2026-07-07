@@ -672,3 +672,16 @@
     opacity: 1;
   }
 }
+
+body:has(.studio-workbench) {
+  overflow: hidden;
+}
+
+body:has(.studio-workbench) main {
+  height: calc(100dvh - 60px);
+  overflow: hidden;
+}
+
+body:has(.studio-workbench) footer {
+  display: none;
+}

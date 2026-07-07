@@ -1,7 +1,15 @@
 "use client";
 
 import { useState, useMemo, useEffect, useRef } from "react";
-import { useStudio, type ApiFrameSize, type StudioContentField } from "./StudioContext";
+import {
+  useStudio,
+  type ApiCharacterPart,
+  type ApiCharacterPreset,
+  type ApiFrameSize,
+  type StudioCharacterInput,
+  type StudioContentField,
+  type StudioElement,
+} from "./StudioContext";
 import { formatPrice } from "@/lib/formatters";
 import {
   Search,
@@ -13,6 +21,7 @@ import {
   ChevronRight,
   ArrowRight,
   AlertCircle,
+  X,
 } from "lucide-react";
 import { useCartStore, type CartItemPart } from "@/stores/cartStore";
 import { useUIStore } from "@/stores/uiStore";
@@ -20,6 +29,7 @@ import { UI_MODAL_IDS } from "@/constants";
 import { uploadCustomerImage } from "@/lib/api/uploads";
 import { isPersistableImageUrl } from "./design-data";
 import type { CustomFrameDesignData } from "@lego-shop/shared";
+import { createPortal } from "react-dom";
 
 const getFrameColorHex = (name: string, apiHex?: string | null): string => {
   if (apiHex && apiHex.startsWith("#")) return apiHex;
@@ -80,8 +90,8 @@ export function StudioRightPanel() {
   const handleBack = () => setStep(Math.max(1, step - 1));
 
   return (
-    <div className="z-20 flex w-[520px] max-w-[44vw] shrink-0 flex-col border-l border-border bg-white shadow-[0_20px_60px_rgba(15,23,42,0.12)]">
-      <div className="flex-1 overflow-y-auto p-7 space-y-6 scrollbar-hide">
+    <div className="z-20 flex flex-1 flex-col bg-white">
+      <div className="flex-1 overflow-y-auto space-y-6 p-4 scrollbar-hide sm:p-6 lg:p-7">
         <div className="animate-fade-in">
           {step === 1 && <Step1Frame />}
           {step === 2 && <Step2Content />}
@@ -664,13 +674,14 @@ function ContentFieldInput({
 
 function Step3Characters() {
   const {
-    characterCount,
     characterPrice,
-    characters,
+    characterParts,
+    characterPresets,
     accessories,
     accessoryCategories,
     addElement,
     addCharacter,
+    updateCharacterParts,
     elements,
     removeElement,
     selectedId,
@@ -679,6 +690,8 @@ function Step3Characters() {
   } = useStudio();
   const [searchQuery, setSearchQuery] = useState("");
   const [activeCategoryId, setActiveCategoryId] = useState<string | null>(null);
+  const [builderOpen, setBuilderOpen] = useState(false);
+  const [editingCharacterId, setEditingCharacterId] = useState<string | null>(null);
 
   const filteredAccessories = useMemo(() => {
     let list = accessories;
@@ -698,10 +711,55 @@ function Step3Characters() {
     () => elements.filter((element) => element.type === "character"),
     [elements],
   );
-  const charactersTotalPrice = useMemo(
-    () => characterElements.reduce((sum, character) => sum + (character.price ?? characterPrice), 0),
-    [characterElements, characterPrice],
+  const editingCharacter = useMemo(
+    () => characterElements.find((character) => character.id === editingCharacterId) ?? null,
+    [characterElements, editingCharacterId],
   );
+  const charactersTotalPrice = characterElements.length * characterPrice;
+
+  const partById = useMemo(
+    () => new Map(characterParts.map((p) => [p.id, p])),
+    [characterParts],
+  );
+
+  const openCreateBuilder = () => {
+    setEditingCharacterId(null);
+    setBuilderOpen(true);
+  };
+
+  const openEditBuilder = (character: StudioElement) => {
+    setEditingCharacterId(character.id);
+    setSelectedId(character.id);
+    setBuilderOpen(true);
+  };
+
+  const closeBuilder = () => {
+    setBuilderOpen(false);
+    setEditingCharacterId(null);
+  };
+
+  const handleSaveCharacter = (payload: StudioCharacterInput) => {
+    if (editingCharacterId) {
+      updateCharacterParts(editingCharacterId, payload);
+    } else {
+      addCharacter(payload);
+    }
+    closeBuilder();
+  };
+
+  const handleRemoveCharacter = (id: string, name: string) => {
+    if (window.confirm(`Xóa ${name} khỏi thiết kế?`)) {
+      removeElement(id);
+    }
+  };
+
+  const getCharacterPartFee = (character: StudioElement): number => {
+    const partIds = [character.faceId, character.hairId, character.torsoId, character.legsId, character.hatId, ...(character.accessoryIds ?? [])].filter(Boolean);
+    return partIds.reduce((sum, id) => {
+      const part = partById.get(id as string);
+      return sum + (part?.priceAdjustment ?? 0);
+    }, 0);
+  };
 
   return (
     <div className="space-y-6">
@@ -710,86 +768,104 @@ function Step3Characters() {
       </div>
 
       <div className="rounded-2xl border border-border bg-surface p-5 shadow-sm">
-        <h3 className="mb-4 text-sm font-bold text-text-primary uppercase">
-          Quản lý nhân vật
-        </h3>
-        {characters.length > 0 ? (
-          <div className="mb-4 grid max-h-[220px] grid-cols-2 gap-2 overflow-y-auto pr-1 scrollbar-hide">
-            {characters.map((character) => (
-              <button
-                key={character.id}
-                type="button"
-                onClick={() => addCharacter(character)}
-                className="flex min-w-0 items-center gap-3 rounded-xl border border-border bg-white p-2 text-left transition hover:border-[#ef9ab3]/60 hover:bg-[#fff4f7]"
-              >
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-border bg-surface-hover">
-                  {character.imageUrl ? (
-                    <img src={character.imageUrl} alt={character.name} className="h-full w-full object-cover" />
-                  ) : (
-                    <span className="text-xs font-black text-text-muted">NV</span>
-                  )}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-xs font-black text-text-primary">{character.name}</p>
-                  <p className="text-[11px] font-semibold text-[#ef5f86]">{formatPrice(character.price)}</p>
-                </div>
-              </button>
-            ))}
-          </div>
-        ) : null}
+        {/* Header */}
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <h3 className="text-sm font-bold uppercase text-text-primary">
+            Quản lý nhân vật
+          </h3>
+          <button
+            type="button"
+            onClick={openCreateBuilder}
+            title="Tạo nhanh nhân vật ngẫu nhiên"
+            className="flex h-8 shrink-0 items-center gap-1.5 rounded-full border border-[#ef9ab3] bg-[#fff4f7] px-3 text-xs font-bold text-[#ef5f86] transition hover:bg-[#ef9ab3] hover:text-white"
+          >
+            <Zap className="h-3.5 w-3.5" /> Ngẫu nhiên
+          </button>
+        </div>
+
+        {/* Character chips + Add button */}
         <div className="flex flex-wrap items-center gap-2">
           {characterElements.map((character, index) => {
             const active = selectedId === character.id;
+            const label = character.content || `NV ${index + 1}`;
             return (
-              <div key={character.id} className="relative">
+              <div
+                key={character.id}
+                className={`group flex items-center gap-1 rounded-full border px-3 py-1.5 text-sm font-bold transition-all ${
+                  active
+                    ? "border-[#ef9ab3] bg-[#fff4f7] text-[#ef5f86] shadow-sm"
+                    : "border-border bg-white text-text-secondary hover:border-[#ef9ab3]/60"
+                }`}
+              >
                 <button
                   type="button"
-                  onClick={() => setSelectedId(character.id)}
-                  className={`h-10 rounded-xl border px-4 text-sm font-black transition-all ${
-                    active
-                      ? "border-[#ef9ab3] bg-[#fff4f7] text-[#ef5f86] shadow-sm"
-                      : "border-border bg-surface-hover text-text-secondary hover:border-[#ef9ab3]/60 hover:bg-[#fff4f7]"
-                  }`}
+                  onClick={() => openEditBuilder(character)}
+                  className="max-w-[72px] truncate"
+                  title={`Sửa ${label}`}
                 >
-                  {character.content || `NV ${index + 1}`}
+                  {label}
                 </button>
                 <button
                   type="button"
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    removeElement(character.id);
-                  }}
-                  className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-error text-xs font-black leading-none text-white shadow-sm transition-transform hover:scale-105"
-                  aria-label={`Xóa ${character.content || `NV ${index + 1}`}`}
+                  onClick={() => handleRemoveCharacter(character.id, label)}
+                  className="ml-0.5 grid h-4 w-4 shrink-0 place-items-center rounded-full bg-red-100 text-red-500 opacity-70 transition hover:bg-red-500 hover:text-white hover:opacity-100"
+                  aria-label={`Xóa ${label}`}
                 >
-                  ×
+                  <X className="h-2.5 w-2.5" />
                 </button>
               </div>
             );
           })}
+
           <button
             type="button"
-            onClick={() => addCharacter()}
-            className="flex h-10 items-center gap-2 rounded-xl bg-emerald-500 px-5 text-sm font-black text-white shadow-md transition-all hover:-translate-y-0.5 hover:bg-emerald-600 hover:shadow-lg active:translate-y-0"
+            onClick={openCreateBuilder}
+            className="flex items-center gap-1.5 rounded-full bg-emerald-500 px-4 py-1.5 text-sm font-black text-white shadow-sm transition hover:bg-emerald-600 active:scale-95"
           >
-            <span>+</span> Thêm ({formatPrice(characterPrice)})
+            <span>+</span> Thêm
+            <span className="rounded-full bg-white/20 px-1.5 py-0.5 text-[10px] font-black">
+              10.000đ
+            </span>
           </button>
         </div>
-        {characterCount > 0 && (
-          <div className="mt-4 flex items-center justify-between rounded-lg bg-surface-hover px-3 py-2 text-xs font-medium text-text-secondary">
-            <span>
-              {characterCount} nhân vật × {formatPrice(characterPrice)}
-            </span>
-            <span className="font-bold text-text-primary">
-              {formatPrice(charactersTotalPrice)}
-            </span>
+
+        {characterElements.length === 0 && (
+          <p className="mt-3 text-xs font-medium text-text-muted">
+            Nhấn "+ Thêm" để thêm nhân vật vào khung.
+          </p>
+        )}
+
+        {/* Price breakdown */}
+        {characterElements.length > 0 && (
+          <div className="mt-4 space-y-1.5 rounded-xl bg-surface-hover px-4 py-3">
+            {characterElements.map((character, index) => {
+              const partFee = getCharacterPartFee(character);
+              const label = character.content || `NV ${index + 1}`;
+              return (
+                <div key={character.id} className="flex items-center justify-between text-xs">
+                  <span className="font-medium text-text-secondary">{label}</span>
+                  <span className="font-bold text-text-primary">
+                    {formatPrice(characterPrice + partFee)}
+                    {partFee > 0 && (
+                      <span className="ml-1 font-medium text-text-muted">(+{formatPrice(partFee)} part)</span>
+                    )}
+                  </span>
+                </div>
+              );
+            })}
+            <div className="mt-2 flex items-center justify-between border-t border-border pt-2 text-xs">
+              <span className="font-bold text-text-primary">Tổng nhân vật</span>
+              <span className="font-black text-[#ef5f86]">
+                {formatPrice(charactersTotalPrice + characterElements.reduce((s, c) => s + getCharacterPartFee(c), 0))}
+              </span>
+            </div>
           </div>
         )}
       </div>
 
-      <div className="rounded-2xl border border-border bg-surface shadow-sm overflow-hidden flex flex-col">
+      <div className="overflow-hidden rounded-2xl border border-border bg-surface shadow-sm flex flex-col">
         <div className="border-b border-border bg-background px-5 py-4">
-          <h3 className="mb-4 text-sm font-bold text-text-primary uppercase">
+          <h3 className="mb-4 text-sm font-bold uppercase text-text-primary">
             Thêm phụ kiện & Charm
           </h3>
 
@@ -838,7 +914,7 @@ function Step3Characters() {
             Array.from({ length: 12 }).map((_, i) => (
               <div
                 key={i}
-                className="aspect-square rounded-xl bg-surface-hover animate-pulse"
+                className="aspect-square animate-pulse rounded-xl bg-surface-hover"
               />
             ))
           ) : filteredAccessories.length === 0 ? (
@@ -856,7 +932,7 @@ function Step3Characters() {
                     if (isAdded) {
                       const el = elements.find((e) => e.accessoryId === acc.id);
                       if (el) removeElement(el.id);
-                    } else
+                    } else {
                       addElement({
                         type: "accessory",
                         x: 80 + Math.random() * 200,
@@ -868,6 +944,7 @@ function Step3Characters() {
                         price: acc.price,
                         accessoryId: acc.id,
                       });
+                    }
                   }}
                   className={`group relative flex aspect-square flex-col items-center justify-center overflow-hidden rounded-xl border-2 p-2 transition-all duration-300 ${
                     isAdded
@@ -905,11 +982,615 @@ function Step3Characters() {
           )}
         </div>
       </div>
+
+      <CharacterBuilderModal
+        open={builderOpen}
+        editingCharacter={editingCharacter}
+        characterParts={characterParts}
+        characterPresets={characterPresets}
+        characterIndex={
+          editingCharacter
+            ? Math.max(0, characterElements.findIndex((item) => item.id === editingCharacter.id))
+            : characterElements.length
+        }
+        onClose={closeBuilder}
+        onSave={handleSaveCharacter}
+      />
     </div>
   );
 }
 
-// ─── Step 4: Hoàn tất ──────────────────────────────────────────────────────
+type CharacterPartTab = "FACE" | "HAIR" | "TORSO" | "LEGS" | "HAT" | "ACCESSORY" | "PRESET";
+
+type CharacterBuilderSelection = {
+  name: string;
+  FACE?: string | undefined;
+  HAIR?: string | undefined;
+  TORSO?: string | undefined;
+  LEGS?: string | undefined;
+  HAT?: string | undefined;
+  ACCESSORY: string[];
+};
+
+const CHARACTER_PART_TABS: Array<{ type: CharacterPartTab; label: string; requiredMessage?: string }> = [
+  { type: "PRESET", label: "Mẫu có sẵn" },
+  { type: "FACE", label: "Khuôn mặt", requiredMessage: "Vui lòng chọn khuôn mặt" },
+  { type: "HAIR", label: "Tóc", requiredMessage: "Vui lòng chọn tóc" },
+  { type: "TORSO", label: "Áo", requiredMessage: "Vui lòng chọn áo" },
+  { type: "LEGS", label: "Quần", requiredMessage: "Vui lòng chọn quần" },
+  { type: "HAT", label: "Mũ" },
+  { type: "ACCESSORY", label: "Phụ kiện" },
+];
+
+type CharacterPresetConfig = {
+  id: string;
+  name: string;
+  description: string;
+  faceHint?: string | undefined;
+  hairHint?: string | undefined;
+  torsoHint?: string | undefined;
+  legsHint?: string | undefined;
+  hatHint?: string | undefined;
+};
+
+const FALLBACK_PRESETS: CharacterPresetConfig[] = [
+  { id: "graduation-male", name: "Nam tốt nghiệp", description: "Tóc nam + mũ tốt nghiệp", hairHint: "nam", hatHint: "tốt nghiệp" },
+  { id: "graduation-female", name: "Nữ tốt nghiệp", description: "Tóc nữ + mũ tốt nghiệp", hairHint: "nữ", hatHint: "tốt nghiệp" },
+  { id: "couple-red", name: "Đôi đỏ", description: "Áo và quần đỏ", torsoHint: "đỏ", legsHint: "đỏ" },
+  { id: "couple-black", name: "Đôi đen", description: "Áo và quần đen", torsoHint: "đen", legsHint: "đen" },
+  { id: "casual-male", name: "Nam bình thường", description: "Tóc nam tự nhiên", hairHint: "nam" },
+  { id: "casual-female", name: "Nữ bình thường", description: "Tóc nữ tự nhiên", hairHint: "nữ" },
+];
+
+function mapApiPreset(p: ApiCharacterPreset): CharacterPresetConfig {
+  return {
+    id: p.id,
+    name: p.name,
+    description: p.description ?? "",
+    faceHint: p.faceHint ?? undefined,
+    hairHint: p.hairHint ?? undefined,
+    torsoHint: p.torsoHint ?? undefined,
+    legsHint: p.legsHint ?? undefined,
+    hatHint: p.hatHint ?? undefined,
+  };
+}
+
+function findPartByHint(parts: ApiCharacterPart[], hint?: string): string | undefined {
+  if (!parts.length) return undefined;
+  if (!hint) return parts[0]?.id;
+  const lower = hint.toLowerCase();
+  const match = parts.find((p) => p.name.toLowerCase().includes(lower));
+  return (match ?? parts[0])?.id;
+}
+
+const COLOR_FILTER_TABS: ReadonlyArray<CharacterPartTab> = ["FACE", "HAIR", "TORSO", "LEGS", "HAT"];
+
+const PART_COLOR_KEYWORDS = [
+  { key: "đen", label: "Đen", hex: "#1f1f21" },
+  { key: "trắng", label: "Trắng", hex: "#e5e7eb" },
+  { key: "đỏ", label: "Đỏ", hex: "#ef4444" },
+  { key: "xanh", label: "Xanh", hex: "#3b82f6" },
+  { key: "vàng", label: "Vàng", hex: "#facc15" },
+  { key: "hồng", label: "Hồng", hex: "#f472b6" },
+  { key: "xám", label: "Xám", hex: "#9ca3af" },
+  { key: "nâu", label: "Nâu", hex: "#92400e" },
+  { key: "tím", label: "Tím", hex: "#a855f7" },
+  { key: "cam", label: "Cam", hex: "#f97316" },
+  { key: "xanh lá", label: "Xanh lá", hex: "#22c55e" },
+] as const;
+
+function getCharacterPartImage(part?: ApiCharacterPart | null) {
+  return part?.imageUrl || "";
+}
+
+function getCharacterBuilderInitialSelection(
+  character: StudioElement | null,
+  characterIndex: number,
+): CharacterBuilderSelection {
+  return {
+    name: character?.content || `NV ${characterIndex + 1}`,
+    FACE: character?.faceId,
+    HAIR: character?.hairId,
+    TORSO: character?.torsoId,
+    LEGS: character?.legsId,
+    HAT: character?.hatId,
+    ACCESSORY: character?.accessoryIds ?? [],
+  };
+}
+
+function CharacterBuilderModal({
+  open,
+  editingCharacter,
+  characterParts,
+  characterPresets,
+  characterIndex,
+  onClose,
+  onSave,
+}: {
+  open: boolean;
+  editingCharacter: StudioElement | null;
+  characterParts: ApiCharacterPart[];
+  characterPresets: ApiCharacterPreset[];
+  characterIndex: number;
+  onClose: () => void;
+  onSave: (input: StudioCharacterInput) => void;
+}) {
+  const [activeTab, setActiveTab] = useState<CharacterPartTab>("FACE");
+  const [selection, setSelection] = useState<CharacterBuilderSelection>(() =>
+    getCharacterBuilderInitialSelection(editingCharacter, characterIndex),
+  );
+  const [error, setError] = useState<string | null>(null);
+  const [colorFilter, setColorFilter] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    setActiveTab("PRESET");
+    setSelection(getCharacterBuilderInitialSelection(editingCharacter, characterIndex));
+    setError(null);
+    setColorFilter(null);
+  }, [characterIndex, editingCharacter, open]);
+
+  useEffect(() => {
+    setColorFilter(null);
+  }, [activeTab]);
+
+  const partsByType = useMemo(() => {
+    const groups = new Map<CharacterPartTab, ApiCharacterPart[]>();
+    CHARACTER_PART_TABS.forEach((tab) => groups.set(tab.type, []));
+    characterParts.forEach((part) => {
+      const list = groups.get(part.type as CharacterPartTab);
+      if (list) list.push(part);
+    });
+    groups.forEach((list) => list.sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name)));
+    return groups;
+  }, [characterParts]);
+
+  const partById = useMemo(
+    () => new Map(characterParts.map((part) => [part.id, part])),
+    [characterParts],
+  );
+
+  const selectedFace = selection.FACE ? partById.get(selection.FACE) : undefined;
+  const selectedHair = selection.HAIR ? partById.get(selection.HAIR) : undefined;
+  const selectedTorso = selection.TORSO ? partById.get(selection.TORSO) : undefined;
+  const selectedLegs = selection.LEGS ? partById.get(selection.LEGS) : undefined;
+  const selectedHat = selection.HAT ? partById.get(selection.HAT) : undefined;
+  const selectedAccessories = selection.ACCESSORY.map((id) => partById.get(id)).filter(
+    (part): part is ApiCharacterPart => Boolean(part),
+  );
+
+  const totalPartFee = [selectedFace, selectedHair, selectedTorso, selectedLegs, selectedHat, ...selectedAccessories]
+    .filter(Boolean)
+    .reduce((sum, p) => sum + (p?.priceAdjustment ?? 0), 0);
+
+  const activePresets: CharacterPresetConfig[] = characterPresets.length > 0
+    ? characterPresets.map(mapApiPreset)
+    : FALLBACK_PRESETS;
+
+  const randomize = () => {
+    const pick = (type: CharacterPartTab) => {
+      const list = partsByType.get(type) ?? [];
+      return list.length > 0 ? list[Math.floor(Math.random() * list.length)]?.id : undefined;
+    };
+    setSelection((curr) => ({
+      name: curr.name,
+      FACE: pick("FACE"),
+      HAIR: pick("HAIR"),
+      TORSO: pick("TORSO"),
+      LEGS: pick("LEGS"),
+      HAT: undefined,
+      ACCESSORY: [],
+    }));
+    setError(null);
+  };
+
+  const applyPreset = (preset: CharacterPresetConfig) => {
+    const faces = partsByType.get("FACE") ?? [];
+    const hairs = partsByType.get("HAIR") ?? [];
+    const torsos = partsByType.get("TORSO") ?? [];
+    const legs = partsByType.get("LEGS") ?? [];
+    const hats = partsByType.get("HAT") ?? [];
+    setSelection((curr) => ({
+      ...curr,
+      FACE: findPartByHint(faces, preset.faceHint) ?? curr.FACE,
+      HAIR: findPartByHint(hairs, preset.hairHint) ?? curr.HAIR,
+      TORSO: findPartByHint(torsos, preset.torsoHint) ?? curr.TORSO,
+      LEGS: findPartByHint(legs, preset.legsHint) ?? curr.LEGS,
+      HAT: preset.hatHint ? findPartByHint(hats, preset.hatHint) : curr.HAT,
+      ACCESSORY: [],
+    }));
+    setActiveTab("FACE");
+    setError(null);
+  };
+
+  const togglePart = (part: ApiCharacterPart) => {
+    setError(null);
+    if (part.type === "ACCESSORY") {
+      setSelection((current) => ({
+        ...current,
+        ACCESSORY: current.ACCESSORY.includes(part.id)
+          ? current.ACCESSORY.filter((id) => id !== part.id)
+          : [...current.ACCESSORY, part.id],
+      }));
+      return;
+    }
+    if (part.type === "HAT") {
+      setSelection((current) => ({
+        ...current,
+        HAT: current.HAT === part.id ? undefined : part.id,
+      }));
+      return;
+    }
+
+    setSelection((current) => ({
+      ...current,
+      [part.type]: part.id,
+    }));
+  };
+
+  const save = () => {
+    for (const tab of CHARACTER_PART_TABS) {
+      if (!tab.requiredMessage || tab.type === "PRESET" || tab.type === "ACCESSORY" || tab.type === "HAT") continue;
+      if (!selection[tab.type]) {
+        setError(tab.requiredMessage);
+        setActiveTab(tab.type);
+        return;
+      }
+    }
+
+    if (!selectedFace || !selectedHair || !selectedTorso || !selectedLegs) {
+      setError("Vui lòng chọn đủ bộ phận nhân vật");
+      return;
+    }
+
+    const payload: StudioCharacterInput = {
+      name: selection.name.trim() || `NV ${characterIndex + 1}`,
+      face: selectedFace,
+      hair: selectedHair,
+      torso: selectedTorso,
+      legs: selectedLegs,
+      accessories: selectedAccessories,
+    };
+    if (selectedHat) {
+      payload.hat = selectedHat;
+    }
+    onSave(payload);
+  };
+
+  const activeParts = partsByType.get(activeTab) ?? [];
+
+  const availableColors = useMemo(() => {
+    if (!COLOR_FILTER_TABS.includes(activeTab)) return [];
+    return PART_COLOR_KEYWORDS.filter((color) =>
+      activeParts.some((part) => part.name.toLowerCase().includes(color.key)),
+    );
+  }, [activeTab, activeParts]);
+
+  const filteredParts = useMemo(() => {
+    if (!colorFilter) return activeParts;
+    return activeParts.filter((part) => part.name.toLowerCase().includes(colorFilter));
+  }, [activeParts, colorFilter]);
+
+  if (!open || typeof document === "undefined") return null;
+
+  return createPortal(
+    <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-slate-950/70 px-3 py-4 backdrop-blur-sm">
+      <div
+        className="flex w-full isolate flex-col overflow-hidden rounded-[24px] border border-white/70 bg-[#f8fafc] shadow-[0_24px_80px_rgba(15,23,42,0.36)]"
+        style={{
+          width: "min(960px, calc(100vw - 24px))",
+          maxHeight: "calc(100dvh - 24px)",
+          backgroundColor: "#f8fafc",
+        }}
+      >
+        <div className="flex shrink-0 items-center justify-between gap-4 bg-[#4fa6dc] px-5 py-4 text-white sm:px-6">
+          <div className="min-w-0">
+            <h3 className="truncate text-xl font-black sm:text-2xl">Tạo nhân vật LEGO</h3>
+            <p className="mt-1 text-sm font-semibold text-white/85">
+              {editingCharacter ? "Sửa lựa chọn part cho nhân vật" : "Chọn đủ khuôn mặt, tóc, áo và quần"}
+            </p>
+          </div>
+          <div className="flex shrink-0 items-center gap-2">
+            <button
+              type="button"
+              onClick={randomize}
+              title="Chọn ngẫu nhiên"
+              className="flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-2 text-xs font-bold text-white transition hover:bg-white/25"
+            >
+              <Zap className="h-3.5 w-3.5" /> Ngẫu nhiên
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-white/15 text-white transition hover:bg-white hover:text-slate-900"
+              aria-label="Đóng"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+        </div>
+
+        <div className="grid min-h-0 flex-1 overflow-hidden bg-[#f8fafc] md:grid-cols-[300px_minmax(0,1fr)]">
+          <div className="flex min-h-0 flex-col gap-4 border-b border-border bg-[#f8fafc] p-4 md:border-b-0 md:border-r sm:p-5">
+            <label className="block">
+              <span className="mb-1.5 block text-xs font-black uppercase tracking-wide text-text-muted">Tên nhân vật</span>
+              <input
+                value={selection.name}
+                onChange={(event) => setSelection((current) => ({ ...current, name: event.target.value }))}
+                className="h-11 w-full rounded-xl border border-border bg-white px-3 text-sm font-bold text-text-primary shadow-sm outline-none transition focus:border-[#ef9ab3] focus:ring-2 focus:ring-[#ef9ab3]/20"
+              />
+            </label>
+
+            <CharacterBuilderPreview
+              face={selectedFace}
+              hair={selectedHair}
+              torso={selectedTorso}
+              legs={selectedLegs}
+              hat={selectedHat}
+              accessories={selectedAccessories}
+              name={selection.name || `NV ${characterIndex + 1}`}
+            />
+          </div>
+
+          <div className="flex min-h-0 flex-col bg-[#ffffff]">
+            <div className="flex shrink-0 gap-2 overflow-x-auto border-b border-border bg-[#ffffff] px-4 py-3 scrollbar-hide sm:px-5">
+              {CHARACTER_PART_TABS.map((tab) => {
+                const selected = tab.type === "PRESET"
+                  ? false
+                  : tab.type === "ACCESSORY"
+                    ? selection.ACCESSORY.length > 0
+                    : Boolean(selection[tab.type]);
+                return (
+                  <button
+                    key={tab.type}
+                    type="button"
+                    onClick={() => setActiveTab(tab.type)}
+                    className={`shrink-0 rounded-full border px-4 py-2 text-xs font-black transition ${
+                      activeTab === tab.type
+                        ? "border-[#ef9ab3] bg-[#fff4f7] text-[#ef5f86]"
+                        : selected
+                          ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                          : "border-border bg-surface text-text-secondary hover:border-[#ef9ab3]/50"
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="min-h-0 flex-1 overflow-y-auto bg-[#ffffff] p-4 sm:p-5">
+              {activeTab === "PRESET" ? (
+                <div className="space-y-3">
+                  <p className="text-xs font-medium text-text-muted">
+                    Chọn mẫu có sẵn để điền nhanh. Bạn vẫn có thể sửa từng part sau khi chọn.
+                  </p>
+                  <div className="grid grid-cols-2 gap-3">
+                    {activePresets.map((preset) => (
+                      <button
+                        key={preset.id}
+                        type="button"
+                        onClick={() => applyPreset(preset)}
+                        className="group flex flex-col items-start gap-1.5 rounded-xl border-2 border-border bg-white p-3 text-left transition hover:border-[#ef9ab3] hover:shadow-md"
+                      >
+                        <span className="text-sm font-black text-text-primary group-hover:text-[#ef5f86]">
+                          {preset.name}
+                        </span>
+                        <span className="text-[11px] font-medium leading-relaxed text-text-muted">
+                          {preset.description}
+                        </span>
+                        <span className="mt-0.5 rounded-full bg-[#fff4f7] px-2 py-0.5 text-[10px] font-bold text-[#ef9ab3]">
+                          Áp dụng →
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : filteredParts.length === 0 && activeParts.length === 0 ? (
+                <div className="grid min-h-[300px] place-items-center rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-6 text-center">
+                  <div>
+                    <p className="text-sm font-black text-slate-700">Chưa có part trong nhóm này</p>
+                    <p className="mt-1 text-xs font-medium text-slate-500">
+                      Thêm part ở admin để khách chọn được trong Studio.
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  {availableColors.length > 1 && (
+                    <div className="mb-3 flex flex-wrap items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => setColorFilter(null)}
+                        className={`rounded-full border px-3 py-1 text-[11px] font-bold transition ${
+                          !colorFilter
+                            ? "border-[#ef9ab3] bg-[#fff4f7] text-[#ef5f86]"
+                            : "border-border bg-white text-text-secondary hover:border-[#ef9ab3]/50"
+                        }`}
+                      >
+                        Tất cả
+                      </button>
+                      {availableColors.map((color) => (
+                        <button
+                          key={color.key}
+                          type="button"
+                          onClick={() => setColorFilter(colorFilter === color.key ? null : color.key)}
+                          title={color.label}
+                          className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-bold transition ${
+                            colorFilter === color.key
+                              ? "border-[#ef9ab3] bg-[#fff4f7] text-[#ef5f86]"
+                              : "border-border bg-white text-text-secondary hover:border-[#ef9ab3]/50"
+                          }`}
+                        >
+                          <span
+                            className="h-3 w-3 shrink-0 rounded-full border border-zinc-300 shadow-inner"
+                            style={{ backgroundColor: color.hex }}
+                          />
+                          {color.label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  {filteredParts.length === 0 ? (
+                    <div className="flex min-h-[120px] items-center justify-center rounded-xl border border-dashed border-slate-200 bg-slate-50 text-xs font-medium text-text-muted">
+                      Không có part màu này
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-3">
+                      {activeTab === "HAT" && (
+                        <button
+                          type="button"
+                          onClick={() => setSelection((c) => ({ ...c, HAT: undefined }))}
+                          className={`group relative flex aspect-square flex-col items-center justify-center gap-2 overflow-hidden rounded-xl border-2 bg-white p-3 transition ${
+                            !selection.HAT
+                              ? "border-[#ef9ab3] ring-4 ring-[#ef9ab3]/15"
+                              : "border-border hover:border-[#ef9ab3]/50"
+                          }`}
+                        >
+                          <div className="grid h-12 w-12 place-items-center rounded-full bg-surface-hover">
+                            <X className="h-6 w-6 text-text-muted" />
+                          </div>
+                          <span className="text-[11px] font-black text-text-secondary">Không chọn</span>
+                          <span className="text-[10px] font-bold text-text-muted">Miễn phí</span>
+                          {!selection.HAT && (
+                            <span className="absolute right-2 top-2 grid h-5 w-5 place-items-center rounded-full bg-[#ef9ab3] text-white shadow-sm">
+                              <Check className="h-3.5 w-3.5" />
+                            </span>
+                          )}
+                        </button>
+                      )}
+                      {filteredParts.map((part) => {
+                        const active = part.type === "ACCESSORY"
+                          ? selection.ACCESSORY.includes(part.id)
+                          : selection[part.type] === part.id;
+                        return (
+                          <button
+                            key={part.id}
+                            type="button"
+                            onClick={() => togglePart(part)}
+                            className={`group relative flex aspect-square flex-col items-center justify-between overflow-hidden rounded-xl border-2 bg-white p-2 transition ${
+                              active
+                                ? "border-[#ef9ab3] ring-4 ring-[#ef9ab3]/15"
+                                : "border-border hover:border-[#ef9ab3]/50"
+                            }`}
+                          >
+                            <div className="relative min-h-0 flex-1 w-full">
+                              {part.imageUrl ? (
+                                <img
+                                  src={part.imageUrl}
+                                  alt={part.name}
+                                  loading="lazy"
+                                  className="h-full w-full object-contain transition-transform group-hover:scale-105"
+                                  onError={(e) => { e.currentTarget.style.display = "none"; }}
+                                />
+                              ) : (
+                                <div className="grid h-full place-items-center rounded-lg bg-surface-hover text-xs font-black text-text-muted">
+                                  {part.type}
+                                </div>
+                              )}
+                              {active && (
+                                <span className="absolute right-0 top-0 grid h-5 w-5 place-items-center rounded-full bg-[#ef9ab3] text-white shadow-sm">
+                                  <Check className="h-3.5 w-3.5" />
+                                </span>
+                              )}
+                            </div>
+                            <div className="mt-1 w-full text-center">
+                              <span className="block truncate px-1 text-[10px] font-black text-text-primary leading-tight">
+                                {part.name}
+                              </span>
+                              <span className={`text-[10px] font-bold ${part.priceAdjustment > 0 ? "text-[#ef5f86]" : "text-text-muted"}`}>
+                                {part.priceAdjustment > 0 ? `+${formatPrice(part.priceAdjustment)}` : "Miễn phí"}
+                              </span>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="shrink-0 border-t border-border bg-[#ffffff] px-4 py-3 sm:px-5 sm:py-4">
+          {error ? (
+            <p className="mb-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-700">
+              {error}
+            </p>
+          ) : null}
+          <div className="mb-3 flex items-center justify-between rounded-xl bg-surface-hover px-4 py-2 text-xs">
+            <span className="font-medium text-text-secondary">
+              1 nhân vật: 10.000đ
+              {totalPartFee > 0 && ` + part: +${formatPrice(totalPartFee)}`}
+            </span>
+            <span className="font-black text-[#ef5f86]">{formatPrice(10000 + totalPartFee)}</span>
+          </div>
+          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end sm:gap-3">
+            <button
+              type="button"
+              onClick={onClose}
+              className="h-11 rounded-xl border border-border bg-white px-5 text-sm font-bold text-text-secondary transition hover:bg-surface-hover"
+            >
+              Hủy
+            </button>
+            <button
+              type="button"
+              onClick={save}
+              className="h-11 rounded-xl bg-[#ef9ab3] px-6 text-sm font-black text-white shadow-md transition hover:bg-[#e77f9f]"
+            >
+              Lưu nhân vật
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
+function CharacterBuilderPreview({
+  face,
+  hair,
+  torso,
+  legs,
+  hat,
+  accessories,
+  name,
+}: {
+  face?: ApiCharacterPart | undefined;
+  hair?: ApiCharacterPart | undefined;
+  torso?: ApiCharacterPart | undefined;
+  legs?: ApiCharacterPart | undefined;
+  hat?: ApiCharacterPart | undefined;
+  accessories: ApiCharacterPart[];
+  name: string;
+}) {
+  const layers = [legs, torso, face, hair, hat, ...accessories].filter(Boolean) as ApiCharacterPart[];
+
+  return (
+    <div className="rounded-2xl border border-border bg-white p-4 shadow-sm">
+      <div className="relative mx-auto h-64 w-40 overflow-visible rounded-xl bg-surface-hover">
+        {layers.length > 0 ? (
+          layers.map((part) => (
+            <img
+              key={`${part.type}-${part.id}`}
+              src={getCharacterPartImage(part)}
+              alt=""
+              className="absolute inset-0 h-full w-full object-contain"
+              onError={(event) => {
+                event.currentTarget.style.display = "none";
+              }}
+            />
+          ))
+        ) : (
+          <div className="grid h-full place-items-center text-xs font-black text-text-muted">NV</div>
+        )}
+      </div>
+      <p className="mt-3 truncate text-center text-sm font-black text-text-primary">{name}</p>
+    </div>
+  );
+}
 function Step4Finish() {
   const {
     totalPrice,
@@ -974,10 +1655,7 @@ function Step4Finish() {
       price: el.price || 0,
       quantity: 1,
     }));
-  const charactersTotalPrice = characterItems.reduce(
-    (sum, character) => sum + (character.price ?? characterPrice),
-    0,
-  );
+  const charactersTotalPrice = characterItems.length * characterPrice;
 
   const getContentValue = (candidates: string[], fallback = "") => {
     for (const candidate of candidates) {
@@ -1041,16 +1719,17 @@ function Step4Finish() {
     characters: characterItems
       .map((el, index) => ({
         id: el.id,
-        ...(el.characterId ? { catalogId: el.characterId } : {}),
         name: el.content || `NV ${index + 1}`,
-        imageUrl: el.imageUrl ?? null,
-        price: el.price ?? characterPrice,
-        position: {
-          x: el.x,
-          y: el.y,
-          scale: el.width ? el.width / 46 : 1,
-          rotate: 0,
-        },
+        x: el.x,
+        y: el.y,
+        scale: el.scale ?? (el.width ? el.width / 54 : 1),
+        rotation: el.rotation ?? 0,
+        faceId: el.faceId ?? "",
+        hairId: el.hairId ?? "",
+        torsoId: el.torsoId ?? "",
+        legsId: el.legsId ?? "",
+        ...(el.hatId ? { hatId: el.hatId } : {}),
+        accessoryIds: el.accessoryIds ?? [],
       })),
     previewUrl,
   });
@@ -1084,13 +1763,12 @@ function Step4Finish() {
 
     characterItems.forEach((character, index) => {
       parts.push({
-        ...(character.characterId ? { id: character.characterId } : {}),
+        id: character.id,
         type: "character",
         name: character.content || `NV ${index + 1}`,
         quantity: 1,
-        unitPrice: character.price ?? characterPrice,
-        totalPrice: character.price ?? characterPrice,
-        ...(character.imageUrl ? { imageUrl: character.imageUrl } : {}),
+        unitPrice: characterPrice,
+        totalPrice: characterPrice,
       });
     });
 

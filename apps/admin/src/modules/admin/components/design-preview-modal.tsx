@@ -27,7 +27,16 @@ type DesignData = {
   contentEntries: Array<[string, string]>;
   uploadedImages: Array<{ id: string; url: string; label: string }>;
   accessories: Array<{ id: string; name: string; quantity: number }>;
-  characters: Array<{ id: string; name: string; imageUrl?: string | null }>;
+  characters: Array<{
+    id: string;
+    name: string;
+    imageUrl?: string | null;
+    faceId?: string | null;
+    hairId?: string | null;
+    torsoId?: string | null;
+    legsId?: string | null;
+    accessoryIds: string[];
+  }>;
   elements: StudioElement[];
 };
 
@@ -121,12 +130,24 @@ export default function DesignPreviewModal({ isOpen, onClose, designData, produc
                   <Panel title='Nhân vật'>
                     <div className='space-y-2 text-sm text-slate-700'>
                       {previewData.characters.map((character) => (
-                        <div key={character.id} className='flex items-center gap-2'>
-                          {character.imageUrl ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img src={resolveApiAssetUrl(character.imageUrl)} alt='' className='h-8 w-8 rounded-lg object-cover' />
+                        <div key={character.id} className='rounded-lg border border-slate-100 bg-slate-50 p-2'>
+                          <div className='flex items-center gap-2'>
+                            {character.imageUrl ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img src={resolveApiAssetUrl(character.imageUrl)} alt='' className='h-8 w-8 rounded-lg object-cover' />
+                            ) : null}
+                            <span className='font-semibold'>{character.name || character.id}</span>
+                          </div>
+                          <p className='mt-1 break-all text-xs text-slate-500'>
+                            {[character.faceId, character.hairId, character.torsoId, character.legsId]
+                              .filter(Boolean)
+                              .join(' · ') || 'Chưa có part ID'}
+                          </p>
+                          {character.accessoryIds.length > 0 ? (
+                            <p className='mt-1 break-all text-xs text-slate-500'>
+                              Phụ kiện: {character.accessoryIds.join(', ')}
+                            </p>
                           ) : null}
-                          <span>{character.name || character.id}</span>
                         </div>
                       ))}
                     </div>
@@ -278,17 +299,29 @@ function parseCustomFrameDesign(value: CustomFrameDesignData): DesignData {
     rotation: accessory.position.rotate,
     content: accessory.name,
   }));
-  const characterElements = value.characters.map((character) => ({
-    id: `character-${character.id}`,
-    type: 'character' as const,
-    x: character.position.x,
-    y: character.position.y,
-    width: 46 * character.position.scale,
-    height: 70 * character.position.scale,
-    rotation: character.position.rotate,
-    content: character.name ?? undefined,
-    src: character.imageUrl ?? undefined,
-  }));
+  const characterElements = value.characters.map((character, index) => {
+    const legacyPosition = isRecord(character.position) ? character.position : null;
+    const scale = readNumber(character.scale) ?? readNumber(legacyPosition?.scale) ?? 1;
+    const x = readNumber(character.x) ?? readNumber(legacyPosition?.x) ?? 90 + index * 70;
+    const y = readNumber(character.y) ?? readNumber(legacyPosition?.y) ?? 165;
+    const rotation =
+      readNumber(character.rotation) ??
+      readNumber(legacyPosition?.rotation) ??
+      readNumber(legacyPosition?.rotate) ??
+      0;
+
+    return {
+      id: `character-${character.id}`,
+      type: 'character' as const,
+      x,
+      y,
+      width: 54 * scale,
+      height: 92 * scale,
+      rotation,
+      content: readString(character.name) ?? `NV ${index + 1}`,
+      src: readString(character.imageUrl),
+    };
+  });
 
   return {
     schema: 'v1',
@@ -309,8 +342,15 @@ function parseCustomFrameDesign(value: CustomFrameDesignData): DesignData {
     })),
     characters: value.characters.map((character) => ({
       id: character.id,
-      name: character.name ?? character.id,
-      imageUrl: character.imageUrl,
+      name: readString(character.name) ?? character.id,
+      imageUrl: readString(character.imageUrl),
+      faceId: readString(character.faceId),
+      hairId: readString(character.hairId),
+      torsoId: readString(character.torsoId),
+      legsId: readString(character.legsId),
+      accessoryIds: Array.isArray(character.accessoryIds)
+        ? character.accessoryIds.filter((id): id is string => typeof id === 'string' && id.trim().length > 0)
+        : [],
     })),
     elements: [
       ...(backgroundUpload

@@ -18,6 +18,15 @@ export const FRAME_OPTION_TYPE = {
   ACCESSORY: 'accessory',
 } as const;
 
+export const CHARACTER_PART_TYPE = {
+  FACE: 'FACE',
+  HAIR: 'HAIR',
+  TORSO: 'TORSO',
+  LEGS: 'LEGS',
+  HAT: 'HAT',
+  ACCESSORY: 'ACCESSORY',
+} as const;
+
 export const ORDER_STATUS = {
   PENDING: 'pending',
   CONFIRMED: 'confirmed',
@@ -78,6 +87,7 @@ export const INQUIRY_STATUS = {
 export const PRODUCT_STATUS_VALUES = Object.values(PRODUCT_STATUS);
 export const PRODUCT_TYPE_VALUES = Object.values(PRODUCT_TYPE);
 export const FRAME_OPTION_TYPE_VALUES = Object.values(FRAME_OPTION_TYPE);
+export const CHARACTER_PART_TYPE_VALUES = Object.values(CHARACTER_PART_TYPE);
 export const ORDER_STATUS_VALUES = Object.values(ORDER_STATUS);
 export const PAYMENT_METHOD_VALUES = Object.values(PAYMENT_METHOD);
 export const PAYMENT_STATUS_VALUES = Object.values(PAYMENT_STATUS);
@@ -90,6 +100,7 @@ export const INQUIRY_STATUS_VALUES = Object.values(INQUIRY_STATUS);
 export type ProductStatus = (typeof PRODUCT_STATUS)[keyof typeof PRODUCT_STATUS];
 export type ProductType = (typeof PRODUCT_TYPE)[keyof typeof PRODUCT_TYPE];
 export type FrameOptionType = (typeof FRAME_OPTION_TYPE)[keyof typeof FRAME_OPTION_TYPE];
+export type CharacterPartType = (typeof CHARACTER_PART_TYPE)[keyof typeof CHARACTER_PART_TYPE];
 export type OrderStatus = (typeof ORDER_STATUS)[keyof typeof ORDER_STATUS];
 export type PaymentMethod = (typeof PAYMENT_METHOD)[keyof typeof PAYMENT_METHOD];
 export type PaymentStatus = (typeof PAYMENT_STATUS)[keyof typeof PAYMENT_STATUS];

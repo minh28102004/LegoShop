@@ -15,6 +15,8 @@ import type {
   Banner,
   BusinessInquiry,
   Character,
+  CharacterPart,
+  CharacterPreset,
   Collection,
   DashboardStats,
   FrameBackground,
@@ -42,6 +44,8 @@ export type ResourceKey =
   | 'template-categories'
   | 'accessories'
   | 'characters'
+  | 'character-parts'
+  | 'character-presets'
   | 'accessory-categories'
   | 'banners'
   | 'frame-backgrounds'
@@ -57,6 +61,8 @@ const ADMIN_RESOURCE_ENDPOINTS: Record<ResourceKey, string> = {
   'template-categories': ADMIN_RESOURCE_PATHS['template-categories'],
   accessories: ADMIN_RESOURCE_PATHS.accessories,
   characters: ADMIN_RESOURCE_PATHS.characters,
+  'character-parts': ADMIN_RESOURCE_PATHS['character-parts'],
+  'character-presets': ADMIN_RESOURCE_PATHS['character-presets'],
   'accessory-categories': ADMIN_RESOURCE_PATHS['accessory-categories'],
   banners: ADMIN_RESOURCE_PATHS.banners,
   'frame-backgrounds': ADMIN_RESOURCE_PATHS['frame-backgrounds'],
@@ -73,6 +79,8 @@ export type ResourceDataMap = {
   'template-categories': TemplateCategory;
   accessories: Accessory;
   characters: Character;
+  'character-parts': CharacterPart;
+  'character-presets': CharacterPreset;
   'accessory-categories': AccessoryCategory;
   banners: Banner;
   'frame-backgrounds': FrameBackground;
@@ -91,6 +99,7 @@ export type ResourceListParams = {
   sort_dir?: string;
   status?: string | string[];
   category_id?: string | string[];
+  type?: string | string[];
   price_min?: number;
   price_max?: number;
   preset?: string;

@@ -5,6 +5,8 @@ import type {
   Banner as SharedBanner,
   BusinessInquiry as SharedBusinessInquiry,
   Character as SharedCharacter,
+  CharacterPart as SharedCharacterPart,
+  CharacterPreset as SharedCharacterPreset,
   Collection as SharedCollection,
   FrameBackground as SharedFrameBackground,
   FrameColor as SharedFrameColor,
@@ -47,6 +49,8 @@ export type FrameSize = SharedFrameSize;
 export type FrameColor = SharedFrameColor;
 export type Accessory = SharedAccessory;
 export type Character = SharedCharacter;
+export type CharacterPart = SharedCharacterPart;
+export type CharacterPreset = SharedCharacterPreset;
 export type Banner = SharedBanner;
 export type FrameBackground = SharedFrameBackground;
 export type Collection = SharedCollection;

@@ -71,6 +71,7 @@ type FieldType =
   | 'checkbox'
   | 'select'
   | 'json'
+  | 'tags'
   | 'content-fields'
   | 'image'
   | 'images';
@@ -93,6 +94,7 @@ export type EntityField = {
   required?: boolean;
   options?: Array<{ label: string; value: string }>;
   placeholder?: string;
+  helpText?: string;
 };
 
 type EntityManagerProps<K extends ResourceKey> = {
@@ -131,6 +133,8 @@ const ENTITY_DATE_FILTER_RESOURCES = new Set<ResourceKey>([
   'template-categories',
   'accessories',
   'characters',
+  'character-parts',
+  'character-presets',
   'accessory-categories',
   'banners',
   'frame-backgrounds',
@@ -166,7 +170,7 @@ function getFieldLayoutClass(field: EntityField, resource: ResourceKey) {
   const normalizedKey = field.key.toLowerCase();
 
   if (field.type === 'textarea') return 'lg:col-span-12';
-  if (field.type === 'json' || field.type === 'content-fields') return 'lg:col-span-12';
+  if (field.type === 'json' || field.type === 'tags' || field.type === 'content-fields') return 'lg:col-span-12';
   if (field.type === 'image' || field.type === 'images') return 'lg:col-span-12';
   if (field.type === 'checkbox') return 'lg:col-span-4 xl:col-span-3 max-w-[320px]';
   if (field.type === 'number') return 'lg:col-span-3';
@@ -236,7 +240,7 @@ function getEntityTableColumnClass(column: EntityTableColumn, resource: Resource
   if (field.type === 'number') return 'w-[12%] min-w-[128px] max-w-[150px] text-right';
   if (field.type === 'image' || field.type === 'images') return 'w-[14%] min-w-[118px] max-w-[170px] text-center';
   if (normalizedKey.includes('status')) return 'w-[14%] min-w-[148px] max-w-[180px] text-center';
-  if (field.type === 'json') return 'min-w-[280px] max-w-[420px]';
+  if (field.type === 'json' || field.type === 'tags') return 'min-w-[280px] max-w-[420px]';
   if (normalizedKey.includes('description')) return 'min-w-[240px] max-w-[360px]';
   if (normalizedKey === 'slug' || normalizedKey.includes('url') || normalizedKey.includes('link')) {
     return 'w-[18%] min-w-[180px] max-w-[260px]';
@@ -334,6 +338,8 @@ function getEntityTableColumns(fields: EntityField[], resource: ResourceKey, loc
     'frame-options': ['frameSize', 'imageUrl', 'price', 'stock', 'createdAt', 'updatedAt'],
     accessories: ['name', 'imageUrl', 'categoryId', 'status', 'createdAt', 'updatedAt'],
     characters: ['name', 'imageUrl', 'price', 'sortOrder', 'status', 'updatedAt'],
+    'character-parts': ['name', 'type', 'imageUrl', 'sortOrder', 'status', 'updatedAt'],
+    'character-presets': ['name', 'description', 'sortOrder', 'status', 'updatedAt'],
     banners: ['title', 'imageUrl', 'sortOrder', 'status', 'createdAt', 'updatedAt'],
     'frame-backgrounds': ['title', 'description', 'imageUrl', 'sortOrder', 'status', 'updatedAt'],
     collections: ['name', 'imageUrl', 'slug', 'status', 'createdAt', 'updatedAt'],
@@ -369,6 +375,8 @@ const ENTITY_SORT_FIELDS = {
   'template-categories': ['name', 'slug', 'createdAt', 'updatedAt'],
   accessories: ['name', 'status', 'categoryId', 'createdAt', 'updatedAt'],
   characters: ['name', 'price', 'sortOrder', 'status', 'createdAt', 'updatedAt'],
+  'character-parts': ['name', 'type', 'sortOrder', 'status', 'createdAt', 'updatedAt'],
+  'character-presets': ['name', 'sortOrder', 'status', 'createdAt', 'updatedAt'],
   'accessory-categories': ['name', 'slug', 'createdAt', 'updatedAt'],
   banners: ['title', 'sortOrder', 'status', 'createdAt', 'updatedAt'],
     'frame-backgrounds': ['title', 'sortOrder', 'status', 'updatedAt'],
@@ -714,6 +722,31 @@ function readStringValue(value: unknown): string {
   return typeof value === 'string' ? value : '';
 }
 
+function parseTagsInput(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value
+      .map((tag) => (typeof tag === 'string' ? tag.trim() : ''))
+      .filter((tag, index, tags) => tag.length > 0 && tags.indexOf(tag) === index);
+  }
+
+  if (typeof value !== 'string') return [];
+
+  return value
+    .split(',')
+    .map((tag) => tag.trim())
+    .filter((tag, index, tags) => tag.length > 0 && tags.indexOf(tag) === index);
+}
+
+function formatTagsInputValue(value: unknown): string {
+  if (Array.isArray(value)) {
+    return value
+      .filter((tag): tag is string => typeof tag === 'string' && tag.trim().length > 0)
+      .join(', ');
+  }
+
+  return typeof value === 'string' ? value : '';
+}
+
 function buildContentFieldKey(label: string, index: number) {
   const normalized = label
     .normalize('NFD')
@@ -810,6 +843,9 @@ function serializeFormValue(field: EntityField, rawValue: unknown): unknown {
     if (typeof rawValue !== 'string' || !rawValue.trim()) return undefined;
     return JSON.parse(rawValue);
   }
+  if (field.type === 'tags') {
+    return parseTagsInput(rawValue);
+  }
   if (field.type === 'content-fields') {
     return serializeContentFieldFormValues(rawValue);
   }
@@ -839,6 +875,8 @@ function getEntityEmptyMessage(resource: ResourceKey, locale: string) {
       'template-categories': 'Không có danh mục mẫu nào.',
       accessories: 'Không có phụ kiện nào.',
       characters: 'Không có nhân vật nào.',
+      'character-parts': 'Chưa có bộ phận nhân vật nào.',
+      'character-presets': 'Chưa có mẫu nhân vật nào.',
       'accessory-categories': 'Không có danh mục phụ kiện nào.',
       banners: 'Không có banner nào.',
       'frame-backgrounds': 'Chưa có nền ảnh khung nào.',
@@ -854,6 +892,8 @@ function getEntityEmptyMessage(resource: ResourceKey, locale: string) {
       'template-categories': 'No template categories found.',
       accessories: 'No accessories found.',
       characters: 'No characters found.',
+      'character-parts': 'No character parts found.',
+      'character-presets': 'No character presets found.',
       'accessory-categories': 'No accessory categories found.',
       banners: 'No banners found.',
       'frame-backgrounds': 'No frame image backgrounds found.',
@@ -876,6 +916,8 @@ function getEntityNoun(resource: ResourceKey, locale: string, count?: number) {
       'template-categories': 'danh mục mẫu',
       accessories: 'phụ kiện',
       characters: 'nhân vật',
+      'character-parts': 'bộ phận nhân vật',
+      'character-presets': 'mẫu nhân vật',
       'accessory-categories': 'danh mục phụ kiện',
       banners: 'banner',
       'frame-backgrounds': 'nền ảnh khung',
@@ -891,6 +933,8 @@ function getEntityNoun(resource: ResourceKey, locale: string, count?: number) {
       'template-categories': count === 1 ? 'template category' : 'template categories',
       accessories: count === 1 ? 'accessory' : 'accessories',
       characters: count === 1 ? 'character' : 'characters',
+      'character-parts': count === 1 ? 'character part' : 'character parts',
+      'character-presets': count === 1 ? 'character preset' : 'character presets',
       'accessory-categories': count === 1 ? 'accessory category' : 'accessory categories',
       banners: count === 1 ? 'banner' : 'banners',
       'frame-backgrounds': count === 1 ? 'frame image background' : 'frame image backgrounds',
@@ -997,6 +1041,8 @@ function getEntityIconName(resource: ResourceKey): AdminNavIconName {
     'template-categories': 'templates',
     accessories: 'accessories',
     characters: 'characters',
+    'character-parts': 'characters',
+    'character-presets': 'characters',
     'accessory-categories': 'accessories',
     banners: 'banners',
     'frame-backgrounds': 'frameBackgrounds',
@@ -1227,6 +1273,8 @@ export default function EntityManager<K extends ResourceKey>({
       const value = (item as unknown as Record<string, unknown>)[field.key];
       if (field.type === 'json') {
         nextValues[field.key] = value ? JSON.stringify(value, null, 2) : '';
+      } else if (field.type === 'tags') {
+        nextValues[field.key] = formatTagsInputValue(value);
       } else if (field.type === 'content-fields') {
         nextValues[field.key] = normalizeContentFieldFormValues(value);
       } else if (field.type === 'checkbox') {
@@ -1748,6 +1796,11 @@ export default function EntityManager<K extends ResourceKey>({
       <div className='space-y-3'>
         {renderImageFieldHeader(field, mode)}
         {mode === 'file' ? renderFileDropzone(field, value) : renderUrlImageInput(field, value)}
+        {field.helpText && (
+          <p className='rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium leading-relaxed text-amber-700'>
+            ⚠️ {field.helpText}
+          </p>
+        )}
       </div>
     );
   }
@@ -2067,6 +2120,31 @@ export default function EntityManager<K extends ResourceKey>({
         <span title={safeTextValue} className='block text-center text-[13px] font-semibold tabular-nums text-slate-700'>
           {formattedDate}
         </span>
+      );
+    }
+
+    if (field.type === 'tags') {
+      const tags = parseTagsInput(value);
+      if (tags.length === 0) {
+        return <span className='text-slate-400'>-</span>;
+      }
+
+      return (
+        <div className='flex max-w-[320px] flex-wrap gap-1.5'>
+          {tags.slice(0, 4).map((tag) => (
+            <span
+              key={tag}
+              className='rounded-full bg-slate-100 px-2 py-1 text-[11px] font-semibold text-slate-600'
+            >
+              {tag}
+            </span>
+          ))}
+          {tags.length > 4 ? (
+            <span className='rounded-full bg-slate-100 px-2 py-1 text-[11px] font-semibold text-slate-500'>
+              +{tags.length - 4}
+            </span>
+          ) : null}
+        </div>
       );
     }
 
@@ -2407,6 +2485,24 @@ export default function EntityManager<K extends ResourceKey>({
                         }
                         className='min-h-[180px] font-mono text-xs leading-6'
                       />
+                    ) : null}
+
+                    {field.type === 'tags' ? (
+                      <div className='space-y-2'>
+                        <Input
+                          value={String(value ?? '')}
+                          required={field.required}
+                          aria-label={field.label}
+                          placeholder={field.placeholder ?? 'VD: black, short, toc nam'}
+                          onChange={(event) =>
+                            setFormValues((prev) => ({ ...prev, [field.key]: event.target.value }))
+                          }
+                          size='md'
+                        />
+                        <p className='text-xs font-medium text-slate-500'>
+                          Nhập nhiều tag bằng dấu phẩy.
+                        </p>
+                      </div>
                     ) : null}
 
                     {field.type === 'content-fields' ? renderContentFieldsEditor(field, value) : null}

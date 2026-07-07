@@ -8,6 +8,7 @@ export const ADMIN_ROUTES = {
   templates: '/templates',
   accessories: '/accessories',
   characters: '/characters',
+  characterPresets: '/character-presets',
   banners: '/banners',
   frameBackgrounds: '/frame-backgrounds',
   collections: '/collections',
@@ -88,6 +89,12 @@ export const ADMIN_NAV_SECTIONS: AdminNavSection[] = [
         id: 'characters',
         href: ADMIN_ROUTES.characters,
         labelKey: 'sidebar.characters',
+        icon: 'characters',
+      },
+      {
+        id: 'characterPresets',
+        href: ADMIN_ROUTES.characterPresets,
+        labelKey: 'sidebar.characterPresets',
         icon: 'characters',
       },
       {

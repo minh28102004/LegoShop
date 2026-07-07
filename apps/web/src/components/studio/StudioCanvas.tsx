@@ -1,9 +1,10 @@
 "use client";
 
-import { Undo, Redo, Trash2, Share2, Image as ImageIcon, Type } from "lucide-react";
+import { Undo, Redo, Trash2, Share2, Image as ImageIcon, Type, ArrowUp, ArrowDown } from "lucide-react";
 import { useStudio } from "./StudioContext";
 import { useState, useRef, useEffect } from "react";
 import { uploadCustomerImage } from "@/lib/api/uploads";
+import type { StudioElement, StudioCharacterPartSnapshot } from "./StudioContext";
 
 const getFrameColorHex = (name: string, apiHex?: string | null): string => {
   if (apiHex && apiHex.startsWith('#')) return apiHex;
@@ -14,12 +15,75 @@ const getFrameColorHex = (name: string, apiHex?: string | null): string => {
   return '#d1d5db';
 };
 
+function getCharacterPart(
+  element: StudioElement,
+  type: "FACE" | "HAIR" | "TORSO" | "LEGS" | "HAT",
+) {
+  const value = element.characterParts?.[type];
+  return Array.isArray(value) ? value[0] : value;
+}
+
+function getCharacterAccessories(element: StudioElement): StudioCharacterPartSnapshot[] {
+  const value = element.characterParts?.ACCESSORY;
+  if (!value) return [];
+  return Array.isArray(value) ? value : [value];
+}
+
+function CharacterLayeredPreview({ element }: { element: StudioElement }) {
+  const legs = getCharacterPart(element, "LEGS");
+  const torso = getCharacterPart(element, "TORSO");
+  const face = getCharacterPart(element, "FACE");
+  const hair = getCharacterPart(element, "HAIR");
+  const hat = getCharacterPart(element, "HAT");
+  const accessories = getCharacterAccessories(element);
+  const layers = [legs, torso, face, hair, hat, ...accessories].filter(
+    (part): part is StudioCharacterPartSnapshot => Boolean(part?.imageUrl),
+  );
+
+  if (layers.length > 0) {
+    return (
+      <div className="pointer-events-none relative h-full w-full overflow-visible">
+        {layers.map((part) => (
+          <img
+            key={`${part.type}-${part.id}`}
+            src={part.imageUrl ?? ""}
+            alt=""
+            className="absolute inset-0 h-full w-full object-contain"
+            draggable={false}
+            onError={(event) => {
+              event.currentTarget.style.display = "none";
+            }}
+          />
+        ))}
+        <span className="absolute left-1/2 top-full mt-1 -translate-x-1/2 rounded-full bg-white/85 px-1.5 py-0.5 text-[9px] font-black text-zinc-900 shadow-sm">
+          {element.content}
+        </span>
+      </div>
+    );
+  }
+
+  if (element.imageUrl) {
+    return <img src={element.imageUrl} alt={element.content} className="h-full w-full object-contain pointer-events-none" />;
+  }
+
+  return (
+    <div className="pointer-events-none flex h-full w-full flex-col items-center justify-end">
+      <div className="h-5 w-5 rounded-full border-2 border-zinc-950 bg-amber-200 shadow-sm" />
+      <div className="mt-0.5 h-9 w-7 rounded-md border-2 border-zinc-950 bg-primary shadow-sm" />
+      <span className="mt-1 rounded-full bg-white/85 px-1.5 py-0.5 text-[9px] font-black text-zinc-900 shadow-sm">
+        {element.content}
+      </span>
+    </div>
+  );
+}
+
 export function StudioCanvas() {
-  const { 
-    elements, selectedId, setSelectedId, updateElement, removeElement, 
+  const {
+    elements, selectedId, setSelectedId, updateElement, removeElement,
     activeTemplate, zoom, addElement, templates, frameSize, frameSizes,
     customBackgroundUrl, setCustomBackgroundUrl,
-    setCustomBackgroundOriginalName
+    setCustomBackgroundOriginalName,
+    bringForward, sendBack,
   } = useStudio();
   
   const currentTemplate = templates.find(t => t.id === activeTemplate);
@@ -181,9 +245,9 @@ export function StudioCanvas() {
             border: `12px solid ${frameColorHex}`,
             boxSizing: 'content-box',
             boxShadow: `
-              0 15px 35px -5px rgba(0, 0, 0, 0.18), 
+              0 15px 35px -5px rgba(0, 0, 0, 0.18),
               0 10px 15px -6px rgba(0, 0, 0, 0.15),
-              inset 0 0 5px rgba(0, 0, 0, 0.2), 
+              inset 0 0 5px rgba(0, 0, 0, 0.2),
               inset 0 2px 4px rgba(255, 255, 255, 0.15)
             `,
           }}
@@ -209,16 +273,10 @@ export function StudioCanvas() {
               className={`absolute cursor-move select-none ${selectedId === el.id ? 'ring-2 ring-primary ring-offset-1' : 'hover:ring-1 hover:ring-primary/40'}`}
               style={{ left: el.x, top: el.y, fontSize: el.fontSize, color: el.color, width: el.width, height: el.height, touchAction: 'none' }}
             >
-              {(el.type === 'accessory' || el.type === 'character') && el.imageUrl ? (
+              {el.type === 'character' ? (
+                <CharacterLayeredPreview element={el} />
+              ) : el.type === 'accessory' && el.imageUrl ? (
                 <img src={el.imageUrl} alt={el.content} className="w-full h-full object-contain pointer-events-none" />
-              ) : el.type === 'character' ? (
-                <div className="pointer-events-none flex h-full w-full flex-col items-center justify-end">
-                  <div className="h-5 w-5 rounded-full border-2 border-zinc-950 bg-amber-200 shadow-sm" />
-                  <div className="mt-0.5 h-9 w-7 rounded-md border-2 border-zinc-950 bg-primary shadow-sm" />
-                  <span className="mt-1 rounded-full bg-white/85 px-1.5 py-0.5 text-[9px] font-black text-zinc-900 shadow-sm">
-                    {el.content}
-                  </span>
-                </div>
               ) : (
                 <span className="pointer-events-none whitespace-nowrap">{el.content}</span>
               )}
@@ -226,6 +284,48 @@ export function StudioCanvas() {
           ))}
         </div>
       </div>
+
+      {/* Floating layer toolbar — visible when an element is selected */}
+      {selectedId && (
+        <div
+          className="absolute bottom-4 left-1/2 z-20 flex -translate-x-1/2 items-center gap-1 rounded-full border border-border bg-white/95 px-3 py-2 shadow-lg backdrop-blur-sm pointer-events-auto"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <button
+            type="button"
+            onClick={() => bringForward(selectedId)}
+            title="Lên lớp trên"
+            className="grid h-8 w-8 place-items-center rounded-full text-text-secondary transition hover:bg-surface-hover hover:text-text-primary"
+          >
+            <ArrowUp className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            onClick={() => sendBack(selectedId)}
+            title="Xuống lớp dưới"
+            className="grid h-8 w-8 place-items-center rounded-full text-text-secondary transition hover:bg-surface-hover hover:text-text-primary"
+          >
+            <ArrowDown className="h-4 w-4" />
+          </button>
+          <div className="mx-1 h-4 w-px bg-border" />
+          <button
+            type="button"
+            onClick={() => removeElement(selectedId)}
+            title="Xóa"
+            className="grid h-8 w-8 place-items-center rounded-full text-error/70 transition hover:bg-red-50 hover:text-error"
+          >
+            <Trash2 className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            onClick={() => setSelectedId(null)}
+            title="Bỏ chọn"
+            className="grid h-8 w-8 place-items-center rounded-full text-text-muted transition hover:bg-surface-hover hover:text-text-primary"
+          >
+            ×
+          </button>
+        </div>
+      )}
     </div>
   );
 }

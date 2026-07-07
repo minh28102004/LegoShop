@@ -5,9 +5,22 @@ import { resolveApiAssetUrl } from "@/lib/api/assets";
 import { publicApiClient } from "@/lib/api/public-client";
 import { useCartStore, type SimpleCartItem } from "@/stores/cartStore";
 import { isCustomFrameDesignData } from "./design-data";
-import type { Character, FrameBackground, FrameOption, JsonObject, JsonValue } from "@lego-shop/shared";
+import type { CharacterPart, CharacterPartType, FrameBackground, FrameOption, JsonObject, JsonValue } from "@lego-shop/shared";
 
 export type ElementType = "text" | "accessory" | "character";
+
+export type ApiCharacterPreset = {
+  id: string;
+  name: string;
+  description: string | null;
+  faceHint: string | null;
+  hairHint: string | null;
+  torsoHint: string | null;
+  legsHint: string | null;
+  hatHint: string | null;
+  sortOrder: number;
+  status: string;
+};
 
 export interface StudioElement {
   id: string;
@@ -22,7 +35,15 @@ export interface StudioElement {
   height?: number;
   price?: number;
   accessoryId?: string; // link back to original accessory
-  characterId?: string; // link back to admin character catalog
+  scale?: number;
+  rotation?: number;
+  faceId?: string;
+  hairId?: string;
+  torsoId?: string;
+  legsId?: string;
+  hatId?: string;
+  accessoryIds?: string[];
+  characterParts?: Partial<Record<CharacterPartType, StudioCharacterPartSnapshot | StudioCharacterPartSnapshot[]>>;
 }
 
 export interface PrintText {
@@ -72,7 +93,24 @@ export interface ApiAccessory {
   categoryId: string | null;
 }
 
-export type ApiCharacter = Character;
+export type ApiCharacterPart = CharacterPart;
+
+export type StudioCharacterPartSnapshot = {
+  id: string;
+  name: string;
+  type: CharacterPartType;
+  imageUrl: string | null;
+};
+
+export type StudioCharacterInput = {
+  name?: string;
+  face: ApiCharacterPart;
+  hair: ApiCharacterPart;
+  torso: ApiCharacterPart;
+  legs: ApiCharacterPart;
+  hat?: ApiCharacterPart;
+  accessories?: ApiCharacterPart[];
+};
 
 export interface ApiCategory {
   id: string;
@@ -136,17 +174,22 @@ export interface StudioContextType {
   totalPrice: number;
   
   addElement: (el: Omit<StudioElement, "id">) => void;
-  addCharacter: (character?: ApiCharacter) => void;
+  addCharacter: (character: StudioCharacterInput) => void;
+  updateCharacterParts: (id: string, character: StudioCharacterInput) => void;
+  duplicateCharacter: (id: string) => void;
   removeLastCharacter: () => void;
   updateElement: (id: string, updates: Partial<StudioElement>) => void;
   removeElement: (id: string) => void;
   clearAll: () => void;
+  bringForward: (id: string) => void;
+  sendBack: (id: string) => void;
 
   // Data from API
   templates: ApiTemplate[];
   templateCategories: ApiCategory[];
   accessories: ApiAccessory[];
-  characters: ApiCharacter[];
+  characterParts: ApiCharacterPart[];
+  characterPresets: ApiCharacterPreset[];
   accessoryCategories: ApiCategory[];
   frameSizes: ApiFrameSize[];
   isLoadingData: boolean;
@@ -208,6 +251,41 @@ function resolveStudioImageUrl(imageUrl: string | null, fallbackIndex = 0): stri
   }
 
   return resolveApiAssetUrl(imageUrl) || imageUrl;
+}
+
+function toCharacterPartSnapshot(
+  part: ApiCharacterPart | StudioCharacterPartSnapshot | undefined,
+): StudioCharacterPartSnapshot | undefined {
+  if (!part) return undefined;
+  return {
+    id: part.id,
+    name: part.name,
+    type: part.type,
+    imageUrl: resolveStudioImageUrl(part.imageUrl) ?? part.imageUrl ?? null,
+  };
+}
+
+function buildCharacterPartSnapshots(
+  input: StudioCharacterInput,
+): Partial<Record<CharacterPartType, StudioCharacterPartSnapshot | StudioCharacterPartSnapshot[]>> {
+  const snapshots: Partial<Record<CharacterPartType, StudioCharacterPartSnapshot | StudioCharacterPartSnapshot[]>> = {};
+  const face = toCharacterPartSnapshot(input.face);
+  const hair = toCharacterPartSnapshot(input.hair);
+  const torso = toCharacterPartSnapshot(input.torso);
+  const legs = toCharacterPartSnapshot(input.legs);
+  const hat = input.hat ? toCharacterPartSnapshot(input.hat) : undefined;
+  const accessories = input.accessories
+    ?.map((part) => toCharacterPartSnapshot(part))
+    .filter((part): part is StudioCharacterPartSnapshot => Boolean(part)) ?? [];
+
+  if (face) snapshots.FACE = face;
+  if (hair) snapshots.HAIR = hair;
+  if (torso) snapshots.TORSO = torso;
+  if (legs) snapshots.LEGS = legs;
+  if (hat) snapshots.HAT = hat;
+  snapshots.ACCESSORY = accessories;
+
+  return snapshots;
 }
 
 function getTemplateElements(configJson: JsonObject | null): TemplateElement[] {
@@ -550,7 +628,8 @@ export function StudioProvider({ children }: { children: ReactNode }) {
   const [templates, setTemplates] = useState<ApiTemplate[]>([]);
   const [templateCategories, setTemplateCategories] = useState<ApiCategory[]>([]);
   const [accessories, setAccessories] = useState<ApiAccessory[]>([]);
-  const [characters, setCharacters] = useState<ApiCharacter[]>([]);
+  const [characterParts, setCharacterParts] = useState<ApiCharacterPart[]>([]);
+  const [characterPresets, setCharacterPresets] = useState<ApiCharacterPreset[]>([]);
   const [accessoryCategories, setAccessoryCategories] = useState<ApiCategory[]>([]);
   const [frameSizes, setFrameSizes] = useState<ApiFrameSize[]>([]);
   const [isLoadingData, setIsLoadingData] = useState(true);
@@ -565,13 +644,14 @@ export function StudioProvider({ children }: { children: ReactNode }) {
     async function loadData() {
       try {
         setDataError(null);
-        const [accs, accCats, frameOptions, fSizes, backgrounds, characterItems] = await Promise.all([
+        const [accs, accCats, frameOptions, fSizes, backgrounds, characterPartItems, characterPresetItems] = await Promise.all([
           publicApiClient.products.listAccessories(),
           publicApiClient.categories.listAccessoryCategories(),
           publicApiClient.products.listFrameOptions({ type: "size" }),
           publicApiClient.products.listFrameSizes(),
           publicApiClient.products.listFrameBackgrounds(),
-          publicApiClient.products.listCharacters().catch(() => []),
+          publicApiClient.products.listCharacterParts().catch(() => []),
+          publicApiClient.products.listCharacterPresets().catch(() => [] as ApiCharacterPreset[]),
         ]);
         const activeBackgrounds = backgrounds
           .filter(bg => bg.status === "active")
@@ -587,12 +667,13 @@ export function StudioProvider({ children }: { children: ReactNode }) {
             imageUrl: resolveStudioImageUrl(accessory.imageUrl, index) ?? accessory.imageUrl,
             iconUrl: resolveStudioImageUrl(accessory.iconUrl, index) ?? accessory.iconUrl,
           })));
-        setCharacters(characterItems
-          .filter(character => character.status === "active")
-          .map((character, index) => ({
-            ...character,
-            imageUrl: resolveStudioImageUrl(character.imageUrl, index) ?? character.imageUrl,
+        setCharacterParts(characterPartItems
+          .filter(part => part.status === "active")
+          .map((part, index) => ({
+            ...part,
+            imageUrl: resolveStudioImageUrl(part.imageUrl, index) ?? part.imageUrl,
           })));
+        setCharacterPresets(characterPresetItems.filter(p => p.status === "active"));
         setAccessoryCategories(accCats);
 
         const activeFrameOptions = frameOptions.filter(option => option.status === "active");
@@ -708,7 +789,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
 
     restoreCartItem(cartItem);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [editCartItemId, isLoadingData, templates.length]);
+  }, [editCartItemId, isLoadingData, templates.length, characterParts.length]);
 
   function restoreCartItem(cartItem: SimpleCartItem) {
     const designData = cartItem.designData;
@@ -716,7 +797,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
       (cartItem.accessories ?? []).map((accessory) => [accessory.id, accessory.price]),
     );
     const accessoryById = new Map(accessories.map((accessory) => [accessory.id, accessory]));
-    const characterById = new Map(characters.map((character) => [character.id, character]));
+    const characterPartById = new Map(characterParts.map((part) => [part.id, part]));
 
     setFrameSize(cartItem.frameSizeId);
     setSelectedId(null);
@@ -767,21 +848,54 @@ export function StudioProvider({ children }: { children: ReactNode }) {
           accessoryId: accessory.id,
         })),
         ...designData.characters.map((character, index) => {
-          const catalogCharacter = character.catalogId ? characterById.get(character.catalogId) : null;
-          const imageUrl = character.imageUrl ?? catalogCharacter?.imageUrl ?? null;
+          const accessoryIds = Array.isArray(character.accessoryIds) ? character.accessoryIds : [];
+          const face = characterPartById.get(character.faceId);
+          const hair = characterPartById.get(character.hairId);
+          const torso = characterPartById.get(character.torsoId);
+          const legs = characterPartById.get(character.legsId);
+          const hat = character.hatId ? characterPartById.get(character.hatId) : undefined;
+          const characterAccessories = accessoryIds
+            .map((id) => characterPartById.get(id))
+            .filter((part): part is ApiCharacterPart => Boolean(part));
+          const legacyPosition = character.position;
+          const legacyImageUrl = typeof character.imageUrl === "string" ? character.imageUrl : null;
+          const scale = character.scale ?? legacyPosition?.scale ?? 1;
           const element: StudioElement = {
             id: character.id || `character-${index + 1}`,
             type: "character",
-            x: character.position.x,
-            y: character.position.y,
-            width: 46 * character.position.scale,
-            height: 74 * character.position.scale,
-            content: character.name ?? catalogCharacter?.name ?? `NV ${index + 1}`,
-            price: character.price ?? catalogCharacter?.price ?? CHARACTER_PRICE,
+            x: character.x ?? legacyPosition?.x ?? 90 + index * 70,
+            y: character.y ?? legacyPosition?.y ?? 165,
+            width: 54 * scale,
+            height: 92 * scale,
+            scale,
+            rotation: character.rotation ?? legacyPosition?.rotation ?? legacyPosition?.rotate ?? 0,
+            content: character.name ?? `NV ${index + 1}`,
+            price: CHARACTER_PRICE,
           };
 
-          if (character.catalogId) element.characterId = character.catalogId;
-          if (imageUrl) element.imageUrl = imageUrl;
+          if (character.faceId) element.faceId = character.faceId;
+          if (character.hairId) element.hairId = character.hairId;
+          if (character.torsoId) element.torsoId = character.torsoId;
+          if (character.legsId) element.legsId = character.legsId;
+          if (character.hatId) element.hatId = character.hatId;
+          if (accessoryIds.length) element.accessoryIds = accessoryIds;
+          if (legacyImageUrl) element.imageUrl = legacyImageUrl;
+          element.characterParts = {};
+          const faceSnapshot = toCharacterPartSnapshot(face);
+          const hairSnapshot = toCharacterPartSnapshot(hair);
+          const torsoSnapshot = toCharacterPartSnapshot(torso);
+          const legsSnapshot = toCharacterPartSnapshot(legs);
+          const hatSnapshot = toCharacterPartSnapshot(hat);
+          const accessorySnapshots = characterAccessories
+            .map((part) => toCharacterPartSnapshot(part))
+            .filter((part): part is StudioCharacterPartSnapshot => Boolean(part));
+
+          if (faceSnapshot) element.characterParts.FACE = faceSnapshot;
+          if (hairSnapshot) element.characterParts.HAIR = hairSnapshot;
+          if (torsoSnapshot) element.characterParts.TORSO = torsoSnapshot;
+          if (legsSnapshot) element.characterParts.LEGS = legsSnapshot;
+          if (hatSnapshot) element.characterParts.HAT = hatSnapshot;
+          element.characterParts.ACCESSORY = accessorySnapshots;
 
           return element;
         }),
@@ -829,7 +943,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
   const charactersTotalPrice = useMemo(
     () => elements
       .filter((el) => el.type === "character")
-      .reduce((acc, el) => acc + (el.price ?? CHARACTER_PRICE), 0),
+      .reduce((acc) => acc + CHARACTER_PRICE, 0),
     [elements],
   );
   const totalPrice = baseFramePrice + accessoriesPrice + charactersTotalPrice;
@@ -854,32 +968,82 @@ export function StudioProvider({ children }: { children: ReactNode }) {
     setPrintText({ title: "", date: "", message: "" });
   }, []);
 
-  const addCharacter = useCallback((character?: ApiCharacter) => {
+  const addCharacter = useCallback((character: StudioCharacterInput) => {
     const id = Math.random().toString(36).substring(2, 9);
 
     setElements((prev) => {
       const characters = prev.filter((element) => element.type === "character");
       const characterIndex = characters.length;
       const nextNumber = getNextCharacterNumber(prev);
-      const imageUrl = character?.imageUrl ? resolveStudioImageUrl(character.imageUrl, characterIndex) : null;
+      const name = character.name?.trim() || `NV ${nextNumber}`;
       const newEl: StudioElement = {
         id,
         type: "character",
         x: 90 + (characterIndex % 4) * 70,
         y: 165 + Math.floor(characterIndex / 4) * 35,
-        content: character?.name ?? `NV ${nextNumber}`,
-        width: 46,
-        height: 74,
-        price: character?.price ?? CHARACTER_PRICE,
+        content: name,
+        width: 54,
+        height: 92,
+        scale: 1,
+        rotation: 0,
+        price: CHARACTER_PRICE,
+        faceId: character.face.id,
+        hairId: character.hair.id,
+        torsoId: character.torso.id,
+        legsId: character.legs.id,
+        accessoryIds: character.accessories?.map((part) => part.id) ?? [],
+        characterParts: buildCharacterPartSnapshots(character),
       };
-
-      if (character?.id) newEl.characterId = character.id;
-      if (imageUrl) newEl.imageUrl = imageUrl;
+      if (character.hat?.id) {
+        newEl.hatId = character.hat.id;
+      }
 
       return [...prev, newEl];
     });
     setCharacterCount((count) => count + 1);
     setSelectedId(id);
+  }, []);
+
+  const updateCharacterParts = useCallback((id: string, character: StudioCharacterInput) => {
+    setElements((prev) =>
+      prev.map((element) => {
+        if (element.id !== id || element.type !== "character") return element;
+        const { hatId: _hatId, ...elementWithoutHat } = element;
+        return {
+          ...elementWithoutHat,
+          content: character.name?.trim() || element.content || "NV",
+          price: CHARACTER_PRICE,
+          faceId: character.face.id,
+          hairId: character.hair.id,
+          torsoId: character.torso.id,
+          legsId: character.legs.id,
+          ...(character.hat?.id ? { hatId: character.hat.id } : {}),
+          accessoryIds: character.accessories?.map((part) => part.id) ?? [],
+          characterParts: buildCharacterPartSnapshots(character),
+        };
+      }),
+    );
+    setSelectedId(id);
+  }, []);
+
+  const duplicateCharacter = useCallback((id: string) => {
+    setElements((prev) => {
+      const source = prev.find((element) => element.id === id && element.type === "character");
+      if (!source) return prev;
+
+      const nextNumber = getNextCharacterNumber(prev);
+      const duplicate: StudioElement = {
+        ...source,
+        id: Math.random().toString(36).substring(2, 9),
+        x: source.x + 18,
+        y: source.y + 18,
+        content: `NV ${nextNumber}`,
+        price: CHARACTER_PRICE,
+      };
+      setSelectedId(duplicate.id);
+      return [...prev, duplicate];
+    });
+    setCharacterCount((count) => count + 1);
   }, []);
 
   const removeLastCharacter = useCallback(() => {
@@ -916,6 +1080,26 @@ export function StudioProvider({ children }: { children: ReactNode }) {
     setSelectedId(null);
   }, []);
 
+  const bringForward = useCallback((id: string) => {
+    setElements((prev) => {
+      const idx = prev.findIndex((el) => el.id === id);
+      if (idx < 0 || idx >= prev.length - 1) return prev;
+      const next = [...prev];
+      [next[idx], next[idx + 1]] = [next[idx + 1]!, next[idx]!];
+      return next;
+    });
+  }, []);
+
+  const sendBack = useCallback((id: string) => {
+    setElements((prev) => {
+      const idx = prev.findIndex((el) => el.id === id);
+      if (idx <= 0) return prev;
+      const next = [...prev];
+      [next[idx - 1], next[idx]] = [next[idx]!, next[idx - 1]!];
+      return next;
+    });
+  }, []);
+
   const contextValue = useMemo(
     () => ({
       step,
@@ -948,14 +1132,19 @@ export function StudioProvider({ children }: { children: ReactNode }) {
       setSelectedId,
       addElement,
       addCharacter,
+      updateCharacterParts,
+      duplicateCharacter,
       removeLastCharacter,
       updateElement,
       removeElement,
       clearAll,
+      bringForward,
+      sendBack,
       templates,
       templateCategories,
       accessories,
-      characters,
+      characterParts,
+      characterPresets,
       accessoryCategories,
       isLoadingData,
       dataError,
@@ -980,14 +1169,19 @@ export function StudioProvider({ children }: { children: ReactNode }) {
       editCartItemId,
       addElement,
       addCharacter,
+      updateCharacterParts,
+      duplicateCharacter,
       removeLastCharacter,
       updateElement,
       removeElement,
       clearAll,
+      bringForward,
+      sendBack,
       templates,
       templateCategories,
       accessories,
-      characters,
+      characterParts,
+      characterPresets,
       accessoryCategories,
       isLoadingData,
       dataError,

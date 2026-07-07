@@ -8,111 +8,43 @@ import { StudioRightPanel } from "@/components/studio/StudioRightPanel";
 export default function StudioPage() {
   return (
     <StudioProvider>
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          height: "calc(100vh - 72px)",
-          overflow: "hidden",
-          background: "#fff",
-        }}
-      >
+      <div className="studio-workbench flex flex-col overflow-hidden bg-white" style={{ height: "calc(100dvh - 60px)" }}>
         {/* ─── Top Bar ─── */}
-        <div
-          style={{
-            padding: "16px 24px",
-            background: "#fff",
-            borderBottom: "1px solid #e5e7eb",
-            flexShrink: 0,
-          }}
-        >
-          {/* Breadcrumb */}
-          <nav
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 6,
-              fontSize: 12,
-              color: "#9ca3af",
-              marginBottom: 8,
-              fontFamily: "var(--font-body)",
-            }}
-          >
-            <Link
-              href="/"
-              style={{ color: "#6b7280", textDecoration: "none" }}
-            >
+        <div className="shrink-0 border-b border-border bg-white px-4 py-3 sm:px-6 sm:py-4">
+          <nav className="mb-2 flex items-center gap-1.5 text-xs text-zinc-400">
+            <Link href="/" className="text-zinc-500 hover:text-zinc-700">
               Trang chủ
             </Link>
-            <ChevronRight style={{ width: 12, height: 12 }} />
-            <span style={{ color: "#6b7280" }}>studio.design</span>
+            <ChevronRight className="h-3 w-3" />
+            <span className="text-zinc-500">studio.design</span>
           </nav>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-            }}
-          >
-            <h1
-              style={{
-                fontSize: 22,
-                fontWeight: 900,
-                color: "#111827",
-                letterSpacing: "-0.02em",
-                margin: 0,
-                fontFamily: "var(--font-body)",
-                lineHeight: 1.3,
-              }}
-            >
+          <div className="flex items-center justify-between gap-3">
+            <h1 className="text-lg font-black tracking-tight text-zinc-900 sm:text-[22px]">
               Thiết kế & Mua hàng
             </h1>
             <StudioStepper />
           </div>
         </div>
 
-        {/* ─── Main Content: Canvas + Right Panel ─── */}
-        <div
-          style={{
-            flex: 1,
-            display: "flex",
-            flexDirection: "row",
-            overflow: "hidden",
-          }}
-        >
-          {/* Left: Canvas */}
-          <div
-            style={{
-              flex: 1,
-              position: "relative",
-              display: "flex",
-              flexDirection: "column",
-              overflow: "hidden",
-              background: "#f4f5f7",
-              minWidth: 0,
-            }}
+        {/* ─── Main Content ─── */}
+        {/* Desktop: row (canvas + panel). Mobile: col (canvas on top, panel below) */}
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden lg:flex-row">
+          {/* Canvas area */}
+          <div className="relative flex min-w-0 flex-col overflow-hidden bg-[#f4f5f7] lg:flex-1"
+               style={{ height: "50vh" }}
+               // On desktop the height is controlled by flex-1 + overflow; on mobile we cap at 50vh
           >
-            <StudioCanvas />
+            <style>{`@media (min-width: 1024px) { .studio-canvas-wrap { height: auto !important; flex: 1; } }`}</style>
+            <div className="studio-canvas-wrap flex flex-1 flex-col overflow-hidden" style={{ height: "50vh" }}>
+              <StudioCanvas />
+            </div>
           </div>
 
-          {/* Right: Dynamic Panel */}
-          <StudioRightPanel />
-        </div>
-
-        {/* Mobile price bar */}
-        <div
-          style={{
-            display: "none",
-            padding: "12px 16px",
-            background: "#fff",
-            borderTop: "1px solid #e5e7eb",
-            textAlign: "center",
-            fontSize: 13,
-            color: "#9ca3af",
-          }}
-          className="md-hidden-override"
-        >
-          Xem chi tiết hóa đơn ở bảng bên phải
+          {/* Right panel */}
+          {/* Desktop: fixed 520px right sidebar. Mobile: full-width scrollable bottom section */}
+          <div className="flex min-h-0 flex-col overflow-y-auto border-t border-border bg-white lg:w-[520px] lg:max-w-[44vw] lg:shrink-0 lg:overflow-hidden lg:border-l lg:border-t-0">
+            <StudioRightPanel />
+          </div>
         </div>
       </div>
     </StudioProvider>

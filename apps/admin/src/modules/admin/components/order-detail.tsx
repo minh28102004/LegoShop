@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import Card from '@/common/components/ui/Card';
 import LoadingState from '@/common/components/ui/LoadingState';
 import PageShell from '@/common/components/ui/PageShell';
@@ -17,6 +17,7 @@ import Table, {
 import { getStatusBadgeLabel, StatusBadge } from '@/common/components/ui/Badge';
 import {
   getOrderById,
+  listResource,
   updateOrderPaymentStatus,
   updateOrderShippingStatus,
   updateOrderStatus,
@@ -24,7 +25,7 @@ import {
 import { resolveApiAssetUrl } from '@/lib/api';
 import { useI18n } from '@/lib/i18n/useI18n';
 import AdminNavIcon from '@/modules/admin/components/AdminNavIcon';
-import type { Order, OrderStatus, PaymentStatus, ShippingStatus } from '@/modules/admin/types/admin.types';
+import type { CharacterPart, Order, OrderStatus, PaymentStatus, ShippingStatus } from '@/modules/admin/types/admin.types';
 import type { CustomFrameDesignData, JsonObject } from '@lego-shop/shared';
 import DesignPreviewModal from './design-preview-modal';
 
@@ -117,6 +118,56 @@ function getDesignUploadedImages(value: JsonObject | null) {
   return value.uploadedImages.filter((image) => image.url);
 }
 
+type DesignCharacterSummary = {
+  id: string;
+  name: string;
+  faceId: string | null;
+  hairId: string | null;
+  torsoId: string | null;
+  legsId: string | null;
+  hatId: string | null;
+  accessoryIds: string[];
+};
+
+function readStringArray(value: unknown) {
+  return Array.isArray(value)
+    ? value.filter((entry): entry is string => typeof entry === 'string' && entry.trim().length > 0)
+    : [];
+}
+
+function getDesignCharacters(value: JsonObject | null): DesignCharacterSummary[] {
+  if (!value) return [];
+
+  if (isCustomFrameDesignData(value)) {
+    return value.characters.map((character, index) => ({
+      id: readString(character.id) ?? `character-${index + 1}`,
+      name: readString(character.name) ?? `NV ${index + 1}`,
+      faceId: readString(character.faceId),
+      hairId: readString(character.hairId),
+      torsoId: readString(character.torsoId),
+      legsId: readString(character.legsId),
+      hatId: readString((character as Record<string, unknown>).hatId as string | undefined),
+      accessoryIds: readStringArray(character.accessoryIds),
+    }));
+  }
+
+  const elements = Array.isArray(value.elements) ? value.elements : [];
+  return elements.flatMap((element, index) => {
+    if (!isJsonObject(element) || element.type !== 'character') return [];
+
+    return [{
+      id: readString(element.id) ?? `character-${index + 1}`,
+      name: readString(element.content) ?? readString(element.name) ?? `NV ${index + 1}`,
+      faceId: readString(element.faceId),
+      hairId: readString(element.hairId),
+      torsoId: readString(element.torsoId),
+      legsId: readString(element.legsId),
+      hatId: readString(element.hatId),
+      accessoryIds: readStringArray(element.accessoryIds),
+    }];
+  });
+}
+
 function getDesignStats(value: JsonObject | null) {
   if (!value) {
     return { accessories: 0, characters: 0, uploadedImages: 0 };
@@ -145,6 +196,36 @@ const HISTORY_TYPE_LABELS: Record<string, string> = {
   NOTE: 'Ghi chú',
 };
 
+function CharacterPartBadge({
+  label,
+  partId,
+  partMap,
+}: {
+  label: string;
+  partId: string | null;
+  partMap: Map<string, CharacterPart>;
+}) {
+  const part = partId ? partMap.get(partId) : undefined;
+  const imageUrl = part?.imageUrl ? resolveApiAssetUrl(part.imageUrl) : null;
+
+  return (
+    <div className='flex min-w-0 items-center gap-2 rounded-xl border border-slate-200 bg-white px-2.5 py-2'>
+      {imageUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={imageUrl} alt='' className='h-8 w-8 shrink-0 rounded-lg object-contain' />
+      ) : (
+        <div className='grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-slate-100 text-[10px] font-bold text-slate-400'>
+          -
+        </div>
+      )}
+      <div className='min-w-0'>
+        <p className='text-[10px] font-bold uppercase tracking-[0.08em] text-slate-400'>{label}</p>
+        <p className='truncate text-xs font-semibold text-slate-700'>{part?.name ?? partId ?? '-'}</p>
+      </div>
+    </div>
+  );
+}
+
 export default function OrderDetail({ orderId }: Props) {
   const { t, locale } = useI18n();
   const [order, setOrder] = useState<Order | null>(null);
@@ -152,6 +233,11 @@ export default function OrderDetail({ orderId }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [previewItem, setPreviewItem] = useState<{ designData: JsonObject | null; productName: string } | null>(null);
+  const [characterParts, setCharacterParts] = useState<CharacterPart[]>([]);
+  const characterPartMap = useMemo(
+    () => new Map(characterParts.map((part) => [part.id, part])),
+    [characterParts],
+  );
 
   function statusLabel(value: string) {
     return getStatusBadgeLabel(value, t);
@@ -161,8 +247,12 @@ export default function OrderDetail({ orderId }: Props) {
     setLoading(true);
     setError(null);
     try {
-      const data = await getOrderById(orderId);
+      const [data, parts] = await Promise.all([
+        getOrderById(orderId),
+        listResource('character-parts').catch(() => [] as CharacterPart[]),
+      ]);
       setOrder(data);
+      setCharacterParts(parts);
     } catch (err) {
       setError(err instanceof Error ? err.message : t('orderDetail.loadFailed'));
     } finally {
@@ -495,6 +585,7 @@ export default function OrderDetail({ orderId }: Props) {
               const contentEntries = getDesignContentEntries(designData);
               const uploadedImages = getDesignUploadedImages(designData);
               const stats = getDesignStats(designData);
+              const designCharacters = getDesignCharacters(designData);
 
               return (
                 <div key={item.id} className='rounded-[22px] border border-[var(--admin-border)] bg-slate-50 p-4'>
@@ -545,6 +636,38 @@ export default function OrderDetail({ orderId }: Props) {
                                 <span className='font-semibold text-slate-500'>{key}:</span> {value}
                               </p>
                             ))}
+                          </div>
+                        ) : null}
+                        {designCharacters.length > 0 ? (
+                          <div className='rounded-xl bg-white p-3'>
+                            <p className='mb-2 text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500'>
+                              Nhân vật LEGO
+                            </p>
+                            <div className='space-y-3'>
+                              {designCharacters.map((character, index) => (
+                                <div key={character.id} className='rounded-xl border border-slate-100 bg-slate-50 p-2'>
+                                  <p className='mb-2 text-xs font-bold text-slate-800'>
+                                    {character.name || `NV ${index + 1}`}
+                                  </p>
+                                  <div className='grid gap-2 sm:grid-cols-2'>
+                                    <CharacterPartBadge label='Mặt' partId={character.faceId} partMap={characterPartMap} />
+                                    <CharacterPartBadge label='Tóc' partId={character.hairId} partMap={characterPartMap} />
+                                    <CharacterPartBadge label='Áo' partId={character.torsoId} partMap={characterPartMap} />
+                                    <CharacterPartBadge label='Quần' partId={character.legsId} partMap={characterPartMap} />
+                                    {character.hatId && (
+                                      <CharacterPartBadge label='Mũ' partId={character.hatId} partMap={characterPartMap} />
+                                    )}
+                                  </div>
+                                  {character.accessoryIds.length > 0 ? (
+                                    <div className='mt-2 grid gap-2 sm:grid-cols-2'>
+                                      {character.accessoryIds.map((partId) => (
+                                        <CharacterPartBadge key={partId} label='Phụ kiện' partId={partId} partMap={characterPartMap} />
+                                      ))}
+                                    </div>
+                                  ) : null}
+                                </div>
+                              ))}
+                            </div>
                           </div>
                         ) : null}
                       </div>

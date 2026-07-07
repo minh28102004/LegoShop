@@ -1,9 +1,11 @@
-import type { FrameOptionType, ProductStatus, ProductType } from '../constants/status';
+import type { CharacterPartType, FrameOptionType, ProductStatus, ProductType } from '../constants/status';
 import type { ID, JsonObject, JsonValue, PriceInVND, URLString } from '../types/common';
 import type {
   Accessory,
   Banner,
   Character,
+  CharacterPart,
+  CharacterPreset,
   FrameBackground,
   FrameColor,
   FrameOption,
@@ -19,6 +21,8 @@ export type ProductSummaryContract = ProductSummary;
 export type TemplateContract = Template;
 export type AccessoryContract = Accessory;
 export type CharacterContract = Character;
+export type CharacterPartContract = CharacterPart;
+export type CharacterPresetContract = CharacterPreset;
 export type BannerContract = Banner;
 export type FrameBackgroundContract = FrameBackground;
 export type FrameSizeContract = FrameSize;
@@ -70,6 +74,18 @@ export type CreateCharacterRequestContract = {
 };
 
 export type UpdateCharacterRequestContract = Partial<CreateCharacterRequestContract>;
+
+export type CreateCharacterPartRequestContract = {
+  name: string;
+  type: CharacterPartType;
+  imageUrl: URLString;
+  priceAdjustment?: PriceInVND;
+  sortOrder?: number;
+  tags?: JsonValue;
+  status?: ProductStatus;
+};
+
+export type UpdateCharacterPartRequestContract = Partial<CreateCharacterPartRequestContract>;
 
 export type CreateBannerRequestContract = {
   title?: string;
@@ -131,3 +147,17 @@ export type CreateFrameOptionRequestContract = {
 };
 
 export type UpdateFrameOptionRequestContract = Partial<CreateFrameOptionRequestContract>;
+
+export type CreateCharacterPresetRequestContract = {
+  name: string;
+  description?: string;
+  faceHint?: string;
+  hairHint?: string;
+  torsoHint?: string;
+  legsHint?: string;
+  hatHint?: string;
+  sortOrder?: number;
+  status?: ProductStatus;
+};
+
+export type UpdateCharacterPresetRequestContract = Partial<CreateCharacterPresetRequestContract>;

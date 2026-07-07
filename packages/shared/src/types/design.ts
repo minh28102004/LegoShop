@@ -5,6 +5,7 @@ export type CustomFrameDesignPosition = JsonObject & {
   y: number;
   scale: number;
   rotate: number;
+  rotation?: number;
 };
 
 export type CustomFrameUploadedImageType =
@@ -36,6 +37,25 @@ export type CustomFrameAccessoryDesign = JsonObject & {
 };
 
 export type CustomFrameCharacterDesign = JsonObject & {
+  id: ID;
+  name: string;
+  x: number;
+  y: number;
+  scale: number;
+  rotation: number;
+  faceId: ID;
+  hairId: ID;
+  torsoId: ID;
+  legsId: ID;
+  hatId?: Nullable<ID>;
+  accessoryIds: ID[];
+  catalogId?: Nullable<ID>;
+  imageUrl?: Nullable<URLString>;
+  price?: PriceInVND;
+  position?: CustomFrameDesignPosition;
+};
+
+export type LegacyCustomFrameCharacterDesign = JsonObject & {
   id: ID;
   catalogId?: Nullable<ID>;
   name: Nullable<string>;

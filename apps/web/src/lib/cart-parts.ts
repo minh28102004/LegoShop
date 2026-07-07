@@ -89,7 +89,7 @@ function estimateLegacyFramePrice(item: SimpleCartItem) {
 
   const designData = item.designData;
   const characterTotal = isCustomFrameDesignData(designData)
-    ? designData.characters.reduce((sum, character) => sum + (character.price ?? DEFAULT_CHARACTER_PRICE), 0)
+    ? designData.characters.length * DEFAULT_CHARACTER_PRICE
     : toPositiveNumber(designData?.characterCount) * DEFAULT_CHARACTER_PRICE;
 
   return Math.max(0, item.unitPrice - accessoriesTotal - characterTotal);
@@ -125,11 +125,11 @@ function getLegacyCustomParts(item: SimpleCartItem): CartItemPart[] {
 
     designData.characters.forEach((character, index) => {
       const part = makePart({
-        id: character.catalogId ?? character.id,
+        id: character.id,
         type: "character",
         name: character.name ?? `Nhan vat ${index + 1}`,
         quantity: item.quantity,
-        unitPrice: character.price ?? DEFAULT_CHARACTER_PRICE,
+        unitPrice: DEFAULT_CHARACTER_PRICE,
         imageUrl: character.imageUrl,
       });
       if (part) parts.push(part);

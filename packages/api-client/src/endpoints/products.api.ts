@@ -1,6 +1,9 @@
 import type {
   Accessory,
   Character,
+  CharacterPart,
+  CharacterPartType,
+  CharacterPreset,
   Collection,
   FrameBackground,
   FrameColor,
@@ -14,6 +17,10 @@ import type { ApiRequester, QueryParams } from '../client';
 
 export type FrameOptionsQuery = QueryParams & {
   type?: FrameOptionType;
+};
+
+export type CharacterPartsQuery = QueryParams & {
+  type?: CharacterPartType;
 };
 
 export function createProductsApi(request: ApiRequester) {
@@ -48,6 +55,14 @@ export function createProductsApi(request: ApiRequester) {
 
     getCharacterById(id: string): Promise<Character> {
       return request(`public/characters/${encodeURIComponent(id)}`);
+    },
+
+    listCharacterParts(query?: CharacterPartsQuery): Promise<CharacterPart[]> {
+      return request('public/character-parts', { query });
+    },
+
+    listCharacterPresets(query?: QueryParams): Promise<CharacterPreset[]> {
+      return request('public/character-presets', { query });
     },
 
     listCollections(query?: QueryParams): Promise<Collection[]> {

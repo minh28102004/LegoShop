@@ -1,4 +1,4 @@
-import type { FrameOptionType, ProductStatus, ProductType } from '../constants/status';
+import type { CharacterPartType, FrameOptionType, ProductStatus, ProductType } from '../constants/status';
 import type {
   ID,
   JsonObject,
@@ -87,6 +87,17 @@ export type Character = Timestamped & {
   status: ProductStatus;
 };
 
+export type CharacterPart = Timestamped & {
+  id: ID;
+  name: string;
+  type: CharacterPartType;
+  imageUrl: URLString;
+  priceAdjustment: PriceInVND;
+  sortOrder: number;
+  tags: Nullable<JsonValue>;
+  status: ProductStatus;
+};
+
 export type Banner = Timestamped & {
   id: ID;
   title: Nullable<string>;
@@ -141,5 +152,18 @@ export type FrameOption = Timestamped & {
   sortOrder: number;
   popular: boolean;
   metadata: Nullable<JsonObject>;
+  status: ProductStatus;
+};
+
+export type CharacterPreset = Timestamped & {
+  id: ID;
+  name: string;
+  description: Nullable<string>;
+  faceHint: Nullable<string>;
+  hairHint: Nullable<string>;
+  torsoHint: Nullable<string>;
+  legsHint: Nullable<string>;
+  hatHint: Nullable<string>;
+  sortOrder: number;
   status: ProductStatus;
 };

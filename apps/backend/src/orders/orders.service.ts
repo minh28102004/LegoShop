@@ -64,12 +64,6 @@ type ResolvedFrameOption = {
   stock: number | null;
 };
 
-type ResolvedCharacter = {
-  id: string;
-  name: string;
-  price: number;
-};
-
 type NormalizedCustomerInfo = {
   name: string;
   phone: string;
@@ -581,11 +575,7 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
     const accessoryIds = Array.from(
       new Set(items.flatMap((item) => this.extractAccessoryIds(item))),
     );
-    const characterIds = Array.from(
-      new Set(items.flatMap((item) => this.extractCharacterCatalogIds(item.designData))),
-    );
-
-    const [products, frameOptions, backgrounds, accessories, characters] =
+    const [products, frameOptions, backgrounds, accessories] =
       await this.prisma.$transaction([
         this.prisma.product.findMany({
           where: {
@@ -644,19 +634,6 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
             price: true,
           },
         }),
-        this.prisma.character.findMany({
-          where: {
-            id: {
-              in: characterIds,
-            },
-            status: ProductStatus.active,
-          },
-          select: {
-            id: true,
-            name: true,
-            price: true,
-          },
-        }),
       ]);
     const productsById = new Map(
       products.map((product) => [product.id, product]),
@@ -677,9 +654,6 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
     );
     const accessoriesById = new Map(
       accessories.map((accessory) => [accessory.id, accessory]),
-    );
-    const charactersById = new Map<string, ResolvedCharacter>(
-      characters.map((character) => [character.id, character]),
     );
 
     return items.map((item) => {
@@ -764,14 +738,10 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
         item.previewUrl,
       );
       const characterCount = this.getCharacterCount(designData);
-      const characterTotal = this.resolveCharacterTotal(
-        designData,
-        charactersById,
-      );
       const serverComputedPrice =
         frameOption.price +
         accessoriesTotal +
-        (characterTotal ?? characterCount * CHARACTER_PRICE);
+        characterCount * CHARACTER_PRICE;
 
       return {
         productId: undefined,
@@ -1063,23 +1033,6 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
     return this.readString(item.designData?.type) === 'RETAIL_ITEM';
   }
 
-  private extractCharacterCatalogIds(
-    designData?: Record<string, unknown>,
-  ): string[] {
-    if (!designData || !Array.isArray(designData.characters)) {
-      return [];
-    }
-
-    return designData.characters.flatMap((character) => {
-      if (!this.isRecord(character)) {
-        return [];
-      }
-
-      const catalogId = this.readString(character.catalogId);
-      return catalogId ? [catalogId] : [];
-    });
-  }
-
   private normalizeCustomDesignData(
     designData: Record<string, unknown> | undefined,
     frameOptionId: string,
@@ -1148,11 +1101,32 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
         .filter((character) => this.isRecord(character))
         .map((character, index) => ({
           id: this.readString(character.id) ?? `character-${index + 1}`,
-          catalogId: this.readString(character.catalogId) ?? null,
-          name: this.readString(character.name) ?? null,
-          imageUrl: this.readString(character.imageUrl) ?? null,
-          price: this.readNumber(character.price) ?? undefined,
-          position: this.normalizePosition(character.position),
+          name: this.readString(character.name) ?? `NV ${index + 1}`,
+          x:
+            this.readNumber(character.x) ??
+            this.readNumber((character.position as Record<string, unknown> | undefined)?.x) ??
+            0,
+          y:
+            this.readNumber(character.y) ??
+            this.readNumber((character.position as Record<string, unknown> | undefined)?.y) ??
+            0,
+          scale:
+            this.readNumber(character.scale) ??
+            this.readNumber((character.position as Record<string, unknown> | undefined)?.scale) ??
+            1,
+          rotation:
+            this.readNumber(character.rotation) ??
+            this.readNumber(character.rotate) ??
+            this.readNumber((character.position as Record<string, unknown> | undefined)?.rotation) ??
+            this.readNumber((character.position as Record<string, unknown> | undefined)?.rotate) ??
+            0,
+          faceId: this.readString(character.faceId) ?? null,
+          hairId: this.readString(character.hairId) ?? null,
+          torsoId: this.readString(character.torsoId) ?? null,
+          legsId: this.readString(character.legsId) ?? null,
+          accessoryIds: Array.isArray(character.accessoryIds)
+            ? character.accessoryIds.filter((id) => typeof id === 'string')
+            : [],
         }));
     }
 
@@ -1161,16 +1135,18 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
         .filter((element) => this.isRecord(element) && element.type === 'character')
         .map((element, index) => ({
           id: this.readString(element.id) ?? `character-${index + 1}`,
-          catalogId: this.readString(element.characterId) ?? null,
-          name: this.readString(element.content) ?? null,
-          imageUrl: this.readString(element.imageUrl) ?? null,
-          price: this.readNumber(element.price) ?? undefined,
-          position: {
-            x: this.readNumber(element.x) ?? 0,
-            y: this.readNumber(element.y) ?? 0,
-            scale: 1,
-            rotate: 0,
-          },
+          name: this.readString(element.content) ?? `NV ${index + 1}`,
+          x: this.readNumber(element.x) ?? 0,
+          y: this.readNumber(element.y) ?? 0,
+          scale: this.readNumber(element.scale) ?? 1,
+          rotation: this.readNumber(element.rotation) ?? this.readNumber(element.rotate) ?? 0,
+          faceId: this.readString(element.faceId) ?? null,
+          hairId: this.readString(element.hairId) ?? null,
+          torsoId: this.readString(element.torsoId) ?? null,
+          legsId: this.readString(element.legsId) ?? null,
+          accessoryIds: Array.isArray(element.accessoryIds)
+            ? element.accessoryIds.filter((id) => typeof id === 'string')
+            : [],
         }));
     }
 
@@ -1287,33 +1263,6 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
     }
 
     return 0;
-  }
-
-  private resolveCharacterTotal(
-    designData: Record<string, unknown>,
-    charactersById: Map<string, ResolvedCharacter>,
-  ) {
-    if (!Array.isArray(designData.characters)) {
-      return undefined;
-    }
-
-    return designData.characters.reduce((sum, character) => {
-      if (!this.isRecord(character)) {
-        return sum;
-      }
-
-      const catalogId = this.readString(character.catalogId);
-      if (!catalogId) {
-        return sum + CHARACTER_PRICE;
-      }
-
-      const catalogCharacter = charactersById.get(catalogId);
-      if (!catalogCharacter) {
-        throw new BadRequestException(`Character ${catalogId} is not available`);
-      }
-
-      return sum + catalogCharacter.price;
-    }, 0);
   }
 
   private readString(value: unknown): string | undefined {

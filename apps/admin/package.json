@@ -10,8 +10,9 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@lego-shop/api-client": "workspace:*",
+    "@lego-shop/api": "workspace:*",
     "@lego-shop/shared": "workspace:*",
+    "@lego-shop/ui": "workspace:*",
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.6.1",
     "@supabase/ssr": "^0.10.3",

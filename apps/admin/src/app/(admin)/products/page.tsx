@@ -74,13 +74,6 @@ export default function ProductsPage() {
         type: 'images',
         placeholder: t('productsPage.images'),
       },
-      {
-        key: 'componentConfig',
-        label: 'Cấu hình thành phần',
-        type: 'json',
-        placeholder:
-          '{\n  "frame": { "id": "frame-option-id", "name": "Khung 30x30", "price": 30000 },\n  "background": { "id": "background-id", "name": "Nền trái tim", "price": 0 },\n  "characters": [{ "name": "Nhân vật", "quantity": 2, "price": 10000 }],\n  "accessories": [{ "id": "accessory-id", "name": "Charm trái tim", "quantity": 1, "price": 10000 }]\n}',
-      },
       { key: 'featured', label: t('productsPage.featured'), type: 'checkbox' },
     ],
     [collections, t],

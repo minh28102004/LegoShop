@@ -235,6 +235,7 @@ export default function InquiriesManager() {
           }
         >
         <AdminToolbarField
+          hideLabel
           wide
           icon={<AdminToolbarIcon name='search' />}
           label={t('common.search')}
@@ -277,6 +278,7 @@ export default function InquiriesManager() {
         draftFilters={draftFilters}
         statusOptions={inquiryStatusOptions}
         categoryOptions={[]}
+        hasDateFilter={false}
         hasPriceFilter={false}
         onClose={() => setFilterDrawerOpen(false)}
         onDraftChange={setDraftFilters}
@@ -286,6 +288,9 @@ export default function InquiriesManager() {
           allStatuses: getInquiryUiText(locale, 'allStatuses'),
           apply: locale === 'vi' ? 'Áp dụng' : 'Apply filters',
           category: '',
+          dateFrom: locale === 'vi' ? 'Tá»« ngÃ y' : 'From date',
+          dateRange: locale === 'vi' ? 'Khoáº£ng ngÃ y' : 'Date range',
+          dateTo: locale === 'vi' ? 'Äáº¿n ngÃ y' : 'To date',
           filterTitle: locale === 'vi' ? 'Bộ lọc' : 'Filters',
           priceMax: '',
           priceMin: '',

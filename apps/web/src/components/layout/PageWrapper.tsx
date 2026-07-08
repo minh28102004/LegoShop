@@ -2,8 +2,7 @@
 
 import * as React from 'react'
 
-import { cn } from '@/lib/cn'
-import type { Size } from '@/types'
+import { cn, type Size } from '@lego-shop/ui'
 import { Container } from './Container'
 
 export interface PageWrapperProps extends React.ComponentPropsWithoutRef<'main'> {

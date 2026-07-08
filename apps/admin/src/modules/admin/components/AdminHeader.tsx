@@ -1,12 +1,14 @@
 'use client';
 
 import Link from 'next/link';
-import Button from '@/common/components/ui/Button';
+import { Button } from '@lego-shop/ui';
 import AdminNotificationDropdown from '@/modules/admin/components/AdminNotificationDropdown';
 import AdminUserDropdown from '@/modules/admin/components/AdminUserDropdown';
 import LanguageSwitcher from '@/modules/admin/components/LanguageSwitcher';
 import { useAdminSidebar } from '@/modules/admin/hooks/useAdminSidebar';
 import { useI18n } from '@/lib/i18n/useI18n';
+
+const PUBLIC_WEBSITE_URL = 'https://figurelab.vn';
 
 type AdminHeaderProps = {
   breadcrumbs: Array<{
@@ -102,16 +104,20 @@ export default function AdminHeader({
         </div>
 
         <div className='flex items-center gap-2 sm:gap-3'>
-          <Link
-            href='/'
-            className='hidden h-10 items-center gap-2 rounded-[12px] border border-slate-200 bg-white px-3.5 text-[13px] font-semibold text-slate-700 shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition-all duration-200 hover:border-[var(--admin-primary-tint)] hover:bg-[var(--admin-primary-soft)] hover:text-[var(--admin-primary-strong)] xl:inline-flex'
+          <a
+            href={PUBLIC_WEBSITE_URL}
+            target='_blank'
+            rel='noreferrer'
+            className='group hidden h-10 items-center gap-2 rounded-[14px] border border-sky-100 bg-white px-3.5 text-[13px] font-semibold text-slate-700 shadow-[0_12px_28px_-22px_rgba(15,23,42,0.24),0_2px_6px_rgba(15,23,42,0.04)] transition-all duration-200 hover:-translate-y-0.5 hover:border-[var(--admin-primary-tint)] hover:bg-white hover:text-[var(--admin-primary-strong)] hover:shadow-[0_18px_38px_-24px_rgba(47,145,208,0.3),0_6px_12px_rgba(47,145,208,0.08)] active:translate-y-0 active:shadow-[0_12px_24px_-22px_rgba(47,145,208,0.24)] xl:inline-flex'
           >
             {t('header.viewWebsite')}
-            <ExternalIcon />
-          </Link>
+            <span className='transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5'>
+              <ExternalIcon />
+            </span>
+          </a>
 
           <div className='hidden md:block'>
-            <LanguageSwitcher compact />
+            <LanguageSwitcher />
           </div>
 
           <AdminNotificationDropdown />

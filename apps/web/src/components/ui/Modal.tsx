@@ -5,8 +5,7 @@ import { createPortal } from 'react-dom'
 import { AnimatePresence, motion, type HTMLMotionProps } from 'framer-motion'
 import { cva, type VariantProps } from 'class-variance-authority'
 
-import { cn } from '@/lib/cn'
-import type { Size } from '@/types'
+import { cn, type Size } from '@lego-shop/ui'
 
 const modalVariants = cva(
   'relative max-h-[calc(100dvh-32px)] w-full overflow-hidden rounded-md bg-background text-text-primary shadow-2xl',

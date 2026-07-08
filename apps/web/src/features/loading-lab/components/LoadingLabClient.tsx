@@ -8,7 +8,7 @@ import {
 } from 'lucide-react'
 
 import { Button } from '@/components/ui'
-import { cn } from '@/lib/cn'
+import { cn } from '@lego-shop/ui'
 import { LoadingPreview } from './LoadingPreview'
 
 type LoadingContext = 'route' | 'cart'
@@ -102,7 +102,7 @@ export function LoadingLabClient() {
         <aside className="space-y-6">
           <div>
             <p className="text-body-sm font-semibold uppercase tracking-wide text-primary">
-              BrickFrames motion lab
+              Figure Lab motion lab
             </p>
             <h1 className="mt-3 text-display-md text-text-primary">
               Loading animation sandbox

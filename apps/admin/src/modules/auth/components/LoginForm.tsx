@@ -9,7 +9,7 @@ import {
   type ReactNode,
   useState,
 } from 'react';
-import { motion, type Variants, useReducedMotion } from 'framer-motion';
+import { motion, useReducedMotion, type Variants } from 'framer-motion';
 import { ArrowRight, Eye, EyeOff, LockKeyhole, Mail } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Button from '@/common/components/ui/Button';
@@ -28,12 +28,14 @@ const LegoScene = dynamic(() => import('@/components/LegoScene'), {
   ),
 });
 
+const smoothEase: [number, number, number, number] = [0.22, 1, 0.36, 1];
+
 const shellVariants: Variants = {
   hidden: { opacity: 0, y: 10 },
   show: {
     opacity: 1,
     y: 0,
-    transition: { duration: 0.45, ease: [0.22, 1, 0.36, 1] },
+    transition: { duration: 0.45, ease: smoothEase },
   },
 };
 
@@ -42,7 +44,7 @@ const leftPanelVariants: Variants = {
   show: {
     opacity: 1,
     x: 0,
-    transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1] },
+    transition: { duration: 0.6, ease: smoothEase },
   },
 };
 
@@ -51,7 +53,7 @@ const rightPanelVariants: Variants = {
   show: {
     opacity: 1,
     x: 0,
-    transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1] },
+    transition: { duration: 0.6, ease: smoothEase },
   },
 };
 
@@ -63,7 +65,7 @@ const formCardVariants: Variants = {
     y: 0,
     transition: {
       duration: 0.42,
-      ease: [0.22, 1, 0.36, 1],
+      ease: smoothEase,
       staggerChildren: 0.055,
       delayChildren: 0.08,
     },
@@ -75,7 +77,7 @@ const formItemVariants: Variants = {
   show: {
     opacity: 1,
     y: 0,
-    transition: { duration: 0.32, ease: [0.22, 1, 0.36, 1] },
+    transition: { duration: 0.32, ease: smoothEase },
   },
 };
 

@@ -10,6 +10,8 @@ export type EntityFilterDraft = {
   category: string[];
   priceMin: string;
   priceMax: string;
+  dateFrom: string;
+  dateTo: string;
   sortDir: EntitySortDirection;
 };
 
@@ -18,5 +20,7 @@ export const EMPTY_ENTITY_FILTER_DRAFT: EntityFilterDraft = {
   category: [],
   priceMin: '',
   priceMax: '',
+  dateFrom: '',
+  dateTo: '',
   sortDir: 'desc',
 };

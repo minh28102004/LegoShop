@@ -64,7 +64,7 @@ async function bootstrap() {
   app.useStaticAssets(join(process.cwd(), 'public'), { prefix: '/' });
 
   const sharedImageRoots = [
-    join(process.cwd(), '../../packages/shared/images'),
+    join(process.cwd(), '../../packages/assets/images'),
     join(process.cwd(), 'shared/images'),
   ];
   sharedImageRoots.forEach((root) => {

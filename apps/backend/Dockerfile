@@ -80,7 +80,7 @@ RUN cp -r apps/backend/dist /pruned/dist && \
 
 # Shared visual assets are served by the backend at /shared/images/* for admin/web.
 RUN mkdir -p /pruned/shared && \
-    cp -r packages/shared/images /pruned/shared/images
+    cp -r packages/assets/images /pruned/shared/images
 
 # Generate Prisma Client inside the production bundle so .prisma lands in /pruned/node_modules.
 # Remove prisma.config.ts here because the production bundle intentionally excludes the prisma CLI package.

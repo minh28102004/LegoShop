@@ -1,4 +1,4 @@
-export * from './constants/assets';
+export * from './constants/product';
 export * from './constants/roles';
 export * from './constants/status';
 
@@ -28,6 +28,7 @@ export type * from './contracts/user.contract';
 export type * from './contracts/voucher.contract';
 
 export * from './utils/cn';
+export * from './utils/discount';
 export * from './utils/formatCurrency';
 export * from './utils/formatDate';
 export * from './utils/slugify';

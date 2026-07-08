@@ -3,15 +3,14 @@
 import * as React from 'react'
 import { cva, type VariantProps } from 'class-variance-authority'
 
-import { cn } from '@/lib/cn'
-import type { ImageProps } from '@/types'
+import { cn, type ImageProps } from '@lego-shop/ui'
 
-const cardVariants = cva('overflow-hidden rounded-md bg-card text-card-foreground', {
+const cardVariants = cva('overflow-hidden rounded-card bg-card text-card-foreground', {
   variants: {
     variant: {
       flat: 'shadow-none',
-      elevated: 'shadow-md',
-      outlined: 'border border-border shadow-none',
+      elevated: 'border border-border bg-surface shadow-soft',
+      outlined: 'border border-border bg-surface shadow-none',
     },
     hoverable: {
       true: 'transition-base hover:-translate-y-1 hover:shadow-lg',
@@ -30,8 +29,7 @@ export interface CardProps
   hoverable?: boolean
 }
 
-export interface CardSectionProps
-  extends React.ComponentPropsWithoutRef<'div'> {
+export interface CardSectionProps extends React.ComponentPropsWithoutRef<'div'> {
   children?: React.ReactNode
 }
 

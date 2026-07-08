@@ -4,8 +4,7 @@ import * as React from 'react'
 import * as SelectPrimitive from '@radix-ui/react-select'
 import { cva, type VariantProps } from 'class-variance-authority'
 
-import { cn } from '@/lib/cn'
-import type { FieldState } from '@/types'
+import { cn, type FieldState } from '@lego-shop/ui'
 
 const selectTriggerVariants = cva(
   'flex h-11 w-full items-center justify-between rounded-md border border-input bg-background px-3 text-left text-body-md text-text-primary shadow-xs transition-base focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring/20 disabled:cursor-not-allowed disabled:opacity-60 data-[placeholder]:text-text-muted',

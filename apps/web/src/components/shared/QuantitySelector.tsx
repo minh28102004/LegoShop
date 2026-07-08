@@ -3,8 +3,7 @@
 import * as React from 'react'
 import { Minus, Plus } from 'lucide-react'
 
-import { cn } from '@/lib/cn'
-import type { Size } from '@/types'
+import { cn, type Size } from '@lego-shop/ui'
 
 export interface QuantitySelectorProps
   extends Omit<React.ComponentPropsWithoutRef<'div'>, 'onChange'> {

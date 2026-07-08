@@ -4,12 +4,11 @@ import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AlertCircle, CheckCircle, ChevronRight, Clock, Package, Search, Truck } from "lucide-react";
-import type { TrackOrderItemSummaryContract, TrackOrderResponseContract } from "@lego-shop/shared";
+import { formatCurrency as formatPrice, type TrackOrderItemSummaryContract, type TrackOrderResponseContract } from "@lego-shop/shared";
 
-import { ROUTES } from "@/constants";
+import { ROUTES } from "@/config/routes";
 import { resolveApiAssetUrl } from "@/lib/api/assets";
 import { publicApiClient } from "@/lib/api/public-client";
-import { formatPrice } from "@/lib/formatters";
 
 type TrackingResult = TrackOrderResponseContract | { error: true };
 

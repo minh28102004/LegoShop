@@ -5,7 +5,7 @@ import Image, { type ImageProps as NextImageProps } from 'next/image'
 import { ImageOff } from 'lucide-react'
 
 import { Skeleton } from '@/components/ui'
-import { cn } from '@/lib/cn'
+import { cn } from '@lego-shop/ui'
 
 const BLUR_DATA_URL =
   'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjE2IiBoZWlnaHQ9IjE2IiBmaWxsPSIjRjlGQUZCIi8+PC9zdmc+'

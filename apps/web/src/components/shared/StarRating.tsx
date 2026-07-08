@@ -3,8 +3,7 @@
 import * as React from 'react'
 
 import { Rating } from '@/components/ui'
-import { cn } from '@/lib/cn'
-import type { Size } from '@/types'
+import { cn, type Size } from '@lego-shop/ui'
 
 export interface StarRatingProps extends React.ComponentPropsWithoutRef<'div'> {
   rating: number

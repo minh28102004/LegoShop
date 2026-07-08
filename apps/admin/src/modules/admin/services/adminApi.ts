@@ -4,7 +4,7 @@ import {
   type AdminCreateResourcePayloadMap,
   type AdminUpdateResourcePayloadMap,
   type QueryParams,
-} from '@lego-shop/api-client';
+} from '@lego-shop/api';
 import type { ChangeAdminPasswordResponseContract } from '@lego-shop/shared';
 import { apiRequest } from '@/lib/api';
 import { adminApiClient } from '@/lib/api/admin-client';

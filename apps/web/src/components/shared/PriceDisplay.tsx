@@ -2,11 +2,13 @@
 
 import * as React from 'react'
 import { cva, type VariantProps } from 'class-variance-authority'
+import {
+  calcDiscountPercent,
+  formatCurrency as formatPrice,
+} from '@lego-shop/shared'
 
 import { Badge } from '@/components/ui'
-import { cn } from '@/lib/cn'
-import { calcDiscountPercent, formatPrice } from '@/lib/formatters'
-import type { Size } from '@/types'
+import { cn, type Size } from '@lego-shop/ui'
 
 const priceDisplayVariants = cva('inline-flex items-baseline gap-2', {
   variants: {

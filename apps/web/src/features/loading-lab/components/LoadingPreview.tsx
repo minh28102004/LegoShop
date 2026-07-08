@@ -10,7 +10,7 @@ import {
 } from 'lucide-react'
 
 import { Button } from '@/components/ui'
-import { cn } from '@/lib/cn'
+import { cn } from '@lego-shop/ui'
 import type { AnimationId } from './LoadingLabClient'
 
 interface LoadingPreviewProps {
@@ -45,7 +45,7 @@ function RouteTransitionPreview({
     <div className="relative h-[360px] w-full max-w-wide overflow-hidden rounded-md border border-border bg-background shadow-lg">
       <div className="grid h-full grid-rows-[auto_1fr]">
         <div className="flex items-center justify-between border-b border-border px-5 py-4">
-          <span className="font-display text-body-lg font-semibold">BrickFrames</span>
+          <span className="font-display text-body-lg font-semibold">Figure Lab</span>
           <span className="rounded-full bg-surface px-3 py-1 text-body-xs text-text-muted">
             Collection page
           </span>

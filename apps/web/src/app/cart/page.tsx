@@ -1,14 +1,14 @@
 "use client";
 
 import { useCart } from "@/features/cart/hooks/useCart";
+import { formatCurrency as formatPrice } from "@lego-shop/shared";
 import Link from "next/link";
 import Image from "next/image";
 import { Trash2, Minus, Plus, ShoppingBag, ArrowRight, Pencil, ChevronRight } from "lucide-react";
+import { getCartItemParts } from "@/features/cart/cart-parts";
 import { resolveApiAssetUrl } from "@/lib/api/assets";
-import { getCartItemParts } from "@/lib/cart-parts";
-import { formatPrice } from "@/lib/formatters";
-import { ROUTES } from "@/constants";
-import { getDesignCharacterCount, getDesignTemplateName } from "@/components/studio/design-data";
+import { ROUTES } from "@/config/routes";
+import { getDesignCharacterCount, getDesignTemplateName } from "@/features/studio/design-data";
 
 export default function CartPage() {
   const { items, updateQuantity, updateItemNote, removeItem, totalAmount, isEmpty, itemCount } = useCart();

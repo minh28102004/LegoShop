@@ -4,8 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { browserApiClient } from "@/lib/api/browser-client";
-import { useAuthStore } from "@/stores/authStore";
-import { ROUTES } from "@/constants";
+import { useAuthStore } from "@/features/auth/store";
+import { ROUTES } from "@/config/routes";
 
 export default function RegisterPage() {
   const router = useRouter();

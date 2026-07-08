@@ -49,7 +49,6 @@ import {
 } from '@/modules/admin/services/adminApi';
 import { useI18n } from '@/lib/i18n/useI18n';
 import AdminToolbar, {
-  AdminToolbarDateRangeField,
   AdminToolbarField,
   AdminToolbarIcon,
   adminToolbarButtonClass,
@@ -1112,8 +1111,8 @@ export default function EntityManager<K extends ResourceKey>({
   const [categoryFilter, setCategoryFilter] = useState<string[]>([]);
   const [priceMinFilter, setPriceMinFilter] = useState('');
   const [priceMaxFilter, setPriceMaxFilter] = useState('');
-  const [dateFromFilter, setDateFromFilter] = useState('');
-  const [dateToFilter, setDateToFilter] = useState('');
+  const [dateFromFilter, setDateFromFilter] = useState(EMPTY_ENTITY_FILTER_DRAFT.dateFrom);
+  const [dateToFilter, setDateToFilter] = useState(EMPTY_ENTITY_FILTER_DRAFT.dateTo);
   const [sorts, setSorts] = useState<TableSort[]>([...DEFAULT_TABLE_SORTS]);
   const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
   const [draftFilters, setDraftFilters] = useState<EntityFilterDraft>(EMPTY_ENTITY_FILTER_DRAFT);
@@ -1154,15 +1153,16 @@ export default function EntityManager<K extends ResourceKey>({
   const statusOptions = useMemo(() => statusField?.options ?? [], [statusField]);
   const categoryOptions = useMemo(() => categoryField?.options ?? [], [categoryField]);
   const hasDateFilter = ENTITY_DATE_FILTER_RESOURCES.has(resource);
-  const hasEntityFilters = statusOptions.length > 0 || categoryOptions.length > 0 || hasPriceFilter;
+  const hasEntityFilters = statusOptions.length > 0 || categoryOptions.length > 0 || hasPriceFilter || hasDateFilter;
   const drawerFilterCount = useMemo(
     () =>
       statusFilter.length +
       categoryFilter.length +
-      Number(Boolean(priceMinFilter || priceMaxFilter)),
-    [categoryFilter, priceMaxFilter, priceMinFilter, statusFilter],
+      Number(Boolean(priceMinFilter || priceMaxFilter)) +
+      Number(Boolean(dateFromFilter || dateToFilter)),
+    [categoryFilter, dateFromFilter, dateToFilter, priceMaxFilter, priceMinFilter, statusFilter],
   );
-  const activeFilterCount = drawerFilterCount + Number(Boolean(dateFromFilter || dateToFilter));
+  const activeFilterCount = drawerFilterCount;
   const showResetFilters =
     Boolean(search.trim()) ||
     activeFilterCount > 0 ||
@@ -1316,6 +1316,8 @@ export default function EntityManager<K extends ResourceKey>({
     setCategoryFilter(nextFilters.category);
     setPriceMinFilter(nextFilters.priceMin);
     setPriceMaxFilter(nextFilters.priceMax);
+    setDateFromFilter(nextFilters.dateFrom);
+    setDateToFilter(nextFilters.dateTo);
     setPage(1);
     setFilterDrawerOpen(false);
   }
@@ -1331,16 +1333,6 @@ export default function EntityManager<K extends ResourceKey>({
     setDateToFilter('');
     setSorts([...DEFAULT_TABLE_SORTS]);
     setDraftFilters(EMPTY_ENTITY_FILTER_DRAFT);
-    setPage(1);
-  }
-
-  function updateDateFrom(value: string) {
-    setDateFromFilter(value);
-    setPage(1);
-  }
-
-  function updateDateTo(value: string) {
-    setDateToFilter(value);
     setPage(1);
   }
 
@@ -2217,6 +2209,7 @@ export default function EntityManager<K extends ResourceKey>({
           }
         >
         <AdminToolbarField
+          hideLabel
           wide
           icon={<AdminToolbarIcon name='search' />}
           label={t('common.search')}
@@ -2231,25 +2224,23 @@ export default function EntityManager<K extends ResourceKey>({
           />
         </AdminToolbarField>
 
-        {hasDateFilter ? (
-          <AdminToolbarDateRangeField
-            fromLabel={getEntityUiText(locale, 'dateFrom')}
-            fromValue={dateFromFilter}
-            label={getEntityUiText(locale, 'dateRange')}
-            onFromChange={updateDateFrom}
-            onToChange={updateDateTo}
-            toLabel={getEntityUiText(locale, 'dateTo')}
-            toValue={dateToFilter}
-            className='sm:w-[250px]'
-          />
-        ) : null}
-
         {hasEntityFilters ? (
           <Button
             type='button'
             variant='secondary'
             leftIcon={<FilterIconWithBadge count={drawerFilterCount} />}
-            onClick={() => setFilterDrawerOpen(true)}
+            onClick={() => {
+              setDraftFilters({
+                status: [...statusFilter],
+                category: [...categoryFilter],
+                priceMin: priceMinFilter,
+                priceMax: priceMaxFilter,
+                dateFrom: dateFromFilter,
+                dateTo: dateToFilter,
+                sortDir: draftFilters.sortDir,
+              });
+              setFilterDrawerOpen(true);
+            }}
             className={cn(adminToolbarButtonClass, 'px-4')}
           >
             {getEntityUiText(locale, 'filters')}
@@ -2291,6 +2282,7 @@ export default function EntityManager<K extends ResourceKey>({
         draftFilters={draftFilters}
         statusOptions={statusOptions}
         categoryOptions={categoryOptions}
+        hasDateFilter={hasDateFilter}
         hasPriceFilter={hasPriceFilter}
         onClose={() => setFilterDrawerOpen(false)}
         onDraftChange={setDraftFilters}
@@ -2300,6 +2292,9 @@ export default function EntityManager<K extends ResourceKey>({
           allStatuses: getEntityUiText(locale, 'allStatuses'),
           apply: getEntityUiText(locale, 'applyFilters'),
           category: categoryField?.label ?? getEntityUiText(locale, 'allCategories'),
+          dateFrom: getEntityUiText(locale, 'dateFrom'),
+          dateRange: getEntityUiText(locale, 'dateRange'),
+          dateTo: getEntityUiText(locale, 'dateTo'),
           filterTitle: getEntityUiText(locale, 'filterTitle'),
           priceMax: getEntityUiText(locale, 'priceMax'),
           priceMin: getEntityUiText(locale, 'priceMin'),

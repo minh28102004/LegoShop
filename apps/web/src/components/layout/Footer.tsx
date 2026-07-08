@@ -1,59 +1,74 @@
-'use client'
-
-import * as React from 'react'
 import Link from 'next/link'
 
-import { ROUTES, SITE } from '@/constants'
-import { cn } from '@/lib/cn'
-import { Container } from './Container'
+import { BrandLogo } from '@/components/layout/BrandLogo'
+import { PageContainer } from '@/components/layout/PageContainer'
+import { FOOTER_LINKS } from '@/config/routes'
+import { SITE, SOCIAL_LINKS } from '@/config/site'
 
-export interface FooterProps extends React.ComponentPropsWithoutRef<'footer'> {
-  showNewsletter?: boolean
-}
-
-const FOOTER_NAV = [
-  { label: 'Chính sách bảo mật', href: '/privacy' },
-  { label: 'Điều khoản dịch vụ', href: '/terms' },
-  { label: 'Vận chuyển', href: '/shipping' },
-  { label: 'Liên hệ', href: '/business' },
-] as const
-
-export const Footer = React.forwardRef<HTMLElement, FooterProps>(
-  ({ className, ...props }, ref) => (
-    <footer
-      ref={ref}
-      className={cn('bg-white border-t border-border', className)}
-      {...props}
-    >
-      <Container className="py-10">
-        <div className="flex flex-col md:flex-row items-start justify-between gap-8">
-          {/* Brand */}
-          <div className="space-y-3 max-w-xs">
-            <Link href={ROUTES.home} className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center">
-                <span className="text-white font-black text-xs">L</span>
-              </div>
-              <span className="font-black text-base text-text-primary tracking-tight uppercase">{SITE.name}</span>
-            </Link>
-            <p className="text-sm text-text-secondary font-light leading-relaxed">
-              © 2024 {SITE.name}. Not an official LEGO product.
+export function Footer() {
+  return (
+    <footer className="mt-8 border-t border-border bg-[linear-gradient(180deg,rgba(245,248,252,0.82)_0%,#ffffff_100%)]">
+      <PageContainer className="py-6 pt-12">
+        <div className="grid gap-7 md:grid-cols-2 xl:grid-cols-[minmax(0,1.35fr)_repeat(3,minmax(0,1fr))] xl:gap-9">
+          <div className="grid gap-3.5">
+            <BrandLogo compact />
+            <p className="max-w-[290px] text-sm leading-7 text-muted">
+              © 2026 Figure Lab. Quà tặng cá nhân hóa tinh tế cho những khoảnh
+              khắc đáng nhớ.
+            </p>
+            <p className="max-w-[290px] text-sm leading-7 text-muted">
+              {SITE.twitterHandle}
             </p>
           </div>
 
-          {/* Nav links */}
-          <div className="flex flex-wrap gap-x-8 gap-y-2">
-            {FOOTER_NAV.map(item => (
-              <Link key={item.href} href={item.href}
-                className="text-sm text-text-secondary hover:text-primary transition-colors font-medium">
-                {item.label}
+          <div className="grid gap-3.5">
+            <h3 className="text-[13px] font-extrabold uppercase tracking-[0.16em] text-navy">
+              Khám phá
+            </h3>
+            <div className="grid gap-3">
+              {FOOTER_LINKS[0]?.links.map((link) => (
+                <Link key={link.href} href={link.href} className="text-sm leading-6 text-muted hover:text-primary-dark">
+                  {link.label}
+                </Link>
+              ))}
+            </div>
+          </div>
+
+          <div className="grid gap-3.5">
+            <h3 className="text-[13px] font-extrabold uppercase tracking-[0.16em] text-navy">
+              Hỗ trợ
+            </h3>
+            <div className="grid gap-3">
+              {FOOTER_LINKS[1]?.links.map((link) => (
+                <Link key={link.href} href={link.href} className="text-sm leading-6 text-muted hover:text-primary-dark">
+                  {link.label}
+                </Link>
+              ))}
+            </div>
+          </div>
+
+          <div className="grid gap-3.5">
+            <h3 className="text-[13px] font-extrabold uppercase tracking-[0.16em] text-navy">
+              Kết nối
+            </h3>
+            <div className="grid gap-3">
+              <Link href={SOCIAL_LINKS.instagram} className="text-sm leading-6 text-muted hover:text-primary-dark">
+                Instagram
               </Link>
-            ))}
+              <Link href={SOCIAL_LINKS.facebook} className="text-sm leading-6 text-muted hover:text-primary-dark">
+                Facebook
+              </Link>
+              <Link href={SOCIAL_LINKS.tiktok} className="text-sm leading-6 text-muted hover:text-primary-dark">
+                TikTok
+              </Link>
+            </div>
           </div>
         </div>
-      </Container>
+
+        <div className="mt-8 border-t border-border pt-4 text-sm leading-6 text-muted">
+          {SITE.email} · {SITE.phone} · {SITE.address}
+        </div>
+      </PageContainer>
     </footer>
-  ),
-)
-
-Footer.displayName = 'Footer'
-
+  )
+}

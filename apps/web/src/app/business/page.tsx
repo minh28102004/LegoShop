@@ -91,7 +91,7 @@ export default function BusinessPage() {
                 </div>
                 <h3 className="text-2xl font-black text-text-primary mb-3">Đã Gửi Yêu Cầu!</h3>
                 <p className="text-text-secondary mb-8 leading-relaxed">
-                  Cảm ơn bạn đã quan tâm. Đội ngũ The Luvin sẽ liên hệ tư vấn trong thời gian sớm nhất (thường trong vòng 2 giờ làm việc).
+                  Cảm ơn bạn đã quan tâm. Đội ngũ Figure Lab sẽ liên hệ tư vấn trong thời gian sớm nhất (thường trong vòng 2 giờ làm việc).
                 </p>
                 <button onClick={() => { setSuccess(false); setFormData({ companyName: "", contactName: "", email: "", phone: "", message: "" }); }}
                   className="text-primary font-bold hover:underline">

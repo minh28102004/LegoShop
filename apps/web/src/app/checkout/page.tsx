@@ -15,6 +15,7 @@ import {
   PackageCheck,
   Zap,
 } from "lucide-react";
+import { formatCurrency as formatPrice } from "@lego-shop/shared";
 import type {
   ApplyVoucherResponseContract,
   CreateOrderRequestContract,
@@ -22,18 +23,17 @@ import type {
   PaymentSettingsContract,
 } from "@lego-shop/shared";
 
-import { ROUTES } from "@/constants";
+import { ROUTES } from "@/config/routes";
+import { getCartItemParts } from "@/features/cart/cart-parts";
 import { resolveApiAssetUrl } from "@/lib/api/assets";
-import { getCartItemParts } from "@/lib/cart-parts";
 import { publicApiClient } from "@/lib/api/public-client";
-import { formatPrice } from "@/lib/formatters";
 import {
   getDesignCharacterCount,
   getDesignTemplateName,
   isCustomFrameDesignData,
   isPersistableImageUrl,
-} from "@/components/studio/design-data";
-import type { SimpleCartItem } from "@/stores/cartStore";
+} from "@/features/studio/design-data";
+import type { SimpleCartItem } from "@/features/cart/store";
 
 type PaymentSettings = Pick<
   PaymentSettingsContract,

@@ -1,9 +1,9 @@
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
-import { StudioCanvas } from "@/components/studio/StudioCanvas";
-import { StudioProvider } from "@/components/studio/StudioContext";
-import { StudioStepper } from "@/components/studio/StudioStepper";
-import { StudioRightPanel } from "@/components/studio/StudioRightPanel";
+import { StudioCanvas } from "@/features/studio/components/StudioCanvas";
+import { StudioProvider } from "@/features/studio/components/StudioContext";
+import { StudioStepper } from "@/features/studio/components/StudioStepper";
+import { StudioRightPanel } from "@/features/studio/components/StudioRightPanel";
 
 export default function StudioPage() {
   return (

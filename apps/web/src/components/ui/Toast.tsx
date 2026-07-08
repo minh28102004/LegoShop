@@ -2,31 +2,12 @@
 
 import * as React from 'react'
 import { motion, type HTMLMotionProps } from 'framer-motion'
-import { cva, type VariantProps } from 'class-variance-authority'
+import { CheckCircle2, CircleAlert, Info, TriangleAlert } from 'lucide-react'
 
-import { cn } from '@/lib/cn'
-import type { ToastAction, ToastType } from '@/types'
-
-const toastVariants = cva(
-  'relative overflow-hidden rounded-md border bg-background p-4 text-text-primary shadow-lg',
-  {
-    variants: {
-      type: {
-        success: 'border-success',
-        error: 'border-error',
-        warning: 'border-warning',
-        info: 'border-primary',
-      },
-    },
-    defaultVariants: {
-      type: 'info',
-    },
-  },
-)
+import { cn, type ToastAction, type ToastType } from '@lego-shop/ui'
 
 export interface ToastProps
-  extends HTMLMotionProps<'div'>,
-    Omit<VariantProps<typeof toastVariants>, 'type'> {
+  extends HTMLMotionProps<'div'> {
   id: string
   type: ToastType
   title: string
@@ -36,20 +17,20 @@ export interface ToastProps
   onDismiss?: ((toastId: string) => void) | undefined
 }
 
-function getProgressColor(type: ToastType): string {
+function getToastIcon(type: ToastType): React.ReactNode {
   if (type === 'success') {
-    return 'bg-success'
+    return <CheckCircle2 className="h-5 w-5 text-[#16a34a]" strokeWidth={2.2} />
   }
 
   if (type === 'error') {
-    return 'bg-error'
+    return <CircleAlert className="h-5 w-5 text-[#dc2626]" strokeWidth={2.2} />
   }
 
   if (type === 'warning') {
-    return 'bg-warning'
+    return <TriangleAlert className="h-5 w-5 text-[#d97706]" strokeWidth={2.2} />
   }
 
-  return 'bg-primary'
+  return <Info className="h-5 w-5 text-[#2f91d0]" strokeWidth={2.2} />
 }
 
 export const Toast = React.forwardRef<HTMLDivElement, ToastProps>(
@@ -86,50 +67,34 @@ export const Toast = React.forwardRef<HTMLDivElement, ToastProps>(
         ref={ref}
         layout
         role="status"
-        initial={{ opacity: 0, x: 64 }}
-        animate={{ opacity: 1, x: 0 }}
-        exit={{ opacity: 0, x: 64 }}
-        transition={{ duration: 0.25 }}
-        className={cn(toastVariants({ type }), className)}
+        initial={{ opacity: 0, y: -8, scale: 0.98 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, y: -8, scale: 0.98 }}
+        transition={{ duration: 0.2 }}
+        className={cn(
+          'rounded-[16px] border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-800 shadow-[0_18px_38px_-28px_rgba(15,23,42,0.35)]',
+          className,
+        )}
         {...props}
       >
-        <div className="flex items-start gap-4">
+        <div className="flex items-start gap-3">
+          <span className="mt-0.5 shrink-0">{getToastIcon(type)}</span>
           <div className="min-w-0 flex-1">
-            <p className="text-body-sm font-semibold text-text-primary">
-              {title}
-            </p>
+            <p className="text-sm font-semibold text-slate-800">{title}</p>
             {message ? (
-              <p className="mt-1 text-body-sm text-text-secondary">
-                {message}
-              </p>
+              <p className="mt-1 text-sm font-medium text-slate-500">{message}</p>
             ) : null}
             {action ? (
               <button
                 type="button"
-                className="mt-3 text-body-sm font-semibold text-primary transition-base hover:text-primary-hover"
+                className="mt-2 text-sm font-semibold text-[#2f91d0] transition-colors hover:text-[#1f6fb0]"
                 onClick={action.onClick}
               >
                 {action.label}
               </button>
             ) : null}
           </div>
-          <button
-            type="button"
-            aria-label="Đóng thông báo"
-            className="rounded-sm px-1 text-text-muted transition-base hover:text-text-primary focus:outline-none focus:ring-2 focus:ring-ring/20"
-            onClick={() => onDismiss?.(id)}
-          >
-            x
-          </button>
         </div>
-        {duration > 0 ? (
-          <motion.span
-            className={cn('absolute bottom-0 left-0 h-1', getProgressColor(type))}
-            initial={{ width: '100%' }}
-            animate={{ width: '0%' }}
-            transition={{ duration: duration / 1000, ease: 'linear' }}
-          />
-        ) : null}
       </motion.div>
     )
   },

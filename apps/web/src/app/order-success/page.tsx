@@ -4,7 +4,7 @@ import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { CheckCircle, Search, ArrowRight } from "lucide-react";
 import { Suspense } from "react";
-import { ROUTES } from "@/constants";
+import { ROUTES } from "@/config/routes";
 
 function OrderSuccessContent() {
   const searchParams = useSearchParams();
@@ -19,7 +19,7 @@ function OrderSuccessContent() {
 
       <h1 className="text-4xl font-black text-text-primary mb-3 text-center">Đặt hàng thành công! 🎉</h1>
       <p className="text-text-secondary text-center max-w-md mb-8 leading-relaxed">
-        Cảm ơn bạn đã tin tưởng The Luvin. Đơn hàng của bạn đang được xử lý và Designer sẽ liên hệ sớm nhất.
+        Cảm ơn bạn đã tin tưởng Figure Lab. Đơn hàng của bạn đang được xử lý và Designer sẽ liên hệ sớm nhất.
       </p>
 
       {orderCode && (

@@ -1,4 +1,4 @@
-import { createApiClient } from '@lego-shop/api-client';
+import { createApiClient } from '@lego-shop/api';
 import { getAccessToken } from '@/modules/auth/services/authStorage';
 import { getApiBaseUrl } from './base-url';
 

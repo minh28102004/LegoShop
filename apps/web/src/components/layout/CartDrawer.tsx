@@ -5,15 +5,15 @@ import * as React from 'react'
 import Link from 'next/link'
 import { createPortal } from 'react-dom'
 import { X, ShoppingBag, Package, Pencil } from 'lucide-react'
+import { formatCurrency as formatPrice } from '@lego-shop/shared'
 // Framer motion removed temporarily for debugging
-import { ROUTES, UI_MODAL_IDS } from '@/constants'
+import { ROUTES, UI_MODAL_IDS } from '@/config/routes'
 import { useCart } from '@/features/cart/hooks/useCart'
+import { getCartItemParts } from '@/features/cart/cart-parts'
 import { resolveApiAssetUrl } from '@/lib/api/assets'
-import { getCartItemParts } from '@/lib/cart-parts'
-import { formatPrice } from '@/lib/formatters'
-import { selectActiveModal, useUIStore } from '@/stores/uiStore'
-import type { SimpleCartItem } from '@/stores/cartStore'
-import { getDesignCharacterCount, getDesignTemplateName } from '@/components/studio/design-data'
+import { selectActiveModal, useUIStore } from '@/features/ui/store'
+import type { SimpleCartItem } from '@/features/cart/store'
+import { getDesignCharacterCount, getDesignTemplateName } from '@/features/studio/design-data'
 
 export interface CartDrawerProps {
   className?: string

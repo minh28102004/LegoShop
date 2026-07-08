@@ -4,6 +4,7 @@ import { Drawer } from 'antd';
 import type { ReactNode } from 'react';
 import Button from '@/common/components/ui/Button';
 import Input from '@/common/components/ui/Input';
+import { AdminToolbarDateRangeField } from '@/modules/admin/components/AdminToolbar';
 import MultiSelectFilter from '@/modules/admin/components/filters/MultiSelectFilter';
 import {
   EMPTY_ENTITY_FILTER_DRAFT,
@@ -16,6 +17,9 @@ type EntityFilterDrawerLabels = {
   allStatuses: string;
   apply: string;
   category: string;
+  dateFrom: string;
+  dateRange: string;
+  dateTo: string;
   filterTitle: string;
   priceMax: string;
   priceMin: string;
@@ -28,6 +32,7 @@ type EntityFilterDrawerLabels = {
 type EntityFilterDrawerProps = {
   categoryOptions: EntityFilterOption[];
   draftFilters: EntityFilterDraft;
+  hasDateFilter: boolean;
   hasPriceFilter: boolean;
   labels: EntityFilterDrawerLabels;
   onApply: (filters: EntityFilterDraft) => void;
@@ -59,7 +64,17 @@ function FilterSection({
   );
 }
 
-function SectionIcon({ name }: { name: 'category' | 'price' | 'status' }) {
+function SectionIcon({ name }: { name: 'category' | 'date' | 'price' | 'status' }) {
+  if (name === 'date') {
+    return (
+      <svg viewBox='0 0 24 24' fill='none' className='h-4 w-4' aria-hidden='true'>
+        <path d='M7 3.5V6.5M17 3.5V6.5' stroke='currentColor' strokeWidth='1.9' strokeLinecap='round' />
+        <rect x='4' y='5.5' width='16' height='15' rx='3' stroke='currentColor' strokeWidth='1.9' />
+        <path d='M4 10H20' stroke='currentColor' strokeWidth='1.9' strokeLinecap='round' />
+      </svg>
+    );
+  }
+
   if (name === 'price') {
     return (
       <svg viewBox='0 0 24 24' fill='none' className='h-4 w-4' aria-hidden='true'>
@@ -111,6 +126,7 @@ function ResetIcon() {
 export default function EntityFilterDrawer({
   categoryOptions,
   draftFilters,
+  hasDateFilter,
   hasPriceFilter,
   labels,
   onApply,
@@ -122,7 +138,7 @@ export default function EntityFilterDrawer({
   const hasStatusFilter = statusOptions.length > 0;
   const hasCategoryFilter = categoryOptions.length > 0;
 
-  function updateDraft(key: 'priceMax' | 'priceMin', value: string) {
+  function updateDraft(key: 'dateFrom' | 'dateTo' | 'priceMax' | 'priceMin', value: string) {
     onDraftChange({
       ...draftFilters,
       [key]: value,
@@ -198,6 +214,23 @@ export default function EntityFilterDrawer({
                   onChange={(event) => updateDraft('priceMax', event.target.value)}
                 />
               </div>
+            </FilterSection>
+          ) : null}
+
+          {hasDateFilter ? (
+            <FilterSection title={labels.dateRange} icon={<SectionIcon name='date' />}>
+              <AdminToolbarDateRangeField
+                compactCalendar
+                hideLabel
+                className='sm:w-full'
+                fromLabel={labels.dateFrom}
+                fromValue={draftFilters.dateFrom}
+                label={labels.dateRange}
+                onFromChange={(value) => updateDraft('dateFrom', value)}
+                onToChange={(value) => updateDraft('dateTo', value)}
+                toLabel={labels.dateTo}
+                toValue={draftFilters.dateTo}
+              />
             </FilterSection>
           ) : null}
 

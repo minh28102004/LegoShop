@@ -3,8 +3,7 @@
 import * as React from 'react'
 import { cva, type VariantProps } from 'class-variance-authority'
 
-import { cn } from '@/lib/cn'
-import type { ImageProps, Size } from '@/types'
+import { cn, type ImageProps, type Size } from '@lego-shop/ui'
 
 const avatarVariants = cva(
   'relative inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-surface font-semibold text-text-secondary',

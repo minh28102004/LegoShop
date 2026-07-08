@@ -1,7 +1,7 @@
 "use client";
 
-import { createApiClient } from "@lego-shop/api-client";
-import { useAuthStore } from "@/stores/authStore";
+import { createApiClient } from "@lego-shop/api";
+import { useAuthStore } from "@/features/auth/store";
 import { getApiBaseUrl } from "./base-url";
 
 export const browserApiClient = createApiClient({

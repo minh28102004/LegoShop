@@ -2,8 +2,7 @@
 
 import * as React from 'react'
 
-import { cn } from '@/lib/cn'
-import type { Size } from '@/types'
+import { cn, type Size } from '@lego-shop/ui'
 
 export interface SkeletonProps extends React.ComponentPropsWithoutRef<'div'> {
   width?: number | string

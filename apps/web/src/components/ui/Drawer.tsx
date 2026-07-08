@@ -5,8 +5,7 @@ import { createPortal } from 'react-dom'
 import { AnimatePresence, motion, type HTMLMotionProps } from 'framer-motion'
 import { cva, type VariantProps } from 'class-variance-authority'
 
-import { cn } from '@/lib/cn'
-import type { Size } from '@/types'
+import { cn, type Size } from '@lego-shop/ui'
 
 const drawerVariants = cva(
   'fixed z-z-modal overflow-hidden bg-background text-text-primary shadow-2xl',

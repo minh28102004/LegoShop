@@ -12,7 +12,7 @@ import {
   selectCartTotalAmount,
   useCartStore,
   type SimpleCartItem,
-} from '@/stores/cartStore'
+} from '@/features/cart/store'
 
 export type { SimpleCartItem }
 

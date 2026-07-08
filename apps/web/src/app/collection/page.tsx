@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { ChevronDown, Heart, Layers, Package, Search, ShoppingCart, X } from "lucide-react";
+import { useDebounce } from "@lego-shop/hooks";
+import { formatCurrency as formatPrice } from "@lego-shop/shared";
 import type {
   Accessory,
   Collection as ApiCollection,
@@ -13,13 +15,11 @@ import type {
   ProductComponentPart,
 } from "@lego-shop/shared";
 
-import { ROUTES, UI_MODAL_IDS } from "@/constants";
-import { useDebounce } from "@/hooks/useDebounce";
+import { ROUTES, UI_MODAL_IDS } from "@/config/routes";
 import { resolveApiAssetUrl } from "@/lib/api/assets";
 import { publicApiClient } from "@/lib/api/public-client";
-import { formatPrice } from "@/lib/formatters";
-import { useCartStore, type CartItemPart, type CartItemPartType, type SimpleCartItem } from "@/stores/cartStore";
-import { useUIStore } from "@/stores/uiStore";
+import { useCartStore, type CartItemPart, type CartItemPartType, type SimpleCartItem } from "@/features/cart/store";
+import { useUIStore } from "@/features/ui/store";
 
 type CatalogMode = "finished" | "retail";
 type RetailType = "frame" | "background" | "accessory";

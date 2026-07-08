@@ -3,7 +3,7 @@
   "private": true,
   "packageManager": "pnpm@9.15.4",
   "scripts": {
-    "dev": "concurrently -n WEB,ADMIN,API -c blue,magenta,green \"pnpm --filter web dev\" \"pnpm --filter admin dev\" \"pnpm --filter backend start:dev\"",
+    "dev": "node ./node_modules/.pnpm/concurrently@10.0.3/node_modules/concurrently/dist/bin/index.js -n WEB,ADMIN,API -c blue,magenta,green \"pnpm --filter web dev\" \"pnpm --filter admin dev\" \"pnpm --filter backend start:dev\"",
     "dev:turbo": "turbo run dev --parallel",
     "build": "turbo run build",
     "lint": "turbo run lint",

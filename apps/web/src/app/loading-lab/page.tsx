@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 
-import { LoadingLabClient } from '@/features/loading-lab/components/LoadingLabClient'
+import { LoadingLabClient } from '@/modules/loading-lab/components/LoadingLabClient'
 
 export const metadata: Metadata = {
   title: 'Loading Lab',

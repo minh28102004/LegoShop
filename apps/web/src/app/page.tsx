@@ -1,4 +1,4 @@
-import { HomePage } from '@/modules/home'
+import { HomePage } from '@/modules/home/components/HomePage'
 
 export const revalidate = 3600
 

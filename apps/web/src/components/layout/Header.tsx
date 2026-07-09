@@ -2,173 +2,385 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Menu, ShoppingCart, X } from "lucide-react";
-import { useCallback, useEffect, useSyncExternalStore } from "react";
-import { useScrollY } from "@lego-shop/hooks";
-
+import { ChevronRight, Menu, ShoppingCart, X } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import { cn } from "@lego-shop/ui";
 import { BrandLogo } from "@/components/layout/BrandLogo";
 import { LanguageSwitcher } from "@/components/layout/LanguageSwitcher";
-import { PageContainer } from "@/components/layout/PageContainer";
-import { Button } from "@/components/ui";
-import { HEADER_NAV, ROUTES, UI_MODAL_IDS } from "@/config/routes";
-import { SITE } from "@/config/site";
+import { HEADER_NAV_ITEMS, ROUTES, UI_MODAL_IDS } from "@/config/routes";
 import { useCart } from "@/features/cart/hooks/useCart";
 import { selectIsMobileMenuOpen, useUIStore } from "@/features/ui/store";
-import { cn } from "@lego-shop/ui";
+import { useI18n } from "@/lib/i18n/useI18n";
+
+function isNavItemActive(pathname: string, href: string) {
+  if (href === ROUTES.home) {
+    return pathname === ROUTES.home;
+  }
+
+  if (href.startsWith("/#")) {
+    return false;
+  }
+
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
 
 export function Header() {
   const pathname = usePathname();
-  const scrollY = useScrollY();
   const { itemCount, openCart } = useCart();
+  const { t } = useI18n();
+
   const isMobileMenuOpen = useUIStore(selectIsMobileMenuOpen);
   const closeMobileMenu = useUIStore((state) => state.closeMobileMenu);
   const openMobileMenu = useUIStore((state) => state.openMobileMenu);
   const openModal = useUIStore((state) => state.openModal);
-  const mounted = useSyncExternalStore(
-    () => () => undefined,
-    () => true,
-    () => false,
-  );
+
+  const [isScrolled, setIsScrolled] = useState(false);
+  const [hasMounted, setHasMounted] = useState(false);
+
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const drawerRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(() => setHasMounted(true));
+    return () => window.cancelAnimationFrame(frame);
+  }, []);
 
   useEffect(() => {
     closeMobileMenu();
   }, [closeMobileMenu, pathname]);
+
+  useEffect(() => {
+    const scrollRoot = document.getElementById("site-scroll-root");
+
+    const updateScrollState = () => {
+      if (scrollRoot) {
+        setIsScrolled(scrollRoot.scrollTop > 10);
+      } else {
+        setIsScrolled(window.scrollY > 10);
+      }
+    };
+
+    updateScrollState();
+
+    if (scrollRoot) {
+      scrollRoot.addEventListener("scroll", updateScrollState, {
+        passive: true,
+      });
+
+      return () => {
+        scrollRoot.removeEventListener("scroll", updateScrollState);
+      };
+    }
+
+    window.addEventListener("scroll", updateScrollState, { passive: true });
+
+    return () => {
+      window.removeEventListener("scroll", updateScrollState);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!isMobileMenuOpen) {
+      return;
+    }
+
+    const { body, documentElement } = document;
+    const scrollRoot = document.getElementById("site-scroll-root");
+
+    const previousBodyOverflow = body.style.overflow;
+    const previousBodyTouchAction = body.style.touchAction;
+    const previousBodyOverscroll = body.style.overscrollBehavior;
+    const previousHtmlOverflow = documentElement.style.overflow;
+    const previousHtmlTouchAction = documentElement.style.touchAction;
+    const previousScrollRootOverflow = scrollRoot?.style.overflow ?? "";
+    const previousScrollRootTouchAction = scrollRoot?.style.touchAction ?? "";
+    const previousScrollRootOverscroll =
+      scrollRoot?.style.overscrollBehavior ?? "";
+
+    body.style.overflow = "hidden";
+    body.style.touchAction = "none";
+    body.style.overscrollBehavior = "none";
+    documentElement.style.overflow = "hidden";
+    documentElement.style.touchAction = "none";
+
+    if (scrollRoot) {
+      scrollRoot.style.overflow = "hidden";
+      scrollRoot.style.touchAction = "none";
+      scrollRoot.style.overscrollBehavior = "none";
+    }
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        closeMobileMenu();
+      }
+    };
+
+    const handlePointerDown = (event: PointerEvent | MouseEvent) => {
+      const target = event.target as Node | null;
+
+      // If click is inside the drawer or on the menu button, do nothing
+      if (
+        drawerRef.current?.contains(target as Node) ||
+        menuButtonRef.current?.contains(target as Node) ||
+        closeButtonRef.current?.contains(target as Node)
+      ) {
+        return;
+      }
+
+      // Otherwise close the mobile menu
+      closeMobileMenu();
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("pointerdown", handlePointerDown);
+
+    return () => {
+      body.style.overflow = previousBodyOverflow;
+      body.style.touchAction = previousBodyTouchAction;
+      body.style.overscrollBehavior = previousBodyOverscroll;
+      documentElement.style.overflow = previousHtmlOverflow;
+      documentElement.style.touchAction = previousHtmlTouchAction;
+
+      if (scrollRoot) {
+        scrollRoot.style.overflow = previousScrollRootOverflow;
+        scrollRoot.style.touchAction = previousScrollRootTouchAction;
+        scrollRoot.style.overscrollBehavior = previousScrollRootOverscroll;
+      }
+
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("pointerdown", handlePointerDown);
+    };
+  }, [closeMobileMenu, isMobileMenuOpen]);
 
   const openCartDrawer = useCallback(() => {
     openCart();
     openModal(UI_MODAL_IDS.CART_DRAWER);
   }, [openCart, openModal]);
 
-  const isScrolled = scrollY > 12;
+  const mobileDrawer = (
+    <div
+      className="fixed inset-0 lg:hidden"
+      style={{
+        zIndex: 1300,
+        pointerEvents: isMobileMenuOpen ? "auto" : "none",
+      }}
+      aria-hidden={!isMobileMenuOpen}
+    >
+      <div
+        aria-hidden="true"
+        onClick={closeMobileMenu}
+        className={cn(
+          "fixed inset-0 transition-opacity duration-300 ease-out",
+          isMobileMenuOpen ? "opacity-100" : "opacity-0",
+        )}
+        style={{
+          zIndex: 1300,
+          background: "rgba(0, 0, 0, 0.9)",
+          backdropFilter: "blur(12px)",
+          WebkitBackdropFilter: "blur(12px)",
+          display: isMobileMenuOpen ? "block" : "none",
+        }}
+      />
+
+      <aside
+        ref={drawerRef}
+        id="mobile-navigation-drawer"
+        role="dialog"
+        aria-modal="true"
+        aria-label={t("header.mobileMenuTitle")}
+        className="fixed flex flex-col overflow-hidden border-l border-[#dbe7f1] bg-white shadow-[-30px_0_70px_-28px_rgba(18,45,78,0.45)] transition-transform duration-300 ease-out will-change-transform"
+        style={{
+          top: 0,
+          right: 0,
+          bottom: 0,
+          zIndex: 1310,
+          width: "min(78dvw, 390px)",
+          maxWidth: "calc(100dvw - 96px)",
+          height: "100dvh",
+          transform: isMobileMenuOpen
+            ? "translate3d(0, 0, 0)"
+            : "translate3d(100%, 0, 0)",
+        }}
+      >
+        <div className="flex h-[82px] shrink-0 items-center justify-between gap-3 border-b border-[#dbe7f1] px-4 sm:px-5">
+          <BrandLogo compact className="min-w-0" />
+
+          <button
+            ref={closeButtonRef}
+            type="button"
+            aria-label={t("header.closeMenu")}
+            onClick={closeMobileMenu}
+            className="inline-flex h-11 w-11 shrink-0 appearance-none items-center justify-center rounded-none border-0! bg-transparent! p-0! text-navy! shadow-none! outline-none! ring-0! transition-colors duration-200 hover:bg-transparent! hover:text-[#2f91d0]! focus:border-0! focus:shadow-none! focus:outline-none! focus:ring-0! focus-visible:border-0! focus-visible:shadow-none! focus-visible:outline-none! focus-visible:ring-0! active:scale-100"
+            style={{
+              border: "none",
+              outline: "none",
+              boxShadow: "none",
+              background: "transparent",
+              WebkitTapHighlightColor: "transparent",
+            }}
+          >
+            <X className="h-6 w-6" strokeWidth={2.1} />
+          </button>
+        </div>
+
+        <div className="flex min-h-0 flex-1 flex-col bg-white">
+          <div className="min-h-0 flex-1 overflow-y-auto px-4 pt-5 sm:px-5">
+            <nav className="grid gap-2">
+              {HEADER_NAV_ITEMS.map((item) => {
+                const isActive = isNavItemActive(pathname, item.href);
+
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={closeMobileMenu}
+                    className={cn(
+                      "group flex items-center justify-between gap-4 rounded-[16px] px-5 py-[18px] text-[16px] font-semibold tracking-[-0.01em] transition-all duration-200",
+                      isActive
+                        ? "bg-[#eef7ff] text-[#2f91d0] shadow-[inset_0_0_0_1px_rgba(126,191,233,0.34)]"
+                        : "text-navy hover:bg-[#f8fbff] hover:text-[#2f91d0]",
+                    )}
+                  >
+                    <span className="inline-flex min-w-0 items-center gap-3">
+                      <span
+                        className={cn(
+                          "h-2.5 w-2.5 shrink-0 rounded-full transition-colors duration-200",
+                          isActive
+                            ? "bg-[#2f91d0]"
+                            : "bg-slate-300 group-hover:bg-[#9ed8f4]",
+                        )}
+                      />
+
+                      <span className="truncate">
+                        {t(`header.nav.${item.key}`)}
+                      </span>
+                    </span>
+
+                    <ChevronRight
+                      className={cn(
+                        "h-[18px] w-[18px] shrink-0 transition-all duration-200",
+                        isActive
+                          ? "translate-x-0 text-[#2f91d0]"
+                          : "text-slate-400 group-hover:translate-x-0.5 group-hover:text-[#2f91d0]",
+                      )}
+                      strokeWidth={2.2}
+                    />
+                  </Link>
+                );
+              })}
+            </nav>
+          </div>
+
+          <div className="shrink-0 overflow-visible bg-white px-4 pb-[calc(env(safe-area-inset-bottom)+24px)] pt-4 sm:px-5">
+            <div className="rounded-[22px] border border-[#dbe7f1] bg-white px-5 py-5 shadow-[0_18px_42px_-34px_rgba(18,45,78,0.24)]">
+              <LanguageSwitcher className="w-fit" portal={true} side="top" />
+            </div>
+          </div>
+        </div>
+      </aside>
+    </div>
+  );
 
   return (
     <>
-      <header className="sticky top-0 z-z-sticky">
-        <div className="bg-primary-dark px-4 py-1.5 text-center text-[11px] font-semibold tracking-[0.02em] text-white sm:text-xs">
-          {SITE.tagline}
-        </div>
+      <header
+        className={cn(
+          "fixed inset-x-0 top-0 z-60 w-full border-b bg-white transition-all duration-300 ease-out",
+          "before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-[3px] before:bg-linear-to-r before:from-[#7bc7f0] before:via-[#2f91d0] before:to-[#f6d76b]",
+          "after:pointer-events-none after:absolute after:inset-x-0 after:bottom-0 after:h-px after:bg-linear-to-r after:from-transparent after:via-[#b7def3] after:to-transparent",
+          isScrolled
+            ? "border-[#cfe4f1] shadow-[0_16px_42px_-30px_rgba(18,45,78,0.5)]"
+            : "border-[#e1edf5] shadow-[0_8px_28px_-26px_rgba(18,45,78,0.35)]",
+        )}
+      >
+        <div className="w-full px-4 sm:px-6 lg:px-8 xl:px-10 2xl:px-12">
+          <div className="grid min-h-[82px] grid-cols-[minmax(0,auto)_1fr_auto] items-center gap-3 transition-[min-height] duration-300 ease-out lg:min-h-[76px] lg:gap-8">
+            <BrandLogo className="min-w-0 shrink-0" />
 
-        <div
-          className={cn(
-            "relative border-b border-border bg-white/95 backdrop-blur-xl",
-            isScrolled && "shadow-soft",
-          )}
-        >
-          <PageContainer className="max-w-none px-4 sm:px-6 lg:px-10 xl:px-12 2xl:px-16">
-            <div className="flex min-h-16 items-center justify-between gap-4 lg:min-h-[86px]">
-              <BrandLogo className="shrink-0" compact />
-
-              <nav className="hidden min-w-0 flex-1 items-center justify-center gap-7 lg:flex xl:gap-9 2xl:gap-11">
-                {HEADER_NAV.map((item) => {
-                  const isAnchor = item.href.startsWith("/#");
-                  const isActive =
-                    item.href === ROUTES.home
-                      ? pathname === ROUTES.home
-                      : !isAnchor &&
-                        (pathname === item.href ||
-                          pathname.startsWith(`${item.href}/`));
+            <nav className="hidden min-w-0 items-center justify-center lg:flex">
+              <div className="flex flex-wrap items-center justify-center gap-1 xl:gap-2">
+                {HEADER_NAV_ITEMS.map((item) => {
+                  const isActive = isNavItemActive(pathname, item.href);
 
                   return (
                     <Link
                       key={item.href}
                       href={item.href}
                       className={cn(
-                        "relative inline-flex items-center justify-center whitespace-nowrap py-2 text-[15px] font-semibold leading-none text-slate-800 transition-all duration-200 hover:text-[#2f91d0]",
+                        "group relative inline-flex items-center justify-center px-3 py-3 text-[15px] font-semibold tracking-[-0.01em] text-slate-800 transition-colors duration-200 hover:text-[#2f91d0] xl:px-4",
                         isActive && "text-[#2f91d0]",
-                        item.tone === "accent" && !isActive && "text-pink-300 hover:text-pink-400",
                       )}
                     >
-                      {item.label}
-                      {isActive ? (
-                        <span className="absolute inset-x-0 -bottom-[17px] h-0.5 rounded-full bg-[#63afe3]" />
-                      ) : null}
+                      <span>{t(`header.nav.${item.key}`)}</span>
+
+                      <span
+                        className={cn(
+                          "pointer-events-none absolute inset-x-3 -bottom-px h-[3px] origin-center rounded-full bg-linear-to-r from-[#7bc7f0] via-[#2f91d0] to-[#7bc7f0] transition-transform duration-300 ease-out xl:inset-x-4",
+                          isActive
+                            ? "scale-x-100"
+                            : "scale-x-0 group-hover:scale-x-100",
+                        )}
+                      />
                     </Link>
                   );
                 })}
-              </nav>
-
-              <div className="flex shrink-0 items-center gap-2 lg:gap-4 xl:gap-5">
-                <button
-                  type="button"
-                  aria-label="Mở giỏ hàng"
-                  onClick={openCartDrawer}
-                  className="relative inline-flex h-10 w-10 items-center justify-center rounded-[12px] border border-transparent bg-transparent text-slate-700 transition-all duration-200 hover:bg-[#edf8ff] hover:text-[#2f91d0]"
-                >
-                  <ShoppingCart className="h-6 w-6" strokeWidth={1.8} />
-                  {mounted && itemCount > 0 ? (
-                    <span className="absolute -right-1 -top-1 inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-accent px-1 text-[10px] font-extrabold text-navy">
-                      {itemCount}
-                    </span>
-                  ) : null}
-                </button>
-
-                <LanguageSwitcher className="hidden xl:flex" />
-
-                <Button
-                  asChild
-                  size="md"
-                  className="hidden min-w-[198px] rounded-[18px] bg-[#2457c5] px-8 text-[15px] font-semibold text-white hover:bg-[#1f4db0] lg:inline-flex"
-                >
-                  <Link href={ROUTES.studio}>Tạo Khung Ngay</Link>
-                </Button>
-
-                <button
-                  type="button"
-                  aria-label={isMobileMenuOpen ? "Đóng menu" : "Mở menu"}
-                  onClick={isMobileMenuOpen ? closeMobileMenu : openMobileMenu}
-                  className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-border bg-white text-navy transition-base hover:bg-primary-light lg:hidden"
-                >
-                  {isMobileMenuOpen ? (
-                    <X className="h-5 w-5" />
-                  ) : (
-                    <Menu className="h-5 w-5" />
-                  )}
-                </button>
               </div>
+            </nav>
+
+            <div className="flex shrink-0 items-center justify-end gap-2 sm:gap-3">
+              <button
+                type="button"
+                aria-label={t("header.openCart")}
+                onClick={openCartDrawer}
+                className="relative inline-flex h-10 w-10 items-center justify-center rounded-[12px] border border-transparent bg-transparent text-slate-700 transition-all duration-200 hover:bg-[#edf8ff] hover:text-[#2f91d0]"
+              >
+                <ShoppingCart className="h-6 w-6" strokeWidth={1.8} />
+
+                {hasMounted && itemCount > 0 ? (
+                  <span className="absolute -right-1 -top-1 inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-[#f6d76b] px-1 text-[10px] font-extrabold text-navy">
+                    {itemCount}
+                  </span>
+                ) : null}
+              </button>
+
+              <LanguageSwitcher className="hidden lg:flex" />
+
+              <button
+                ref={menuButtonRef}
+                type="button"
+                aria-label={
+                  isMobileMenuOpen
+                    ? t("header.closeMenu")
+                    : t("header.openMenu")
+                }
+                aria-controls="mobile-navigation-drawer"
+                aria-expanded={isMobileMenuOpen}
+                onClick={isMobileMenuOpen ? closeMobileMenu : openMobileMenu}
+                className="inline-flex h-11 w-11 appearance-none items-center justify-center rounded-none border-0! bg-transparent! p-0! text-navy! shadow-none! outline-none! ring-0! transition-colors duration-200 hover:bg-transparent! hover:text-[#2f91d0]! focus:border-0! focus:shadow-none! focus:outline-none! focus:ring-0! focus-visible:border-0! focus-visible:shadow-none! focus-visible:outline-none! focus-visible:ring-0! active:scale-100 lg:hidden"
+                style={{
+                  border: "none",
+                  outline: "none",
+                  boxShadow: "none",
+                  background: "transparent",
+                  WebkitTapHighlightColor: "transparent",
+                }}
+              >
+                {isMobileMenuOpen ? (
+                  <X className="h-6 w-6" strokeWidth={2.1} />
+                ) : (
+                  <Menu className="h-6 w-6" strokeWidth={2.1} />
+                )}
+              </button>
             </div>
-          </PageContainer>
-
-          {isMobileMenuOpen ? (
-            <div className="absolute inset-x-0 top-full z-z-modal border-t border-border bg-white shadow-soft lg:hidden">
-              <PageContainer className="max-w-[1280px] px-4 py-5 sm:px-6">
-                <div className="flex flex-col gap-5">
-                  <nav className="grid gap-2">
-                    {HEADER_NAV.map((item) => (
-                      <Link
-                        key={item.href}
-                        href={item.href}
-                        onClick={closeMobileMenu}
-                        className="rounded-2xl border border-transparent px-4 py-3 text-sm font-bold text-navy transition-base hover:border-border hover:bg-surface-soft"
-                      >
-                        {item.label}
-                      </Link>
-                    ))}
-                  </nav>
-
-                  <div className="w-fit">
-                    <LanguageSwitcher className="shrink-0" />
-                  </div>
-
-                  <Button asChild size="lg" className="w-full">
-                    <Link href={ROUTES.studio} onClick={closeMobileMenu}>
-                      Tạo Khung Ngay
-                    </Link>
-                  </Button>
-                </div>
-              </PageContainer>
-            </div>
-          ) : null}
+          </div>
         </div>
       </header>
 
-      {isMobileMenuOpen ? (
-        <button
-          type="button"
-          aria-label="Đóng menu điều hướng"
-          className="fixed inset-0 top-[88px] z-z-overlay bg-transparent lg:hidden"
-          onClick={closeMobileMenu}
-        />
-      ) : null}
+      {hasMounted && typeof document !== "undefined"
+        ? createPortal(mobileDrawer, document.body)
+        : mobileDrawer}
     </>
   );
 }

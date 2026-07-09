@@ -8,7 +8,10 @@ import { Trash2, Minus, Plus, ShoppingBag, ArrowRight, Pencil, ChevronRight } fr
 import { getCartItemParts } from "@/features/cart/cart-parts";
 import { resolveApiAssetUrl } from "@/lib/api/assets";
 import { ROUTES } from "@/config/routes";
-import { getDesignCharacterCount, getDesignTemplateName } from "@/features/studio/design-data";
+import {
+  getDesignCharacterCount,
+  getDesignTemplateName,
+} from "@/modules/studio/lib/design-data";
 
 export default function CartPage() {
   const { items, updateQuantity, updateItemNote, removeItem, totalAmount, isEmpty, itemCount } = useCart();

@@ -148,7 +148,7 @@ export const Modal = React.forwardRef<HTMLDivElement, ModalProps>(
             <button
               type="button"
               aria-label="Đóng modal"
-              className="absolute inset-0 bg-dark/60"
+              className="absolute inset-0 bg-[rgb(7_29_58/0.6)]"
               onClick={onClose}
             />
             <motion.div

@@ -9,14 +9,14 @@ type HeroSectionProps = {
 
 export function HeroSection({ hero }: HeroSectionProps) {
   return (
-    <section className="pt-8 md:pt-10">
+    <section className="overflow-hidden pt-8 md:pt-10">
       <PageContainer className="max-w-[1280px]">
         <div className="grid items-center gap-8 lg:grid-cols-[minmax(0,0.72fr)_minmax(0,1fr)] lg:gap-11">
-          <div className="grid gap-6">
+          <div className="grid min-w-0 gap-6">
             <span className="inline-flex w-fit font-serif text-[11px] font-bold uppercase tracking-[0.16em] text-primary-dark">
               {hero.eyebrow}
             </span>
-            <h1 className="max-w-[520px] font-serif text-[clamp(3.2rem,7vw,5.55rem)] font-bold leading-[0.94] tracking-[-0.06em] text-[#202020]">
+            <h1 className="max-w-full overflow-hidden break-words text-balance font-serif text-[clamp(2.85rem,13vw,5.55rem)] font-bold leading-[0.94] tracking-[-0.06em] text-[#202020] sm:max-w-[520px]">
               {hero.title}
             </h1>
             <p className="max-w-[470px] font-serif text-[15px] leading-8 text-[#4e4e4e]">
@@ -59,7 +59,7 @@ export function HeroSection({ hero }: HeroSectionProps) {
             </div>
           </div>
 
-          <div className="relative">
+          <div className="relative min-w-0">
             <div className="overflow-hidden rounded-[30px] bg-[linear-gradient(180deg,#f6f3ee_0%,#ffffff_36%,#f4f0ea_100%)] shadow-[0_28px_70px_-38px_rgba(16,32,51,0.25)]">
               <img
                 src={hero.image}

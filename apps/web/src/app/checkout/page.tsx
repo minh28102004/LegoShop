@@ -32,7 +32,7 @@ import {
   getDesignTemplateName,
   isCustomFrameDesignData,
   isPersistableImageUrl,
-} from "@/features/studio/design-data";
+} from "@/modules/studio/lib/design-data";
 import type { SimpleCartItem } from "@/features/cart/store";
 
 type PaymentSettings = Pick<

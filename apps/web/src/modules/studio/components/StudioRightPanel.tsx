@@ -2,7 +2,11 @@
 
 import { useState, useMemo, useEffect, useRef } from "react";
 import { formatCurrency as formatPrice } from "@lego-shop/shared";
-import { useStudio, type ApiFrameSize, type StudioContentField } from "./StudioContext";
+import {
+  useStudio,
+  type ApiFrameSize,
+  type StudioContentField,
+} from "./StudioContext";
 import {
   Search,
   ShoppingCart,
@@ -18,7 +22,7 @@ import { useCartStore, type CartItemPart } from "@/features/cart/store";
 import { useUIStore } from "@/features/ui/store";
 import { UI_MODAL_IDS } from "@/config/routes";
 import { uploadCustomerImage } from "@/lib/api/uploads";
-import { isPersistableImageUrl } from "../design-data";
+import { isPersistableImageUrl } from "../lib/design-data";
 import type { CustomFrameDesignData } from "@lego-shop/shared";
 
 const getFrameColorHex = (name: string, apiHex?: string | null): string => {
@@ -52,8 +56,7 @@ export function StudioRightPanel() {
   const validationMessage = useMemo(() => {
     if (isLoadingData) return "Đang tải dữ liệu thiết kế...";
     if (dataError) return dataError;
-    if (step === 1 && !frameSize)
-      return "Vui lòng chọn khung.";
+    if (step === 1 && !frameSize) return "Vui lòng chọn khung.";
     if (step === 2) {
       const missingField = getMissingRequiredContentField(
         contentFields,
@@ -63,14 +66,7 @@ export function StudioRightPanel() {
         return `Vui lòng nhập ${missingField.label.toLowerCase()} để tiếp tục.`;
     }
     return null;
-  }, [
-    contentFields,
-    contentValues,
-    dataError,
-    frameSize,
-    isLoadingData,
-    step,
-  ]);
+  }, [contentFields, contentValues, dataError, frameSize, isLoadingData, step]);
   const canContinue = !validationMessage;
 
   const handleNext = () => {
@@ -80,8 +76,8 @@ export function StudioRightPanel() {
   const handleBack = () => setStep(Math.max(1, step - 1));
 
   return (
-    <div className="z-20 flex w-[520px] max-w-[44vw] shrink-0 flex-col border-l border-border bg-white shadow-[0_20px_60px_rgba(15,23,42,0.12)]">
-      <div className="flex-1 overflow-y-auto p-7 space-y-6 scrollbar-hide">
+    <div className="z-20 flex h-full w-full shrink-0 flex-col bg-white">
+      <div className="flex-1 space-y-3.5 overflow-y-auto bg-[linear-gradient(180deg,#ffffff_0%,#fbfdff_100%)] p-4 scrollbar-hide">
         <div className="animate-fade-in">
           {step === 1 && <Step1Frame />}
           {step === 2 && <Step2Content />}
@@ -90,17 +86,17 @@ export function StudioRightPanel() {
         </div>
       </div>
 
-      <div className="shrink-0 border-t border-border bg-white p-6 shadow-[0_-8px_30px_rgba(15,23,42,0.06)]">
+      <div className="shrink-0 border-t border-slate-200/70 bg-white/90 p-4 backdrop-blur shadow-[0_-12px_30px_-24px_rgba(15,23,42,0.35)]">
         {validationMessage && (
-          <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-semibold leading-relaxed text-amber-800">
+          <div className="mb-4 rounded-[18px] border border-amber-200/80 bg-amber-50/90 px-4 py-3 text-xs font-medium leading-relaxed text-amber-800 shadow-[0_12px_22px_-24px_rgba(245,158,11,0.28)]">
             {validationMessage}
           </div>
         )}
         <div className="mb-4 flex items-center justify-between px-1">
-          <span className="text-sm font-semibold text-text-muted uppercase tracking-wider">
+          <span className="text-sm font-semibold text-slate-500 uppercase tracking-wider">
             Giá tạm tính:
           </span>
-          <span className="text-2xl font-black text-[#ef9ab3] drop-shadow-sm">
+          <span className="text-xl font-bold text-[#2f91d0]">
             {formatPrice(totalPrice)}
           </span>
         </div>
@@ -110,7 +106,7 @@ export function StudioRightPanel() {
             <button
               type="button"
               onClick={handleBack}
-              className="flex items-center justify-center gap-1 rounded-xl border border-border bg-surface px-4 py-3 text-sm font-bold text-text-secondary shadow-sm transition-all hover:bg-surface-hover hover:text-text-primary"
+              className="flex h-11 items-center justify-center gap-1 rounded-2xl border border-[#e4edf5] bg-white px-4 text-sm font-semibold text-slate-600 shadow-[0_12px_22px_-24px_rgba(18,45,78,0.14)] transition-all duration-200 hover:-translate-y-px hover:border-[#c4dbed] hover:bg-[#fbfdff] hover:text-slate-950"
             >
               <ChevronLeft className="h-4 w-4" /> Quay lại
             </button>
@@ -121,7 +117,7 @@ export function StudioRightPanel() {
               type="button"
               onClick={handleNext}
               disabled={!canContinue}
-              className="flex flex-1 items-center justify-center gap-1 rounded-xl bg-[#ef9ab3] px-6 py-3 text-sm font-bold text-white shadow-md transition-all hover:-translate-y-0.5 hover:bg-[#e77f9f] hover:shadow-lg active:translate-y-0 disabled:cursor-not-allowed disabled:bg-zinc-300 disabled:text-zinc-500 disabled:shadow-none disabled:hover:translate-y-0"
+              className="flex h-11 flex-1 items-center justify-center gap-1 rounded-2xl bg-[#2f91d0] px-6 text-sm font-semibold text-white shadow-[0_16px_30px_-24px_rgba(47,145,208,0.42)] transition-all duration-200 hover:-translate-y-px hover:bg-[#257fb7] hover:shadow-[0_18px_32px_-24px_rgba(47,145,208,0.48)] active:translate-y-0 disabled:cursor-not-allowed disabled:bg-zinc-300 disabled:text-zinc-500 disabled:shadow-none disabled:hover:translate-y-0"
             >
               Tiếp theo <ChevronRight className="h-4 w-4" />
             </button>
@@ -174,12 +170,7 @@ function buildFrameSizeGroups(frameSizes: ApiFrameSize[]): FrameSizeGroup[] {
 
 // ─── Step 1: Chọn khung ────────────────────────────────────────────────────
 function Step1Frame() {
-  const {
-    frameSize,
-    setFrameSize,
-    frameSizes,
-    isLoadingData,
-  } = useStudio();
+  const { frameSize, setFrameSize, frameSizes, isLoadingData } = useStudio();
 
   const frameSizeGroups = useMemo(
     () => buildFrameSizeGroups(frameSizes),
@@ -200,8 +191,12 @@ function Step1Frame() {
     const preferredColor = selectedFrameVariant?.colorName;
     const preferredHex = selectedFrameVariant?.colorHex;
     const nextVariant =
-      group.variants.find((variant) => preferredColor && variant.colorName === preferredColor) ??
-      group.variants.find((variant) => preferredHex && variant.colorHex === preferredHex) ??
+      group.variants.find(
+        (variant) => preferredColor && variant.colorName === preferredColor,
+      ) ??
+      group.variants.find(
+        (variant) => preferredHex && variant.colorHex === preferredHex,
+      ) ??
       group.variants[0];
 
     if (nextVariant) setFrameSize(nextVariant.id);
@@ -209,13 +204,13 @@ function Step1Frame() {
 
   if (isLoadingData) {
     return (
-      <div className="rounded-lg border border-border bg-white p-4 shadow-sm">
-        <div className="mb-4 h-4 w-36 rounded bg-surface-hover animate-pulse" />
+      <div className="rounded-[22px] border border-[#e4edf5] bg-white p-4 shadow-[0_16px_34px_-30px_rgba(18,45,78,0.18)]">
+        <div className="mb-4 h-4 w-36 rounded bg-slate-100 animate-pulse" />
         <div className="grid grid-cols-3 gap-2">
           {[1, 2, 3, 4].map((i) => (
             <div
               key={i}
-              className="h-[72px] rounded-md bg-surface-hover animate-pulse"
+              className="h-[72px] rounded-[18px] bg-[#eef3f8] animate-pulse"
             />
           ))}
         </div>
@@ -224,7 +219,7 @@ function Step1Frame() {
           {[1, 2].map((i) => (
             <div
               key={i}
-              className="h-9 w-20 rounded-md bg-surface-hover animate-pulse"
+              className="h-9 w-20 rounded-[18px] bg-[#eef3f8] animate-pulse"
             />
           ))}
         </div>
@@ -234,15 +229,15 @@ function Step1Frame() {
 
   if (frameSizeGroups.length === 0) {
     return (
-      <div className="rounded-lg border border-border bg-white p-4 text-sm font-semibold text-text-muted shadow-sm">
+      <div className="rounded-[22px] border border-[#e4edf5] bg-white p-4 text-sm font-medium text-slate-500 shadow-[0_16px_34px_-30px_rgba(18,45,78,0.16)]">
         Chưa có kích thước khung.
       </div>
     );
   }
 
   return (
-    <div className="rounded-lg border border-border bg-white p-4 shadow-sm">
-      <h3 className="mb-4 text-xs font-black tracking-wide text-text-primary uppercase">
+    <div className="rounded-[22px] border border-[#e4edf5] bg-white p-4 shadow-[0_16px_34px_-30px_rgba(18,45,78,0.18)]">
+      <h3 className="mb-4 text-xs font-semibold tracking-wide text-slate-950 uppercase">
         Chọn kích thước
       </h3>
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
@@ -258,21 +253,23 @@ function Step1Frame() {
               key={group.key}
               type="button"
               onClick={() => selectFrameGroup(group)}
-              className={`relative flex h-[72px] min-w-0 flex-col items-center justify-center gap-1 rounded-md border px-2 text-center transition-all ${
+              className={`relative flex h-[72px] min-w-0 flex-col items-center justify-center gap-1 rounded-[18px] border px-2 text-center transition-all duration-200 ${
                 active
-                  ? "border-[#ef9ab3] bg-[#ef9ab3] text-white shadow-md"
-                  : "border-border bg-white text-text-primary hover:border-[#ef9ab3] hover:bg-[#fff4f7]"
+                  ? "border-[#2f91d0] bg-[#2f91d0] text-white shadow-[0_16px_30px_-24px_rgba(47,145,208,0.5)]"
+                  : "border-[#e4edf5] bg-white text-slate-950 hover:-translate-y-0.5 hover:border-[#b9d8ed] hover:bg-[#fbfdff]"
               }`}
             >
               {group.popular && (
-                <span className="absolute right-2 top-[-7px] max-w-[88px] truncate rounded-[4px] bg-amber-400 px-1.5 py-0.5 text-[9px] font-black leading-none text-amber-950 shadow-sm">
+                <span className="absolute right-2 top-[-7px] max-w-[88px] truncate rounded-full bg-amber-200 px-2 py-0.5 text-[9px] font-extrabold leading-none text-amber-900 shadow-[0_10px_18px_-18px_rgba(245,158,11,0.35)]">
                   Phổ biến nhất
                 </span>
               )}
               <span className="max-w-full truncate text-[13px] font-bold leading-tight">
                 {group.label}
               </span>
-              <span className={`text-xs font-semibold ${active ? "text-white/90" : "text-text-muted"}`}>
+              <span
+                className={`text-xs font-semibold ${active ? "text-white/90" : "text-slate-500"}`}
+              >
                 {formatPrice(displayPrice)}
               </span>
             </button>
@@ -282,7 +279,7 @@ function Step1Frame() {
 
       <div className="my-4 h-px bg-border" />
 
-      <p className="mb-2 text-[11px] font-black tracking-wide text-text-muted uppercase">
+      <p className="mb-2 text-[11px] font-semibold tracking-wide text-slate-500 uppercase">
         Màu khung
       </p>
       <div className="flex flex-wrap gap-2">
@@ -295,15 +292,20 @@ function Step1Frame() {
               key={variant.id}
               type="button"
               onClick={() => setFrameSize(variant.id)}
-              className={`inline-flex h-9 items-center gap-2 rounded-md border px-3 text-xs font-bold transition-all ${
+              className={`inline-flex h-9 items-center gap-2 rounded-full border px-3 text-xs font-semibold transition-all duration-200 ${
                 active
-                  ? "border-[#ef9ab3] bg-[#fff4f7] text-[#d94f77]"
-                  : "border-border bg-white text-text-primary hover:border-[#ef9ab3]"
+                  ? "border-[#b9d8ed] bg-[#f2f9ff] text-[#2f91d0] shadow-[0_10px_22px_-24px_rgba(47,145,208,0.32)]"
+                  : "border-[#e4edf5] bg-white text-slate-950 hover:border-[#b9d8ed] hover:bg-[#fbfdff]"
               }`}
             >
               <span
                 className="h-3.5 w-3.5 rounded-full border border-zinc-300 shadow-inner"
-                style={{ backgroundColor: getFrameColorHex(colorName, variant.colorHex) }}
+                style={{
+                  backgroundColor: getFrameColorHex(
+                    colorName,
+                    variant.colorHex,
+                  ),
+                }}
               />
               {colorName}
             </button>
@@ -357,7 +359,9 @@ function Step2Content() {
       setActiveTemplate(null);
       clearContentValues();
     } catch (error) {
-      setUploadError(error instanceof Error ? error.message : "Không tải được ảnh lên");
+      setUploadError(
+        error instanceof Error ? error.message : "Không tải được ảnh lên",
+      );
     } finally {
       setIsUploadingBackground(false);
     }
@@ -365,10 +369,10 @@ function Step2Content() {
 
   return (
     <div className="space-y-6">
-      <div className="rounded-2xl border border-border bg-white p-5 shadow-sm">
+      <div className="rounded-[22px] border border-slate-200/70 bg-white p-4.5 shadow-[0_12px_36px_rgba(15,23,42,0.05)]">
         <div className="mb-4 flex items-center justify-between">
-          <h3 className="text-sm font-bold text-text-primary">CHỌN ẢNH NỀN</h3>
-          <span className="rounded-full bg-surface-hover px-2.5 py-0.5 text-xs font-bold text-text-muted">
+          <h3 className="text-sm font-bold text-slate-950">CHỌN ẢNH NỀN</h3>
+          <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-500">
             {filteredTemplates.length + (customBackgroundUrl ? 1 : 0)} mẫu
           </span>
         </div>
@@ -377,10 +381,10 @@ function Step2Content() {
           <button
             type="button"
             onClick={() => setActiveCategoryId(null)}
-            className={`shrink-0 rounded-full px-4 py-1.5 text-xs font-bold transition-all ${
+            className={`shrink-0 rounded-full px-3.5 py-1.5 text-xs font-semibold transition-all duration-200 ${
               !activeCategoryId
-                ? "bg-[#ef9ab3] text-white shadow-md"
-                : "border border-border bg-surface text-text-secondary hover:border-[#ef9ab3]/50 hover:bg-[#fff4f7]"
+                ? "bg-[#2f91d0] text-white shadow-[0_14px_28px_-24px_rgba(47,145,208,0.5)]"
+                : "border border-[#e4edf5] bg-[#fbfdff] text-slate-600 hover:border-[#bfdcf0] hover:bg-white"
             }`}
           >
             TẤT CẢ
@@ -390,10 +394,10 @@ function Step2Content() {
               key={cat.id}
               type="button"
               onClick={() => setActiveCategoryId(cat.id)}
-              className={`shrink-0 rounded-full px-4 py-1.5 text-xs font-bold transition-all ${
+              className={`shrink-0 rounded-full px-3.5 py-1.5 text-xs font-semibold transition-all duration-200 ${
                 activeCategoryId === cat.id
-                  ? "bg-[#ef9ab3] text-white shadow-md"
-                  : "border border-border bg-surface text-text-secondary hover:border-[#ef9ab3]/50 hover:bg-[#fff4f7]"
+                  ? "bg-[#2f91d0] text-white shadow-[0_14px_28px_-24px_rgba(47,145,208,0.5)]"
+                  : "border border-[#e4edf5] bg-[#fbfdff] text-slate-600 hover:border-[#bfdcf0] hover:bg-white"
               }`}
             >
               {cat.name.toUpperCase()}
@@ -410,26 +414,26 @@ function Step2Content() {
                 setCustomBackgroundOriginalName(null);
                 clearContentValues();
               }}
-              className={`group relative aspect-square overflow-hidden rounded-xl border-2 transition-all duration-300 ${
+              className={`group relative aspect-square overflow-hidden rounded-[18px] border transition-all duration-200 ${
                 !activeTemplate
-                  ? "border-[#ef9ab3] shadow-md scale-95 ring-4 ring-[#ef9ab3]/20"
-                  : "border-transparent bg-surface-hover hover:border-[#ef9ab3]/40 hover:shadow-md"
+                  ? "border-[#79b9e8] shadow-[0_16px_28px_-24px_rgba(47,145,208,0.36)] ring-1 ring-[#d6ebfa]"
+                  : "border-[#e8eff6] bg-white hover:-translate-y-0.5 hover:border-[#bfdcf0] hover:shadow-[0_18px_34px_-26px_rgba(18,45,78,0.18)]"
               }`}
             >
               <img
                 src={customBackgroundUrl}
                 alt="Ảnh nền của bạn"
-                className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+                className="h-full w-full object-contain bg-white p-2 transition-transform duration-500 group-hover:scale-[1.03]"
               />
               {!activeTemplate && (
-                <div className="absolute inset-0 flex items-center justify-center bg-[#ef9ab3]/20 backdrop-blur-[1px]">
-                  <div className="rounded-full bg-[#ef9ab3] p-1 shadow-lg">
-                    <Check className="h-4 w-4 text-white" />
+                <div className="absolute inset-0 flex items-center justify-center bg-[#2f91d0]/12 backdrop-blur-[1px]">
+                  <div className="rounded-full bg-[#2f91d0] p-1 shadow-[0_12px_22px_-18px_rgba(47,145,208,0.45)]">
+                    <Check className="h-3 w-3 text-white" />
                   </div>
                 </div>
               )}
               <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-2 text-center pt-6">
-                <span className="block truncate text-[9px] font-extrabold uppercase tracking-wider text-white drop-shadow-md">
+                <span className="block truncate text-[9px] font-semibold uppercase tracking-wider text-white drop-shadow-sm">
                   Ảnh của bạn
                 </span>
               </div>
@@ -439,11 +443,11 @@ function Step2Content() {
             Array.from({ length: 12 }).map((_, i) => (
               <div
                 key={i}
-                className="aspect-square rounded-xl bg-surface-hover animate-pulse"
+                className="aspect-square rounded-[18px] bg-[#eef3f8] animate-pulse"
               />
             ))
           ) : filteredTemplates.length === 0 && !customBackgroundUrl ? (
-            <div className="col-span-4 py-10 text-center text-sm font-medium text-text-muted">
+            <div className="col-span-4 py-10 text-center text-sm font-medium text-slate-500">
               Chưa có mẫu nào
             </div>
           ) : (
@@ -456,10 +460,10 @@ function Step2Content() {
                   setCustomBackgroundOriginalName(null);
                   setActiveTemplate(tpl.id);
                 }}
-                className={`group relative aspect-square overflow-hidden rounded-xl border-2 transition-all duration-300 ${
+                className={`group relative aspect-square overflow-hidden rounded-[18px] border transition-all duration-200 ${
                   activeTemplate === tpl.id
-                    ? "border-[#ef9ab3] shadow-md scale-95 ring-4 ring-[#ef9ab3]/20"
-                    : "border-transparent bg-surface-hover hover:border-[#ef9ab3]/40 hover:shadow-md"
+                    ? "border-[#79b9e8] shadow-[0_16px_28px_-24px_rgba(47,145,208,0.36)] ring-1 ring-[#d6ebfa]"
+                    : "border-[#e8eff6] bg-white hover:-translate-y-0.5 hover:border-[#bfdcf0] hover:shadow-[0_18px_34px_-26px_rgba(18,45,78,0.18)]"
                 }`}
               >
                 {tpl.imageUrl ? (
@@ -467,26 +471,26 @@ function Step2Content() {
                     src={tpl.imageUrl}
                     alt={tpl.name}
                     loading="lazy"
-                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+                    className="h-full w-full object-contain bg-white p-2 transition-transform duration-500 group-hover:scale-[1.03]"
                   />
                 ) : (
-                  <div className="flex h-full w-full items-center justify-center bg-surface-hover p-2">
-                    <span className="text-center text-[10px] font-medium leading-tight text-text-muted">
+                    <div className="flex h-full w-full items-center justify-center bg-[#f8fbff] p-2">
+                    <span className="text-center text-[10px] font-medium leading-tight text-slate-500">
                       {tpl.name}
                     </span>
                   </div>
                 )}
 
                 {activeTemplate === tpl.id && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-[#ef9ab3]/20 backdrop-blur-[1px]">
-                    <div className="rounded-full bg-[#ef9ab3] p-1 shadow-lg">
-                      <Check className="h-4 w-4 text-white" />
+                  <div className="absolute inset-0 flex items-center justify-center bg-[#2f91d0]/12 backdrop-blur-[1px]">
+                    <div className="rounded-full bg-[#2f91d0] p-1 shadow-[0_12px_22px_-18px_rgba(47,145,208,0.45)]">
+                      <Check className="h-3 w-3 text-white" />
                     </div>
                   </div>
                 )}
 
                 <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-2 text-center pt-6">
-                  <span className="block truncate text-[9px] font-extrabold uppercase tracking-wider text-white drop-shadow-md">
+                  <span className="block truncate text-[9px] font-semibold uppercase tracking-wider text-white drop-shadow-sm">
                     {tpl.name}
                   </span>
                 </div>
@@ -495,15 +499,17 @@ function Step2Content() {
           )}
         </div>
 
-        <div className="mt-4 border-t border-border pt-4">
+        <div className="mt-4 border-t border-slate-200/70 pt-4">
           <button
             type="button"
             onClick={() => backgroundInputRef.current?.click()}
             disabled={isUploadingBackground}
-            className="group flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border bg-surface py-3 text-xs font-bold text-text-secondary transition-all hover:border-[#ef9ab3] hover:bg-[#fff4f7] hover:text-[#d94f77]"
+            className="group flex w-full items-center justify-center gap-2 rounded-[18px] border border-dashed border-[#d3e3f0] bg-[#fbfdff] py-3 text-xs font-semibold text-slate-600 shadow-[0_12px_24px_-24px_rgba(18,45,78,0.16)] transition-all duration-200 hover:-translate-y-0.5 hover:border-[#aed2eb] hover:bg-white hover:text-[#2f91d0]"
           >
             <UploadCloud className="h-4 w-4 transition-transform group-hover:-translate-y-1" />
-            {isUploadingBackground ? "ĐANG TẢI ẢNH..." : "TẢI ẢNH NỀN CỦA BẠN LÊN"}
+            {isUploadingBackground
+              ? "ĐANG TẢI ẢNH..."
+              : "TẢI ẢNH NỀN CỦA BẠN LÊN"}
           </button>
           <input
             ref={backgroundInputRef}
@@ -515,23 +521,25 @@ function Step2Content() {
             }
           />
           {uploadError ? (
-            <p className="mt-2 text-xs font-semibold text-red-600">{uploadError}</p>
+            <p className="mt-2 text-xs font-semibold text-red-600">
+              {uploadError}
+            </p>
           ) : null}
         </div>
       </div>
 
-      <div className="rounded-2xl border border-border bg-surface p-5 shadow-sm">
+      <div className="rounded-[22px] border border-slate-200/70 bg-[linear-gradient(180deg,#ffffff_0%,#fbfdff_100%)] p-4.5 shadow-[0_12px_36px_rgba(15,23,42,0.05)]">
         <div className="mb-4 flex justify-end">
           <button
             type="button"
-            className="text-xs font-bold text-text-muted transition-colors hover:text-error"
+            className="text-xs font-bold text-slate-500 transition-colors hover:text-red-600"
             onClick={clearContentValues}
           >
             XÓA TẤT CẢ
           </button>
         </div>
         {(selectedTemplate?.description || selectedTemplate?.instructions) && (
-          <div className="mb-4 rounded-xl border border-[#ef9ab3]/30 bg-[#fff4f7] px-4 py-3 text-xs leading-relaxed text-slate-700">
+          <div className="mb-4 rounded-[18px] border border-[#cfe4f4] bg-[#f4faff] px-4 py-3 text-xs leading-relaxed text-slate-700 shadow-[0_12px_24px_-26px_rgba(47,145,208,0.18)]">
             {selectedTemplate.description && (
               <p className="font-bold text-slate-900">
                 {selectedTemplate.description}
@@ -556,8 +564,8 @@ function Step2Content() {
           {false && (
             <>
               <div>
-                <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-wider text-text-secondary">
-                  Tên / Lời tựa ngắn <span className="text-error">*</span>
+                <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-wider text-slate-600">
+                  Tên / Lời tựa ngắn <span className="text-red-600">*</span>
                 </label>
                 <input
                   type="text"
@@ -566,11 +574,11 @@ function Step2Content() {
                   onChange={(e) =>
                     setPrintText({ ...printText, title: e.target.value })
                   }
-                  className="w-full rounded-xl border border-border bg-background p-3 text-sm font-medium text-text-primary shadow-sm outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20"
+                  className="w-full rounded-[18px] border border-[#e4edf5] bg-white p-3 text-sm font-medium text-slate-950 shadow-[0_12px_24px_-24px_rgba(18,45,78,0.14)] outline-none transition-all duration-200 focus:border-[#b9d8ed] focus:bg-[#fbfdff] focus:ring-2 focus:ring-[#dceeff]"
                 />
               </div>
               <div>
-                <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-wider text-text-secondary">
+                <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-wider text-slate-600">
                   Ngày kỷ niệm (nếu có)
                 </label>
                 <input
@@ -579,11 +587,11 @@ function Step2Content() {
                   onChange={(e) =>
                     setPrintText({ ...printText, date: e.target.value })
                   }
-                  className="w-full rounded-xl border border-border bg-background p-3 text-sm font-medium text-text-primary shadow-sm outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20"
+                  className="w-full rounded-[18px] border border-[#e4edf5] bg-white p-3 text-sm font-medium text-slate-950 shadow-[0_12px_24px_-24px_rgba(18,45,78,0.14)] outline-none transition-all duration-200 focus:border-[#b9d8ed] focus:bg-[#fbfdff] focus:ring-2 focus:ring-[#dceeff]"
                 />
               </div>
               <div>
-                <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-wider text-text-secondary">
+                <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-wider text-slate-600">
                   Lời nhắn (nếu có)
                 </label>
                 <textarea
@@ -593,7 +601,7 @@ function Step2Content() {
                     setPrintText({ ...printText, message: e.target.value })
                   }
                   rows={3}
-                  className="w-full resize-none rounded-xl border border-border bg-background p-3 text-sm font-medium text-text-primary shadow-sm outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20"
+                  className="w-full resize-none rounded-[18px] border border-[#e4edf5] bg-white p-3 text-sm font-medium text-slate-950 shadow-[0_12px_24px_-24px_rgba(18,45,78,0.14)] outline-none transition-all duration-200 focus:border-[#b9d8ed] focus:bg-[#fbfdff] focus:ring-2 focus:ring-[#dceeff]"
                 />
               </div>
             </>
@@ -615,13 +623,13 @@ function ContentFieldInput({
   onChange: (value: string) => void;
 }) {
   const inputClass =
-    "w-full rounded-[18px] border border-slate-200 bg-white px-4 py-3.5 text-sm font-semibold text-slate-900 shadow-sm outline-none transition-all placeholder:text-slate-400 focus:border-[#ef9ab3] focus:ring-2 focus:ring-[#ef9ab3]/20";
+    "w-full rounded-[18px] border border-[#e4edf5] bg-white px-4 py-3.5 text-sm font-medium text-slate-900 shadow-[0_12px_24px_-24px_rgba(18,45,78,0.14)] outline-none transition-all duration-200 placeholder:text-slate-400 focus:border-[#b9d8ed] focus:bg-[#fbfdff] focus:ring-2 focus:ring-[#dceeff]";
 
   return (
     <div>
       <label className="mb-2 block text-[12px] font-bold text-slate-700">
         {field.label}{" "}
-        {field.required && <span className="text-[#ef5f86]">*</span>}
+        {field.required && <span className="text-[#2563eb]">*</span>}
       </label>
 
       {field.type === "textarea" ? (
@@ -633,7 +641,7 @@ function ContentFieldInput({
           className={`${inputClass} resize-none`}
         />
       ) : field.type === "image" ? (
-        <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-slate-200 bg-white px-4 py-5 text-center text-sm font-bold text-slate-600 transition-all hover:border-[#ef9ab3] hover:bg-[#fff4f7] hover:text-[#d94f77]">
+        <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-[18px] border border-dashed border-[#d3e3f0] bg-[#fbfdff] px-4 py-5 text-center text-sm font-semibold text-slate-600 shadow-[0_12px_24px_-24px_rgba(18,45,78,0.14)] transition-all duration-200 hover:-translate-y-0.5 hover:border-[#aed2eb] hover:bg-white hover:text-[#2f91d0]">
           <UploadCloud className="h-5 w-5" />
           <span>{value || field.placeholder || "Chọn ảnh tải lên"}</span>
           <input
@@ -699,18 +707,23 @@ function Step3Characters() {
     [elements],
   );
   const charactersTotalPrice = useMemo(
-    () => characterElements.reduce((sum, character) => sum + (character.price ?? characterPrice), 0),
+    () =>
+      characterElements.reduce(
+        (sum, character) => sum + (character.price ?? characterPrice),
+        0,
+      ),
     [characterElements, characterPrice],
   );
 
   return (
     <div className="space-y-6">
-      <div className="rounded-xl border border-border bg-surface p-4 text-xs font-semibold leading-5 text-text-secondary shadow-sm">
-        Phí vận chuyển chưa cộng vào đơn. Shop sẽ báo phí trước khi giao và khách trả trực tiếp cho tài xế.
+      <div className="rounded-[20px] border border-[#e4edf5] bg-white p-4 text-xs font-medium leading-5 text-slate-600 shadow-[0_14px_28px_-28px_rgba(18,45,78,0.18)]">
+        Phí vận chuyển chưa cộng vào đơn. Shop sẽ báo phí trước khi giao và
+        khách trả trực tiếp cho tài xế.
       </div>
 
-      <div className="rounded-2xl border border-border bg-surface p-5 shadow-sm">
-        <h3 className="mb-4 text-sm font-bold text-text-primary uppercase">
+      <div className="rounded-[22px] border border-slate-200/70 bg-[linear-gradient(180deg,#ffffff_0%,#fbfdff_100%)] p-4.5 shadow-[0_12px_36px_rgba(15,23,42,0.05)]">
+        <h3 className="mb-4 text-sm font-bold text-slate-950 uppercase">
           Quản lý nhân vật
         </h3>
         {characters.length > 0 ? (
@@ -720,18 +733,28 @@ function Step3Characters() {
                 key={character.id}
                 type="button"
                 onClick={() => addCharacter(character)}
-                className="flex min-w-0 items-center gap-3 rounded-xl border border-border bg-white p-2 text-left transition hover:border-[#ef9ab3]/60 hover:bg-[#fff4f7]"
+                className="flex min-w-0 items-center gap-3 rounded-[18px] border border-[#e4edf5] bg-white p-2 text-left shadow-[0_12px_24px_-24px_rgba(18,45,78,0.12)] transition-all duration-200 hover:-translate-y-0.5 hover:border-[#b9d8ed] hover:bg-[#fbfdff]"
               >
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-border bg-surface-hover">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-[16px] border border-[#e4edf5] bg-[#f8fbff]">
                   {character.imageUrl ? (
-                    <img src={character.imageUrl} alt={character.name} className="h-full w-full object-cover" />
+                    <img
+                      src={character.imageUrl}
+                      alt={character.name}
+                      className="h-full w-full object-cover"
+                    />
                   ) : (
-                    <span className="text-xs font-black text-text-muted">NV</span>
+                    <span className="text-xs font-semibold text-slate-500">
+                      NV
+                    </span>
                   )}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-xs font-black text-text-primary">{character.name}</p>
-                  <p className="text-[11px] font-semibold text-[#ef5f86]">{formatPrice(character.price)}</p>
+                  <p className="truncate text-xs font-semibold text-slate-950">
+                    {character.name}
+                  </p>
+                  <p className="text-[11px] font-semibold text-[#2563eb]">
+                    {formatPrice(character.price)}
+                  </p>
                 </div>
               </button>
             ))}
@@ -745,10 +768,10 @@ function Step3Characters() {
                 <button
                   type="button"
                   onClick={() => setSelectedId(character.id)}
-                  className={`h-10 rounded-xl border px-4 text-sm font-black transition-all ${
+                  className={`h-10 rounded-full border px-4 text-sm font-semibold transition-all duration-200 ${
                     active
-                      ? "border-[#ef9ab3] bg-[#fff4f7] text-[#ef5f86] shadow-sm"
-                      : "border-border bg-surface-hover text-text-secondary hover:border-[#ef9ab3]/60 hover:bg-[#fff4f7]"
+                      ? "border-[#cfe4f4] bg-[#f2f9ff] text-[#2f91d0] shadow-[0_12px_24px_-24px_rgba(47,145,208,0.24)]"
+                      : "border-[#e4edf5] bg-white text-slate-600 hover:border-[#b9d8ed] hover:bg-[#fbfdff]"
                   }`}
                 >
                   {character.content || `NV ${index + 1}`}
@@ -759,7 +782,7 @@ function Step3Characters() {
                     event.stopPropagation();
                     removeElement(character.id);
                   }}
-                  className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-error text-xs font-black leading-none text-white shadow-sm transition-transform hover:scale-105"
+                  className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-error text-xs font-semibold leading-none text-white shadow-[0_10px_18px_-16px_rgba(239,68,68,0.42)] transition-all duration-200 hover:-translate-y-0.5"
                   aria-label={`Xóa ${character.content || `NV ${index + 1}`}`}
                 >
                   ×
@@ -770,37 +793,37 @@ function Step3Characters() {
           <button
             type="button"
             onClick={() => addCharacter()}
-            className="flex h-10 items-center gap-2 rounded-xl bg-emerald-500 px-5 text-sm font-black text-white shadow-md transition-all hover:-translate-y-0.5 hover:bg-emerald-600 hover:shadow-lg active:translate-y-0"
+            className="flex h-10 items-center gap-2 rounded-full bg-emerald-500 px-5 text-sm font-semibold text-white shadow-[0_14px_28px_-24px_rgba(16,185,129,0.45)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-emerald-600 hover:shadow-[0_18px_32px_-24px_rgba(16,185,129,0.5)] active:translate-y-0"
           >
             <span>+</span> Thêm ({formatPrice(characterPrice)})
           </button>
         </div>
         {characterCount > 0 && (
-          <div className="mt-4 flex items-center justify-between rounded-lg bg-surface-hover px-3 py-2 text-xs font-medium text-text-secondary">
+          <div className="mt-4 flex items-center justify-between rounded-[18px] bg-[#f7fbff] px-3 py-2 text-xs font-medium text-slate-600 ring-1 ring-[#e6eef5]">
             <span>
               {characterCount} nhân vật × {formatPrice(characterPrice)}
             </span>
-            <span className="font-bold text-text-primary">
+            <span className="font-bold text-slate-950">
               {formatPrice(charactersTotalPrice)}
             </span>
           </div>
         )}
       </div>
 
-      <div className="rounded-2xl border border-border bg-surface shadow-sm overflow-hidden flex flex-col">
-        <div className="border-b border-border bg-background px-5 py-4">
-          <h3 className="mb-4 text-sm font-bold text-text-primary uppercase">
+      <div className="flex flex-col overflow-hidden rounded-[22px] border border-slate-200/70 bg-[linear-gradient(180deg,#ffffff_0%,#fbfdff_100%)] shadow-[0_12px_36px_rgba(15,23,42,0.05)]">
+        <div className="border-b border-[#e7eef5] bg-transparent px-5 py-4">
+          <h3 className="mb-4 text-sm font-bold text-slate-950 uppercase">
             Thêm phụ kiện & Charm
           </h3>
 
           <div className="relative mb-4">
-            <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
+            <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
             <input
               type="text"
               placeholder="Tìm phụ kiện (hoa, xe, bóng bay...)"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full rounded-xl border border-border bg-surface py-2.5 pl-10 pr-4 text-sm font-medium shadow-inner outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20"
+              className="w-full rounded-[18px] border border-[#e4edf5] bg-white py-2.5 pl-10 pr-4 text-sm font-medium shadow-[0_10px_22px_-24px_rgba(18,45,78,0.12)] outline-none transition-all duration-200 focus:border-[#b9d8ed] focus:bg-[#fbfdff] focus:ring-2 focus:ring-[#dceeff]"
             />
           </div>
 
@@ -810,8 +833,8 @@ function Step3Characters() {
               onClick={() => setActiveCategoryId(null)}
               className={`shrink-0 rounded-full px-4 py-1.5 text-xs font-bold transition-all ${
                 !activeCategoryId
-                  ? "bg-text-primary text-background shadow-md"
-                  : "border border-border bg-surface text-text-secondary hover:border-text-muted hover:bg-surface-hover"
+                  ? "bg-[#2f91d0] text-white shadow-[0_14px_28px_-24px_rgba(47,145,208,0.45)]"
+                  : "border border-[#e4edf5] bg-[#fbfdff] text-slate-600 hover:border-[#bfdcf0] hover:bg-white"
               }`}
             >
               TẤT CẢ
@@ -823,8 +846,8 @@ function Step3Characters() {
                 onClick={() => setActiveCategoryId(cat.id)}
                 className={`shrink-0 rounded-full px-4 py-1.5 text-xs font-bold transition-all ${
                   activeCategoryId === cat.id
-                    ? "bg-text-primary text-background shadow-md"
-                    : "border border-border bg-surface text-text-secondary hover:border-text-muted hover:bg-surface-hover"
+                    ? "bg-[#2f91d0] text-white shadow-[0_14px_28px_-24px_rgba(47,145,208,0.45)]"
+                    : "border border-[#e4edf5] bg-[#fbfdff] text-slate-600 hover:border-[#bfdcf0] hover:bg-white"
                 }`}
               >
                 {cat.name.toUpperCase()}
@@ -833,16 +856,16 @@ function Step3Characters() {
           </div>
         </div>
 
-        <div className="grid max-h-[340px] grid-cols-4 gap-3 overflow-y-auto bg-surface p-5 scrollbar-hide">
+        <div className="grid max-h-[340px] grid-cols-4 gap-3 overflow-y-auto bg-transparent p-5 scrollbar-hide">
           {isLoadingData ? (
             Array.from({ length: 12 }).map((_, i) => (
               <div
                 key={i}
-                className="aspect-square rounded-xl bg-surface-hover animate-pulse"
+                className="aspect-square rounded-[18px] bg-[#eef3f8] animate-pulse"
               />
             ))
           ) : filteredAccessories.length === 0 ? (
-            <div className="col-span-4 py-10 text-center text-sm font-medium text-text-muted">
+            <div className="col-span-4 py-10 text-center text-sm font-medium text-slate-500">
               Không tìm thấy phụ kiện phù hợp
             </div>
           ) : (
@@ -869,10 +892,10 @@ function Step3Characters() {
                         accessoryId: acc.id,
                       });
                   }}
-                  className={`group relative flex aspect-square flex-col items-center justify-center overflow-hidden rounded-xl border-2 p-2 transition-all duration-300 ${
+                  className={`group relative flex aspect-square flex-col items-center justify-center overflow-hidden rounded-[18px] border p-2 transition-all duration-300 ${
                     isAdded
-                      ? "border-[#ef9ab3] bg-[#fff4f7] shadow-inner"
-                      : "border-border bg-surface hover:border-[#ef9ab3]/40 hover:bg-[#fff4f7]/50 hover:shadow-md"
+                      ? "border-[#cfe4f4] bg-[#f2f9ff] shadow-[0_14px_26px_-24px_rgba(47,145,208,0.24)]"
+                      : "border-[#e4edf5] bg-white hover:-translate-y-0.5 hover:border-[#bfdcf0] hover:bg-[#fbfdff] hover:shadow-[0_18px_34px_-26px_rgba(18,45,78,0.18)]"
                   }`}
                 >
                   {acc.imageUrl || acc.iconUrl ? (
@@ -883,19 +906,19 @@ function Step3Characters() {
                       className="h-10 w-10 object-contain transition-transform duration-300 group-hover:scale-110 drop-shadow-sm"
                     />
                   ) : (
-                    <div className="h-10 w-10 rounded-lg bg-surface-hover" />
+                    <div className="h-10 w-10 rounded-[14px] bg-[#eef3f8]" />
                   )}
 
-                  <span className="mt-2 w-full truncate px-1 text-center text-[10px] font-bold text-text-secondary">
+                  <span className="mt-2 w-full truncate px-1 text-center text-[10px] font-bold text-slate-600">
                     {acc.name}
                   </span>
 
-                  <span className="mt-0.5 text-[10px] font-black text-[#ef5f86]">
+                  <span className="mt-0.5 text-[10px] font-semibold text-[#2f91d0]">
                     {formatPrice(acc.price)}
                   </span>
 
                   {isAdded && (
-                    <div className="absolute right-1.5 top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-[#ef9ab3] shadow-sm">
+                    <div className="absolute right-1.5 top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-[#2f91d0] shadow-[0_10px_18px_-16px_rgba(47,145,208,0.45)]">
                       <Check className="h-3 w-3 text-white" />
                     </div>
                   )}
@@ -987,15 +1010,20 @@ function Step4Finish() {
 
     const matchedField = contentFields.find((field) => {
       const haystack = `${field.key} ${field.label}`.toLowerCase();
-      return candidates.some((candidate) => haystack.includes(candidate.toLowerCase()));
+      return candidates.some((candidate) =>
+        haystack.includes(candidate.toLowerCase()),
+      );
     });
-    const matchedValue = matchedField ? contentValues[matchedField.key] : undefined;
+    const matchedValue = matchedField
+      ? contentValues[matchedField.key]
+      : undefined;
 
     return matchedValue?.trim() || fallback;
   };
 
   const backgroundId =
-    selectedTemplate?.source === "background" && selectedTemplate.id.startsWith("background:")
+    selectedTemplate?.source === "background" &&
+    selectedTemplate.id.startsWith("background:")
       ? selectedTemplate.id.replace("background:", "")
       : null;
 
@@ -1009,10 +1037,25 @@ function Step4Finish() {
     backgroundId,
     backgroundName: selectedTemplate?.name ?? null,
     content: {
-      recipientName: getContentValue(["recipientName", "title", "name", "ten"], printText.title),
-      graduationDate: getContentValue(["graduationDate", "date", "ngay"], printText.date),
-      majorOrSchool: getContentValue(["majorOrSchool", "major", "school", "nganh", "truong"]),
-      message: getContentValue(["message", "note", "loi", "thong"], printText.message),
+      recipientName: getContentValue(
+        ["recipientName", "title", "name", "ten"],
+        printText.title,
+      ),
+      graduationDate: getContentValue(
+        ["graduationDate", "date", "ngay"],
+        printText.date,
+      ),
+      majorOrSchool: getContentValue([
+        "majorOrSchool",
+        "major",
+        "school",
+        "nganh",
+        "truong",
+      ]),
+      message: getContentValue(
+        ["message", "note", "loi", "thong"],
+        printText.message,
+      ),
     },
     uploadedImages: customBackgroundUrl
       ? [
@@ -1038,20 +1081,36 @@ function Step4Finish() {
           rotate: 0,
         },
       })),
-    characters: characterItems
-      .map((el, index) => ({
+    characters: characterItems.map((el, index) => {
+      const x = el.x;
+      const y = el.y;
+      const scale = el.width ? el.width / 46 : 1;
+      const rotation = 0;
+
+      return {
         id: el.id,
         ...(el.characterId ? { catalogId: el.characterId } : {}),
         name: el.content || `NV ${index + 1}`,
+        x,
+        y,
+        scale,
+        rotation,
+        faceId: "custom-face",
+        hairId: "custom-hair",
+        torsoId: "custom-torso",
+        legsId: "custom-legs",
+        accessoryIds: [],
         imageUrl: el.imageUrl ?? null,
         price: el.price ?? characterPrice,
         position: {
-          x: el.x,
-          y: el.y,
-          scale: el.width ? el.width / 46 : 1,
-          rotate: 0,
+          x,
+          y,
+          scale,
+          rotate: rotation,
+          rotation,
         },
-      })),
+      };
+    }),
     previewUrl,
   });
 
@@ -1070,11 +1129,15 @@ function Step4Finish() {
     }
 
     if (selectedTemplate || customBackgroundUrl) {
-      const imageUrl = customBackgroundUrl ?? selectedTemplate?.imageUrl ?? null;
+      const imageUrl =
+        customBackgroundUrl ?? selectedTemplate?.imageUrl ?? null;
       parts.push({
         ...(backgroundId ? { id: backgroundId } : {}),
         type: "background",
-        name: selectedTemplate?.name ?? customBackgroundOriginalName ?? "Anh nen tuy chinh",
+        name:
+          selectedTemplate?.name ??
+          customBackgroundOriginalName ??
+          "Anh nen tuy chinh",
         quantity: 1,
         unitPrice: 0,
         totalPrice: 0,
@@ -1155,61 +1218,61 @@ function Step4Finish() {
   return (
     <div className="space-y-6">
       {seconds > 0 && (
-        <div className="flex items-center justify-between rounded-2xl bg-gradient-to-r from-orange-400 to-amber-500 p-4 text-white shadow-md animate-fade-in">
+        <div className="flex items-center justify-between rounded-[22px] bg-gradient-to-r from-[#2f91d0] to-[#5aaee3] px-4 py-3 text-white shadow-[0_14px_28px_-24px_rgba(47,145,208,0.34)] animate-fade-in">
           <div>
-            <div className="flex items-center gap-1.5 text-sm font-black tracking-wide">
+            <div className="flex items-center gap-1.5 text-[13px] font-semibold tracking-wide">
               <Zap className="h-4 w-4 fill-white" /> ƯU ĐÃI PHÚT CHÓT!
             </div>
-            <div className="mt-1 text-xs font-medium text-white/90">
+            <div className="mt-1 text-[11px] font-medium text-white/90">
               Hoàn tất thiết kế ngay để nhận 1 Sticker quà tặng
             </div>
           </div>
-          <div className="rounded-xl bg-black/20 px-3 py-2 font-mono text-xl font-black tracking-widest backdrop-blur-sm shadow-inner">
+          <div className="rounded-2xl bg-white/16 px-2.5 py-1.5 font-mono text-lg font-bold tracking-widest backdrop-blur-sm shadow-[inset_0_1px_0_rgba(255,255,255,0.28)]">
             {timerMins}:{timerSecs}
           </div>
         </div>
       )}
 
-      <div className="overflow-hidden rounded-2xl border border-border bg-surface shadow-sm">
-        <div className="flex items-center justify-between border-b border-border bg-background px-5 py-4">
-          <h3 className="text-sm font-bold text-text-primary uppercase tracking-wide">
+      <div className="overflow-hidden rounded-[22px] border border-slate-200/70 bg-[linear-gradient(180deg,#ffffff_0%,#fbfdff_100%)] shadow-[0_12px_36px_rgba(15,23,42,0.05)]">
+        <div className="flex items-center justify-between border-b border-[#e7eef5] bg-transparent px-5 py-4">
+          <h3 className="text-sm font-bold text-slate-950 uppercase tracking-wide">
             Chi tiết thiết kế
           </h3>
-          <span className="rounded-full bg-surface-hover px-2.5 py-1 text-xs font-bold text-text-secondary shadow-inner">
+          <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-600 shadow-inner">
             {characterCount} NV
           </span>
         </div>
 
         <div className="divide-y divide-border">
           {frameObj && (
-            <div className="flex items-start justify-between px-5 py-4 transition-colors hover:bg-surface-hover/50">
+            <div className="flex items-start justify-between px-5 py-4 transition-colors hover:bg-slate-100/50">
               <div>
-                <p className="text-sm font-bold text-text-primary">
+                <p className="text-sm font-bold text-slate-950">
                   {frameObj.label}
                 </p>
                 {frameObj.colorName ? (
-                  <p className="mt-0.5 text-xs font-medium text-text-muted">
+                  <p className="mt-0.5 text-xs font-medium text-slate-500">
                     Màu: {frameObj.colorName}
                   </p>
                 ) : null}
               </div>
-              <span className="text-sm font-bold text-text-primary">
+              <span className="text-sm font-bold text-slate-950">
                 {formatPrice(frameObj.price)}
               </span>
             </div>
           )}
 
           {characterCount > 0 && (
-            <div className="flex items-start justify-between px-5 py-4 transition-colors hover:bg-surface-hover/50">
+            <div className="flex items-start justify-between px-5 py-4 transition-colors hover:bg-slate-100/50">
               <div>
-                <p className="text-sm font-bold text-text-primary">
+                <p className="text-sm font-bold text-slate-950">
                   Nhân vật LEGO
                 </p>
-                <p className="mt-0.5 text-xs font-medium text-text-muted">
+                <p className="mt-0.5 text-xs font-medium text-slate-500">
                   {characterCount} × {formatPrice(characterPrice)}
                 </p>
               </div>
-              <span className="text-sm font-bold text-text-primary">
+              <span className="text-sm font-bold text-slate-950">
                 {formatPrice(charactersTotalPrice)}
               </span>
             </div>
@@ -1218,45 +1281,43 @@ function Step4Finish() {
           {accessoryItems.map((el) => (
             <div
               key={el.id}
-              className="flex items-start justify-between px-5 py-4 transition-colors hover:bg-surface-hover/50"
+              className="flex items-start justify-between px-5 py-4 transition-colors hover:bg-slate-100/50"
             >
               <div>
-                <p className="text-sm font-bold text-text-primary">
-                  {el.content}
-                </p>
-                <p className="mt-0.5 text-xs font-medium text-text-muted">
+                <p className="text-sm font-bold text-slate-950">{el.content}</p>
+                <p className="mt-0.5 text-xs font-medium text-slate-500">
                   Số lượng: 1
                 </p>
               </div>
-              <span className="text-sm font-bold text-text-primary">
+              <span className="text-sm font-bold text-slate-950">
                 {formatPrice(el.price || 0)}
               </span>
             </div>
           ))}
         </div>
 
-        <div className="border-t-2 border-dashed border-border bg-background px-5 py-5">
+        <div className="border-t border-dashed border-[#dbe7f1] bg-[#fbfdff] px-5 py-5">
           <div className="flex items-center justify-between">
-            <span className="text-sm font-black uppercase text-text-secondary tracking-widest">
+            <span className="text-sm font-semibold uppercase text-slate-600 tracking-widest">
               Tổng cộng
             </span>
-            <span className="text-2xl font-black text-[#ef9ab3] drop-shadow-sm">
+            <span className="text-xl font-bold text-[#2f91d0]">
               {formatPrice(totalPrice)}
             </span>
           </div>
-          <p className="mt-2 text-right text-xs font-medium text-text-muted">
+          <p className="mt-2 text-right text-xs font-medium text-slate-500">
             Chưa bao gồm phí ship. Shop báo phí trước khi giao.
           </p>
         </div>
       </div>
 
-      <div className="flex items-start gap-3 rounded-2xl border border-blue-200 bg-blue-50/50 p-4 shadow-sm">
+      <div className="flex items-start gap-3 rounded-[22px] border border-[#cfe4f4] bg-[#f4faff] p-4 shadow-[0_14px_28px_-28px_rgba(47,145,208,0.18)]">
         <span className="text-xl">💡</span>
         <div>
-          <p className="mb-1 text-xs font-black text-blue-700 uppercase tracking-wider">
+          <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-blue-700">
             Mẹo: Đặt sớm (Early Bird)
           </p>
-          <p className="text-xs font-medium leading-relaxed text-blue-600/90">
+          <p className="text-xs font-medium leading-relaxed text-[#437ea8]">
             Sản phẩm cần <strong>1-2 ngày</strong> hoàn thiện. Chọn ngày nhận{" "}
             <strong>sau 20 ngày</strong> để được giảm ngay{" "}
             <span className="font-bold text-blue-800">5%</span>!
@@ -1268,7 +1329,7 @@ function Step4Finish() {
         {checkoutBlockMessage ? (
           <div
             role="alert"
-            className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold leading-relaxed text-amber-800 shadow-sm"
+            className="rounded-[22px] border border-amber-200/80 bg-amber-50/90 px-4 py-3 text-sm font-medium leading-relaxed text-amber-800 shadow-[0_14px_28px_-28px_rgba(245,158,11,0.24)]"
           >
             <div className="flex items-start gap-2">
               <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
@@ -1278,7 +1339,7 @@ function Step4Finish() {
               <button
                 type="button"
                 onClick={() => setStep(2)}
-                className="mt-3 inline-flex h-9 items-center justify-center rounded-xl border border-amber-300 bg-white px-3 text-xs font-black text-amber-900 transition-colors hover:bg-amber-100"
+                className="mt-3 inline-flex h-9 items-center justify-center rounded-full border border-amber-300 bg-white px-3 text-xs font-semibold text-amber-900 transition-colors duration-200 hover:bg-amber-100"
               >
                 Điền nội dung
               </button>
@@ -1290,7 +1351,7 @@ function Step4Finish() {
           type="button"
           onClick={handleBuyNow}
           disabled={!canCheckout}
-          className="group relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-xl bg-[#ef9ab3] px-4 py-4 text-sm font-bold text-white shadow-lg transition-all duration-300 hover:-translate-y-1 hover:bg-[#e77f9f] hover:shadow-xl active:translate-y-0 disabled:cursor-not-allowed disabled:bg-zinc-300 disabled:text-zinc-500 disabled:shadow-none disabled:hover:translate-y-0"
+          className="group relative flex h-11 w-full items-center justify-center gap-2 overflow-hidden rounded-2xl bg-[#2f91d0] px-4 text-sm font-semibold text-white shadow-[0_16px_30px_-24px_rgba(47,145,208,0.42)] transition-all duration-300 hover:-translate-y-px hover:bg-[#257fb7] hover:shadow-[0_18px_32px_-24px_rgba(47,145,208,0.48)] active:translate-y-0 disabled:cursor-not-allowed disabled:bg-zinc-300 disabled:text-zinc-500 disabled:shadow-none disabled:hover:translate-y-0"
         >
           <div className="absolute inset-0 flex h-full w-full justify-center [transform:skew(-12deg)_translateX(-150%)] group-hover:duration-1000 group-hover:[transform:skew(-12deg)_translateX(150%)]">
             <div className="relative h-full w-8 bg-white/20" />
@@ -1304,9 +1365,10 @@ function Step4Finish() {
             type="button"
             onClick={handleAddToCart}
             disabled={!canCheckout}
-            className="flex items-center justify-center gap-2 rounded-xl border-2 border-border bg-surface px-4 py-3.5 text-sm font-bold text-text-primary shadow-sm transition-all hover:border-[#ef9ab3]/60 hover:bg-[#fff4f7] hover:text-[#d94f77] disabled:cursor-not-allowed disabled:bg-zinc-100 disabled:text-zinc-400"
+            className="flex h-11 items-center justify-center gap-2 rounded-2xl border border-[#e4edf5] bg-white px-4 text-sm font-semibold text-slate-950 shadow-[0_14px_28px_-28px_rgba(18,45,78,0.16)] transition-all duration-200 hover:-translate-y-px hover:border-[#bfdcf0] hover:bg-[#fbfdff] hover:text-[#2f91d0] disabled:cursor-not-allowed disabled:bg-zinc-100 disabled:text-zinc-400"
           >
-            <ShoppingCart className="h-4 w-4" /> {isEditMode ? "Cập nhật thiết kế" : "Thêm vào giỏ"}
+            <ShoppingCart className="h-4 w-4" />{" "}
+            {isEditMode ? "Cập nhật thiết kế" : "Thêm vào giỏ"}
           </button>
         </div>
       </div>

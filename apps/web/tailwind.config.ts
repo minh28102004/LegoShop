@@ -210,17 +210,13 @@ const config: Config = {
         none: 'none',
       },
       transitionDuration: {
-        instant: 'var(--duration-instant)',
         fast: 'var(--duration-fast)',
         normal: 'var(--duration-normal)',
         slow: 'var(--duration-slow)',
-        slower: 'var(--duration-slower)',
       },
       transitionTimingFunction: {
         'ease-smooth': 'var(--ease-smooth)',
         'ease-spring': 'var(--ease-spring)',
-        'ease-bounce': 'var(--ease-bounce)',
-        'ease-in-expo': 'var(--ease-in-expo)',
         'ease-out-expo': 'var(--ease-out-expo)',
       },
       keyframes: {
@@ -314,7 +310,6 @@ const config: Config = {
         'z-overlay': 'var(--z-overlay)',
         'z-modal': 'var(--z-modal)',
         'z-popover': 'var(--z-popover)',
-        'z-toast': 'var(--z-toast)',
         'z-tooltip': 'var(--z-tooltip)',
       },
     },

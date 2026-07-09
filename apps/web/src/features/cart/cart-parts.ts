@@ -1,5 +1,5 @@
 import type { CartItemPart, CartItemPartType, SimpleCartItem } from './store';
-import { isCustomFrameDesignData } from "@/features/studio/design-data";
+import { isCustomFrameDesignData } from "@/modules/studio/lib/design-data";
 
 const DEFAULT_CHARACTER_PRICE = 10000;
 type CartAccessory = NonNullable<SimpleCartItem["accessories"]>[number];

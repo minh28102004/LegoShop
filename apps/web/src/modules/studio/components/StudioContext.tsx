@@ -4,7 +4,7 @@ import { createContext, useCallback, useContext, useMemo, useRef, useState, Reac
 import { resolveApiAssetUrl } from "@/lib/api/assets";
 import { publicApiClient } from "@/lib/api/public-client";
 import { useCartStore, type SimpleCartItem } from "@/features/cart/store";
-import { isCustomFrameDesignData } from "../design-data";
+import { isCustomFrameDesignData } from "../lib/design-data";
 import type { Character, FrameBackground, FrameOption, JsonObject, JsonValue } from "@lego-shop/shared";
 
 export type ElementType = "text" | "accessory" | "character";
@@ -769,13 +769,19 @@ export function StudioProvider({ children }: { children: ReactNode }) {
         ...designData.characters.map((character, index) => {
           const catalogCharacter = character.catalogId ? characterById.get(character.catalogId) : null;
           const imageUrl = character.imageUrl ?? catalogCharacter?.imageUrl ?? null;
+          const position = character.position ?? {
+            x: character.x,
+            y: character.y,
+            scale: character.scale,
+            rotate: character.rotation,
+          };
           const element: StudioElement = {
             id: character.id || `character-${index + 1}`,
             type: "character",
-            x: character.position.x,
-            y: character.position.y,
-            width: 46 * character.position.scale,
-            height: 74 * character.position.scale,
+            x: position.x,
+            y: position.y,
+            width: 46 * position.scale,
+            height: 74 * position.scale,
             content: character.name ?? catalogCharacter?.name ?? `NV ${index + 1}`,
             price: character.price ?? catalogCharacter?.price ?? CHARACTER_PRICE,
           };

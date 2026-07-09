@@ -1,34 +1,32 @@
-import type { Metadata } from 'next'
-
-import { FOOTER_LINKS, HEADER_NAV } from './routes'
+import type { Metadata } from "next";
 
 export const SITE = {
-  name: 'Figure Lab',
-  tagline: 'Quà tặng cá nhân hóa tinh tế cho những khoảnh khắc đáng nhớ',
+  name: "Figure Lab",
+  tagline: "Quà tặng cá nhân hóa tinh tế cho những khoảnh khắc đáng nhớ",
   description:
-    'Figure Lab mang đến quà tặng cá nhân hóa với figure, mô hình, khung tranh và gift box dành cho sinh nhật, tốt nghiệp, kỷ niệm và doanh nghiệp.',
-  url: 'https://figurelab.vn',
-  email: 'hello@figurelab.vn',
-  phone: '0901 234 567',
-  address: 'Quận 1, TP. Hồ Chí Minh',
-  locale: 'vi-VN',
-  currency: 'VND',
-  twitterHandle: '@figurelab.vn',
-  ogImage: '/og-image.jpg',
-} as const
+    "Figure Lab mang đến quà tặng cá nhân hóa với figure, mô hình, khung tranh và gift box dành cho sinh nhật, tốt nghiệp, kỷ niệm và doanh nghiệp.",
+  url: "https://figurelab.vn",
+  email: "hello@figurelab.vn",
+  phone: "0901 234 567",
+  address: "Quận 1, TP. Hồ Chí Minh",
+  locale: "vi-VN",
+  currency: "VND",
+  twitterHandle: "@figurelab.vn",
+  ogImage: "/og-image.jpg",
+} as const;
 
 export const SOCIAL_LINKS = {
-  facebook: 'https://facebook.com/figurelab.vn',
-  instagram: 'https://instagram.com/figurelab.vn',
-  tiktok: 'https://tiktok.com/@figurelab.vn',
-  youtube: 'https://youtube.com/@figurelabvn',
-} as const
+  facebook: "https://facebook.com/figurelab.vn",
+  instagram: "https://instagram.com/figurelab.vn",
+  tiktok: "https://tiktok.com/@figurelab.vn",
+  youtube: "https://youtube.com/@figurelabvn",
+} as const;
 
 export const SEO = {
   defaultTitle: `${SITE.name} - Quà tặng cá nhân hóa tinh tế`,
   titleTemplate: `%s | ${SITE.name}`,
   defaultDescription: SITE.description,
-} as const
+} as const;
 
 export const siteConfig = {
   metadata: {
@@ -40,18 +38,14 @@ export const siteConfig = {
     locale: SITE.locale,
     ogImage: SITE.ogImage,
     keywords: [
-      'Figure Lab',
-      'quà tặng cá nhân hóa',
-      'figure quà tặng',
-      'museum box',
-      'love notes box',
-      'khung tranh lego',
-      'gift box doanh nghiệp',
+      "Figure Lab",
+      "quà tặng cá nhân hóa",
+      "figure quà tặng",
+      "museum box",
+      "love notes box",
+      "khung tranh lego",
+      "gift box doanh nghiệp",
     ],
-  },
-  navigation: {
-    header: HEADER_NAV,
-    footer: FOOTER_LINKS,
   },
   socialLinks: SOCIAL_LINKS,
   contact: {
@@ -59,14 +53,14 @@ export const siteConfig = {
     phone: SITE.phone,
     address: SITE.address,
   },
-} as const
+} as const;
 
 export function generatePageMetadata(
   title: string,
   description: string,
   image?: string,
 ): Metadata {
-  const imageUrl = image ?? siteConfig.metadata.ogImage
+  const imageUrl = image ?? siteConfig.metadata.ogImage;
 
   return {
     title,
@@ -77,14 +71,14 @@ export function generatePageMetadata(
       url: siteConfig.metadata.url,
       siteName: siteConfig.metadata.name,
       locale: siteConfig.metadata.locale,
-      type: 'website',
+      type: "website",
       images: [{ url: imageUrl, alt: title }],
     },
     twitter: {
-      card: 'summary_large_image',
+      card: "summary_large_image",
       title,
       description,
       images: [imageUrl],
     },
-  }
+  };
 }

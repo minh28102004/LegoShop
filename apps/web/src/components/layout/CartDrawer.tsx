@@ -13,7 +13,10 @@ import { getCartItemParts } from '@/features/cart/cart-parts'
 import { resolveApiAssetUrl } from '@/lib/api/assets'
 import { selectActiveModal, useUIStore } from '@/features/ui/store'
 import type { SimpleCartItem } from '@/features/cart/store'
-import { getDesignCharacterCount, getDesignTemplateName } from '@/features/studio/design-data'
+import {
+  getDesignCharacterCount,
+  getDesignTemplateName,
+} from '@/modules/studio/lib/design-data'
 
 export interface CartDrawerProps {
   className?: string

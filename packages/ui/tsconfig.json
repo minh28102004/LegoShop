@@ -16,8 +16,6 @@
     "forceConsistentCasingInFileNames": true,
     "noEmitOnError": true,
     "skipLibCheck": true,
-    "types": ["react", "react-dom"],
-    "typeRoots": ["../../apps/web/node_modules/@types"],
     "paths": {
       "clsx": ["../../apps/web/node_modules/clsx"],
       "@radix-ui/react-slot": ["../../apps/web/node_modules/@radix-ui/react-slot"],

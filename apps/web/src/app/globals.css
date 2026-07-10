@@ -137,9 +137,54 @@
     --color-warning-soft: 41 35% 20%;
   }
 
-  * {
+  *,
+  ::before,
+  ::after {
     box-sizing: border-box;
+    border-width: 0;
+    border-style: solid;
     border-color: hsl(var(--color-border));
+  }
+
+  button,
+  input,
+  optgroup,
+  select,
+  textarea {
+    margin: 0;
+    font: inherit;
+    color: inherit;
+  }
+
+  button,
+  [type="button"],
+  [type="reset"],
+  [type="submit"] {
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: none;
+    border-style: solid;
+  }
+
+  button,
+  [role="button"] {
+    cursor: pointer;
+  }
+
+  :disabled {
+    cursor: default;
+  }
+
+  .studio-workbench button,
+  .studio-workbench [role="button"] {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .studio-workbench button:focus,
+  .studio-workbench button:focus-visible,
+  .studio-workbench [role="button"]:focus,
+  .studio-workbench [role="button"]:focus-visible {
+    outline: none;
   }
 
   html {

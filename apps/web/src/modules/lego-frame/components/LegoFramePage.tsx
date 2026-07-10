@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import {
@@ -373,6 +373,91 @@ function addRetailItemToCart(item: RetailCatalogItem) {
   openCartDrawer();
 }
 
+/* -------------------------------------------------------------------------- */
+/* Shared image handling                                                      */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Stable image frame used by every catalog card. Renders a soft fallback
+ * (icon + label) whenever there is no source, or the image fails to load,
+ * so cards never show a blank/broken image area.
+ */
+function CatalogImageBox({
+  src,
+  alt,
+  fit = "contain",
+  className = "",
+  children,
+}: {
+  src: string | null;
+  alt: string;
+  fit?: "contain" | "cover";
+  className?: string;
+  children?: ReactNode;
+}) {
+  const [errored, setErrored] = useState(false);
+  const showFallback = !src || errored;
+
+  useEffect(() => {
+    setErrored(false);
+  }, [src]);
+
+  return (
+    <div
+      className={`catalog-shine relative aspect-[4/3] min-h-[188px] overflow-hidden bg-gradient-to-br from-[#f3ecdf] via-white to-[#e8e0d1] ${className}`}
+    >
+      {showFallback ? (
+        <div className="flex h-full w-full flex-col items-center justify-center gap-2 text-slate-300">
+          <Package className="h-9 w-9" strokeWidth={1.5} />
+          <span className="text-[11px] font-semibold text-slate-400">
+            Chưa có ảnh
+          </span>
+        </div>
+      ) : (
+        <Image
+          src={src as string}
+          alt={alt}
+          fill
+          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+          onError={() => setErrored(true)}
+          className={`transition-transform duration-700 ease-out group-hover:scale-[1.05] ${
+            fit === "contain" ? "object-contain p-5" : "object-cover"
+          }`}
+        />
+      )}
+      {children}
+    </div>
+  );
+}
+
+/** Small square thumbnail used inside the "parts" hover strip, with its own fallback. */
+function PartThumb({ src, alt }: { src: string | null; alt: string }) {
+  const [errored, setErrored] = useState(false);
+  const showFallback = !src || errored;
+
+  return (
+    <div
+      className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-slate-100 ring-1 ring-slate-200/70"
+      title={alt}
+    >
+      {showFallback ? (
+        <Layers className="h-4 w-4 text-slate-400" />
+      ) : (
+        <img
+          src={src as string}
+          alt={alt}
+          className="h-full w-full object-cover"
+          onError={() => setErrored(true)}
+        />
+      )}
+    </div>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* Filter UI                                                                  */
+/* -------------------------------------------------------------------------- */
+
 function FilterOption({
   active,
   label,
@@ -386,7 +471,7 @@ function FilterOption({
     <button
       type="button"
       onClick={onClick}
-      className={`group flex w-full items-center gap-3 rounded-xl px-2.5 py-2 text-left transition-all duration-300 ${
+      className={`group flex w-full items-center gap-3 rounded-xl px-2.5 py-2.5 text-left transition-all duration-300 ${
         active
           ? "bg-primary/10 text-primary"
           : "text-text-secondary hover:bg-primary/5 hover:text-text-primary"
@@ -395,7 +480,7 @@ function FilterOption({
       <span
         className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border transition-all duration-300 ${
           active
-            ? "border-primary bg-primary text-white shadow-[0_6px_14px_rgba(0,82,204,0.25)]"
+            ? "border-primary bg-primary text-white shadow-sm"
             : "border-slate-300 bg-white group-hover:border-primary/50"
         }`}
       >
@@ -419,10 +504,10 @@ function CollectionPill({
     <button
       type="button"
       onClick={onClick}
-      className={`catalog-pill shrink-0 rounded-full px-4 py-2 text-xs font-black transition-all duration-300 sm:px-5 ${
+      className={`catalog-pill shrink-0 rounded-full px-3.5 py-1.5 text-xs font-bold transition-all duration-300 sm:px-4 ${
         active
-          ? "bg-primary text-white shadow-[0_12px_30px_rgba(0,82,204,0.22)]"
-          : "bg-white/80 text-primary shadow-sm ring-1 ring-primary/10 hover:-translate-y-0.5 hover:bg-white hover:ring-primary/25"
+          ? "bg-primary text-white shadow-[0_10px_24px_-12px_rgba(0,82,204,0.45)]"
+          : "bg-white/80 text-primary/90 ring-1 ring-primary/10 hover:-translate-y-0.5 hover:bg-white hover:ring-primary/25"
       }`}
     >
       {label}
@@ -438,13 +523,13 @@ function ModeSwitch({
   setMode: (mode: CatalogMode) => void;
 }) {
   return (
-    <div className="flex w-full rounded-[22px] border border-white/70 bg-white/75 p-1.5 shadow-[0_18px_45px_rgba(15,23,42,0.08)] backdrop-blur md:w-auto">
+    <div className="flex w-full rounded-2xl border border-white/70 bg-white/75 p-1 shadow-[0_10px_24px_-16px_rgba(15,23,42,0.25)] backdrop-blur md:w-auto">
       <button
         type="button"
         onClick={() => setMode("finished")}
-        className={`flex flex-1 items-center justify-center gap-2 rounded-[17px] px-4 py-2.5 text-xs font-black transition-all duration-300 md:flex-none ${
+        className={`flex flex-1 items-center justify-center gap-2 rounded-xl px-3.5 py-2.5 text-xs font-bold transition-all duration-300 md:flex-none ${
           mode === "finished"
-            ? "bg-slate-950 text-white shadow-xl"
+            ? "bg-slate-950 text-white shadow-sm"
             : "text-slate-500 hover:text-slate-950"
         }`}
       >
@@ -454,9 +539,9 @@ function ModeSwitch({
       <button
         type="button"
         onClick={() => setMode("retail")}
-        className={`flex flex-1 items-center justify-center gap-2 rounded-[17px] px-4 py-2.5 text-xs font-black transition-all duration-300 md:flex-none ${
+        className={`flex flex-1 items-center justify-center gap-2 rounded-xl px-3.5 py-2.5 text-xs font-bold transition-all duration-300 md:flex-none ${
           mode === "retail"
-            ? "bg-slate-950 text-white shadow-xl"
+            ? "bg-slate-950 text-white shadow-sm"
             : "text-slate-500 hover:text-slate-950"
         }`}
       >
@@ -483,30 +568,30 @@ function FilterPanel({
   onReset: () => void;
 }) {
   return (
-    <aside className="catalog-reveal sticky top-24 hidden h-fit w-[230px] shrink-0 rounded-[24px] border border-white/70 bg-white/85 p-4 shadow-[0_18px_55px_rgba(15,23,42,0.08)] backdrop-blur xl:block">
-      <div className="mb-5 flex items-center justify-between">
+    <aside className="catalog-reveal sticky top-20 hidden h-fit w-[224px] shrink-0 rounded-[22px] border border-[#e9edf3] bg-white/80 p-4 shadow-[0_10px_30px_-18px_rgba(15,23,42,0.14)] backdrop-blur xl:block">
+      <div className="mb-4 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className="flex h-9 w-9 items-center justify-center rounded-2xl bg-slate-950 text-white shadow-lg">
-            <SlidersHorizontal className="h-4 w-4" />
+          <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-slate-800 text-white shadow-sm">
+            <SlidersHorizontal className="h-3.5 w-3.5" />
           </span>
-          <h2 className="text-xl font-black tracking-tight text-slate-950">
-            Filters
+          <h2 className="text-base font-bold tracking-tight text-slate-950">
+            Bộ lọc
           </h2>
         </div>
         <button
           type="button"
           onClick={onReset}
-          className="text-[11px] font-black text-primary transition-colors hover:text-primary/75"
+          className="text-[11px] font-semibold text-primary transition-colors hover:text-primary/75"
         >
-          Clear all
+          Xóa tất cả
         </button>
       </div>
 
-      <div className="space-y-5">
+      <div className="space-y-4">
         <div>
           <div className="mb-2 flex items-center justify-between border-t border-slate-100 pt-4">
-            <p className="text-[11px] font-black uppercase tracking-[0.12em] text-slate-500">
-              Price Range
+            <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-slate-500">
+              Khoảng giá
             </p>
             <ChevronDown className="h-3.5 w-3.5 text-slate-400" />
           </div>
@@ -525,8 +610,8 @@ function FilterPanel({
         {mode === "finished" ? (
           <div>
             <div className="mb-2 flex items-center justify-between border-t border-slate-100 pt-4">
-              <p className="text-[11px] font-black uppercase tracking-[0.12em] text-slate-500">
-                Build Complexity
+              <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-slate-500">
+                Độ phức tạp
               </p>
               <ChevronDown className="h-3.5 w-3.5 text-slate-400" />
             </div>
@@ -563,19 +648,19 @@ function MobileFilterBar({
   onReset: () => void;
 }) {
   return (
-    <div className="mb-6 rounded-[24px] border border-white/70 bg-white/85 p-4 shadow-[0_18px_50px_rgba(15,23,42,0.08)] backdrop-blur xl:hidden">
+    <div className="mb-6 rounded-[20px] border border-[#e9edf3] bg-white/85 p-4 shadow-[0_10px_30px_-18px_rgba(15,23,42,0.14)] backdrop-blur xl:hidden">
       <div className="mb-3 flex items-center justify-between">
-        <div className="flex items-center gap-2 text-sm font-black text-slate-950">
+        <div className="flex items-center gap-2 text-sm font-bold text-slate-950">
           <SlidersHorizontal className="h-4 w-4 text-primary" />
           Bộ lọc nhanh
         </div>
         <button
           type="button"
           onClick={onReset}
-          className="flex items-center gap-1 text-xs font-bold text-primary"
+          className="flex items-center gap-1 text-xs font-semibold text-primary"
         >
           <RotateCcw className="h-3.5 w-3.5" />
-          Reset
+          Đặt lại
         </button>
       </div>
       <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
@@ -584,9 +669,9 @@ function MobileFilterBar({
             key={filter}
             type="button"
             onClick={() => setActivePriceFilter(filter)}
-            className={`shrink-0 rounded-full border px-3.5 py-2 text-xs font-bold transition-all duration-300 ${
+            className={`shrink-0 rounded-full border px-3.5 py-2 text-xs font-semibold transition-all duration-300 ${
               activePriceFilter === filter
-                ? "border-primary bg-primary text-white shadow-lg"
+                ? "border-primary bg-primary text-white shadow-sm"
                 : "border-slate-200 bg-white text-slate-600 hover:border-primary/50 hover:text-primary"
             }`}
           >
@@ -599,9 +684,9 @@ function MobileFilterBar({
                 key={filter}
                 type="button"
                 onClick={() => setActiveComplexity(filter)}
-                className={`shrink-0 rounded-full border px-3.5 py-2 text-xs font-bold transition-all duration-300 ${
+                className={`shrink-0 rounded-full border px-3.5 py-2 text-xs font-semibold transition-all duration-300 ${
                   activeComplexity === filter
-                    ? "border-slate-950 bg-slate-950 text-white shadow-lg"
+                    ? "border-slate-950 bg-slate-950 text-white shadow-sm"
                     : "border-slate-200 bg-white text-slate-600 hover:border-slate-950/40 hover:text-slate-950"
                 }`}
               >
@@ -751,24 +836,24 @@ export function LegoFramePage() {
           content: "";
           position: absolute;
           inset: -1px;
-          border-radius: 24px;
-          background: linear-gradient(135deg, rgba(255,255,255,.95), rgba(0,82,204,.18), rgba(255,200,87,.24));
+          border-radius: 22px;
+          background: linear-gradient(135deg, rgba(255,255,255,.9), rgba(0,82,204,.14), rgba(255,200,87,.18));
           opacity: 0;
           transition: opacity .35s ease;
           z-index: 0;
         }
-        .catalog-card-glow:hover::before { opacity: 1; }
+        .catalog-card-glow:hover::before { opacity: .8; }
         .catalog-shine::after {
           content: "";
           position: absolute;
           inset: 0;
-          background: linear-gradient(115deg, transparent 0%, transparent 36%, rgba(255,255,255,.42) 48%, transparent 62%, transparent 100%);
+          background: linear-gradient(115deg, transparent 0%, transparent 38%, rgba(255,255,255,.28) 48%, transparent 60%, transparent 100%);
           transform: translateX(-120%);
           transition: transform .75s cubic-bezier(.22,1,.36,1);
         }
         .group:hover .catalog-shine::after { transform: translateX(120%); }
         @keyframes catalogFadeUp {
-          from { opacity: 0; transform: translateY(18px); }
+          from { opacity: 0; transform: translateY(16px); }
           to { opacity: 1; transform: translateY(0); }
         }
         @media (prefers-reduced-motion: reduce) {
@@ -780,24 +865,24 @@ export function LegoFramePage() {
 
       <section className="relative border-b border-[#eee4d3]">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_12%_18%,rgba(255,255,255,0.95),transparent_26%),radial-gradient(circle_at_85%_20%,rgba(0,82,204,0.13),transparent_24%),linear-gradient(180deg,rgba(255,255,255,0.62),rgba(248,243,232,0))]" />
-        <div className="container relative mx-auto max-w-7xl px-4 py-10 sm:py-14 lg:py-16">
-          <div className="catalog-reveal flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
+        <div className="container relative mx-auto max-w-7xl px-4 py-8 sm:py-10 lg:py-12">
+          <div className="catalog-reveal flex flex-col gap-7 lg:flex-row lg:items-end lg:justify-between">
             <div className="max-w-3xl">
-              <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/70 bg-white/75 px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-primary shadow-sm backdrop-blur">
+              <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-white/70 bg-white/75 px-3.5 py-1.5 text-xs font-bold uppercase tracking-[0.14em] text-primary shadow-sm backdrop-blur">
                 <Sparkles className="h-3.5 w-3.5" />
                 Bộ sưu tập
               </div>
-              <h1 className="max-w-3xl text-[42px] font-black leading-[0.95] tracking-[-0.055em] text-[#1f1f1f] sm:text-6xl lg:text-7xl">
+              <h1 className="max-w-3xl text-4xl font-extrabold leading-[1.02] tracking-tight text-[#1f1f1f] sm:text-5xl lg:text-6xl">
                 Our Collection
               </h1>
-              <p className="mt-5 max-w-xl text-sm font-medium leading-7 text-slate-600 sm:text-base">
-                Discover our curated selection of customizable, high-end modular
-                designs. Chọn mẫu hoàn thiện hoặc mua lẻ cấu phần để tự phối
-                theo phong cách riêng.
+              <p className="mt-4 max-w-xl text-sm font-medium leading-6 text-slate-600 sm:text-[15px] sm:leading-7">
+                Bộ sưu tập tranh ghép LEGO tùy chỉnh, chất lượng cao. Chọn mẫu
+                hoàn thiện hoặc mua lẻ cấu phần để tự phối theo phong cách
+                riêng.
               </p>
             </div>
 
-            <div className="w-full max-w-xl space-y-4 lg:max-w-md">
+            <div className="w-full max-w-xl space-y-3 lg:max-w-sm">
               <ModeSwitch mode={mode} setMode={setMode} />
               <div className="relative">
                 <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
@@ -805,12 +890,12 @@ export function LegoFramePage() {
                   type="text"
                   placeholder={
                     mode === "finished"
-                      ? "Search finished models..."
-                      : "Search frames, backgrounds, accessories..."
+                      ? "Tìm mẫu hoàn thiện..."
+                      : "Tìm khung, nền ảnh, phụ kiện..."
                   }
                   value={searchQuery}
                   onChange={(event) => setSearchQuery(event.target.value)}
-                  className="h-12 w-full rounded-2xl border border-white/70 bg-white/90 pl-11 pr-11 text-sm font-semibold text-slate-900 shadow-[0_16px_45px_rgba(15,23,42,0.08)] outline-none transition-all duration-300 placeholder:text-slate-400 focus:border-primary/40 focus:ring-4 focus:ring-primary/10"
+                  className="h-12 w-full appearance-none rounded-2xl border border-[#e4edf5] bg-white/90 pl-11 pr-11 text-sm font-semibold text-slate-900 shadow-[0_10px_28px_-16px_rgba(15,23,42,0.16)] outline-none ring-0 transition-all duration-300 placeholder:text-slate-400 placeholder:font-medium focus:border-primary/40 focus:outline-none focus:ring-4 focus:ring-primary/10"
                 />
                 {searchQuery ? (
                   <button
@@ -827,10 +912,10 @@ export function LegoFramePage() {
           </div>
 
           {mode === "finished" ? (
-            <div className="catalog-reveal mt-9 flex items-center gap-3 overflow-x-auto pb-2 scrollbar-hide">
+            <div className="catalog-reveal mt-6 flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide">
               <CollectionPill
                 active={activeCollectionId === ALL_COLLECTIONS}
-                label="All Models"
+                label="Tất cả mẫu"
                 onClick={() => setActiveCollectionId(ALL_COLLECTIONS)}
               />
               {collections.map((collection) => (
@@ -846,7 +931,7 @@ export function LegoFramePage() {
         </div>
       </section>
 
-      <main className="container mx-auto max-w-7xl px-4 py-8 sm:py-10">
+      <main className="container mx-auto max-w-7xl px-4 py-7 sm:py-8">
         <MobileFilterBar
           mode={mode}
           activePriceFilter={activePriceFilter}
@@ -856,7 +941,7 @@ export function LegoFramePage() {
           onReset={resetFilters}
         />
 
-        <div className="flex items-start gap-8">
+        <div className="flex items-start gap-6">
           <FilterPanel
             mode={mode}
             activePriceFilter={activePriceFilter}
@@ -870,11 +955,11 @@ export function LegoFramePage() {
             <div className="catalog-reveal mb-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex flex-wrap items-center gap-3">
                 <p className="text-sm font-semibold text-slate-500">
-                  Showing{" "}
-                  <span className="font-black text-slate-950">
+                  Hiển thị{" "}
+                  <span className="font-bold text-slate-950">
                     {visibleCount}
                   </span>
-                  {totalCount ? <span> of {totalCount}</span> : null} {modeName}
+                  {totalCount ? <span> / {totalCount}</span> : null} {modeName}
                 </p>
                 {(activePriceFilter !== "Tất cả" ||
                   activeComplexity !== "Tất cả" ||
@@ -882,7 +967,7 @@ export function LegoFramePage() {
                   <button
                     type="button"
                     onClick={resetFilters}
-                    className="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-xs font-black text-primary shadow-sm ring-1 ring-primary/10 transition-all hover:-translate-y-0.5 hover:ring-primary/25"
+                    className="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-primary shadow-sm ring-1 ring-primary/10 transition-all hover:-translate-y-0.5 hover:ring-primary/25"
                   >
                     <RotateCcw className="h-3.5 w-3.5" />
                     Xóa lọc
@@ -892,9 +977,9 @@ export function LegoFramePage() {
 
               <button
                 type="button"
-                className="group flex w-full items-center justify-between gap-4 rounded-xl border border-white/80 bg-white/90 px-4 py-2.5 text-xs font-black text-slate-700 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/25 hover:text-primary hover:shadow-xl sm:w-auto"
+                className="group flex h-10 w-full items-center justify-between gap-4 rounded-full border border-white/80 bg-white/90 px-4 text-xs font-semibold text-slate-700 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/25 hover:text-primary sm:w-auto"
               >
-                <span>Sort by: Featured</span>
+                <span>Sắp xếp: Nổi bật</span>
                 <ChevronDown className="h-4 w-4 transition-transform duration-300 group-hover:rotate-180" />
               </button>
             </div>
@@ -925,13 +1010,13 @@ export function LegoFramePage() {
 
 function ProductSkeleton() {
   return (
-    <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+    <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
       {Array.from({ length: 6 }).map((_, index) => (
         <div
           key={index}
-          className="overflow-hidden rounded-[24px] border border-white/70 bg-white shadow-sm"
+          className="overflow-hidden rounded-[22px] border border-[#eef1f5] bg-white shadow-sm"
         >
-          <div className="aspect-[4/3] animate-pulse bg-gradient-to-br from-[#eee6d8] via-[#f8f4ec] to-[#e9dcc8]" />
+          <div className="aspect-[4/3] min-h-[188px] animate-pulse bg-gradient-to-br from-[#eee6d8] via-[#f8f4ec] to-[#e9dcc8]" />
           <div className="space-y-3 p-5">
             <div className="h-4 w-3/4 animate-pulse rounded-full bg-[#efe7da]" />
             <div className="h-3 w-1/2 animate-pulse rounded-full bg-[#efe7da]" />
@@ -945,11 +1030,11 @@ function ProductSkeleton() {
 
 function EmptyCatalogState({ onReset }: { onReset: () => void }) {
   return (
-    <div className="catalog-reveal rounded-[28px] border border-white/70 bg-white/85 px-6 py-16 text-center shadow-[0_18px_55px_rgba(15,23,42,0.08)] backdrop-blur">
+    <div className="catalog-reveal rounded-[24px] border border-[#e9edf3] bg-white/85 px-6 py-16 text-center shadow-[0_10px_30px_-18px_rgba(15,23,42,0.14)] backdrop-blur">
       <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-3xl bg-primary/10 text-primary">
         <Search className="h-7 w-7" />
       </div>
-      <p className="mb-2 text-lg font-black text-slate-950">
+      <p className="mb-2 text-lg font-bold text-slate-950">
         Không tìm thấy sản phẩm phù hợp
       </p>
       <p className="mx-auto mb-7 max-w-md text-sm font-medium leading-6 text-slate-500">
@@ -959,7 +1044,7 @@ function EmptyCatalogState({ onReset }: { onReset: () => void }) {
       <button
         type="button"
         onClick={onReset}
-        className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-3 text-sm font-black text-white shadow-[0_18px_35px_rgba(0,82,204,0.22)] transition-all hover:-translate-y-0.5 hover:bg-primary/90"
+        className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-3 text-sm font-bold text-white shadow-[0_14px_28px_-12px_rgba(0,82,204,0.4)] transition-all hover:-translate-y-0.5 hover:bg-primary/90"
       >
         <RotateCcw className="h-4 w-4" />
         Xóa bộ lọc
@@ -976,86 +1061,63 @@ function FinishedProductsGrid({
   onAdd: (product: Product) => void;
 }) {
   return (
-    <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+    <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
       {products.map((product, index) => {
         const productImage = getProductImage(product);
         const parts = getProductParts(product);
-        const collectionName = product.collection?.name ?? "Collection";
+        const collectionName = product.collection?.name ?? "Bộ sưu tập";
 
         return (
           <article
             key={product.id}
-            className="catalog-card-reveal catalog-card-glow group relative rounded-[24px] transition-all duration-500 hover:-translate-y-2"
+            className="catalog-card-reveal catalog-card-glow group relative rounded-[22px] transition-all duration-500 hover:-translate-y-1.5"
             style={{ animationDelay: `${Math.min(index, 8) * 55}ms` }}
           >
-            <div className="relative z-[1] overflow-hidden rounded-[23px] border border-white/80 bg-white shadow-[0_18px_45px_rgba(15,23,42,0.08)] transition-all duration-500 group-hover:shadow-[0_28px_70px_rgba(15,23,42,0.16)]">
-              <div className="catalog-shine relative aspect-[4/3] overflow-hidden bg-gradient-to-br from-[#efe6d5] via-white to-[#d8d0c4]">
-                {productImage ? (
-                  <Image
-                    src={productImage}
-                    alt={product.name}
-                    fill
-                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                    className="object-cover transition-transform duration-700 ease-out group-hover:scale-110"
-                  />
-                ) : (
-                  <div className="flex h-full w-full items-center justify-center">
-                    <Package className="h-12 w-12 text-slate-300" />
-                  </div>
-                )}
-
-                <div className="absolute inset-x-0 top-0 flex items-start justify-between p-4">
-                  <span className="rounded-full bg-primary px-3 py-1.5 text-[10px] font-black text-white shadow-lg shadow-primary/20">
-                    Customize
+            <div className="relative z-[1] overflow-hidden rounded-[21px] border border-[#eef1f5] bg-white shadow-[0_10px_30px_-16px_rgba(15,23,42,0.14)] transition-all duration-500 group-hover:shadow-[0_20px_45px_-18px_rgba(15,23,42,0.22)]">
+              <CatalogImageBox
+                src={productImage}
+                alt={product.name}
+                fit="contain"
+              >
+                <div className="absolute inset-x-0 top-0 flex items-start justify-between p-3.5">
+                  <span className="rounded-full bg-primary px-2.5 py-1 text-[10px] font-bold text-white shadow-sm">
+                    Chọn mẫu
                   </span>
                   <button
                     type="button"
                     disabled
                     title="Wishlist sắp có"
-                    className="flex h-9 w-9 cursor-not-allowed items-center justify-center rounded-full bg-white/92 text-slate-400 shadow-lg backdrop-blur transition-all duration-300 group-hover:scale-110 group-hover:text-primary"
+                    className="flex h-8 w-8 cursor-not-allowed items-center justify-center rounded-full bg-white/90 text-slate-400 opacity-70 shadow-sm backdrop-blur transition-all duration-300"
                   >
                     <Heart className="h-4 w-4" />
                   </button>
                 </div>
 
-                <div className="absolute inset-x-0 bottom-0 translate-y-5 bg-gradient-to-t from-black/55 via-black/15 to-transparent p-4 opacity-0 transition-all duration-500 group-hover:translate-y-0 group-hover:opacity-100">
-                  <div className="flex items-center gap-2 rounded-2xl bg-white/92 p-2 shadow-xl backdrop-blur">
-                    {parts.slice(0, 3).map((part, partIndex) => {
-                      const partImage = resolveApiAssetUrl(part.imageUrl);
-                      return (
-                        <div
-                          key={`${part.type}-${part.id ?? partIndex}`}
-                          className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-slate-100 ring-1 ring-slate-200"
-                          title={`${part.name} x${part.quantity}`}
-                        >
-                          {partImage ? (
-                            <img
-                              src={partImage}
-                              alt={part.name}
-                              className="h-full w-full object-cover"
-                            />
-                          ) : (
-                            <Layers className="h-4 w-4 text-slate-400" />
-                          )}
-                        </div>
-                      );
-                    })}
-                    <span className="min-w-0 flex-1 truncate text-[11px] font-black text-slate-700">
+                <div className="absolute inset-x-0 bottom-0 translate-y-4 bg-gradient-to-t from-black/50 via-black/10 to-transparent p-3 opacity-0 transition-all duration-500 group-hover:translate-y-0 group-hover:opacity-100">
+                  <div className="flex items-center gap-2 rounded-xl bg-white/92 p-1.5 shadow-md backdrop-blur">
+                    {parts.slice(0, 3).map((part, partIndex) => (
+                      <PartThumb
+                        key={`${part.type}-${part.id ?? partIndex}`}
+                        src={resolveApiAssetUrl(part.imageUrl)}
+                        alt={`${part.name} x${part.quantity}`}
+                      />
+                    ))}
+                    <span className="min-w-0 flex-1 truncate text-[11px] font-semibold text-slate-700">
                       {parts.length} thành phần
                     </span>
                   </div>
                 </div>
-              </div>
+              </CatalogImageBox>
 
               <div className="p-5">
                 <div className="mb-4 min-h-[68px]">
-                  <h3 className="mb-1 line-clamp-1 text-base font-black tracking-tight text-slate-950 transition-colors group-hover:text-primary">
+                  <h3 className="mb-1 line-clamp-1 text-base font-bold tracking-tight text-slate-950 transition-colors group-hover:text-primary">
                     {product.name}
                   </h3>
                   <p className="line-clamp-1 text-xs font-semibold text-slate-500">
                     {collectionName}
                   </p>
-                  <p className="mt-3 text-sm font-black text-slate-950">
+                  <p className="mt-3 text-sm font-bold text-slate-950">
                     {formatPrice(product.basePrice)}
                   </p>
                 </div>
@@ -1063,7 +1125,7 @@ function FinishedProductsGrid({
                 <div className="grid grid-cols-[1fr_auto] items-center gap-3">
                   <Link
                     href={`${ROUTES.creatorStudio}?productId=${encodeURIComponent(product.id)}`}
-                    className="group/link flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 py-3 text-xs font-black text-slate-700 transition-all duration-300 hover:border-primary/30 hover:bg-primary/5 hover:text-primary"
+                    className="group/link flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 py-3 text-xs font-bold text-slate-700 transition-all duration-300 hover:border-primary/30 hover:bg-primary/5 hover:text-primary"
                   >
                     Tùy chỉnh
                     <ArrowUpRight className="h-3.5 w-3.5 transition-transform duration-300 group-hover/link:-translate-y-0.5 group-hover/link:translate-x-0.5" />
@@ -1071,7 +1133,7 @@ function FinishedProductsGrid({
                   <button
                     type="button"
                     onClick={() => onAdd(product)}
-                    className="flex h-11 w-11 items-center justify-center rounded-full bg-primary text-white shadow-[0_14px_26px_rgba(0,82,204,0.24)] transition-all duration-300 hover:-translate-y-0.5 hover:scale-105 hover:bg-primary/90 active:scale-95"
+                    className="flex h-11 w-11 items-center justify-center rounded-full bg-primary text-white shadow-[0_10px_22px_-10px_rgba(0,82,204,0.5)] transition-all duration-300 hover:-translate-y-0.5 hover:scale-105 hover:bg-primary/90 active:scale-95"
                     aria-label={`Thêm ${product.name} vào giỏ`}
                   >
                     <Plus className="h-5 w-5" />
@@ -1094,46 +1156,33 @@ function RetailItemsGrid({
   onAdd: (item: RetailCatalogItem) => void;
 }) {
   return (
-    <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+    <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
       {items.map((item, index) => (
         <article
           key={`${item.type}-${item.id}`}
-          className="catalog-card-reveal catalog-card-glow group relative rounded-[24px] transition-all duration-500 hover:-translate-y-2"
+          className="catalog-card-reveal catalog-card-glow group relative rounded-[22px] transition-all duration-500 hover:-translate-y-1.5"
           style={{ animationDelay: `${Math.min(index, 8) * 55}ms` }}
         >
-          <div className="relative z-[1] overflow-hidden rounded-[23px] border border-white/80 bg-white shadow-[0_18px_45px_rgba(15,23,42,0.08)] transition-all duration-500 group-hover:shadow-[0_28px_70px_rgba(15,23,42,0.16)]">
-            <div className="catalog-shine relative aspect-[4/3] overflow-hidden bg-gradient-to-br from-[#efe6d5] via-white to-[#d8d0c4]">
-              {item.imageUrl ? (
-                <Image
-                  src={item.imageUrl}
-                  alt={item.name}
-                  fill
-                  sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                  className="object-cover transition-transform duration-700 ease-out group-hover:scale-110"
-                />
-              ) : (
-                <div className="flex h-full w-full items-center justify-center">
-                  <Package className="h-12 w-12 text-slate-300" />
-                </div>
-              )}
-              <div className="absolute inset-x-0 top-0 flex items-start justify-between p-4">
-                <span className="rounded-full bg-slate-950 px-3 py-1.5 text-[10px] font-black text-white shadow-lg">
+          <div className="relative z-[1] overflow-hidden rounded-[21px] border border-[#eef1f5] bg-white shadow-[0_10px_30px_-16px_rgba(15,23,42,0.14)] transition-all duration-500 group-hover:shadow-[0_20px_45px_-18px_rgba(15,23,42,0.22)]">
+            <CatalogImageBox src={item.imageUrl} alt={item.name} fit="contain">
+              <div className="absolute inset-x-0 top-0 flex items-start justify-between p-3.5">
+                <span className="rounded-full bg-slate-800/90 px-2.5 py-1 text-[10px] font-bold text-white shadow-sm backdrop-blur">
                   {getRetailTypeLabel(item.type)}
                 </span>
                 <button
                   type="button"
                   onClick={() => onAdd(item)}
-                  className="flex h-9 w-9 items-center justify-center rounded-full bg-white/92 text-primary shadow-lg backdrop-blur transition-all duration-300 hover:scale-110 hover:bg-primary hover:text-white"
+                  className="flex h-8 w-8 items-center justify-center rounded-full bg-white/90 text-primary shadow-sm backdrop-blur transition-all duration-300 hover:scale-105 hover:bg-primary hover:text-white"
                   aria-label={`Thêm ${item.name} vào giỏ`}
                 >
                   <ShoppingCart className="h-4 w-4" />
                 </button>
               </div>
-            </div>
+            </CatalogImageBox>
 
             <div className="p-5">
               <div className="mb-4 min-h-[86px]">
-                <h3 className="mb-1 line-clamp-1 text-base font-black tracking-tight text-slate-950 transition-colors group-hover:text-primary">
+                <h3 className="mb-1 line-clamp-1 text-base font-bold tracking-tight text-slate-950 transition-colors group-hover:text-primary">
                   {item.name}
                 </h3>
                 {item.description ? (
@@ -1145,7 +1194,7 @@ function RetailItemsGrid({
                     Mua riêng để tự phối trong thiết kế của bạn.
                   </p>
                 )}
-                <p className="mt-3 text-sm font-black text-slate-950">
+                <p className="mt-3 text-sm font-bold text-slate-950">
                   {formatPrice(item.price)}
                 </p>
               </div>
@@ -1153,7 +1202,7 @@ function RetailItemsGrid({
               <button
                 type="button"
                 onClick={() => onAdd(item)}
-                className="group/btn flex w-full items-center justify-center gap-2 rounded-2xl bg-primary px-4 py-3 text-xs font-black text-white shadow-[0_14px_26px_rgba(0,82,204,0.22)] transition-all duration-300 hover:-translate-y-0.5 hover:bg-primary/90 active:scale-[0.98]"
+                className="group/btn flex w-full items-center justify-center gap-2 rounded-2xl bg-primary px-4 py-3 text-xs font-bold text-white shadow-[0_10px_22px_-10px_rgba(0,82,204,0.4)] transition-all duration-300 hover:-translate-y-0.5 hover:bg-primary/90 active:scale-[0.98]"
               >
                 <ShoppingCart className="h-4 w-4 transition-transform group-hover/btn:-rotate-6" />
                 Thêm vào giỏ

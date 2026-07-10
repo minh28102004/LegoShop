@@ -102,12 +102,12 @@ export function LanguageSwitcher({
         offset={6}
         panelRole="listbox"
         onOpenChange={setOpen}
-        className={cn("w-[88px] min-w-[88px]", compact && "w-[84px] min-w-[84px]")}
+        className={cn("w-[84px] min-w-[84px]", compact && "w-[80px] min-w-[80px]")}
         panelClassName="p-1.5"
         trigger={
           <button
             type="button"
-            className="admin-control admin-control-md inline-flex h-10 min-h-10 items-center gap-1.5 rounded-[12px] px-2 text-left text-[13px] font-semibold shadow-[0_1px_2px_rgba(15,23,42,0.04)]"
+            className="admin-control admin-control-md inline-flex h-9 min-h-9 items-center gap-1.5 rounded-[12px] px-2 text-left text-[13px] font-semibold shadow-[0_1px_2px_rgba(15,23,42,0.04)]"
             aria-label={t("common.language")}
           >
             <Image

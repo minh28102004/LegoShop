@@ -3,54 +3,78 @@
 import { Check } from "lucide-react";
 import { useStudio } from "./StudioContext";
 
+const steps = [
+  { num: 1, label: "Chọn khung" },
+  { num: 2, label: "Nội dung" },
+  { num: 3, label: "Nhân vật" },
+  { num: 4, label: "Hoàn tất" },
+];
+
 export function StudioStepper() {
   const { step, setStep } = useStudio();
 
-  const steps = [
-    { num: 1, label: "Chọn khung" },
-    { num: 2, label: "Nội dung" },
-    { num: 3, label: "Nhân vật" },
-    { num: 4, label: "Hoàn tất" },
-  ];
+  const progressPercent =
+    ((Math.max(1, Math.min(step, steps.length)) - 1) / (steps.length - 1)) *
+    100;
 
   return (
-    <div className="flex max-w-full items-center gap-1.5 overflow-x-auto rounded-full border border-[#e5edf5] bg-white/95 p-[3px] shadow-[0_10px_20px_-22px_rgba(18,45,78,0.16)] backdrop-blur scrollbar-hide">
-      {steps.map((item, index) => {
-        const isPast = step > item.num;
-        const isActive = step === item.num;
+    <div className="w-full max-w-[660px] overflow-x-auto overflow-y-visible py-2 scrollbar-hide">
+      <div className="relative flex min-w-[600px] items-center justify-between">
+        <div className="pointer-events-none absolute left-7 right-7 top-1/2 z-0 h-[2px] -translate-y-1/2 rounded-full bg-[#dbe7f1]" />
 
-        return (
-          <div key={item.num} className="flex shrink-0 items-center">
+        <div
+          className="pointer-events-none absolute left-7 top-1/2 z-0 h-[2px] -translate-y-1/2 rounded-full bg-[#2f91d0] transition-[width] duration-500 ease-out"
+          style={{
+            width: `calc((100% - 56px) * ${progressPercent / 100})`,
+          }}
+        />
+
+        {steps.map((item) => {
+          const isPast = step > item.num;
+          const isActive = step === item.num;
+
+          return (
             <button
+              key={item.num}
               type="button"
               onClick={() => setStep(item.num)}
-              className={`group inline-flex h-9 items-center gap-2.5 rounded-full px-3.5 text-sm font-semibold transition-all duration-200 ${
+              aria-current={isActive ? "step" : undefined}
+              className={[
+                "group relative z-10 box-border inline-flex h-10 shrink-0 items-center gap-2 rounded-full border-2 px-4 text-sm font-semibold",
+                "transition-all duration-200 ease-out",
+                "outline-none focus:outline-none focus:ring-0 focus-visible:ring-2 focus-visible:ring-[#9ed0ef]/60",
+                "hover:-translate-y-px active:translate-y-0",
                 isActive
-                  ? "bg-[#2f91d0] text-white shadow-[0_10px_18px_-16px_rgba(47,145,208,0.42)]"
+                  ? "border-[#2f91d0] bg-[#2f91d0] text-white shadow-none"
                   : isPast
-                    ? "border border-[#e0e8f0] bg-white text-slate-700 hover:border-[#cfdbe6] hover:bg-slate-50"
-                    : "border border-[#e0e8f0] bg-white text-slate-500 hover:border-[#cfdbe6] hover:bg-slate-50 hover:text-slate-800"
-              }`}
+                    ? "border-[#7fc2ea] bg-white text-[#2f91d0] shadow-none hover:border-[#2f91d0] hover:bg-[#f4faff]"
+                    : "border-[#dbe7f1] bg-white text-slate-500 shadow-none hover:border-[#b9d8ed] hover:bg-[#f8fbff] hover:text-slate-800",
+              ].join(" ")}
             >
               <span
-                className={`grid h-6 w-6 place-items-center rounded-full text-[11px] transition ${
+                className={[
+                  "grid h-5 w-5 shrink-0 place-items-center rounded-full text-[11px] font-bold transition-colors duration-200",
                   isActive
                     ? "bg-white text-[#2f91d0]"
                     : isPast
-                      ? "bg-slate-100 text-slate-700"
-                      : "bg-slate-100 text-slate-600 group-hover:bg-slate-200"
-                }`}
+                      ? "bg-[#2f91d0] text-white"
+                      : "bg-slate-200 text-slate-600 group-hover:bg-[#d9edf9] group-hover:text-[#2f91d0]",
+                ].join(" ")}
               >
-                {isPast ? <Check className="h-3 w-3" /> : item.num}
+                {isPast ? (
+                  <Check className="h-3 w-3" strokeWidth={3} />
+                ) : (
+                  item.num
+                )}
               </span>
-              <span>{item.label}</span>
+
+              <span className="whitespace-nowrap leading-none">
+                {item.label}
+              </span>
             </button>
-            {index < steps.length - 1 ? (
-              <div className="mx-1 hidden h-px w-5 rounded-full bg-[#e8eff5] sm:block" />
-            ) : null}
-          </div>
-        );
-      })}
+          );
+        })}
+      </div>
     </div>
   );
 }

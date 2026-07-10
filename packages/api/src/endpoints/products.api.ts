@@ -1,6 +1,8 @@
 import type {
   Accessory,
   Character,
+  CharacterPart,
+  CharacterPreset,
   Collection,
   FrameBackground,
   FrameColor,
@@ -48,6 +50,14 @@ export function createProductsApi(request: ApiRequester) {
 
     getCharacterById(id: string): Promise<Character> {
       return request(`public/characters/${encodeURIComponent(id)}`);
+    },
+
+    listCharacterParts(query?: QueryParams): Promise<CharacterPart[]> {
+      return request('public/character-parts', { query });
+    },
+
+    listCharacterPresets(query?: QueryParams): Promise<CharacterPreset[]> {
+      return request('public/character-presets', { query });
     },
 
     listCollections(query?: QueryParams): Promise<Collection[]> {

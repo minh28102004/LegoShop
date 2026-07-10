@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { CharacterPartType, Prisma, ProductStatus } from '@prisma/client';
 import {
   buildAdminListMeta,
@@ -18,18 +18,30 @@ import { UpdateCharacterPartDto } from './dto/update-character-part.dto';
 
 @Injectable()
 export class CharacterPartsService {
+  private readonly logger = new Logger(CharacterPartsService.name);
+
   constructor(private readonly prisma: PrismaService) {}
 
-  findPublicCharacterParts(query?: CharacterPartsQueryDto) {
+  async findPublicCharacterParts(query?: CharacterPartsQueryDto) {
     const type = this.resolveType(query?.type);
 
-    return this.prisma.characterPart.findMany({
-      where: {
-        status: ProductStatus.active,
-        ...(type ? { type } : {}),
-      },
-      orderBy: [{ type: 'asc' }, { sortOrder: 'asc' }, { createdAt: 'desc' }],
-    });
+    try {
+      return await this.prisma.characterPart.findMany({
+        where: {
+          status: ProductStatus.active,
+          ...(type ? { type } : {}),
+        },
+        orderBy: [{ type: 'asc' }, { sortOrder: 'asc' }, { createdAt: 'desc' }],
+      });
+    } catch (error) {
+      if (this.isMissingTableError(error)) {
+        this.logger.warn(
+          'CharacterPart table is missing in the current database. Returning empty part list.',
+        );
+        return [];
+      }
+      throw error;
+    }
   }
 
   async findAdminCharacterParts(query?: CharacterPartsQueryDto) {
@@ -82,35 +94,68 @@ export class CharacterPartsService {
         }));
       }
 
-      const [data, total] = await this.prisma.$transaction([
-        this.prisma.characterPart.findMany({
-          where,
-          orderBy,
-          skip: pagination.skip,
-          take: pagination.take,
-        }),
-        this.prisma.characterPart.count({ where }),
-      ]);
+      try {
+        const [data, total] = await this.prisma.$transaction([
+          this.prisma.characterPart.findMany({
+            where,
+            orderBy,
+            skip: pagination.skip,
+            take: pagination.take,
+          }),
+          this.prisma.characterPart.count({ where }),
+        ]);
 
-      return {
-        data,
-        meta: buildAdminListMeta({
-          page: pagination.page,
-          limit: pagination.limit,
-          total,
-          sortBy,
-          sortDir,
-          filtersApplied: {
-            ...buildFiltersApplied(query, sortBy, sortDir),
-            ...(query?.type ? { type: query.type } : {}),
-          },
-        }),
-      };
+        return {
+          data,
+          meta: buildAdminListMeta({
+            page: pagination.page,
+            limit: pagination.limit,
+            total,
+            sortBy,
+            sortDir,
+            filtersApplied: {
+              ...buildFiltersApplied(query, sortBy, sortDir),
+              ...(query?.type ? { type: query.type } : {}),
+            },
+          }),
+        };
+      } catch (error) {
+        if (this.isMissingTableError(error)) {
+          this.logger.warn(
+            'CharacterPart table is missing in the current database. Returning empty admin part list.',
+          );
+          return {
+            data: [],
+            meta: buildAdminListMeta({
+              page: pagination.page,
+              limit: pagination.limit,
+              total: 0,
+              sortBy,
+              sortDir,
+              filtersApplied: {
+                ...buildFiltersApplied(query, sortBy, sortDir),
+                ...(query?.type ? { type: query.type } : {}),
+              },
+            }),
+          };
+        }
+        throw error;
+      }
     }
 
-    return this.prisma.characterPart.findMany({
-      orderBy: [{ type: 'asc' }, { sortOrder: 'asc' }, { createdAt: 'desc' }],
-    });
+    try {
+      return await this.prisma.characterPart.findMany({
+        orderBy: [{ type: 'asc' }, { sortOrder: 'asc' }, { createdAt: 'desc' }],
+      });
+    } catch (error) {
+      if (this.isMissingTableError(error)) {
+        this.logger.warn(
+          'CharacterPart table is missing in the current database. Returning empty admin part list.',
+        );
+        return [];
+      }
+      throw error;
+    }
   }
 
   async findAdminCharacterPartById(id: string) {
@@ -189,5 +234,15 @@ export class CharacterPartsService {
     return Object.values(CharacterPartType).includes(type as CharacterPartType)
       ? (type as CharacterPartType)
       : undefined;
+  }
+
+  private isMissingTableError(
+    error: unknown,
+  ): error is Prisma.PrismaClientKnownRequestError {
+    return (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === 'P2021' &&
+      String(error.meta?.modelName ?? '').includes('CharacterPart')
+    );
   }
 }

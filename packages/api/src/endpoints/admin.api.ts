@@ -4,11 +4,15 @@ import type {
   Banner,
   BusinessInquiryContract,
   Character,
+  CharacterPartContract,
+  CharacterPresetContract,
   Collection,
   CreateAccessoryRequestContract,
   CreateBannerRequestContract,
   CreateCategoryRequestContract,
   CreateCharacterRequestContract,
+  CreateCharacterPartRequestContract,
+  CreateCharacterPresetRequestContract,
   CreateCollectionRequestContract,
   CreateFrameBackgroundRequestContract,
   CreateFrameColorRequestContract,
@@ -32,6 +36,8 @@ import type {
   UpdateBusinessInquiryStatusRequestContract,
   UpdateCategoryRequestContract,
   UpdateCharacterRequestContract,
+  UpdateCharacterPartRequestContract,
+  UpdateCharacterPresetRequestContract,
   UpdateCollectionRequestContract,
   UpdateFrameBackgroundRequestContract,
   UpdateFrameColorRequestContract,
@@ -55,6 +61,8 @@ export const ADMIN_RESOURCE_PATHS = {
   'template-categories': 'admin/template-categories',
   accessories: 'admin/accessories',
   characters: 'admin/characters',
+  'character-parts': 'admin/character-parts',
+  'character-presets': 'admin/character-presets',
   'accessory-categories': 'admin/accessory-categories',
   banners: 'admin/banners',
   'frame-backgrounds': 'admin/frame-backgrounds',
@@ -73,6 +81,8 @@ export type AdminResourceMap = {
   'template-categories': TemplateCategory;
   accessories: Accessory;
   characters: Character;
+  'character-parts': CharacterPartContract;
+  'character-presets': CharacterPresetContract;
   'accessory-categories': AccessoryCategory;
   banners: Banner;
   'frame-backgrounds': FrameBackground;
@@ -89,6 +99,8 @@ export type AdminCreateResourcePayloadMap = {
   'template-categories': CreateCategoryRequestContract;
   accessories: CreateAccessoryRequestContract;
   characters: CreateCharacterRequestContract;
+  'character-parts': CreateCharacterPartRequestContract;
+  'character-presets': CreateCharacterPresetRequestContract;
   'accessory-categories': CreateCategoryRequestContract;
   banners: CreateBannerRequestContract;
   'frame-backgrounds': CreateFrameBackgroundRequestContract;
@@ -105,6 +117,8 @@ export type AdminUpdateResourcePayloadMap = {
   'template-categories': UpdateCategoryRequestContract;
   accessories: UpdateAccessoryRequestContract;
   characters: UpdateCharacterRequestContract;
+  'character-parts': UpdateCharacterPartRequestContract;
+  'character-presets': UpdateCharacterPresetRequestContract;
   'accessory-categories': UpdateCategoryRequestContract;
   banners: UpdateBannerRequestContract;
   'frame-backgrounds': UpdateFrameBackgroundRequestContract;

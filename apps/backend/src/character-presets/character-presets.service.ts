@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { Prisma, ProductStatus } from '@prisma/client';
 import {
   buildAdminListMeta,
@@ -18,13 +18,25 @@ import { UpdateCharacterPresetDto } from './dto/update-character-preset.dto';
 
 @Injectable()
 export class CharacterPresetsService {
+  private readonly logger = new Logger(CharacterPresetsService.name);
+
   constructor(private readonly prisma: PrismaService) {}
 
-  findPublicCharacterPresets(_query?: CharacterPresetsQueryDto) {
-    return this.prisma.characterPreset.findMany({
-      where: { status: ProductStatus.active },
-      orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
-    });
+  async findPublicCharacterPresets(_query?: CharacterPresetsQueryDto) {
+    try {
+      return await this.prisma.characterPreset.findMany({
+        where: { status: ProductStatus.active },
+        orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+      });
+    } catch (error) {
+      if (this.isMissingTableError(error)) {
+        this.logger.warn(
+          'CharacterPreset table is missing in the current database. Returning empty preset list.',
+        );
+        return [];
+      }
+      throw error;
+    }
   }
 
   async findAdminCharacterPresets(query?: CharacterPresetsQueryDto) {
@@ -64,32 +76,72 @@ export class CharacterPresetsService {
         }));
       }
 
-      const [data, total] = await this.prisma.$transaction([
-        this.prisma.characterPreset.findMany({
-          where,
-          orderBy,
-          skip: pagination.skip,
-          take: pagination.take,
-        }),
-        this.prisma.characterPreset.count({ where }),
-      ]);
+      try {
+        const [data, total] = await this.prisma.$transaction([
+          this.prisma.characterPreset.findMany({
+            where,
+            orderBy,
+            skip: pagination.skip,
+            take: pagination.take,
+          }),
+          this.prisma.characterPreset.count({ where }),
+        ]);
 
-      return {
-        data,
-        meta: buildAdminListMeta({
-          page: pagination.page,
-          limit: pagination.limit,
-          total,
-          sortBy,
-          sortDir,
-          filtersApplied: buildFiltersApplied(query, sortBy, sortDir),
-        }),
-      };
+        return {
+          data,
+          meta: buildAdminListMeta({
+            page: pagination.page,
+            limit: pagination.limit,
+            total,
+            sortBy,
+            sortDir,
+            filtersApplied: buildFiltersApplied(query, sortBy, sortDir),
+          }),
+        };
+      } catch (error) {
+        if (this.isMissingTableError(error)) {
+          this.logger.warn(
+            'CharacterPreset table is missing in the current database. Returning empty admin preset list.',
+          );
+          return {
+            data: [],
+            meta: buildAdminListMeta({
+              page: pagination.page,
+              limit: pagination.limit,
+              total: 0,
+              sortBy,
+              sortDir,
+              filtersApplied: buildFiltersApplied(query, sortBy, sortDir),
+            }),
+          };
+        }
+        throw error;
+      }
     }
 
-    return this.prisma.characterPreset.findMany({
-      orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
-    });
+    try {
+      return await this.prisma.characterPreset.findMany({
+        orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+      });
+    } catch (error) {
+      if (this.isMissingTableError(error)) {
+        this.logger.warn(
+          'CharacterPreset table is missing in the current database. Returning empty admin preset list.',
+        );
+        return [];
+      }
+      throw error;
+    }
+  }
+
+  private isMissingTableError(
+    error: unknown,
+  ): error is Prisma.PrismaClientKnownRequestError {
+    return (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === 'P2021' &&
+      String(error.meta?.modelName ?? '').includes('CharacterPreset')
+    );
   }
 
   async findAdminCharacterPresetById(id: string) {

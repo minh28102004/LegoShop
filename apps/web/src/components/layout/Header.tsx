@@ -204,7 +204,7 @@ export function Header() {
             : "translate3d(100%, 0, 0)",
         }}
       >
-        <div className="flex h-[82px] shrink-0 items-center justify-between gap-3 border-b border-[#dbe7f1] px-4 sm:px-5">
+        <div className="flex h-[60px] shrink-0 items-center justify-between gap-3 border-b border-[#dbe7f1] px-4 sm:px-5">
           <BrandLogo compact className="min-w-0" />
 
           <button
@@ -296,7 +296,7 @@ export function Header() {
         )}
       >
         <div className="w-full px-4 sm:px-6 lg:px-8 xl:px-10 2xl:px-12">
-          <div className="grid min-h-[82px] grid-cols-[minmax(0,auto)_1fr_auto] items-center gap-3 transition-[min-height] duration-300 ease-out lg:min-h-[76px] lg:gap-8">
+          <div className="grid min-h-[50px] grid-cols-[minmax(0,auto)_1fr_auto] items-center gap-3 transition-[min-height] duration-300 ease-out lg:min-h-[46px] lg:gap-7">
             <BrandLogo className="min-w-0 shrink-0" />
 
             <nav className="hidden min-w-0 items-center justify-center lg:flex">
@@ -309,7 +309,7 @@ export function Header() {
                       key={item.href}
                       href={item.href}
                       className={cn(
-                        "group relative inline-flex items-center justify-center px-3 py-3 text-[15px] font-semibold tracking-[-0.01em] text-slate-800 transition-colors duration-200 hover:text-[#2f91d0] xl:px-4",
+                        "group relative inline-flex items-center justify-center px-3 py-1.5 text-[15px] font-semibold tracking-[-0.01em] text-slate-800 transition-colors duration-200 hover:text-[#2f91d0] xl:px-4 xl:text-[15.5px]",
                         isActive && "text-[#2f91d0]",
                       )}
                     >
@@ -317,7 +317,7 @@ export function Header() {
 
                       <span
                         className={cn(
-                          "pointer-events-none absolute inset-x-3 -bottom-px h-[3px] origin-center rounded-full bg-linear-to-r from-[#7bc7f0] via-[#2f91d0] to-[#7bc7f0] transition-transform duration-300 ease-out xl:inset-x-4",
+                          "pointer-events-none absolute inset-x-2 -bottom-px h-[2px] origin-center rounded-full bg-linear-to-r from-[#7bc7f0] via-[#2f91d0] to-[#7bc7f0] transition-transform duration-300 ease-out xl:inset-x-4",
                           isActive
                             ? "scale-x-100"
                             : "scale-x-0 group-hover:scale-x-100",
@@ -334,7 +334,7 @@ export function Header() {
                 type="button"
                 aria-label={t("header.openCart")}
                 onClick={openCartDrawer}
-                className="relative inline-flex h-10 w-10 items-center justify-center rounded-[12px] border border-transparent bg-transparent text-slate-700 transition-all duration-200 hover:bg-[#edf8ff] hover:text-[#2f91d0]"
+                className="relative inline-flex h-9 w-9 items-center justify-center rounded-[12px] border border-transparent bg-transparent text-slate-700 transition-all duration-200 hover:bg-[#edf8ff] hover:text-[#2f91d0]"
               >
                 <ShoppingCart className="h-6 w-6" strokeWidth={1.8} />
 

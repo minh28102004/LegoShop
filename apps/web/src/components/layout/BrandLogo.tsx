@@ -27,7 +27,7 @@ export function BrandLogo({ className, compact = false }: BrandLogoProps) {
           "relative flex shrink-0 items-center justify-center overflow-visible",
           compact
             ? "h-[50px] w-[50px] sm:h-[54px] sm:w-[54px] lg:h-[58px] lg:w-[58px]"
-            : "h-[58px] w-[58px] sm:h-[64px] sm:w-[64px] lg:h-[74px] lg:w-[74px]",
+            : "h-[52px] w-[52px] sm:h-[58px] sm:w-[58px] lg:h-[62px] lg:w-[62px]",
         )}
       >
         <Image
@@ -47,7 +47,7 @@ export function BrandLogo({ className, compact = false }: BrandLogoProps) {
           "min-w-0 whitespace-nowrap font-display font-semibold leading-none tracking-[-0.05em] text-[#2f91d0] transition-colors duration-200 group-hover:text-[#197fc0]",
           compact
             ? "text-[1.55rem] sm:text-[1.68rem] lg:text-[1.78rem]"
-            : "text-[1.82rem] sm:text-[2rem] lg:text-[2.2rem]",
+            : "text-[1.72rem] sm:text-[1.86rem] lg:text-[2rem]",
         )}
       >
         Figure Lab

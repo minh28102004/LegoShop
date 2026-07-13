@@ -25,9 +25,9 @@ import {
 import { resolveApiAssetUrl } from '@/lib/api';
 import { useI18n } from '@/lib/i18n/useI18n';
 import AdminNavIcon from '@/modules/admin/components/AdminNavIcon';
-import type { CharacterPart, Order, OrderStatus, PaymentStatus, ShippingStatus } from '@/modules/admin/types/admin.types';
+import type { Accessory, CharacterPart, Order, OrderStatus, PaymentStatus, ShippingStatus } from '@/modules/admin/types/admin.types';
 import type { CustomFrameDesignData, JsonObject } from '@lego-shop/shared';
-import DesignPreviewModal from './design-preview-modal';
+import DesignPreviewModal, { AdminDesignPreview } from './design-preview-modal';
 
 type Props = {
   orderId: string;
@@ -232,8 +232,13 @@ export default function OrderDetail({ orderId }: Props) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const [previewItem, setPreviewItem] = useState<{ designData: JsonObject | null; productName: string } | null>(null);
+  const [previewItem, setPreviewItem] = useState<{
+    designData: JsonObject | null;
+    productName: string;
+    previewUrl?: string | null;
+  } | null>(null);
   const [characterParts, setCharacterParts] = useState<CharacterPart[]>([]);
+  const [accessoryCatalog, setAccessoryCatalog] = useState<Accessory[]>([]);
   const characterPartMap = useMemo(
     () => new Map(characterParts.map((part) => [part.id, part])),
     [characterParts],
@@ -247,12 +252,14 @@ export default function OrderDetail({ orderId }: Props) {
     setLoading(true);
     setError(null);
     try {
-      const [data, parts] = await Promise.all([
+      const [data, parts, accessories] = await Promise.all([
         getOrderById(orderId),
         listResource('character-parts').catch(() => [] as CharacterPart[]),
+        listResource('accessories').catch(() => [] as Accessory[]),
       ]);
       setOrder(data);
       setCharacterParts(parts);
+      setAccessoryCatalog(accessories);
     } catch (err) {
       setError(err instanceof Error ? err.message : t('orderDetail.loadFailed'));
     } finally {
@@ -558,7 +565,11 @@ export default function OrderDetail({ orderId }: Props) {
                         ) : null}
                         {isJsonObject(item.designData) ? (
                           <button
-                            onClick={() => setPreviewItem({ designData: item.designData ?? null, productName: item.productName })}
+                            onClick={() => setPreviewItem({
+                              designData: item.designData ?? null,
+                              productName: item.productName,
+                              previewUrl: item.previewUrl,
+                            })}
                             className='cursor-pointer text-sm font-bold text-emerald-600 underline underline-offset-4 hover:text-emerald-700'
                           >
                             Xem thiết kế
@@ -580,7 +591,6 @@ export default function OrderDetail({ orderId }: Props) {
           <div className='mt-6 grid gap-4 lg:grid-cols-2'>
             {designItems.map((item) => {
               const designData = isJsonObject(item.designData) ? item.designData : null;
-              const previewUrl = resolveApiAssetUrl(item.previewUrl);
               const backgroundLabel = getDesignBackgroundLabel(designData);
               const contentEntries = getDesignContentEntries(designData);
               const uploadedImages = getDesignUploadedImages(designData);
@@ -591,14 +601,15 @@ export default function OrderDetail({ orderId }: Props) {
                 <div key={item.id} className='rounded-[22px] border border-[var(--admin-border)] bg-slate-50 p-4'>
                   <div className='flex flex-col gap-4 sm:flex-row'>
                     <div className='h-40 w-full shrink-0 overflow-hidden rounded-2xl border border-slate-200 bg-white sm:w-40'>
-                      {previewUrl ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={previewUrl} alt={item.productName} className='h-full w-full object-cover' />
-                      ) : (
-                        <div className='flex h-full items-center justify-center text-xs font-semibold text-slate-400'>
-                          Chưa có preview
-                        </div>
-                      )}
+                      <AdminDesignPreview
+                        designData={designData}
+                        previewUrl={item.previewUrl}
+                        productName={item.productName}
+                        characterParts={characterParts}
+                        accessories={accessoryCatalog}
+                        className='h-full w-full'
+                        fit='contain'
+                      />
                     </div>
                     <div className='min-w-0 flex-1'>
                       <div className='flex flex-wrap items-start justify-between gap-3'>
@@ -610,7 +621,11 @@ export default function OrderDetail({ orderId }: Props) {
                         </div>
                         {designData ? (
                           <button
-                            onClick={() => setPreviewItem({ designData, productName: item.productName })}
+                            onClick={() => setPreviewItem({
+                              designData,
+                              productName: item.productName,
+                              previewUrl: item.previewUrl,
+                            })}
                             className='rounded-lg border border-emerald-200 bg-white px-3 py-1.5 text-xs font-bold text-emerald-700 hover:bg-emerald-50'
                           >
                             Xem dữ liệu
@@ -775,6 +790,9 @@ export default function OrderDetail({ orderId }: Props) {
         onClose={() => setPreviewItem(null)}
         designData={previewItem?.designData ?? null}
         productName={previewItem?.productName || ''}
+        previewUrl={previewItem?.previewUrl}
+        characterParts={characterParts}
+        accessories={accessoryCatalog}
       />
     </PageShell>
   );

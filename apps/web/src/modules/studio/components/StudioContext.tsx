@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useContext, useMemo, useRef, useState, ReactNode, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { resolveApiAssetUrl } from "@/lib/api/assets";
 import { publicApiClient } from "@/lib/api/public-client";
 import { useCartStore, type SimpleCartItem } from "@/features/cart/store";
@@ -12,6 +13,7 @@ import type {
   CharacterPreset,
   FrameBackground,
   FrameOption,
+  CustomFrameDesignData,
   JsonObject,
   JsonValue,
 } from "@lego-shop/shared";
@@ -196,6 +198,12 @@ export interface StudioContextType {
 const StudioContext = createContext<StudioContextType | undefined>(undefined);
 
 type TemplateElement = Omit<StudioElement, "id">;
+
+type FrameRestoreOverride = {
+  id: string | null;
+  label: string | null;
+  color: string | null;
+};
 
 const STUDIO_BACKGROUND_FALLBACKS = [
   "https://images.unsplash.com/photo-1518199266791-5375a83190b7?w=900&auto=format&fit=crop&q=80",
@@ -438,6 +446,236 @@ function normalizeContentFields(value: JsonValue | null | undefined): StudioCont
   return fields.length > 0 ? fields : DEFAULT_CONTENT_FIELDS;
 }
 
+function getStoredStringRecord(value: unknown): Record<string, string> {
+  if (!isRecord(value)) return {};
+
+  return Object.fromEntries(
+    Object.entries(value).filter(([, item]) => typeof item === "string"),
+  ) as Record<string, string>;
+}
+
+function matchesContentAlias(field: StudioContentField, aliases: string[]): boolean {
+  const haystack = normalizeSearchText(`${field.key} ${field.label}`);
+  return aliases.some((alias) => haystack.includes(normalizeSearchText(alias)));
+}
+
+function getFallbackContentValue(
+  designData: CustomFrameDesignData,
+  field: StudioContentField,
+): string {
+  if (matchesContentAlias(field, ["recipientName", "recipient", "name", "title", "ten"])) {
+    return designData.content.recipientName;
+  }
+  if (matchesContentAlias(field, ["graduationDate", "date", "day", "ngay"])) {
+    return designData.content.graduationDate;
+  }
+  if (matchesContentAlias(field, ["majorOrSchool", "major", "school", "nganh", "truong"])) {
+    return designData.content.majorOrSchool;
+  }
+  if (matchesContentAlias(field, ["message", "note", "loi", "thong"])) {
+    return designData.content.message;
+  }
+
+  return "";
+}
+
+function getRestoredContentValues(
+  designData: CustomFrameDesignData,
+  backgroundTemplateId: string | null,
+  templates: ApiTemplate[],
+  currentContentFields: StudioContentField[],
+): Record<string, string> {
+  const storedValues = getStoredStringRecord(designData.contentValues);
+  const restoredValues: Record<string, string> = {
+    ...storedValues,
+    recipientName: storedValues.recipientName ?? designData.content.recipientName,
+    graduationDate: storedValues.graduationDate ?? designData.content.graduationDate,
+    majorOrSchool: storedValues.majorOrSchool ?? designData.content.majorOrSchool,
+    message: storedValues.message ?? designData.content.message,
+    title: storedValues.title ?? designData.content.recipientName,
+    name: storedValues.name ?? designData.content.recipientName,
+    date: storedValues.date ?? designData.content.graduationDate,
+    major: storedValues.major ?? designData.content.majorOrSchool,
+    school: storedValues.school ?? designData.content.majorOrSchool,
+  };
+  const templateFields = backgroundTemplateId
+    ? normalizeContentFields(templates.find((tpl) => tpl.id === backgroundTemplateId)?.contentFields)
+    : currentContentFields;
+
+  templateFields.forEach((field) => {
+    if (restoredValues[field.key]?.trim()) return;
+    const fallbackValue = getFallbackContentValue(designData, field);
+    if (fallbackValue.trim()) restoredValues[field.key] = fallbackValue;
+  });
+
+  return restoredValues;
+}
+
+function getRestoredTextElements(designData: CustomFrameDesignData): StudioElement[] {
+  const storedElements = designData.elements;
+  if (!Array.isArray(storedElements)) return [];
+
+  return storedElements.flatMap((element, index): StudioElement[] => {
+    const parsed = parseTemplateElement(element);
+    if (!parsed || parsed.type !== "text") return [];
+
+    const storedId = isRecord(element) ? readString(element.id) : undefined;
+    return [
+      {
+        ...parsed,
+        id: storedId ?? `text-${index}-${Math.random().toString(36).substring(2, 8)}`,
+      },
+    ];
+  });
+}
+
+function normalizeFrameMatchText(value: string | null | undefined): string {
+  return normalizeSearchText(value ?? "").replace(/\s+/g, "");
+}
+
+function getFrameLabelFromName(value: string | null | undefined): string | null {
+  const match = value?.match(/(\d+(?:\.\d+)?)\s*x\s*(\d+(?:\.\d+)?)/i);
+  return match?.[1] && match?.[2] ? `${match[1]}x${match[2]}` : null;
+}
+
+function getFrameColorFromName(value: string | null | undefined): string | null {
+  const parts = value?.split(/\s+-\s+/).map((part) => part.trim()).filter(Boolean) ?? [];
+  return parts.length > 1 ? parts[parts.length - 1] ?? null : null;
+}
+
+function findFrameSizeByLabelAndColor(
+  frameSizes: ApiFrameSize[],
+  label: string | null | undefined,
+  color: string | null | undefined,
+): string | null {
+  const normalizedLabel = normalizeFrameMatchText(label);
+  if (!normalizedLabel) return null;
+
+  const normalizedColor = normalizeFrameMatchText(color);
+  const matchesLabel = (size: ApiFrameSize) =>
+    normalizeFrameMatchText(size.label) === normalizedLabel;
+  const matchesColor = (size: ApiFrameSize) =>
+    !normalizedColor || normalizeFrameMatchText(size.colorName) === normalizedColor;
+
+  return (
+    frameSizes.find((size) => matchesLabel(size) && matchesColor(size))?.id ??
+    frameSizes.find(matchesLabel)?.id ??
+    null
+  );
+}
+
+function findFrameSizeByDisplay(
+  cartItem: SimpleCartItem,
+  frameSizes: ApiFrameSize[],
+  override?: FrameRestoreOverride | null,
+): string | null {
+  if (override?.id && frameSizes.some((size) => size.id === override.id)) {
+    return override.id;
+  }
+
+  const overrideMatch = override
+    ? findFrameSizeByLabelAndColor(frameSizes, override.label, override.color)
+    : null;
+  if (overrideMatch) return overrideMatch;
+
+  const framePart = cartItem.parts?.find((part) => part.type === "frame");
+  const designData = cartItem.designData;
+  const designFrameLabel = isCustomFrameDesignData(designData) ? designData.frameOptionLabel : null;
+  const designFrameColor = isCustomFrameDesignData(designData) ? designData.frameColorName : null;
+  const displayCandidates = [
+    {
+      label: getFrameLabelFromName(framePart?.name),
+      color: getFrameColorFromName(framePart?.name),
+    },
+    {
+      label: cartItem.frameSizeLabel,
+      color: cartItem.frameColorName,
+    },
+    {
+      label: designFrameLabel,
+      color: designFrameColor,
+    },
+  ];
+
+  for (const candidate of displayCandidates) {
+    const match = findFrameSizeByLabelAndColor(frameSizes, candidate.label, candidate.color);
+    if (match) return match;
+  }
+
+  return null;
+}
+
+function getRestoredFrameSizeId(
+  cartItem: SimpleCartItem,
+  frameSizes: ApiFrameSize[],
+  override?: FrameRestoreOverride | null,
+): string {
+  const displayedFrameSizeId = findFrameSizeByDisplay(cartItem, frameSizes, override);
+  if (displayedFrameSizeId) return displayedFrameSizeId;
+
+  const framePartId = cartItem.parts?.find((part) => part.type === "frame" && part.id)?.id;
+  if (framePartId && frameSizes.some((size) => size.id === framePartId)) return framePartId;
+
+  if (
+    typeof cartItem.frameOptionId === "string" &&
+    cartItem.frameOptionId &&
+    frameSizes.some((size) => size.id === cartItem.frameOptionId)
+  ) {
+    return cartItem.frameOptionId;
+  }
+
+  const designData = cartItem.designData;
+  if (
+    isCustomFrameDesignData(designData) &&
+    typeof designData.frameOptionId === "string" &&
+    frameSizes.some((size) => size.id === designData.frameOptionId)
+  ) {
+    return designData.frameOptionId;
+  }
+
+  return cartItem.frameSizeId;
+}
+
+function getStoredCharacterPartSnapshot(
+  value: unknown,
+): StudioCharacterPartSnapshot | undefined {
+  const record = Array.isArray(value)
+    ? (isRecord(value[0]) ? value[0] : null)
+    : (isRecord(value) ? value : null);
+  if (!record) return undefined;
+
+  const id = readString(record.id);
+  const name = readString(record.name);
+  const type = readString(record.type);
+  const imageUrl = readString(record.imageUrl) ?? null;
+
+  if (
+    !id ||
+    !name ||
+    (type !== "FACE" &&
+      type !== "HAIR" &&
+      type !== "TORSO" &&
+      type !== "LEGS" &&
+      type !== "HAT" &&
+      type !== "ACCESSORY")
+  ) {
+    return undefined;
+  }
+
+  return { id, name, type, imageUrl };
+}
+
+function getStoredCharacterAccessorySnapshots(value: unknown): StudioCharacterPartSnapshot[] {
+  if (!Array.isArray(value)) {
+    const snapshot = getStoredCharacterPartSnapshot(value);
+    return snapshot ? [snapshot] : [];
+  }
+
+  return value
+    .map((item) => getStoredCharacterPartSnapshot(item))
+    .filter((item): item is StudioCharacterPartSnapshot => Boolean(item));
+}
+
 function resolvePrintTextPatch(
   fields: StudioContentField[],
   key: string,
@@ -621,6 +859,8 @@ function mapFrameBackground(background: FrameBackground, index = 0): ApiTemplate
 }
 
 export function StudioProvider({ children }: { children: ReactNode }) {
+  const searchParams = useSearchParams();
+  const searchParamString = searchParams.toString();
   const [step, setStep] = useState<number>(1);
   const [frameSize, setFrameSize] = useState<string>("");
   const [printText, setPrintText] = useState<PrintText>({ title: "", date: "", message: "" });
@@ -635,8 +875,11 @@ export function StudioProvider({ children }: { children: ReactNode }) {
   const [customBackgroundOriginalName, setCustomBackgroundOriginalName] = useState<string | null>(null);
   const [zoom, setZoom] = useState<number>(1);
   const [editCartItemId, setEditCartItemId] = useState<string | null>(null);
+  const [frameRestoreOverride, setFrameRestoreOverride] = useState<FrameRestoreOverride | null>(null);
   const hasRestoredCartItemRef = useRef(false);
+  const lastRestoreKeyRef = useRef<string | null>(null);
   const skipNextTemplateResetRef = useRef(false);
+  const restoredActiveTemplateRef = useRef<string | null | undefined>(undefined);
 
   // API State
   const [templates, setTemplates] = useState<ApiTemplate[]>([]);
@@ -651,9 +894,31 @@ export function StudioProvider({ children }: { children: ReactNode }) {
   const [dataError, setDataError] = useState<string | null>(null);
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    setEditCartItemId(params.get("editCartItemId"));
-  }, []);
+    const params = new URLSearchParams(searchParamString);
+    const nextEditCartItemId = params.get("editCartItemId");
+    const nextOverride: FrameRestoreOverride = {
+      id: params.get("frameOptionId"),
+      label: params.get("frameLabel"),
+      color: params.get("frameColor"),
+    };
+    const nextOverrideValue =
+      nextOverride.id || nextOverride.label || nextOverride.color
+        ? nextOverride
+        : null;
+    const nextRestoreKey = JSON.stringify({
+      editCartItemId: nextEditCartItemId,
+      frameOverride: nextOverrideValue,
+    });
+
+    if (lastRestoreKeyRef.current !== nextRestoreKey) {
+      hasRestoredCartItemRef.current = false;
+      restoredActiveTemplateRef.current = undefined;
+      lastRestoreKeyRef.current = null;
+    }
+
+    setEditCartItemId(nextEditCartItemId);
+    setFrameRestoreOverride(nextOverrideValue);
+  }, [searchParamString]);
 
   useEffect(() => {
     async function loadData() {
@@ -716,15 +981,6 @@ export function StudioProvider({ children }: { children: ReactNode }) {
           .filter(f => f.status === 'active');
         
         setFrameSizes(activeFrameSizes);
-        
-        const firstFrameSize = activeFrameSizes[0];
-
-        if (firstFrameSize) setFrameSize(firstFrameSize.id);
-        
-        const firstTemplate = activeBackgrounds[0];
-        if (firstTemplate) {
-          setActiveTemplate(firstTemplate.id);
-        }
       } catch (err) {
         console.error("Failed to load studio data:", err);
         setDataError("Không tải được dữ liệu studio. Vui lòng kiểm tra API hoặc thử lại sau.");
@@ -750,10 +1006,9 @@ export function StudioProvider({ children }: { children: ReactNode }) {
 
         setTemplates(activeBackgrounds);
         setActiveTemplate((current) => {
-          if (!current || current.startsWith("background:")) {
-            return activeBackgrounds.some((tpl) => tpl.id === current)
-              ? current
-              : (activeBackgrounds[0]?.id ?? null);
+          if (!current) return null;
+          if (current.startsWith("background:")) {
+            return activeBackgrounds.some((tpl) => tpl.id === current) ? current : null;
           }
           return current;
         });
@@ -770,6 +1025,21 @@ export function StudioProvider({ children }: { children: ReactNode }) {
   // When activeTemplate changes, reload its default elements
   useEffect(() => {
     if (!activeTemplate || isLoadingData) return;
+    if (
+      hasRestoredCartItemRef.current &&
+      restoredActiveTemplateRef.current !== undefined &&
+      activeTemplate === restoredActiveTemplateRef.current
+    ) {
+      skipNextTemplateResetRef.current = false;
+      return;
+    }
+    if (
+      hasRestoredCartItemRef.current &&
+      restoredActiveTemplateRef.current !== undefined &&
+      activeTemplate !== restoredActiveTemplateRef.current
+    ) {
+      restoredActiveTemplateRef.current = undefined;
+    }
     if (skipNextTemplateResetRef.current) {
       skipNextTemplateResetRef.current = false;
       return;
@@ -804,12 +1074,20 @@ export function StudioProvider({ children }: { children: ReactNode }) {
   );
 
   useEffect(() => {
-    if (!editCartItemId || isLoadingData || hasRestoredCartItemRef.current) {
+    if (!editCartItemId || isLoadingData) {
+      return;
+    }
+    const restoreKey = JSON.stringify({
+      editCartItemId,
+      frameOverride: frameRestoreOverride,
+    });
+    if (hasRestoredCartItemRef.current && lastRestoreKeyRef.current === restoreKey) {
       return;
     }
 
     const cartItem = useCartStore.getState().items.find((item) => item.id === editCartItemId);
     hasRestoredCartItemRef.current = true;
+    lastRestoreKeyRef.current = restoreKey;
 
     if (!cartItem) {
       alert("Không tìm thấy thiết kế trong giỏ hàng. Bạn có thể bắt đầu thiết kế mới.");
@@ -820,7 +1098,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
 
     restoreCartItem(cartItem);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [editCartItemId, isLoadingData, templates.length, characterParts.length]);
+  }, [editCartItemId, frameRestoreOverride, isLoadingData, templates.length, characterParts.length, frameSizes.length]);
 
   function restoreCartItem(cartItem: SimpleCartItem) {
     const designData = cartItem.designData;
@@ -831,7 +1109,26 @@ export function StudioProvider({ children }: { children: ReactNode }) {
     const characterById = new Map(characters.map((character) => [character.id, character]));
     const characterPartById = new Map(characterParts.map((part) => [part.id, part]));
 
-    setFrameSize(cartItem.frameSizeId);
+    const restoredFrameSizeId = getRestoredFrameSizeId(cartItem, frameSizes, frameRestoreOverride);
+    if (process.env.NODE_ENV !== "production") {
+      const framePart = cartItem.parts?.find((part) => part.type === "frame");
+      console.info("[studio restore frame]", {
+        restoredFrameSizeId,
+        frameRestoreOverride,
+        framePart,
+        cartFrameSizeId: cartItem.frameSizeId,
+        cartFrameSizeLabel: cartItem.frameSizeLabel,
+        cartFrameColorName: cartItem.frameColorName,
+        designFrameOptionId: isCustomFrameDesignData(designData) ? designData.frameOptionId : null,
+        designFrameOptionLabel: isCustomFrameDesignData(designData) ? designData.frameOptionLabel : null,
+        availableFrameSizes: frameSizes.map((size) => ({
+          id: size.id,
+          label: size.label,
+          colorName: size.colorName,
+        })),
+      });
+    }
+    setFrameSize(restoredFrameSizeId);
     setSelectedId(null);
     setStep(4);
 
@@ -844,7 +1141,8 @@ export function StudioProvider({ children }: { children: ReactNode }) {
       );
 
       skipNextTemplateResetRef.current = true;
-      if (backgroundTemplateId && templates.some((tpl) => tpl.id === backgroundTemplateId)) {
+      restoredActiveTemplateRef.current = backgroundTemplateId ?? null;
+      if (backgroundTemplateId) {
         setActiveTemplate(backgroundTemplateId);
         setCustomBackgroundUrl(null);
         setCustomBackgroundOriginalName(null);
@@ -859,14 +1157,10 @@ export function StudioProvider({ children }: { children: ReactNode }) {
         date: designData.content.graduationDate,
         message: designData.content.message,
       });
-      setContentValues({
-        recipientName: designData.content.recipientName,
-        graduationDate: designData.content.graduationDate,
-        majorOrSchool: designData.content.majorOrSchool,
-        message: designData.content.message,
-      });
+      setContentValues(getRestoredContentValues(designData, backgroundTemplateId, templates, contentFields));
       setCharacterCount(designData.characters.length);
       setElements([
+        ...getRestoredTextElements(designData),
         ...designData.accessories.map((accessory) => ({
           id: `${accessory.id}-${Math.random().toString(36).substring(2, 8)}`,
           type: "accessory" as const,
@@ -875,7 +1169,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
           width: 60 * accessory.position.scale,
           height: 60 * accessory.position.scale,
           content: accessory.name,
-          imageUrl: accessoryById.get(accessory.id)?.imageUrl ?? accessoryById.get(accessory.id)?.iconUrl ?? "",
+          imageUrl: readString(accessory.imageUrl) ?? accessoryById.get(accessory.id)?.imageUrl ?? accessoryById.get(accessory.id)?.iconUrl ?? "",
           price: accessoryPriceById.get(accessory.id) ?? 0,
           accessoryId: accessory.id,
         })),
@@ -927,12 +1221,26 @@ export function StudioProvider({ children }: { children: ReactNode }) {
           const accessorySnapshots = characterAccessories
             .map((part) => toCharacterPartSnapshot(part))
             .filter((part): part is StudioCharacterPartSnapshot => Boolean(part));
-          if (faceSnapshot) element.characterParts.FACE = faceSnapshot;
-          if (hairSnapshot) element.characterParts.HAIR = hairSnapshot;
-          if (torsoSnapshot) element.characterParts.TORSO = torsoSnapshot;
-          if (legsSnapshot) element.characterParts.LEGS = legsSnapshot;
-          if (hatSnapshot) element.characterParts.HAT = hatSnapshot;
-          element.characterParts.ACCESSORY = accessorySnapshots;
+          const storedCharacterParts = isRecord(character.characterParts) ? character.characterParts : null;
+          const storedFaceSnapshot = getStoredCharacterPartSnapshot(storedCharacterParts?.FACE);
+          const storedHairSnapshot = getStoredCharacterPartSnapshot(storedCharacterParts?.HAIR);
+          const storedTorsoSnapshot = getStoredCharacterPartSnapshot(storedCharacterParts?.TORSO);
+          const storedLegsSnapshot = getStoredCharacterPartSnapshot(storedCharacterParts?.LEGS);
+          const storedHatSnapshot = getStoredCharacterPartSnapshot(storedCharacterParts?.HAT);
+          const storedAccessorySnapshots = getStoredCharacterAccessorySnapshots(storedCharacterParts?.ACCESSORY);
+
+          const restoredFaceSnapshot = faceSnapshot ?? storedFaceSnapshot;
+          const restoredHairSnapshot = hairSnapshot ?? storedHairSnapshot;
+          const restoredTorsoSnapshot = torsoSnapshot ?? storedTorsoSnapshot;
+          const restoredLegsSnapshot = legsSnapshot ?? storedLegsSnapshot;
+          const restoredHatSnapshot = hatSnapshot ?? storedHatSnapshot;
+
+          if (restoredFaceSnapshot) element.characterParts.FACE = restoredFaceSnapshot;
+          if (restoredHairSnapshot) element.characterParts.HAIR = restoredHairSnapshot;
+          if (restoredTorsoSnapshot) element.characterParts.TORSO = restoredTorsoSnapshot;
+          if (restoredLegsSnapshot) element.characterParts.LEGS = restoredLegsSnapshot;
+          if (restoredHatSnapshot) element.characterParts.HAT = restoredHatSnapshot;
+          element.characterParts.ACCESSORY = accessorySnapshots.length > 0 ? accessorySnapshots : storedAccessorySnapshots;
 
           return element;
         }),

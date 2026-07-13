@@ -9,6 +9,7 @@ import {
   type ApiCharacterPreset,
   type ApiFrameSize,
   type StudioCharacterInput,
+  type StudioCharacterPartSnapshot,
   type StudioContentField,
   type StudioElement,
 } from "./StudioContext";
@@ -30,7 +31,7 @@ import { useUIStore } from "@/features/ui/store";
 import { UI_MODAL_IDS } from "@/config/routes";
 import { uploadCustomerImage } from "@/lib/api/uploads";
 import { isPersistableImageUrl } from "../lib/design-data";
-import type { CustomFrameDesignData } from "@lego-shop/shared";
+import type { CustomFrameDesignData, JsonObject } from "@lego-shop/shared";
 
 const getFrameColorHex = (name: string, apiHex?: string | null): string => {
   if (apiHex && apiHex.startsWith("#")) return apiHex;
@@ -40,6 +41,88 @@ const getFrameColorHex = (name: string, apiHex?: string | null): string => {
   if (lower === "gỗ" || lower === "wood") return "#d7a15c";
   return "#d1d5db";
 };
+
+const STUDIO_CANVAS_MAX_BOUND = 500;
+const STUDIO_CANVAS_MIN_BOUND = 240;
+
+function parseFrameDimensions(label?: string | null) {
+  const match = label?.match(/(\d+(?:\.\d+)?)\s*x\s*(\d+(?:\.\d+)?)/i);
+
+  if (match?.[1] && match?.[2]) {
+    return {
+      width: Number(match[1]),
+      height: Number(match[2]),
+    };
+  }
+
+  return { width: 30, height: 30 };
+}
+
+function getFrameDimensions(size?: ApiFrameSize | null) {
+  if (
+    typeof size?.widthCm === "number" &&
+    Number.isFinite(size.widthCm) &&
+    typeof size.heightCm === "number" &&
+    Number.isFinite(size.heightCm)
+  ) {
+    return {
+      width: size.widthCm,
+      height: size.heightCm,
+    };
+  }
+
+  return parseFrameDimensions(size?.label);
+}
+
+function getStudioCanvasSize(
+  selectedSize: ApiFrameSize | null | undefined,
+  allSizes: ApiFrameSize[],
+) {
+  const parsedSizes = allSizes.map(getFrameDimensions);
+  const maxDim =
+    parsedSizes.length > 0
+      ? Math.max(...parsedSizes.map((size) => Math.max(size.width, size.height)), 30)
+      : 30;
+  const currentSize = getFrameDimensions(selectedSize);
+
+  return {
+    width: Math.max(
+      STUDIO_CANVAS_MIN_BOUND,
+      Math.round((currentSize.width / maxDim) * STUDIO_CANVAS_MAX_BOUND),
+    ),
+    height: Math.max(
+      STUDIO_CANVAS_MIN_BOUND,
+      Math.round((currentSize.height / maxDim) * STUDIO_CANVAS_MAX_BOUND),
+    ),
+  };
+}
+
+function serializeCharacterPart(part: StudioCharacterPartSnapshot): JsonObject {
+  return {
+    id: part.id,
+    name: part.name,
+    type: part.type,
+    imageUrl: part.imageUrl,
+  };
+}
+
+function serializeCharacterParts(parts: StudioElement["characterParts"]): JsonObject {
+  const serialized: JsonObject = {};
+  if (!parts) return serialized;
+
+  Object.entries(parts).forEach(([key, value]) => {
+    if (!value) return;
+
+    if (Array.isArray(value)) {
+      serialized[key] = value.map(serializeCharacterPart);
+      return;
+    }
+
+    serialized[key] = serializeCharacterPart(value);
+  });
+
+  return serialized;
+}
 
 function NoButtonChromeStyle() {
   return (
@@ -777,7 +860,7 @@ function DateFieldInput({
 }: {
   value: string;
   onChange: (value: string) => void;
-  placeholder?: string;
+  placeholder?: string | undefined;
   inputClass: string;
 }) {
   const selectedDate = parseISODate(value);
@@ -2111,6 +2194,7 @@ function Step4Finish() {
   const timerSecs = String(seconds % 60).padStart(2, "0");
 
   const frameObj = frameSizes.find((s) => s.id === frameSize);
+  const designCanvasSize = getStudioCanvasSize(frameObj, frameSizes);
   const accessoryItems = elements.filter((e) => e.type === "accessory");
   const characterItems = elements.filter((e) => e.type === "character");
   const selectedTemplate = templates.find((t) => t.id === activeTemplate);
@@ -2175,6 +2259,7 @@ function Step4Finish() {
     frameOptionLabel: frameObj?.label ?? frameSize,
     ...(frameObj?.colorName ? { frameColorName: frameObj.colorName } : {}),
     ...(frameObj?.colorHex ? { frameColorHex: frameObj.colorHex } : {}),
+    canvasSize: designCanvasSize,
     backgroundId,
     backgroundName: selectedTemplate?.name ?? null,
     content: {
@@ -2198,6 +2283,21 @@ function Step4Finish() {
         printText.message,
       ),
     },
+    contentValues: { ...contentValues },
+    printText: { ...printText },
+    elements: elements
+      .filter((el) => el.type === "text")
+      .map((el) => ({
+        id: el.id,
+        type: el.type,
+        x: el.x,
+        y: el.y,
+        ...(el.content ? { content: el.content } : {}),
+        ...(typeof el.fontSize === "number" ? { fontSize: el.fontSize } : {}),
+        ...(el.color ? { color: el.color } : {}),
+        ...(typeof el.width === "number" ? { width: el.width } : {}),
+        ...(typeof el.height === "number" ? { height: el.height } : {}),
+      })),
     uploadedImages: customBackgroundUrl
       ? [
           {
@@ -2215,6 +2315,7 @@ function Step4Finish() {
         id: el.accessoryId as string,
         name: el.content || "Accessory",
         quantity: 1,
+        imageUrl: el.imageUrl ?? null,
         position: {
           x: el.x,
           y: el.y,
@@ -2242,6 +2343,7 @@ function Step4Finish() {
         legsId: el.legsId ?? "",
         ...(el.hatId ? { hatId: el.hatId } : {}),
         accessoryIds: el.accessoryIds ?? [],
+        characterParts: serializeCharacterParts(el.characterParts),
         imageUrl: el.imageUrl ?? null,
         price: el.price ?? characterPrice,
         position: {

@@ -1,5 +1,6 @@
 "use client";
 
+import { Suspense } from "react";
 import { Save, ShoppingBag } from "lucide-react";
 
 import { StudioCanvas } from "@/modules/studio/components/StudioCanvas";
@@ -39,7 +40,8 @@ function StudioHeaderActions() {
 
 export function StudioPage() {
   return (
-    <StudioProvider>
+    <Suspense fallback={null}>
+      <StudioProvider>
       <div className="studio-workbench flex h-[calc(100dvh-62px)] flex-col overflow-hidden bg-[#f3f8fd] pt-2 text-slate-950 lg:h-[calc(100dvh-58px)] lg:pt-3">
         <header className="z-30 flex h-[58px] shrink-0 items-center justify-between gap-4 border-b border-[#e5eef6] bg-white/95 px-4 backdrop-blur-xl sm:px-6">
           <div className="hidden xl:block xl:w-[220px]" />
@@ -75,6 +77,7 @@ export function StudioPage() {
           </aside>
         </div>
       </div>
-    </StudioProvider>
+      </StudioProvider>
+    </Suspense>
   );
 }

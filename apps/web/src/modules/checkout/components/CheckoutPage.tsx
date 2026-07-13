@@ -2,8 +2,8 @@
 
 import { useCart } from "@/features/cart/hooks/useCart";
 import { useEffect, useMemo, useState } from "react";
+import type { CSSProperties } from "react";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
 import Link from "next/link";
 import {
   AlertCircle,
@@ -13,11 +13,14 @@ import {
   Gift,
   Info,
   PackageCheck,
+  Pencil,
   Zap,
 } from "lucide-react";
 import { formatCurrency as formatPrice } from "@lego-shop/shared";
 import type {
   ApplyVoucherResponseContract,
+  CharacterPart,
+  CustomFrameDesignData,
   CreateOrderRequestContract,
   JsonObject,
   PaymentSettingsContract,
@@ -34,11 +37,31 @@ import {
   isPersistableImageUrl,
 } from "@/modules/studio/lib/design-data";
 import type { SimpleCartItem } from "@/features/cart/store";
+import vietnamAddressData from "../data/vietnam-addresses.json";
 
 type PaymentSettings = Pick<
   PaymentSettingsContract,
   "codEnabled" | "payosEnabled" | "codDepositEnabled" | "codDepositPercent"
 >;
+
+type VietnamWard = {
+  code: number;
+  name: string;
+};
+
+type VietnamDistrict = {
+  code: number;
+  name: string;
+  wards: VietnamWard[];
+};
+
+type VietnamProvince = {
+  code: number;
+  name: string;
+  districts: VietnamDistrict[];
+};
+
+const VIETNAM_ADDRESSES = vietnamAddressData as VietnamProvince[];
 
 const SHIPPING_OPTIONS = [
   {
@@ -50,7 +73,7 @@ const SHIPPING_OPTIONS = [
   {
     id: "self",
     label: "Tự book ship / Qua lấy",
-    detail: "Kho: Thư Lâm, Đông Anh, HN",
+    detail: "Kho: FPT UNIVERSITY,TP.HCM",
     note: "Shop xác nhận trước khi lấy",
   },
 ] as const;
@@ -79,6 +102,12 @@ function readDesignString(value: unknown) {
 }
 
 function getCartItemFrameOptionId(item: SimpleCartItem) {
+  const framePartId = getCartItemParts(item).find((part) => part.type === "frame" && part.id)?.id;
+  if (framePartId) return framePartId;
+
+  if (item.frameOptionId) return item.frameOptionId;
+  if (item.frameSizeId) return item.frameSizeId;
+
   if (isCustomFrameDesignData(item.designData)) {
     return item.designData.frameOptionId;
   }
@@ -102,6 +131,28 @@ function getCartItemBackgroundId(item: SimpleCartItem) {
   }
 
   return readDesignString(item.designData?.backgroundId);
+}
+
+function getFrameLabelFromDisplayName(value: string | null | undefined) {
+  const match = value?.match(/(\d+(?:\.\d+)?)\s*x\s*(\d+(?:\.\d+)?)/i);
+  return match?.[1] && match?.[2] ? `${match[1]}x${match[2]}` : null;
+}
+
+function getFrameColorFromDisplayName(value: string | null | undefined) {
+  const parts = value?.split(/\s+-\s+/).map((part) => part.trim()).filter(Boolean) ?? [];
+  return parts.length > 1 ? parts[parts.length - 1] ?? null : null;
+}
+
+function getEditDesignHref(item: SimpleCartItem, parts: ReturnType<typeof getCartItemParts>) {
+  const params = new URLSearchParams({ editCartItemId: item.id });
+  const framePart = parts.find((part) => part.type === "frame");
+  const frameLabel = getFrameLabelFromDisplayName(framePart?.name) ?? item.frameSizeLabel;
+  const frameColor = getFrameColorFromDisplayName(framePart?.name) ?? item.frameColorName;
+
+  if (frameLabel) params.set("frameLabel", frameLabel);
+  if (frameColor) params.set("frameColor", frameColor);
+
+  return `${ROUTES.studio}?${params.toString()}`;
 }
 
 function hasUnpersistedDesignImage(item: SimpleCartItem) {
@@ -130,6 +181,380 @@ function calculateVoucherDiscount(voucher: ApplyVoucherResponseContract | null, 
   return Math.max(0, Math.min(cappedDiscount, amount));
 }
 
+function normalizeVietnamesePhone(value: string) {
+  const trimmed = value.trim();
+  if (!trimmed) return "";
+
+  const hasInternationalPrefix = trimmed.startsWith("+84");
+  const digits = trimmed.replace(/\D/g, "");
+  const normalized = hasInternationalPrefix
+    ? `0${digits.slice(2)}`
+    : digits.startsWith("84")
+      ? `0${digits.slice(2)}`
+      : digits;
+
+  return /^(?:0[35789]\d{8}|02\d{8,9})$/.test(normalized) ? normalized : "";
+}
+
+function clamp(value: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, value));
+}
+
+type PreviewPosition = {
+  x?: unknown;
+  y?: unknown;
+  scale?: unknown;
+  rotate?: unknown;
+  rotation?: unknown;
+};
+
+type PreviewCanvasSize = {
+  width: number;
+  height: number;
+};
+
+type PreviewCharacterPartSnapshot = {
+  id: string;
+  name: string;
+  type: string;
+  imageUrl: string | null;
+};
+
+const STUDIO_PREVIEW_MAX_BOUND = 500;
+const STUDIO_PREVIEW_MIN_BOUND = 240;
+const STUDIO_PREVIEW_FALLBACK_MAX_DIM = 33;
+
+function readFiniteNumber(value: unknown) {
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+function readRecord(value: unknown): Record<string, unknown> | null {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
+}
+
+function parseFrameDimensions(label: unknown) {
+  if (typeof label !== "string") return { width: 30, height: 30 };
+  const match = label.match(/(\d+(?:\.\d+)?)\s*x\s*(\d+(?:\.\d+)?)/i);
+
+  if (match?.[1] && match?.[2]) {
+    return {
+      width: Number(match[1]),
+      height: Number(match[2]),
+    };
+  }
+
+  return { width: 30, height: 30 };
+}
+
+function getDesignPreviewCanvasSize(
+  designData: CustomFrameDesignData,
+  item: SimpleCartItem,
+): PreviewCanvasSize {
+  const storedCanvasSize = readRecord(designData.canvasSize);
+  const storedWidth = readFiniteNumber(storedCanvasSize?.width);
+  const storedHeight = readFiniteNumber(storedCanvasSize?.height);
+
+  if (storedWidth && storedHeight) {
+    return { width: storedWidth, height: storedHeight };
+  }
+
+  const frameDimensions = parseFrameDimensions(
+    designData.frameOptionLabel ?? item.frameSizeLabel,
+  );
+  const maxDim = Math.max(
+    frameDimensions.width,
+    frameDimensions.height,
+    STUDIO_PREVIEW_FALLBACK_MAX_DIM,
+  );
+
+  return {
+    width: Math.max(
+      STUDIO_PREVIEW_MIN_BOUND,
+      Math.round((frameDimensions.width / maxDim) * STUDIO_PREVIEW_MAX_BOUND),
+    ),
+    height: Math.max(
+      STUDIO_PREVIEW_MIN_BOUND,
+      Math.round((frameDimensions.height / maxDim) * STUDIO_PREVIEW_MAX_BOUND),
+    ),
+  };
+}
+
+function getPreviewLayerStyle(
+  position: PreviewPosition | undefined,
+  canvasSize: PreviewCanvasSize,
+  fallbackIndex: number,
+  baseWidth: number,
+  baseHeight: number,
+): CSSProperties {
+  const x = readFiniteNumber(position?.x) ?? 90 + fallbackIndex * 44;
+  const y = readFiniteNumber(position?.y) ?? 120 + fallbackIndex * 18;
+  const scale = readFiniteNumber(position?.scale) ?? 1;
+  const rotate = readFiniteNumber(position?.rotate) ?? readFiniteNumber(position?.rotation) ?? 0;
+  const width = baseWidth * scale;
+  const height = baseHeight * scale;
+
+  return {
+    left: `${(x / canvasSize.width) * 100}%`,
+    top: `${(y / canvasSize.height) * 100}%`,
+    width: `${clamp((width / canvasSize.width) * 100, 3, 42)}%`,
+    height: `${clamp((height / canvasSize.height) * 100, 3, 42)}%`,
+    transform: `rotate(${rotate}deg)`,
+    transformOrigin: "center center",
+  };
+}
+
+function getPreviewTextElements(designData: CustomFrameDesignData) {
+  const elements = designData.elements;
+  if (!Array.isArray(elements)) return [];
+
+  return elements.flatMap((element): JsonObject[] => {
+    const record = readRecord(element);
+    if (record?.type !== "text" || typeof record.content !== "string" || !record.content.trim()) {
+      return [];
+    }
+
+    return [record as JsonObject];
+  });
+}
+
+function getPreviewCharacterPartSnapshot(
+  value: unknown,
+): PreviewCharacterPartSnapshot | null {
+  const record = Array.isArray(value) ? readRecord(value[0]) : readRecord(value);
+  if (!record) return null;
+
+  const id = readDesignString(record.id);
+  const name = readDesignString(record.name);
+  const type = readDesignString(record.type);
+  const imageUrl = readDesignString(record.imageUrl) ?? null;
+
+  if (!id || !name || !type) return null;
+
+  return { id, name, type, imageUrl };
+}
+
+function getPreviewCharacterPartSnapshots(value: unknown) {
+  if (!Array.isArray(value)) {
+    const snapshot = getPreviewCharacterPartSnapshot(value);
+    return snapshot ? [snapshot] : [];
+  }
+
+  return value
+    .map((item) => getPreviewCharacterPartSnapshot(item))
+    .filter((item): item is PreviewCharacterPartSnapshot => Boolean(item));
+}
+
+function toPreviewCharacterPartSnapshot(
+  part: CharacterPart | undefined,
+): PreviewCharacterPartSnapshot | null {
+  if (!part) return null;
+
+  return {
+    id: part.id,
+    name: part.name,
+    type: part.type,
+    imageUrl: resolveApiAssetUrl(part.imageUrl) ?? part.imageUrl ?? null,
+  };
+}
+
+function getPreviewCharacterLayers(
+  character: CustomFrameDesignData["characters"][number],
+  characterPartById: Map<string, CharacterPart>,
+) {
+  const storedParts = readRecord(character.characterParts);
+  const storedLayers = [
+    getPreviewCharacterPartSnapshot(storedParts?.LEGS),
+    getPreviewCharacterPartSnapshot(storedParts?.TORSO),
+    getPreviewCharacterPartSnapshot(storedParts?.FACE),
+    getPreviewCharacterPartSnapshot(storedParts?.HAIR),
+    getPreviewCharacterPartSnapshot(storedParts?.HAT),
+    ...getPreviewCharacterPartSnapshots(storedParts?.ACCESSORY),
+  ].filter((part): part is PreviewCharacterPartSnapshot => Boolean(part?.imageUrl));
+
+  if (storedLayers.length > 0) return storedLayers;
+
+  const accessoryIds = Array.isArray(character.accessoryIds) ? character.accessoryIds : [];
+  return [
+    toPreviewCharacterPartSnapshot(characterPartById.get(character.legsId)),
+    toPreviewCharacterPartSnapshot(characterPartById.get(character.torsoId)),
+    toPreviewCharacterPartSnapshot(characterPartById.get(character.faceId)),
+    toPreviewCharacterPartSnapshot(characterPartById.get(character.hairId)),
+    character.hatId ? toPreviewCharacterPartSnapshot(characterPartById.get(character.hatId)) : null,
+    ...accessoryIds.map((id) => toPreviewCharacterPartSnapshot(characterPartById.get(id))),
+  ].filter((part): part is PreviewCharacterPartSnapshot => Boolean(part?.imageUrl));
+}
+
+function getDesignPreviewBackgroundUrl(designData: CustomFrameDesignData, itemPreviewUrl: string) {
+  const uploadedBackgroundUrl = designData.uploadedImages.find((image) => image.type === "background")?.url;
+  return resolveApiAssetUrl(itemPreviewUrl || designData.previewUrl || uploadedBackgroundUrl);
+}
+
+function OrderItemImage({
+  src,
+  alt,
+  className,
+  iconClassName,
+}: {
+  src: string;
+  alt: string;
+  className: string;
+  iconClassName: string;
+}) {
+  return (
+    <div className={`relative shrink-0 overflow-hidden border bg-slate-50 ${className}`}>
+      <PackageCheck className={`absolute text-slate-300 ${iconClassName}`} />
+      {src ? (
+        <img
+          src={src}
+          alt={alt}
+          className="absolute inset-0 h-full w-full object-cover"
+          onError={(event) => {
+            event.currentTarget.style.display = "none";
+          }}
+        />
+      ) : null}
+    </div>
+  );
+}
+
+function CheckoutDesignPreview({
+  item,
+  previewUrl,
+  characterParts,
+}: {
+  item: SimpleCartItem;
+  previewUrl: string;
+  characterParts: CharacterPart[];
+}) {
+  if (!isCustomFrameDesignData(item.designData)) {
+    return null;
+  }
+
+  const designData = item.designData;
+  const backgroundUrl = getDesignPreviewBackgroundUrl(designData, previewUrl);
+  const canvasSize = getDesignPreviewCanvasSize(designData, item);
+  const textElements = getPreviewTextElements(designData);
+  const characterPartById = new Map(characterParts.map((part) => [part.id, part]));
+  const partImageById = new Map(
+    getCartItemParts(item)
+      .filter((part) => part.type === "accessory" && part.id && part.imageUrl)
+      .map((part) => [part.id as string, part.imageUrl as string]),
+  );
+
+  return (
+    <div className="mt-3 overflow-hidden rounded-[12px] border border-slate-200 bg-slate-50 p-2">
+      <div
+        className="relative mx-auto w-full overflow-hidden rounded-[10px] bg-white shadow-sm ring-1 ring-slate-200"
+        style={{ aspectRatio: `${canvasSize.width} / ${canvasSize.height}` }}
+      >
+        <PackageCheck className="absolute left-1/2 top-1/2 h-8 w-8 -translate-x-1/2 -translate-y-1/2 text-slate-200" />
+        {backgroundUrl ? (
+          <img
+            src={backgroundUrl}
+            alt={item.productName}
+            className="absolute inset-0 h-full w-full object-cover"
+            onError={(event) => {
+              event.currentTarget.style.display = "none";
+            }}
+          />
+        ) : null}
+
+        {textElements.map((element, index) => {
+          const fontSize = readFiniteNumber(element.fontSize) ?? 16;
+          const color = readDesignString(element.color) ?? "#0f172a";
+          const content = readDesignString(element.content) ?? "";
+
+          return (
+            <div
+              key={readDesignString(element.id) ?? `text-${index}`}
+              className="absolute whitespace-nowrap font-bold leading-none"
+              style={{
+                left: `${((readFiniteNumber(element.x) ?? 0) / canvasSize.width) * 100}%`,
+                top: `${((readFiniteNumber(element.y) ?? 0) / canvasSize.height) * 100}%`,
+                color,
+                fontSize: `${clamp(fontSize * 0.36, 6, 13)}px`,
+              }}
+            >
+              {content}
+            </div>
+          );
+        })}
+
+        {designData.characters.slice(0, 8).map((character, index) => {
+          const imageUrl = resolveApiAssetUrl(character.imageUrl);
+          const layers = getPreviewCharacterLayers(character, characterPartById);
+          const style = getPreviewLayerStyle(character.position ?? character, canvasSize, index, 46, 74);
+
+          return (
+            <div key={character.id || `character-${index}`} className="absolute" style={style}>
+              <div className="relative h-full w-full overflow-hidden rounded-md bg-white/80 shadow-sm ring-1 ring-white/80">
+                {layers.length > 0 ? (
+                  layers.map((part) => (
+                    <img
+                      key={`${part.type}-${part.id}`}
+                      src={part.imageUrl ?? ""}
+                      alt=""
+                      className="absolute inset-0 h-full w-full object-contain"
+                      onError={(event) => {
+                        event.currentTarget.style.display = "none";
+                      }}
+                    />
+                  ))
+                ) : imageUrl ? (
+                  <img
+                    src={imageUrl}
+                    alt={character.name}
+                    className="h-full w-full object-contain"
+                    onError={(event) => {
+                      event.currentTarget.style.display = "none";
+                    }}
+                  />
+                ) : (
+                  <div className="flex h-full w-full items-end justify-center bg-[#ffdf7e] pb-1 text-[9px] font-bold text-slate-900">
+                    NV
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })}
+
+        {designData.accessories.slice(0, 8).map((accessory, index) => {
+          const accessoryRecord = accessory as Record<string, unknown>;
+          const imageUrl = resolveApiAssetUrl(
+            readDesignString(accessoryRecord.imageUrl) ?? partImageById.get(accessory.id),
+          );
+
+          return (
+            <div
+              key={`${accessory.id}-${index}`}
+              className="absolute"
+              style={getPreviewLayerStyle(accessory.position, canvasSize, index + designData.characters.length, 60, 60)}
+            >
+              {imageUrl ? (
+                <img
+                  src={imageUrl}
+                  alt={accessory.name}
+                  className="h-full w-full object-contain"
+                  onError={(event) => {
+                    event.currentTarget.style.display = "none";
+                  }}
+                />
+              ) : (
+                <div className="max-w-[76px] truncate rounded-full bg-white/86 px-2 py-1 text-[9px] font-bold text-slate-700 shadow-sm">
+                  {accessory.name}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export default function CheckoutPage() {
   const { items, totalAmount, clearCart, isEmpty, itemCount, updateItemNote } = useCart();
   const router = useRouter();
@@ -137,6 +562,7 @@ export default function CheckoutPage() {
   const [shippingMethod, setShippingMethod] = useState<ShippingMethod>("shop_support");
   const [paymentMethod, setPaymentMethod] = useState<CheckoutPaymentMethod>("PAYOS");
   const [paymentSettings, setPaymentSettings] = useState<PaymentSettings | null>(null);
+  const [checkoutCharacterParts, setCheckoutCharacterParts] = useState<CharacterPart[]>([]);
   const [giftPackage, setGiftPackage] = useState(false);
   const [polaroid, setPolaroid] = useState<PolaroidOption>("none");
   const [discountCode, setDiscountCode] = useState("");
@@ -177,6 +603,33 @@ export default function CheckoutPage() {
         setPaymentMethod("COD_DEPOSIT");
       });
   }, []);
+
+  useEffect(() => {
+    const needsCharacterParts = items.some(
+      (item) => isCustomFrameDesignData(item.designData) && item.designData.characters.length > 0,
+    );
+
+    if (!needsCharacterParts) {
+      setCheckoutCharacterParts([]);
+      return;
+    }
+
+    let cancelled = false;
+    publicApiClient.products
+      .listCharacterParts()
+      .then((parts) => {
+        if (!cancelled) {
+          setCheckoutCharacterParts(parts.filter((part) => part.status === "active"));
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setCheckoutCharacterParts([]);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [items]);
 
   const shippingFee = 0;
   const giftFee = giftPackage ? 30000 * itemCount : 0;
@@ -226,10 +679,39 @@ export default function CheckoutPage() {
     return options;
   }, [depositAmount, depositPercent, finalTotal, paymentSettings]);
 
+  const selectedProvince = useMemo(
+    () => VIETNAM_ADDRESSES.find((province) => province.name === formData.city) ?? null,
+    [formData.city],
+  );
+  const districtOptions = selectedProvince?.districts ?? [];
+  const selectedDistrict = useMemo(
+    () => districtOptions.find((district) => district.name === formData.district) ?? null,
+    [districtOptions, formData.district],
+  );
+  const wardOptions = selectedDistrict?.wards ?? [];
+
   const field =
     (key: keyof typeof formData) =>
     (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
       setFormData((prev) => ({ ...prev, [key]: event.target.value }));
+
+  const addressField =
+    (key: "city" | "district" | "ward") =>
+    (event: React.ChangeEvent<HTMLSelectElement>) => {
+      const value = event.target.value;
+
+      setFormData((prev) => {
+        if (key === "city") {
+          return { ...prev, city: value, district: "", ward: "" };
+        }
+
+        if (key === "district") {
+          return { ...prev, district: value, ward: "" };
+        }
+
+        return { ...prev, ward: value };
+      });
+    };
 
   const handleApplyVoucher = async () => {
     const code = discountCode.trim();
@@ -256,7 +738,10 @@ export default function CheckoutPage() {
     event.preventDefault();
     if (loading) return;
 
-    const phone = formData.phone.replace(/\s/g, "");
+    const recipientPhone = normalizeVietnamesePhone(formData.phone);
+    const demoContact = formData.zalo.trim();
+    const demoContactPhone = normalizeVietnamesePhone(demoContact);
+    const phone = recipientPhone || demoContactPhone;
     const email = formData.email.trim();
     const fullAddress = [formData.address, formData.ward, formData.district, formData.city]
       .map((part) => part.trim())
@@ -268,7 +753,7 @@ export default function CheckoutPage() {
       return;
     }
 
-    if (!/^(0|\+84)\d{8,10}$/.test(phone)) {
+    if (!phone) {
       alert("Số điện thoại chưa đúng định dạng.");
       return;
     }
@@ -297,7 +782,7 @@ export default function CheckoutPage() {
         district: formData.district,
         ward: formData.ward,
         ...(email ? { email, customerEmail: email } : {}),
-        ...(formData.zalo.trim() ? { customerZalo: formData.zalo.trim() } : {}),
+        ...(demoContact ? { customerZalo: demoContact } : {}),
         ...(formData.receiveDate ? { receiveDate: formData.receiveDate } : {}),
         ...(orderNote ? { note: orderNote } : {}),
         shippingMethod,
@@ -344,7 +829,7 @@ export default function CheckoutPage() {
   };
 
   const inputClass =
-    "h-12 w-full rounded-[10px] border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-[#2f91d0] focus:ring-4 focus:ring-[#dceeff]";
+    "h-12 w-full rounded-[10px] border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-[#2f91d0] focus:ring-4 focus:ring-[#dceeff] disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400";
   const panelClass = "rounded-[10px] border border-slate-200 bg-white p-6 shadow-sm";
 
   return (
@@ -396,24 +881,41 @@ export default function CheckoutPage() {
                 <div className="mt-6 border-t border-slate-200 pt-5">
                   <h3 className="mb-3 text-sm font-bold uppercase tracking-[0.1em] text-slate-500">2. Địa chỉ & vận chuyển</h3>
                   <div className="grid gap-3 md:grid-cols-3">
-                    <select required value={formData.city} onChange={field("city")} className={inputClass}>
+                    <select required value={formData.city} onChange={addressField("city")} className={inputClass}>
                       <option value="">Tỉnh/Thành phố</option>
-                      <option>Hà Nội</option>
-                      <option>TP. Hồ Chí Minh</option>
-                      <option>Đà Nẵng</option>
-                      <option>Hải Phòng</option>
+                      {VIETNAM_ADDRESSES.map((province) => (
+                        <option key={province.code} value={province.name}>
+                          {province.name}
+                        </option>
+                      ))}
                     </select>
-                    <select required value={formData.district} onChange={field("district")} className={inputClass}>
+                    <select
+                      required
+                      value={formData.district}
+                      onChange={addressField("district")}
+                      disabled={!selectedProvince}
+                      className={inputClass}
+                    >
                       <option value="">Quận/Huyện</option>
-                      <option>Hoàn Kiếm</option>
-                      <option>Đống Đa</option>
-                      <option>Cầu Giấy</option>
-                      <option>Đông Anh</option>
+                      {districtOptions.map((district) => (
+                        <option key={district.code} value={district.name}>
+                          {district.name}
+                        </option>
+                      ))}
                     </select>
-                    <select required value={formData.ward} onChange={field("ward")} className={inputClass}>
+                    <select
+                      required
+                      value={formData.ward}
+                      onChange={addressField("ward")}
+                      disabled={!selectedDistrict}
+                      className={inputClass}
+                    >
                       <option value="">Phường/Xã</option>
-                      <option>Thư Lâm</option>
-                      <option>Vĩnh Ngọc</option>
+                      {wardOptions.map((ward) => (
+                        <option key={ward.code} value={ward.name}>
+                          {ward.name}
+                        </option>
+                      ))}
                     </select>
                     <input required type="text" placeholder="Số nhà, tên đường" value={formData.address} onChange={field("address")} className={`${inputClass} md:col-span-3`} />
                   </div>
@@ -555,16 +1057,16 @@ export default function CheckoutPage() {
                       const characterCount = readCharacterCount(item);
                       const accessoryNames = item.accessories?.map((accessory) => accessory.name).filter(Boolean) ?? [];
                       const parts = getCartItemParts(item);
+                      const canEditDesign = item.designData?.type === "CUSTOM_FRAME";
 
                       return (
                         <div key={item.id} className="flex gap-4 rounded-[16px] bg-white p-4 shadow-sm">
-                          <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-[10px] border border-slate-100 bg-slate-50">
-                            {previewUrl ? (
-                              <Image src={previewUrl} alt={item.productName} fill className="object-cover" sizes="64px" />
-                            ) : (
-                              <PackageCheck className="m-5 h-6 w-6 text-slate-300" />
-                            )}
-                          </div>
+                          <OrderItemImage
+                            src={previewUrl}
+                            alt={item.productName}
+                            className="h-16 w-16 rounded-[10px] border-slate-100"
+                            iconClassName="left-1/2 top-1/2 h-6 w-6 -translate-x-1/2 -translate-y-1/2"
+                          />
                           <div className="min-w-0 flex-1">
                             <div className="flex items-start justify-between gap-3">
                               <div className="min-w-0">
@@ -580,13 +1082,12 @@ export default function CheckoutPage() {
                                 const partImage = resolveApiAssetUrl(part.imageUrl);
                                 return (
                                   <div key={`${part.type}-${part.id ?? partIndex}`} className="flex items-center gap-2 rounded-[10px] border border-slate-100 bg-slate-50 px-2 py-2">
-                                    <div className="relative flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-[8px] border border-slate-200 bg-white">
-                                      {partImage ? (
-                                        <Image src={partImage} alt={part.name} fill className="object-cover" sizes="36px" />
-                                      ) : (
-                                        <PackageCheck className="h-4 w-4 text-slate-300" />
-                                      )}
-                                    </div>
+                                    <OrderItemImage
+                                      src={partImage}
+                                      alt={part.name}
+                                      className="h-9 w-9 rounded-[8px] border-slate-200"
+                                      iconClassName="left-1/2 top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2"
+                                    />
                                     <div className="min-w-0 flex-1">
                                       <p className="truncate text-[11px] font-bold text-slate-800">{part.name}</p>
                                       <p className="text-[10px] font-semibold text-slate-500">x{part.quantity}</p>
@@ -602,6 +1103,16 @@ export default function CheckoutPage() {
                               {templateName ? <span className="truncate">Nền: {templateName}</span> : null}
                               {accessoryNames.length ? <span className="truncate">Phụ kiện: {accessoryNames.join(", ")}</span> : null}
                             </div>
+                            <CheckoutDesignPreview item={item} previewUrl={previewUrl} characterParts={checkoutCharacterParts} />
+                            {canEditDesign ? (
+                              <Link
+                                href={getEditDesignHref(item, parts)}
+                                className="mt-3 inline-flex items-center gap-1.5 rounded-[8px] border border-slate-200 bg-white px-2.5 py-1.5 text-[11px] font-bold text-[#2f91d0] transition hover:border-[#2f91d0]/50 hover:bg-[#f4faff]"
+                              >
+                                <Pencil className="h-3.5 w-3.5" />
+                                Chỉnh sửa thiết kế
+                              </Link>
+                            ) : null}
                             <label className="mt-3 block">
                               <span className="mb-1 block text-[11px] font-bold text-slate-500">Ghi chú nội dung</span>
                               <textarea

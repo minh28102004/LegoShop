@@ -148,6 +148,7 @@ function getLegacyCustomParts(item: SimpleCartItem): CartItemPart[] {
         name: accessory.name,
         quantity: accessory.quantity * item.quantity,
         unitPrice: pricedAccessory?.price ?? 0,
+        imageUrl: readString(accessory.imageUrl),
       });
       if (part) parts.push(part);
     });

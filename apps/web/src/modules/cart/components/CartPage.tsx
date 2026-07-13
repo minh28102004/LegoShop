@@ -1,7 +1,6 @@
 "use client";
 
 import type { CSSProperties } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import {
   ArrowRight,
@@ -36,6 +35,31 @@ const RESET_BUTTON_STYLE: CSSProperties = {
   outline: "none",
 };
 
+function getFrameLabelFromDisplayName(value: string | null | undefined) {
+  const match = value?.match(/(\d+(?:\.\d+)?)\s*x\s*(\d+(?:\.\d+)?)/i);
+  return match?.[1] && match?.[2] ? `${match[1]}x${match[2]}` : null;
+}
+
+function getFrameColorFromDisplayName(value: string | null | undefined) {
+  const parts = value?.split(/\s+-\s+/).map((part) => part.trim()).filter(Boolean) ?? [];
+  return parts.length > 1 ? parts[parts.length - 1] ?? null : null;
+}
+
+function getEditDesignHref(
+  item: Parameters<typeof getCartItemParts>[0],
+  parts: ReturnType<typeof getCartItemParts>,
+) {
+  const params = new URLSearchParams({ editCartItemId: item.id });
+  const framePart = parts.find((part) => part.type === "frame");
+  const frameLabel = getFrameLabelFromDisplayName(framePart?.name) ?? item.frameSizeLabel;
+  const frameColor = getFrameColorFromDisplayName(framePart?.name) ?? item.frameColorName;
+
+  if (frameLabel) params.set("frameLabel", frameLabel);
+  if (frameColor) params.set("frameColor", frameColor);
+
+  return `${ROUTES.studio}?${params.toString()}`;
+}
+
 function CartPreview({
   src,
   alt,
@@ -45,19 +69,19 @@ function CartPreview({
 }) {
   return (
     <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-2xl border border-[#dce4eb] bg-[#f5f7f9] sm:h-28 sm:w-28">
+      <div className="flex h-full w-full items-center justify-center">
+        <Package className="h-8 w-8 text-slate-300" />
+      </div>
       {src ? (
-        <Image
+        <img
           src={src}
           alt={alt}
-          fill
-          sizes="(max-width: 640px) 96px, 112px"
-          className="object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+          className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+          onError={(event) => {
+            event.currentTarget.style.display = "none";
+          }}
         />
-      ) : (
-        <div className="flex h-full w-full items-center justify-center">
-          <Package className="h-8 w-8 text-slate-300" />
-        </div>
-      )}
+      ) : null}
     </div>
   );
 }
@@ -367,9 +391,7 @@ export default function CartPage() {
 
                         {canEditDesign ? (
                           <Link
-                            href={`${ROUTES.studio}?editCartItemId=${encodeURIComponent(
-                              item.id,
-                            )}`}
+                            href={getEditDesignHref(item, parts)}
                             className="mt-3 inline-flex items-center gap-1.5 rounded-lg px-1 py-1 text-xs font-medium text-slate-500 transition-colors hover:text-[#2f91d0]"
                           >
                             <Pencil className="h-3.5 w-3.5" />

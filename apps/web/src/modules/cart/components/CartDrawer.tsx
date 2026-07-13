@@ -300,7 +300,7 @@ export const CartDrawer = React.forwardRef<HTMLDivElement, CartDrawerProps>(
     React.useEffect(() => {
       let firstFrame = 0;
       let secondFrame = 0;
-      let closeTimer: ReturnType<typeof setTimeout> | undefined;
+      let closeTimer: number | undefined;
 
       if (isOpen) {
         setShouldRender(true);

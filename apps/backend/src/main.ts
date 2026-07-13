@@ -14,6 +14,8 @@ const DEFAULT_ALLOWED_ORIGINS = [
   'http://127.0.0.1:3000',
   'http://127.0.0.1:3001',
   'http://127.0.0.1:3002',
+  'https://figure-lab.vercel.app',
+  'https://figure-lab-admin.vercel.app',
 ];
 
 const DEFAULT_ALLOWED_ORIGIN_PATTERNS = [
@@ -65,6 +67,8 @@ function isLoopbackOrigin(origin: string): boolean {
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
   const config = app.get(ConfigService);
+  app.set('trust proxy', 1);
+
   const frontendUrl = config.get<string>('FRONTEND_URL');
   const adminUrl = config.get<string>('ADMIN_URL');
   const corsOrigins = config.get<string>('CORS_ORIGINS');
@@ -101,7 +105,21 @@ async function bootstrap() {
     },
     credentials: true,
     methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'Accept',
+      'Origin',
+      'X-Requested-With',
+      'Cache-Control',
+      'Pragma',
+      'x-vercel-protection-bypass',
+      'x-vercel-set-bypass-cookie',
+    ],
+    exposedHeaders: ['Content-Length', 'Content-Type'],
+    optionsSuccessStatus: 204,
+    preflightContinue: false,
+    maxAge: 86400,
   });
 
   app.useStaticAssets(join(process.cwd(), 'public'), { prefix: '/' });

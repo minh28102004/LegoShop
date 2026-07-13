@@ -60,6 +60,8 @@ ENV DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy"
 COPY --from=deps /app/ .
 # Lấy mã nguồn thực tế (source files) từ Stage Pruner
 COPY --from=pruner /app/out/full/ .
+# Shared assets package is not part of the pruned backend graph, so copy it explicitly.
+COPY --from=pruner /app/packages/assets/images ./packages/assets/images
 
 # Prisma Generate lần 1: BẮT BUỘC phải sinh ra ở đây để TypeScript có Type mà compile code NestJS
 # Truyền biến DATABASE_URL ảo để vượt qua PrismaConfigEnvError trên Render

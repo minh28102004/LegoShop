@@ -383,10 +383,10 @@ const ENTITY_SORT_FIELDS = {
   'frame-sizes': ['name', 'createdAt', 'updatedAt'],
   'frame-colors': ['name', 'createdAt', 'updatedAt'],
   vouchers: ['code', 'discountType', 'discountValue', 'minOrderAmount', 'status', 'expiresAt', 'createdAt', 'updatedAt'],
-} satisfies Record<ResourceKey, string[]>;
+} satisfies Partial<Record<ResourceKey, string[]>>;
 
 function isEntityColumnSortable(column: EntityTableColumn, resource: ResourceKey) {
-  return ENTITY_SORT_FIELDS[resource].includes(column.field.key);
+  return ENTITY_SORT_FIELDS[resource]?.includes(column.field.key) ?? false;
 }
 
 function getEntityDefaultSortDirection(column: EntityTableColumn): SortDirection {

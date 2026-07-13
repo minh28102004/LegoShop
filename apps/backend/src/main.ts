@@ -16,12 +16,40 @@ const DEFAULT_ALLOWED_ORIGINS = [
   'http://127.0.0.1:3002',
 ];
 
+const DEFAULT_ALLOWED_ORIGIN_PATTERNS = [
+  /^https:\/\/.*\.vercel\.app$/,
+];
+
 function parseOrigins(value?: string): string[] {
   return value
     ? value
         .split(',')
         .map((origin) => origin.trim())
         .filter(Boolean)
+    : [];
+}
+
+function normalizeOrigin(origin: string): string {
+  return origin.trim().replace(/\/+$/, '');
+}
+
+function escapeRegex(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function wildcardToRegex(pattern: string): RegExp {
+  const normalizedPattern = normalizeOrigin(pattern);
+  const source = `^${escapeRegex(normalizedPattern).replace(/\\\*/g, '.*')}$`;
+  return new RegExp(source);
+}
+
+function parseOriginPatterns(value?: string): RegExp[] {
+  return value
+    ? value
+        .split(',')
+        .map((pattern) => pattern.trim())
+        .filter(Boolean)
+        .map(wildcardToRegex)
     : [];
 }
 
@@ -40,21 +68,36 @@ async function bootstrap() {
   const frontendUrl = config.get<string>('FRONTEND_URL');
   const adminUrl = config.get<string>('ADMIN_URL');
   const corsOrigins = config.get<string>('CORS_ORIGINS');
+  const corsOriginPatterns = config.get<string>('CORS_ORIGIN_PATTERNS');
   const allowedOrigins = new Set([
     ...DEFAULT_ALLOWED_ORIGINS,
     ...parseOrigins(frontendUrl),
     ...parseOrigins(adminUrl),
     ...parseOrigins(corsOrigins),
-  ]);
+  ].map(normalizeOrigin));
+  const allowedOriginPatterns = [
+    ...DEFAULT_ALLOWED_ORIGIN_PATTERNS,
+    ...parseOriginPatterns(corsOriginPatterns),
+  ];
 
   app.enableCors({
     origin: (origin, callback) => {
-      if (!origin || allowedOrigins.has(origin) || isLoopbackOrigin(origin)) {
+      const normalizedOrigin = origin ? normalizeOrigin(origin) : origin;
+      const isPatternAllowed = normalizedOrigin
+        ? allowedOriginPatterns.some((pattern) => pattern.test(normalizedOrigin))
+        : false;
+
+      if (
+        !normalizedOrigin ||
+        allowedOrigins.has(normalizedOrigin) ||
+        isPatternAllowed ||
+        isLoopbackOrigin(normalizedOrigin)
+      ) {
         callback(null, true);
         return;
       }
 
-      callback(new Error(`CORS blocked origin: ${origin}`), false);
+      callback(new Error(`CORS blocked origin: ${normalizedOrigin}`), false);
     },
     credentials: true,
     methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowRight, Sparkles, Palette, ShoppingBag } from "lucide-react";
+import { ArrowRight, Sparkles, Palette } from "lucide-react";
 import { ProductCard, Product } from "@/components/product/ProductCard";
 import { fetchApi } from "@/lib/api";
 

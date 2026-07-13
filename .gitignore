@@ -35,6 +35,7 @@ apps/backend/.env.*
 
 # logs
 *.log
+.codex-*
 npm-debug.log*
 pnpm-debug.log*
 yarn-debug.log*

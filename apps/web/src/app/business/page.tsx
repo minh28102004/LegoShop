@@ -1,5 +1,4 @@
 import { BusinessInquiryForm } from "@/components/business/BusinessInquiryForm";
-import Image from "next/image";
 
 export default function BusinessPage() {
   return (

@@ -1,16 +1,15 @@
 "use client";
 
 import { useState, useMemo } from 'react';
-import { useStudio, ApiFrameSize } from "./StudioContext";
+import { useStudio } from "./StudioContext";
 import { formatCurrency } from "@/lib/utils";
-import { Search, ChevronDown, CheckCircle2 } from "lucide-react";
+import { Search } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCart } from "@/lib/cart";
 
 export function StudioRightPanel() {
-  const { step, setStep, totalPrice, frameSize, setFrameSize, frameColor, setFrameColor, elements, activeTemplate } = useStudio();
+  const { step, setStep, totalPrice, frameSize, frameColor, elements, activeTemplate } = useStudio();
   const { addItem } = useCart();
-  const router = useRouter();
 
   const handleNext = () => setStep(Math.min(4, step + 1));
   const handleBack = () => setStep(Math.max(1, step - 1));

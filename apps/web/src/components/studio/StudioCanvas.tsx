@@ -1,10 +1,8 @@
 "use client";
 
-import { Undo, Redo, ZoomIn, ZoomOut, Save, ShoppingBag, Trash2 } from "lucide-react";
+import { Undo, Redo, Trash2 } from "lucide-react";
 import { useStudio } from "./StudioContext";
 import { useState, useRef, useEffect } from "react";
-import { useCart } from "@/lib/cart";
-import { useRouter } from "next/navigation";
 
 export function StudioCanvas() {
   const { 
@@ -15,7 +13,6 @@ export function StudioCanvas() {
     removeElement, 
     activeTemplate, 
     zoom, 
-    setZoom,
     addElement,
     templates
   } = useStudio();

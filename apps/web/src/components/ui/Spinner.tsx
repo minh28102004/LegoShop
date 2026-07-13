@@ -3,8 +3,7 @@
 import * as React from 'react'
 import { cva, type VariantProps } from 'class-variance-authority'
 
-import { cn } from '@/lib/cn'
-import type { Size } from '@/types'
+import { cn, type Size } from '@lego-shop/ui'
 
 const spinnerVariants = cva(
   'inline-block shrink-0 animate-spin rounded-full border-2 border-current border-t-transparent',

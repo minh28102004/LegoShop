@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import {
+  OrderStatusHistoryType,
   OrderStatus,
   PaymentMethod,
   PaymentStatus,
@@ -15,15 +16,43 @@ import {
   resolveDateRange,
   resolveSorts,
 } from '../common/admin-query/admin-query.util';
+import { PaymentsService } from '../payments/payments.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { GetAdminOrdersQueryDto } from './dto/get-admin-orders-query.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 import { UpdatePaymentStatusDto } from './dto/update-payment-status.dto';
 import { UpdateShippingStatusDto } from './dto/update-shipping-status.dto';
 
+type AdminOrderWithItems = Prisma.OrderGetPayload<{
+  include: {
+    items: true;
+  };
+}>;
+
+type AdminOrderWithItemsAndPayments = Prisma.OrderGetPayload<{
+  include: {
+    items: true;
+    payments: true;
+    statusHistories: {
+      include: {
+        changedByAdmin: {
+          select: {
+            id: true;
+            email: true;
+            name: true;
+          };
+        };
+      };
+    };
+  };
+}>;
+
 @Injectable()
 export class AdminOrdersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly paymentsService: PaymentsService,
+  ) {}
 
   async findAdminOrders(query: GetAdminOrdersQueryDto) {
     const pagination = getAdminPagination(query);
@@ -140,7 +169,7 @@ export class AdminOrdersService {
     ]);
 
     return {
-      data,
+      data: data.map((order) => this.serializeOrder(order)),
       meta: buildAdminListMeta({
         page: pagination.page,
         limit: pagination.limit,
@@ -183,11 +212,175 @@ export class AdminOrdersService {
   }
 
   async findAdminOrderById(id: string) {
+    await this.paymentsService.syncPayosPaymentStatusForOrderId(id);
+
     const order = await this.prisma.order.findUnique({
       where: { id },
       include: {
         items: true,
         payments: true,
+        statusHistories: {
+          include: {
+            changedByAdmin: {
+              select: {
+                id: true,
+                email: true,
+                name: true,
+              },
+            },
+          },
+          orderBy: {
+            createdAt: 'desc',
+          },
+        },
+      },
+    });
+
+    if (!order) {
+      throw new NotFoundException('Order not found');
+    }
+
+    return this.serializeOrderDetail(order);
+  }
+
+  async updateOrderStatus(
+    id: string,
+    dto: UpdateOrderStatusDto,
+    changedByAdminId?: string,
+  ) {
+    const existing = await this.ensureOrderExists(id);
+
+    const order = await this.prisma.$transaction(async (tx) => {
+      if (
+        existing.orderStatus !== OrderStatus.cancelled &&
+        dto.status === OrderStatus.cancelled
+      ) {
+        await this.restoreFrameStock(tx, existing.items);
+      }
+
+      if (existing.orderStatus !== dto.status) {
+        await tx.orderStatusHistory.create({
+          data: {
+            orderId: id,
+            type: OrderStatusHistoryType.ORDER_STATUS,
+            fromValue: existing.orderStatus,
+            toValue: dto.status,
+            changedByAdminId,
+          },
+        });
+      }
+
+      return tx.order.update({
+        where: { id },
+        data: {
+          orderStatus: dto.status,
+          ...(dto.status === OrderStatus.cancelled
+            ? {
+                cancelledAt: new Date(),
+                cancelReason: 'Cancelled by admin',
+              }
+            : {}),
+        },
+        include: {
+          items: true,
+        },
+      });
+    });
+
+    return this.serializeOrder(order);
+  }
+
+  async updatePaymentStatus(
+    id: string,
+    dto: UpdatePaymentStatusDto,
+    changedByAdminId?: string,
+  ) {
+    const existing = await this.ensureOrderExists(id);
+
+    const order = await this.prisma.$transaction(async (tx) => {
+      if (existing.paymentStatus !== dto.status) {
+        await tx.orderStatusHistory.create({
+          data: {
+            orderId: id,
+            type: OrderStatusHistoryType.PAYMENT_STATUS,
+            fromValue: existing.paymentStatus,
+            toValue: dto.status,
+            changedByAdminId,
+          },
+        });
+      }
+
+      const now = new Date();
+      return tx.order.update({
+        where: { id },
+        data: {
+          paymentStatus: dto.status,
+          ...(dto.status === PaymentStatus.paid
+            ? {
+                paidAt: now,
+                remainingAmount: 0,
+                depositStatus: 'not_required',
+              }
+            : {}),
+          ...(dto.status === PaymentStatus.deposit_paid
+            ? {
+                depositStatus: 'paid',
+                depositPaidAt: now,
+                remainingAmount: Math.max(
+                  0,
+                  existing.totalAmount - existing.depositAmount,
+                ),
+              }
+            : {}),
+        },
+        include: {
+          items: true,
+        },
+      });
+    });
+
+    return this.serializeOrder(order);
+  }
+
+  async updateShippingStatus(
+    id: string,
+    dto: UpdateShippingStatusDto,
+    changedByAdminId?: string,
+  ) {
+    const existing = await this.ensureOrderExists(id);
+
+    const order = await this.prisma.$transaction(async (tx) => {
+      if (existing.shippingStatus !== dto.status) {
+        await tx.orderStatusHistory.create({
+          data: {
+            orderId: id,
+            type: OrderStatusHistoryType.SHIPPING_STATUS,
+            fromValue: existing.shippingStatus,
+            toValue: dto.status,
+            changedByAdminId,
+          },
+        });
+      }
+
+      return tx.order.update({
+        where: { id },
+        data: {
+          shippingStatus: dto.status,
+        },
+        include: {
+          items: true,
+        },
+      });
+    });
+
+    return this.serializeOrder(order);
+  }
+
+  private async ensureOrderExists(id: string) {
+    const order = await this.prisma.order.findUnique({
+      where: { id },
+      include: {
+        items: true,
       },
     });
 
@@ -198,56 +391,62 @@ export class AdminOrdersService {
     return order;
   }
 
-  async updateOrderStatus(id: string, dto: UpdateOrderStatusDto) {
-    await this.ensureOrderExists(id);
+  private async restoreFrameStock(
+    tx: Prisma.TransactionClient,
+    items: Array<{
+      productId: string | null;
+      frameSizeId: string | null;
+      quantity: number;
+    }>,
+  ) {
+    const quantities = items.reduce((map, item) => {
+      if (item.productId || !item.frameSizeId) {
+        return map;
+      }
 
-    return this.prisma.order.update({
-      where: { id },
-      data: {
-        orderStatus: dto.status,
-      },
-      include: {
-        items: true,
-      },
-    });
-  }
+      map.set(
+        item.frameSizeId,
+        (map.get(item.frameSizeId) ?? 0) + item.quantity,
+      );
 
-  async updatePaymentStatus(id: string, dto: UpdatePaymentStatusDto) {
-    await this.ensureOrderExists(id);
+      return map;
+    }, new Map<string, number>());
 
-    return this.prisma.order.update({
-      where: { id },
-      data: {
-        paymentStatus: dto.status,
-      },
-      include: {
-        items: true,
-      },
-    });
-  }
-
-  async updateShippingStatus(id: string, dto: UpdateShippingStatusDto) {
-    await this.ensureOrderExists(id);
-
-    return this.prisma.order.update({
-      where: { id },
-      data: {
-        shippingStatus: dto.status,
-      },
-      include: {
-        items: true,
-      },
-    });
-  }
-
-  private async ensureOrderExists(id: string) {
-    const order = await this.prisma.order.findUnique({
-      where: { id },
-      select: { id: true },
-    });
-
-    if (!order) {
-      throw new NotFoundException('Order not found');
+    for (const [frameOptionId, quantity] of quantities.entries()) {
+      await tx.frameOption.updateMany({
+        where: {
+          id: frameOptionId,
+          stock: {
+            not: null,
+          },
+        },
+        data: {
+          stock: {
+            increment: quantity,
+          },
+        },
+      });
     }
+  }
+
+  private serializeOrder(order: AdminOrderWithItems) {
+    return {
+      ...order,
+      payosOrderCode: this.serializeBigInt(order.payosOrderCode),
+    };
+  }
+
+  private serializeOrderDetail(order: AdminOrderWithItemsAndPayments) {
+    return {
+      ...this.serializeOrder(order),
+      payments: order.payments.map((payment) => ({
+        ...payment,
+        providerOrderCode: this.serializeBigInt(payment.providerOrderCode),
+      })),
+    };
+  }
+
+  private serializeBigInt(value: bigint | null) {
+    return typeof value === 'bigint' ? value.toString() : value;
   }
 }

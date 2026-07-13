@@ -4,10 +4,10 @@ import * as React from 'react'
 import Link from 'next/link'
 import { ArrowRight } from 'lucide-react'
 import { motion, type HTMLMotionProps } from 'framer-motion'
+import { useIntersectionObserver } from '@lego-shop/hooks'
 
 import { Button } from '@/components/ui'
-import { useIntersectionObserver } from '@/hooks/useIntersectionObserver'
-import { cn } from '@/lib/cn'
+import { cn } from '@lego-shop/ui'
 
 export interface SectionHeaderProps
   extends Omit<HTMLMotionProps<'div'>, 'title'> {

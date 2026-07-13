@@ -3,8 +3,7 @@
 import * as React from 'react'
 import { cva, type VariantProps } from 'class-variance-authority'
 
-import { cn } from '@/lib/cn'
-import type { Size } from '@/types'
+import { cn, type Size } from '@lego-shop/ui'
 
 const ratingVariants = cva('inline-flex items-center', {
   variants: {

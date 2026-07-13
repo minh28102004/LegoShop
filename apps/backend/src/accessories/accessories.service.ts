@@ -148,6 +148,7 @@ export class AccessoriesService {
     return this.prisma.accessory.create({
       data: {
         name: dto.name,
+        price: dto.price,
         imageUrl: dto.imageUrl,
         iconUrl: dto.iconUrl,
         status: dto.status,
@@ -171,6 +172,7 @@ export class AccessoriesService {
 
     const data: {
       name?: string;
+      price?: number;
       imageUrl?: string;
       iconUrl?: string;
       status?: ProductStatus;
@@ -178,6 +180,7 @@ export class AccessoriesService {
     } = {};
 
     if (dto.name !== undefined) data.name = dto.name;
+    if (dto.price !== undefined) data.price = dto.price;
     if (dto.imageUrl !== undefined) data.imageUrl = dto.imageUrl;
     if (dto.iconUrl !== undefined) data.iconUrl = dto.iconUrl;
     if (dto.status !== undefined) data.status = dto.status;

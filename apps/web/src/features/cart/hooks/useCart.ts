@@ -1,85 +1,82 @@
 'use client'
 
-import { useCallback, useMemo } from 'react'
+// ============================================================
+// useCart hook - wrapper đơn giản cho cartStore
+// ============================================================
 
+import { useCallback } from 'react'
 import {
   selectCartIsOpen,
   selectCartItemCount,
   selectCartItems,
-  selectCartSubtotal,
+  selectCartTotalAmount,
   useCartStore,
-} from '@/stores/cartStore'
-import {
-  calculateOrderTotal,
-  calculateShipping,
-} from '@/services/cartService'
-import type { CartItem, FrameConfig, Product } from '@/types'
+  type SimpleCartItem,
+} from '@/features/cart/store'
+
+export type { SimpleCartItem }
 
 interface UseCartResult {
-  items: CartItem[]
+  items: SimpleCartItem[]
   itemCount: number
-  subtotal: number
-  shipping: number
-  total: number
+  totalAmount: number
   isOpen: boolean
-  addItem: (product: Product, config: FrameConfig) => void
-  removeItem: (cartItemId: string) => void
-  updateQuantity: (cartItemId: string, quantity: number) => void
+  isEmpty: boolean
+  addItem: (item: Omit<SimpleCartItem, 'id' | 'addedAt' | 'totalPrice'>) => void
+  updateItem: (id: string, item: Omit<SimpleCartItem, 'id' | 'addedAt' | 'totalPrice'>) => void
+  removeItem: (id: string) => void
+  updateQuantity: (id: string, quantity: number) => void
+  updateItemNote: (id: string, note: string) => void
   clearCart: () => void
   toggleCart: () => void
   openCart: () => void
   closeCart: () => void
-  isEmpty: boolean
   hasItem: (productId: string) => boolean
-  getItem: (cartItemId: string) => CartItem | undefined
+  getItem: (id: string) => SimpleCartItem | undefined
 }
-
-const DEFAULT_DISCOUNT_AMOUNT = 0
 
 export function useCart(): UseCartResult {
   const items = useCartStore(selectCartItems)
   const itemCount = useCartStore(selectCartItemCount)
-  const subtotal = useCartStore(selectCartSubtotal)
+  const totalAmount = useCartStore(selectCartTotalAmount)
   const isOpen = useCartStore(selectCartIsOpen)
   const addItem = useCartStore((state) => state.addItem)
+  const updateItem = useCartStore((state) => state.updateItem)
   const removeItem = useCartStore((state) => state.removeItem)
   const updateQuantity = useCartStore((state) => state.updateQuantity)
+  const updateItemNote = useCartStore((state) => state.updateItemNote)
   const clearCart = useCartStore((state) => state.clearCart)
   const toggleCart = useCartStore((state) => state.toggleCart)
   const openCart = useCartStore((state) => state.openCart)
   const closeCart = useCartStore((state) => state.closeCart)
-  const shipping = useMemo<number>(() => calculateShipping(subtotal), [subtotal])
-  const total = useMemo<number>(
-    () => calculateOrderTotal(items, shipping, DEFAULT_DISCOUNT_AMOUNT),
-    [items, shipping],
-  )
+
   const isEmpty = itemCount === 0
+
   const hasItem = useCallback(
-    (productId: string): boolean =>
-      items.some((item) => item.product.id === productId),
+    (productId: string) => items.some((item) => item.productId === productId),
     [items],
   )
+
   const getItem = useCallback(
-    (cartItemId: string): CartItem | undefined =>
-      items.find((item) => item.id === cartItemId),
+    (id: string) => items.find((item) => item.id === id),
     [items],
   )
 
   return {
     items,
     itemCount,
-    subtotal,
-    shipping,
-    total,
+    totalAmount,
     isOpen,
+    isEmpty,
     addItem,
+    updateItem,
     removeItem,
     updateQuantity,
+    updateItemNote,
     clearCart,
     toggleCart,
     openCart,
     closeCart,
-    isEmpty,
     hasItem,
     getItem,
   }

@@ -14,7 +14,7 @@ import AdminNavIcon from '@/modules/admin/components/AdminNavIcon';
 import { useAdminSidebar } from '@/modules/admin/hooks/useAdminSidebar';
 
 const sidebarItemBaseClass =
-  'group relative flex min-h-[55px] w-full min-w-0 max-w-full items-center gap-[9px] overflow-hidden rounded-[14px] border border-transparent px-[11px] outline-none transition-all duration-200 ease-out hover:translate-x-0.5 active:translate-x-0';
+  'group relative flex min-h-[44px] w-full min-w-0 max-w-full items-center gap-[10px] overflow-hidden rounded-[13px] border border-transparent px-[10px] outline-none transition-all duration-200 ease-out hover:translate-x-0.5 active:translate-x-0';
 
 const sidebarFocusClass =
   'focus-visible:border-[var(--admin-primary)] focus-visible:ring-4 focus-visible:ring-[var(--admin-primary-ring)]';
@@ -43,6 +43,19 @@ function ChevronLeft({ className }: { className?: string }) {
         strokeWidth='2.4'
         strokeLinecap='round'
         strokeLinejoin='round'
+      />
+    </svg>
+  );
+}
+
+function CloseIcon() {
+  return (
+    <svg viewBox='0 0 24 24' fill='none' className='h-5 w-5' aria-hidden='true'>
+      <path
+        d='M6.5 6.5L17.5 17.5M17.5 6.5L6.5 17.5'
+        stroke='currentColor'
+        strokeWidth='2'
+        strokeLinecap='round'
       />
     </svg>
   );
@@ -86,7 +99,7 @@ export default function AdminSidebar() {
             onClick={closeMobileSidebar}
             aria-label={t('sidebar.dashboard')}
             className={cn(
-              'mx-auto flex h-[54px] items-center justify-center gap-[13px] rounded-[16px] bg-transparent px-[6px] transition-colors duration-200 hover:bg-[var(--admin-primary-soft)]',
+              'mx-auto flex h-[54px] min-w-0 items-center justify-center gap-[13px] rounded-[16px] bg-transparent px-[6px] transition-colors duration-200 hover:bg-[var(--admin-primary-soft)]',
               expanded ? 'w-full justify-start' : 'w-[51px] px-0',
             )}
           >
@@ -101,20 +114,35 @@ export default function AdminSidebar() {
               />
             </span>
             {expanded ? (
-              <span className='min-w-0 overflow-visible pb-0.5 text-left'>
-                <span className='block truncate text-[20px] font-semibold leading-[1.18] text-slate-900'>Figure Lab</span>
+              <span className='min-w-0 overflow-visible py-1 text-left'>
+                <span className='block whitespace-nowrap text-[20px] font-semibold leading-[1.35] text-slate-900'>Figure Lab</span>
               </span>
             ) : null}
           </Link>
+
+          {isMobileOpen ? (
+            <button
+              type='button'
+              aria-label={t('header.closeMenu')}
+              onClick={closeMobileSidebar}
+              className={cn(
+                'ml-2 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-[13px] bg-transparent text-slate-500 lg:hidden',
+                'transition-all duration-200 hover:rotate-90 hover:bg-[var(--admin-primary-soft)] hover:text-[var(--admin-primary-strong)]',
+                'focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--admin-primary-ring)]',
+              )}
+            >
+              <CloseIcon />
+            </button>
+          ) : null}
         </div>
 
         <nav
           className='flex-1 overflow-x-hidden overflow-y-auto px-[11px] py-[11px] [scrollbar-color:rgba(148,163,184,0.42)_transparent] [scrollbar-gutter:stable] [scrollbar-width:thin] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-slate-300'
           aria-label={t('header.adminControl')}
         >
-          <div className='min-w-0 space-y-[17px]'>
+          <div className='min-w-0 space-y-[14px]'>
             {ADMIN_NAV_SECTIONS.map((section) => (
-              <section key={section.id} className='min-w-0 space-y-[7px]'>
+              <section key={section.id} className='min-w-0 space-y-[6px]'>
                 {expanded ? (
                   <div className='px-2'>
                     <p className='text-[11px] font-semibold uppercase leading-4 tracking-[0.12em] text-slate-500'>
@@ -125,7 +153,7 @@ export default function AdminSidebar() {
                   <div className='mx-2 h-px bg-linear-to-r from-transparent via-slate-200/80 to-transparent' />
                 )}
 
-                <div className='min-w-0 space-y-[5px]'>
+                <div className='min-w-0 space-y-[4px]'>
                   {section.items.map((item) => {
                     const active = isActivePath(pathname, item.href);
                     const label = t(item.labelKey);
@@ -154,7 +182,7 @@ export default function AdminSidebar() {
 
                         <span
                           className={cn(
-                            'inline-flex h-[39px] w-[39px] shrink-0 items-center justify-center rounded-[14px] transition-all duration-200 ease-out group-hover:translate-x-0.5 group-hover:scale-[1.02]',
+                            'inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-[12px] transition-all duration-200 ease-out group-hover:translate-x-0.5 group-hover:scale-[1.02]',
                             active
                               ? 'border border-[var(--admin-accent)] bg-[#ffe16a] text-[#18385a] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.55)]'
                               : 'bg-slate-100 text-slate-500 group-hover:bg-[var(--admin-primary-tint)] group-hover:text-[var(--admin-primary-strong)] group-hover:shadow-[inset_0_0_0_1px_rgba(215,239,255,0.95)]',
@@ -164,24 +192,14 @@ export default function AdminSidebar() {
                         </span>
 
                         {expanded ? (
-                          <span className='flex min-w-0 flex-1 flex-col text-left'>
+                          <span className='flex min-w-0 flex-1 items-center text-left'>
                             <span
                               className={cn(
-                                'truncate text-[14px] font-medium leading-[17px] transition-colors duration-200',
+                                'truncate text-[14px] font-medium leading-5 transition-colors duration-200',
                                 active ? 'text-white' : 'text-slate-800 group-hover:text-[var(--admin-primary-strong)]',
                               )}
                             >
                               {t(item.labelKey)}
-                            </span>
-                            <span
-                              className={cn(
-                                'truncate text-[12px] font-normal leading-4 transition-colors duration-200',
-                                active
-                                  ? 'text-white/85'
-                                  : 'text-slate-500 group-hover:text-[var(--admin-primary)]',
-                              )}
-                            >
-                              {t(item.descriptionKey)}
                             </span>
                           </span>
                         ) : null}

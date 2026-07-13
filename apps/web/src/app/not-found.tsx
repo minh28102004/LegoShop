@@ -2,7 +2,7 @@ import Link from 'next/link'
 
 import { Button } from '@/components/ui'
 import { Container } from '@/components/layout/Container'
-import { ROUTES } from '@/constants'
+import { ROUTES } from '@/config/routes'
 
 export default function NotFound() {
   return (
@@ -17,7 +17,7 @@ export default function NotFound() {
           </h1>
           <p className="mt-4 text-body-lg text-text-secondary">
             Đường dẫn này có thể đã được di chuyển hoặc không còn tồn tại.
-            Hãy quay lại trang chủ hoặc khám phá các bộ sưu tập BrickFrames.
+            Hãy quay lại trang chủ hoặc khám phá các bộ sưu tập Figure Lab.
           </p>
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
             <Button asChild size="lg">

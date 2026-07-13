@@ -1,9 +1,11 @@
 'use client';
 
 import { usePathname } from 'next/navigation';
+import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import Dropdown from '@/common/components/ui/Dropdown';
+import { ADMIN_ROUTES } from '@/common/constants/routes';
 import { useI18n } from '@/lib/i18n/useI18n';
 import AdminAvatar from '@/modules/admin/components/AdminAvatar';
 
@@ -85,6 +87,26 @@ function SettingsIcon() {
   );
 }
 
+function KeyRoundIcon() {
+  return (
+    <svg viewBox='0 0 20 20' fill='none' className='h-4 w-4' aria-hidden='true'>
+      <path
+        d='M7.5 12.5C5.43 12.5 3.75 10.82 3.75 8.75C3.75 6.68 5.43 5 7.5 5C9.57 5 11.25 6.68 11.25 8.75C11.25 9.2 11.17 9.62 11.03 10.02L16.25 15.24V17.08H14.17V15H12.08V12.92H10.24L9.98 12.66C9.22 13.09 8.41 12.5 7.5 12.5Z'
+        stroke='currentColor'
+        strokeWidth='1.45'
+        strokeLinecap='round'
+        strokeLinejoin='round'
+      />
+      <path
+        d='M7.5 8.75H7.51'
+        stroke='currentColor'
+        strokeWidth='2.4'
+        strokeLinecap='round'
+      />
+    </svg>
+  );
+}
+
 function LogoutIcon() {
   return (
     <svg viewBox='0 0 20 20' fill='none' className='h-4 w-4' aria-hidden='true'>
@@ -153,7 +175,7 @@ export default function AdminUserDropdown({
   const role = toRole(profileRole);
   const { labelKey: roleTextKey, tone } = roleBadge(role);
   const roleText = t(roleTextKey);
-  const profileLabel = `${t('common.profile')} ${t('common.account').toLocaleLowerCase()}`;
+  const profileLabel = t('account.profileTitle');
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -177,6 +199,17 @@ export default function AdminUserDropdown({
       id: 'profile',
       icon: UserIcon,
       label: profileLabel,
+      href: ADMIN_ROUTES.profile,
+      colorClass: 'text-slate-700',
+      hoverClass: 'hover:bg-[var(--admin-primary-soft)] hover:text-[var(--admin-primary-strong)]',
+      iconClass:
+        'bg-slate-100 text-slate-600 group-hover:bg-[var(--admin-primary-tint)] group-hover:text-[var(--admin-primary-strong)]',
+    },
+    {
+      id: 'change-password',
+      icon: KeyRoundIcon,
+      label: t('account.changePasswordTitle'),
+      href: ADMIN_ROUTES.changePassword,
       colorClass: 'text-slate-700',
       hoverClass: 'hover:bg-[var(--admin-primary-soft)] hover:text-[var(--admin-primary-strong)]',
       iconClass:
@@ -303,30 +336,58 @@ export default function AdminUserDropdown({
                       stiffness: 300,
                     }}
                   >
-                    <motion.button
-                      type='button'
-                      onClick={() => close()}
+                    <motion.div
                       initial='rest'
                       whileHover='hover'
-                      className={`group flex w-full items-center gap-3 rounded-md px-4 py-2 text-left text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--admin-primary-ring)] ${item.colorClass} ${item.hoverClass}`}
                     >
-                      <div
-                        className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-colors duration-200 ${item.iconClass}`}
-                      >
-                        <item.icon />
-                      </div>
-                      <span className='min-w-0 flex-1 truncate'>{item.label}</span>
-                      <motion.span
-                        className='ml-auto text-slate-400'
-                        variants={{
-                          rest: { x: -5, opacity: 0 },
-                          hover: { x: 0, opacity: 1 },
-                        }}
-                        transition={{ type: 'spring', stiffness: 400, damping: 24 }}
-                      >
-                        <ChevronRightIcon />
-                      </motion.span>
-                    </motion.button>
+                      {item.href ? (
+                        <Link
+                          href={item.href}
+                          onClick={() => close()}
+                          className={`group flex w-full items-center gap-3 rounded-md px-4 py-2 text-left text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--admin-primary-ring)] ${item.colorClass} ${item.hoverClass}`}
+                        >
+                          <div
+                            className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-colors duration-200 ${item.iconClass}`}
+                          >
+                            <item.icon />
+                          </div>
+                          <span className='min-w-0 flex-1 truncate'>{item.label}</span>
+                          <motion.span
+                            className='ml-auto text-slate-400'
+                            variants={{
+                              rest: { x: -5, opacity: 0 },
+                              hover: { x: 0, opacity: 1 },
+                            }}
+                            transition={{ type: 'spring', stiffness: 400, damping: 24 }}
+                          >
+                            <ChevronRightIcon />
+                          </motion.span>
+                        </Link>
+                      ) : (
+                        <button
+                          type='button'
+                          onClick={() => close()}
+                          className={`group flex w-full items-center gap-3 rounded-md px-4 py-2 text-left text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--admin-primary-ring)] ${item.colorClass} ${item.hoverClass}`}
+                        >
+                          <div
+                            className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-colors duration-200 ${item.iconClass}`}
+                          >
+                            <item.icon />
+                          </div>
+                          <span className='min-w-0 flex-1 truncate'>{item.label}</span>
+                          <motion.span
+                            className='ml-auto text-slate-400'
+                            variants={{
+                              rest: { x: -5, opacity: 0 },
+                              hover: { x: 0, opacity: 1 },
+                            }}
+                            transition={{ type: 'spring', stiffness: 400, damping: 24 }}
+                          >
+                            <ChevronRightIcon />
+                          </motion.span>
+                        </button>
+                      )}
+                    </motion.div>
                   </motion.div>
                 ))}
               </nav>

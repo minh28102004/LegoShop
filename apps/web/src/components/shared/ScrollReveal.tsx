@@ -1,10 +1,10 @@
 'use client'
 
 import * as React from 'react'
-import { motion, type HTMLMotionProps, type Variants } from 'framer-motion'
+import { motion, type HTMLMotionProps } from 'framer-motion'
+import { useIntersectionObserver } from '@lego-shop/hooks'
 
-import { useIntersectionObserver } from '@/hooks/useIntersectionObserver'
-import { cn } from '@/lib/cn'
+import { cn } from '@lego-shop/ui'
 import {
   fadeIn,
   scaleIn,
@@ -13,7 +13,7 @@ import {
   slideInLeft,
   slideInRight,
   slideUp,
-} from '@/lib/motion'
+} from '@lego-shop/ui'
 
 const revealVariants = {
   fade: scrollRevealFade,
@@ -23,7 +23,7 @@ const revealVariants = {
   slideRight: slideInRight,
   scale: scaleIn,
   fadeIn,
-} as const satisfies Record<string, Variants>
+} as const satisfies Record<string, Record<string, unknown>>
 
 export interface ScrollRevealProps
   extends Omit<HTMLMotionProps<'div'>, 'children'> {
@@ -61,7 +61,7 @@ export const ScrollReveal = React.forwardRef<HTMLDivElement, ScrollRevealProps>(
         ref={setRefs}
         initial="hidden"
         animate={isIntersecting ? 'visible' : 'hidden'}
-        variants={revealVariants[variant]}
+        variants={revealVariants[variant as keyof typeof revealVariants]}
         transition={{ delay }}
         className={cn(className)}
         {...props}

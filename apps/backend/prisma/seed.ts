@@ -127,28 +127,30 @@ async function main() {
     },
   });
 
-  const adminEmail = (process.env.ADMIN_EMAIL ?? 'admin@example.com')
-    .trim()
-    .toLowerCase();
-  const adminPassword = process.env.ADMIN_PASSWORD ?? 'Admin@123456';
+  const adminEmail = process.env.ADMIN_EMAIL?.trim().toLowerCase();
+  const adminPassword = process.env.ADMIN_PASSWORD;
   const adminName = (process.env.ADMIN_NAME ?? 'Lego Shop Admin').trim();
 
-  const existingAdmin = await prisma.admin.findUnique({
-    where: { email: adminEmail },
-    select: { id: true },
-  });
-
-  if (!existingAdmin) {
-    const passwordHash = await hash(adminPassword, 10);
-
-    await prisma.admin.create({
-      data: {
-        email: adminEmail,
-        passwordHash,
-        name: adminName,
-        role: 'admin',
-      },
+  if (!adminEmail || !adminPassword) {
+    console.warn('Skipping admin seed because ADMIN_EMAIL or ADMIN_PASSWORD is not configured.');
+  } else {
+    const existingAdmin = await prisma.admin.findUnique({
+      where: { email: adminEmail },
+      select: { id: true },
     });
+
+    if (!existingAdmin) {
+      const passwordHash = await hash(adminPassword, 10);
+
+      await prisma.admin.create({
+        data: {
+          email: adminEmail,
+          passwordHash,
+          name: adminName,
+          role: 'admin',
+        },
+      });
+    }
   }
 
   await prisma.product.upsert({

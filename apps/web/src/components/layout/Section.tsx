@@ -3,9 +3,9 @@
 import * as React from 'react'
 import { cva, type VariantProps } from 'class-variance-authority'
 
-import { cn } from '@/lib/cn'
+import { cn } from '@lego-shop/ui'
 
-const sectionVariants = cva('section-py', {
+const sectionVariants = cva('py-14 md:py-20 xl:py-24', {
   variants: {
     background: {
       white: 'bg-background text-text-primary',

@@ -5,8 +5,7 @@ import { createPortal } from 'react-dom'
 import { AnimatePresence, motion, type HTMLMotionProps } from 'framer-motion'
 import { cva, type VariantProps } from 'class-variance-authority'
 
-import { cn } from '@/lib/cn'
-import type { Size } from '@/types'
+import { cn, type Size } from '@lego-shop/ui'
 
 const drawerVariants = cva(
   'fixed z-z-modal overflow-hidden bg-background text-text-primary shadow-2xl',
@@ -126,7 +125,7 @@ export const Drawer = React.forwardRef<HTMLDivElement, DrawerProps>(
             <motion.button
               type="button"
               aria-label="Đóng drawer"
-              className="fixed inset-0 z-z-overlay bg-dark/60"
+              className="fixed inset-0 z-z-overlay bg-[rgb(7_29_58/0.6)]"
               onClick={onClose}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}

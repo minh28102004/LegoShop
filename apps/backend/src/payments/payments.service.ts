@@ -11,6 +11,7 @@ import {
   PayOSError,
   type CreatePaymentLinkRequest,
   type CreatePaymentLinkResponse,
+  type PaymentLink,
   type Webhook as PayosSdkWebhook,
   type WebhookData as PayosSdkWebhookData,
 } from '@payos/node';
@@ -31,6 +32,12 @@ type PaymentWithOrder = Prisma.PaymentGetPayload<{
   };
 }>;
 
+type PaymentSyncOrder = Prisma.OrderGetPayload<{
+  include: {
+    payments: true;
+  };
+}>;
+
 @Injectable()
 export class PaymentsService {
   private readonly logger = new Logger(PaymentsService.name);
@@ -41,7 +48,6 @@ export class PaymentsService {
   async createPayosPaymentLink(
     input: CreatePayosPaymentLinkInput,
   ): Promise<PayosPaymentLinkResult> {
-    const payos = this.createPayosClient();
     const config = this.getPayosRuntimeConfig();
     const amount = this.validatePositiveInteger(input.amount, 'Payment amount');
     const orderCode = this.validatePayosOrderCode(input.providerOrderCode);
@@ -49,6 +55,8 @@ export class PaymentsService {
     const items = this.normalizePayosItems(input.items);
 
     this.assertItemsTotalMatchesAmount(items, amount);
+
+    const payos = this.createPayosClient();
 
     const payload: CreatePaymentLinkRequest = {
       orderCode,
@@ -127,6 +135,20 @@ export class PaymentsService {
     }
   }
 
+  async syncPayosPaymentStatusForOrderCode(
+    orderCode: string,
+  ): Promise<boolean> {
+    return this.syncPayosPaymentStatusForOrder(
+      await this.findPaymentSyncOrderByLookupCode(orderCode),
+    );
+  }
+
+  async syncPayosPaymentStatusForOrderId(orderId: string): Promise<boolean> {
+    return this.syncPayosPaymentStatusForOrder(
+      await this.findPaymentSyncOrder({ id: orderId }),
+    );
+  }
+
   async handlePayosWebhook(body: PayosWebhookBody) {
     const webhookData = await this.verifyPayosWebhook(body);
     const providerOrderCode = this.parsePayosOrderCodeToBigInt(
@@ -147,6 +169,11 @@ export class PaymentsService {
     }
 
     const incomingStatus = this.mapWebhookPaymentStatus(body, webhookData);
+    this.assertWebhookAmountMatchesPayment(
+      payment,
+      incomingStatus,
+      this.parseOptionalPayosAmount(webhookData.amount),
+    );
     const result = await this.applyWebhookPaymentStatus(
       payment.id,
       incomingStatus,
@@ -157,6 +184,137 @@ export class PaymentsService {
       success: true,
       message: result.message,
     };
+  }
+
+  private async findPaymentSyncOrder(
+    where: Prisma.OrderWhereUniqueInput,
+  ): Promise<PaymentSyncOrder | null> {
+    return this.prisma.order.findUnique({
+      where,
+      include: {
+        payments: {
+          orderBy: {
+            createdAt: 'desc',
+          },
+        },
+      },
+    });
+  }
+
+  private async findPaymentSyncOrderByLookupCode(
+    lookupCode: string,
+  ): Promise<PaymentSyncOrder | null> {
+    const payosOrderCode = this.parseSafePayosLookupCode(lookupCode);
+
+    return this.prisma.order.findFirst({
+      where: {
+        OR: [
+          { orderCode: lookupCode },
+          ...(payosOrderCode ? [{ payosOrderCode }] : []),
+        ],
+      },
+      include: {
+        payments: {
+          orderBy: {
+            createdAt: 'desc',
+          },
+        },
+      },
+    });
+  }
+
+  private async syncPayosPaymentStatusForOrder(
+    order: PaymentSyncOrder | null,
+  ): Promise<boolean> {
+    try {
+      if (!order?.payosOrderCode && !order?.payosPaymentLinkId) {
+        return false;
+      }
+
+      if (
+        order.paymentStatus === PaymentStatus.paid ||
+        order.paymentStatus === PaymentStatus.deposit_paid ||
+        order.depositStatus === 'paid'
+      ) {
+        return false;
+      }
+
+      const payment =
+        order.payments.find(
+          (item) =>
+            order.payosPaymentLinkId &&
+            item.providerPaymentLinkId === order.payosPaymentLinkId,
+        ) ??
+        order.payments.find(
+          (item) => item.status === 'pending' && item.providerPaymentLinkId,
+        ) ??
+        order.payments[0];
+
+      if (!payment) {
+        return false;
+      }
+
+      const paymentLink = await this.getPayosPaymentLink(order);
+      const incomingStatus = this.mapPayosProviderStatus(paymentLink.status);
+
+      if (incomingStatus === 'pending') {
+        return false;
+      }
+
+      if (incomingStatus === 'paid') {
+        const paidAmount = paymentLink.amountPaid || paymentLink.amount;
+        this.assertWebhookAmountMatchesPayment(
+          { ...payment, order },
+          incomingStatus,
+          paidAmount,
+        );
+      }
+
+      await this.applyWebhookPaymentStatus(
+        payment.id,
+        incomingStatus,
+        this.toInputJsonValue({
+          source: 'payos_status_sync',
+          paymentLink,
+        }),
+      );
+
+      return true;
+    } catch (error) {
+      this.logger.warn(
+        `Could not sync payOS payment status: ${error instanceof Error ? error.message : String(error)}`,
+      );
+      return false;
+    }
+  }
+
+  private parseSafePayosLookupCode(value: string): bigint | null {
+    const normalized = value.trim();
+
+    if (!/^[1-9]\d*$/.test(normalized)) {
+      return null;
+    }
+
+    const parsed = BigInt(normalized);
+
+    return parsed > PAYOS_MAX_SAFE_ORDER_CODE_BIGINT ? null : parsed;
+  }
+
+  private async getPayosPaymentLink(order: {
+    payosPaymentLinkId: string | null;
+    payosOrderCode: bigint | null;
+  }): Promise<PaymentLink> {
+    const payos = this.createPayosClient();
+
+    if (order.payosPaymentLinkId) {
+      return payos.paymentRequests.get(order.payosPaymentLinkId);
+    }
+
+    if (order.payosOrderCode) {
+      return payos.paymentRequests.get(Number(order.payosOrderCode));
+    }
+
+    throw new BadRequestException('Order does not have a payOS payment link');
   }
 
   private async verifyPayosWebhook(
@@ -411,6 +569,51 @@ export class PaymentsService {
 
     if (itemsTotal !== amount) {
       throw new BadRequestException('Payment items total must match amount');
+    }
+  }
+
+  private parseOptionalPayosAmount(value: unknown): number | undefined {
+    if (value === undefined || value === null || value === '') {
+      return undefined;
+    }
+
+    if (typeof value === 'number') {
+      return this.validateNonNegativeInteger(value, 'payOS webhook amount');
+    }
+
+    if (typeof value === 'string') {
+      const normalizedAmount = value.trim();
+
+      if (!normalizedAmount) {
+        return undefined;
+      }
+
+      const parsedAmount = Number(normalizedAmount);
+
+      return this.validateNonNegativeInteger(
+        parsedAmount,
+        'payOS webhook amount',
+      );
+    }
+
+    throw new BadRequestException('Invalid payOS webhook amount');
+  }
+
+  private assertWebhookAmountMatchesPayment(
+    payment: PaymentWithOrder,
+    incomingStatus: PayosPaymentLogStatus,
+    amount?: number,
+  ) {
+    if (incomingStatus !== 'paid') {
+      return;
+    }
+
+    if (amount === undefined) {
+      throw new BadRequestException('Missing payOS webhook amount');
+    }
+
+    if (amount !== payment.amount) {
+      throw new BadRequestException('payOS webhook amount does not match');
     }
   }
 

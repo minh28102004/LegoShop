@@ -23,7 +23,11 @@
     "isolatedModules": true,
     "jsx": "react-jsx",
     "incremental": true,
+    "types": ["react", "react-dom"],
     "paths": {
+      "@lego-shop/api": [
+        "../../packages/api/dist/index.d.ts"
+      ],
       "@/*": [
         "./src/*"
       ]

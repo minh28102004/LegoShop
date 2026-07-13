@@ -38,7 +38,7 @@ export default function SectionHeader({
           {icon ? (
             <span
               className={cn(
-                'inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-[16px] border border-[var(--admin-primary-tint)] bg-[var(--admin-primary-soft)] text-[var(--admin-primary-strong)] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.72)]',
+                'inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-[16px] border border-[var(--admin-accent)] bg-[#ffe16a] text-[#18385a] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.55)]',
                 iconClassName,
               )}
             >

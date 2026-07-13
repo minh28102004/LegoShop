@@ -4,11 +4,12 @@ import * as React from 'react'
 import Link from 'next/link'
 import { ArrowRight, ShoppingBag } from 'lucide-react'
 import { cva, type VariantProps } from 'class-variance-authority'
+import type { Product } from '@lego-shop/shared'
 
 import { Badge, Button, Card } from '@/components/ui'
-import { ROUTES } from '@/constants'
-import { cn } from '@/lib/cn'
-import type { Product } from '@/types'
+import { ROUTES } from '@/config/routes'
+import { resolveApiAssetUrl } from '@/lib/api/assets'
+import { cn } from '@lego-shop/ui'
 import { LazyImage } from './LazyImage'
 import { PriceDisplay } from './PriceDisplay'
 import { StarRating } from './StarRating'
@@ -40,7 +41,7 @@ export interface ProductCardProps
 const PRODUCT_IMAGE_PLACEHOLDER = '/window.svg'
 
 function getProductImage(product: Product): string {
-  return product.images[0] ?? PRODUCT_IMAGE_PLACEHOLDER
+  return resolveApiAssetUrl(product.images[0]) || PRODUCT_IMAGE_PLACEHOLDER
 }
 
 export const ProductCard = React.forwardRef<HTMLDivElement, ProductCardProps>(
@@ -48,7 +49,7 @@ export const ProductCard = React.forwardRef<HTMLDivElement, ProductCardProps>(
     const imageSrc = getProductImage(product)
     const rating = product.rating ?? 0
     const reviewCount = product.reviewCount
-    const detailHref = ROUTES.product(product.slug)
+    const detailHref = ROUTES.creatorStudio
 
     if (variant === 'compact') {
       return (

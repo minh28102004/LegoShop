@@ -69,6 +69,7 @@ export default function OrdersToolbar({
       }
     >
       <AdminToolbarField
+        hideLabel
         wide
         icon={<AdminToolbarIcon name='search' />}
         label='Tìm kiếm'

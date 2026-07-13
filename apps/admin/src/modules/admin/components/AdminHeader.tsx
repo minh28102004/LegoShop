@@ -1,15 +1,20 @@
 'use client';
 
 import Link from 'next/link';
-import Button from '@/common/components/ui/Button';
+import { Button } from '@lego-shop/ui';
 import AdminNotificationDropdown from '@/modules/admin/components/AdminNotificationDropdown';
 import AdminUserDropdown from '@/modules/admin/components/AdminUserDropdown';
 import LanguageSwitcher from '@/modules/admin/components/LanguageSwitcher';
 import { useAdminSidebar } from '@/modules/admin/hooks/useAdminSidebar';
 import { useI18n } from '@/lib/i18n/useI18n';
 
+const PUBLIC_WEBSITE_URL = 'https://figurelab.vn';
+
 type AdminHeaderProps = {
-  title: string;
+  breadcrumbs: Array<{
+    href?: string;
+    label: string;
+  }>;
   profileName: string | null;
   profileEmail: string;
   profileRole: string | null;
@@ -40,8 +45,16 @@ function ExternalIcon() {
   );
 }
 
+function BreadcrumbSeparator() {
+  return (
+    <svg viewBox='0 0 20 20' fill='none' className='h-3.5 w-3.5 text-slate-400' aria-hidden='true'>
+      <path d='M7.5 4.5L12.5 10L7.5 15.5' stroke='currentColor' strokeWidth='1.8' strokeLinecap='round' strokeLinejoin='round' />
+    </svg>
+  );
+}
+
 export default function AdminHeader({
-  title,
+  breadcrumbs,
   profileName,
   profileEmail,
   profileRole,
@@ -63,24 +76,48 @@ export default function AdminHeader({
             <MenuIcon />
           </Button>
 
-          <div className='min-w-0'>
-            <h1 className='truncate text-[20px] font-semibold leading-7 text-slate-900 sm:text-[22px]'>
-              {title}
-            </h1>
-          </div>
+          <nav className='min-w-0' aria-label='Breadcrumb'>
+            <ol className='flex min-w-0 items-center gap-1 text-sm font-semibold text-slate-500'>
+              {breadcrumbs.map((item, index) => {
+                const isLast = index === breadcrumbs.length - 1;
+
+                return (
+                  <li key={`${item.label}-${index}`} className='flex min-w-0 items-center gap-1'>
+                    {index > 0 ? <BreadcrumbSeparator /> : null}
+                    {item.href && !isLast ? (
+                      <Link
+                        href={item.href}
+                        className='min-w-0 truncate rounded-lg px-1 py-0.5 text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-800'
+                      >
+                        {item.label}
+                      </Link>
+                    ) : (
+                      <span className='min-w-0 truncate px-1 py-0.5 text-sm font-semibold leading-5 text-slate-600'>
+                        {item.label}
+                      </span>
+                    )}
+                  </li>
+                );
+              })}
+            </ol>
+          </nav>
         </div>
 
         <div className='flex items-center gap-2 sm:gap-3'>
-          <Link
-            href='/'
-            className='hidden h-10 items-center gap-2 rounded-[12px] border border-slate-200 bg-white px-3.5 text-[13px] font-semibold text-slate-700 shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition-all duration-200 hover:border-[var(--admin-primary-tint)] hover:bg-[var(--admin-primary-soft)] hover:text-[var(--admin-primary-strong)] xl:inline-flex'
+          <a
+            href={PUBLIC_WEBSITE_URL}
+            target='_blank'
+            rel='noreferrer'
+            className='group hidden h-10 items-center gap-2 rounded-[14px] border border-sky-100 bg-white px-3.5 text-[13px] font-semibold text-slate-700 shadow-[0_12px_28px_-22px_rgba(15,23,42,0.24),0_2px_6px_rgba(15,23,42,0.04)] transition-all duration-200 hover:-translate-y-0.5 hover:border-[var(--admin-primary-tint)] hover:bg-white hover:text-[var(--admin-primary-strong)] hover:shadow-[0_18px_38px_-24px_rgba(47,145,208,0.3),0_6px_12px_rgba(47,145,208,0.08)] active:translate-y-0 active:shadow-[0_12px_24px_-22px_rgba(47,145,208,0.24)] xl:inline-flex'
           >
             {t('header.viewWebsite')}
-            <ExternalIcon />
-          </Link>
+            <span className='transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5'>
+              <ExternalIcon />
+            </span>
+          </a>
 
           <div className='hidden md:block'>
-            <LanguageSwitcher compact />
+            <LanguageSwitcher />
           </div>
 
           <AdminNotificationDropdown />

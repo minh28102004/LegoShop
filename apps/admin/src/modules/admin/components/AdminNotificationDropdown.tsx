@@ -1,18 +1,13 @@
 'use client';
 
 import { useState } from 'react';
+import { BellRing, Dot } from 'lucide-react';
 import Dropdown from '@/common/components/ui/Dropdown';
 import { useI18n } from '@/lib/i18n/useI18n';
 
 function BellIcon() {
   return (
-    <svg viewBox='0 0 20 20' fill='currentColor' className='h-5 w-5' aria-hidden='true'>
-      <path
-        fillRule='evenodd'
-        clipRule='evenodd'
-        d='M10.75 2.29248C10.75 1.87827 10.4143 1.54248 10 1.54248C9.58583 1.54248 9.25004 1.87827 9.25004 2.29248V2.83613C6.08266 3.20733 3.62504 5.9004 3.62504 9.16748V14.4591H3.33337C2.91916 14.4591 2.58337 14.7949 2.58337 15.2091C2.58337 15.6234 2.91916 15.9591 3.33337 15.9591H4.37504H15.625H16.6667C17.0809 15.9591 17.4167 15.6234 17.4167 15.2091C17.4167 14.7949 17.0809 14.4591 16.6667 14.4591H16.375V9.16748C16.375 5.9004 13.9174 3.20733 10.75 2.83613V2.29248ZM14.875 14.4591V9.16748C14.875 6.47509 12.6924 4.29248 10 4.29248C7.30765 4.29248 5.12504 6.47509 5.12504 9.16748V14.4591H14.875ZM8.00004 17.7085C8.00004 18.1228 8.33583 18.4585 8.75004 18.4585H11.25C11.6643 18.4585 12 18.1228 12 17.7085C12 17.2943 11.6643 16.9585 11.25 16.9585H8.75004C8.33583 16.9585 8.00004 17.2943 8.00004 17.7085Z'
-      />
-    </svg>
+    <BellRing className='h-[18px] w-[18px]' strokeWidth={1.9} aria-hidden='true' />
   );
 }
 
@@ -60,6 +55,7 @@ export default function AdminNotificationDropdown() {
       tone: 'emerald',
     },
   ];
+  const unreadCount = items.length;
 
   return (
     <Dropdown
@@ -70,13 +66,17 @@ export default function AdminNotificationDropdown() {
       trigger={
         <button
           type='button'
-          className='relative flex h-10 w-10 items-center justify-center rounded-[14px] border border-slate-200 bg-white text-slate-500 shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition-all duration-200 ease-out hover:border-[var(--admin-primary-tint)] hover:bg-[var(--admin-primary-soft)] hover:text-[var(--admin-primary-strong)] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--admin-primary-ring)]'
+          className='group relative flex h-10 w-10 items-center justify-center rounded-[14px] bg-white text-slate-500 shadow-[0_14px_28px_-22px_rgba(15,23,42,0.26),0_2px_8px_rgba(15,23,42,0.05)] transition-all duration-200 ease-out hover:-translate-y-0.5 hover:bg-white hover:text-[var(--admin-primary-strong)] hover:shadow-[0_18px_34px_-22px_rgba(47,145,208,0.28),0_6px_12px_rgba(47,145,208,0.08)] active:scale-[0.98] active:translate-y-0 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--admin-primary-ring)]'
           aria-label={t('common.notifications')}
         >
-          {notifying ? (
-            <span className='absolute right-1.5 top-1.5 z-10 h-2 w-2 rounded-full bg-amber-500' />
+          {notifying && unreadCount > 0 ? (
+            <span className='absolute -right-1 -top-1 z-10 inline-flex min-h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold leading-none text-white shadow-[0_8px_16px_-12px_rgba(239,68,68,0.8)] ring-2 ring-white'>
+              {unreadCount > 9 ? '9+' : unreadCount}
+            </span>
           ) : null}
-          <BellIcon />
+          <span className='transition-transform duration-200 ease-out group-hover:rotate-[-14deg]'>
+            <BellIcon />
+          </span>
         </button>
       }
       panelClassName='w-[320px] max-w-[calc(100vw-24px)] rounded-[20px]'
@@ -115,7 +115,7 @@ export default function AdminNotificationDropdown() {
                       </span>
                       <span className='flex items-center gap-2 text-xs text-slate-500'>
                         <span>{t('common.notifications')}</span>
-                        <span className='h-1 w-1 rounded-full bg-slate-300' />
+                        <Dot className='h-3.5 w-3.5 text-slate-300' />
                         <span>{t('notifications.justNow')}</span>
                       </span>
                     </span>

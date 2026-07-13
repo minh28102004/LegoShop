@@ -1,9 +1,10 @@
+import type { LoginRequestContract } from '@lego-shop/shared';
 import { ApiProperty } from '@nestjs/swagger';
 import { IsEmail, IsNotEmpty, IsString } from 'class-validator';
 
-export class LoginDto {
+export class LoginDto implements LoginRequestContract {
   @ApiProperty({
-    example: 'admin@example.com',
+    example: 'admin@your-domain.com',
   })
   @IsEmail()
   @IsNotEmpty()

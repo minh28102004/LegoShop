@@ -3,8 +3,7 @@
 import * as React from 'react'
 import { cva, type VariantProps } from 'class-variance-authority'
 
-import { cn } from '@/lib/cn'
-import type { Size } from '@/types'
+import { cn, type Size } from '@lego-shop/ui'
 
 const containerVariants = cva('mx-auto w-full px-4 sm:px-6 lg:px-8', {
   variants: {

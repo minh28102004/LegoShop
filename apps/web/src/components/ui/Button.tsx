@@ -1,27 +1,28 @@
 'use client'
 
 import * as React from 'react'
-import { Slot } from '@radix-ui/react-slot'
+import { Slot, Slottable } from '@radix-ui/react-slot'
 import { cva, type VariantProps } from 'class-variance-authority'
 
-import { cn } from '@/lib/cn'
-import type { Size, Variant } from '@/types'
+import { cn, type Size, type Variant } from '@lego-shop/ui'
 import { Spinner } from './Spinner'
 
 const buttonVariants = cva(
-  'inline-flex items-center justify-center gap-2 rounded-md font-semibold transition-base focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-60',
+  'inline-flex items-center justify-center gap-2 rounded-button font-semibold no-underline transition-base focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-60',
   {
     variants: {
       variant: {
         primary:
-          'bg-primary text-primary-foreground shadow-sm hover:bg-primary-hover',
+          'bg-primary text-primary-foreground shadow-soft hover:bg-primary-dark hover:-translate-y-0.5',
+        accent:
+          'bg-accent text-accent-foreground shadow-soft hover:bg-accent-dark hover:-translate-y-0.5',
         secondary:
-          'bg-secondary text-secondary-foreground hover:bg-surface-hover',
-        ghost: 'bg-transparent text-text-primary hover:bg-surface',
+          'border border-border bg-surface text-navy shadow-xs hover:bg-primary-light hover:-translate-y-0.5',
+        ghost: 'bg-transparent text-text-primary hover:bg-surface-soft hover:text-primary-dark',
         outline:
-          'border border-border bg-background text-text-primary hover:bg-surface',
+          'border border-border bg-background text-text-primary hover:border-primary hover:bg-surface-soft hover:-translate-y-0.5',
         destructive:
-          'bg-destructive text-destructive-foreground shadow-sm hover:opacity-90',
+          'bg-destructive text-destructive-foreground shadow-sm hover:opacity-90 hover:-translate-y-0.5',
       },
       size: {
         sm: 'h-9 px-3 text-body-sm',
@@ -80,18 +81,11 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         type={asChild ? undefined : type}
         {...props}
       >
-        {isLoading ? (
-          <>
-            <Spinner size="sm" />
-            <span>Đang xử lý...</span>
-          </>
-        ) : (
-          <>
-            {leftIcon}
-            {children}
-            {rightIcon}
-          </>
-        )}
+        {isLoading ? <Spinner size="sm" /> : leftIcon}
+        <Slottable>
+          {isLoading ? <span>Đang xử lý...</span> : children}
+        </Slottable>
+        {!isLoading && rightIcon}
       </Comp>
     )
   },

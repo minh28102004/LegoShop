@@ -1,0 +1,1 @@
+ALTER TYPE "CharacterPartType" ADD VALUE IF NOT EXISTS 'HAT';

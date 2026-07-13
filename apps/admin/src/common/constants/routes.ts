@@ -2,37 +2,47 @@ export const ADMIN_ROUTES = {
   login: '/login',
   dashboard: '/dashboard',
   products: '/products',
+  frameOptions: '/frame-options',
   frameSizes: '/frame-sizes',
   frameColors: '/frame-colors',
   templates: '/templates',
   accessories: '/accessories',
+  characters: '/characters',
+  characterPresets: '/character-presets',
   banners: '/banners',
+  frameBackgrounds: '/frame-backgrounds',
   collections: '/collections',
   orders: '/orders',
   businessInquiries: '/business-inquiries',
+  vouchers: '/vouchers',
   paymentSettings: '/payment-settings',
   templateCategories: '/template-categories',
   accessoryCategories: '/accessory-categories',
+  profile: '/profile',
+  changePassword: '/change-password',
 } as const;
 
 export type AdminNavIcon =
   | 'dashboard'
   | 'products'
+  | 'frameOptions'
   | 'frameSizes'
   | 'frameColors'
   | 'templates'
   | 'accessories'
+  | 'characters'
   | 'banners'
+  | 'frameBackgrounds'
   | 'collections'
   | 'orders'
   | 'businessInquiries'
+  | 'vouchers'
   | 'paymentSettings';
 
 export type AdminNavItem = {
   id: string;
   href: string;
   labelKey: string;
-  descriptionKey: string;
   icon: AdminNavIcon;
 };
 
@@ -51,7 +61,6 @@ export const ADMIN_NAV_SECTIONS: AdminNavSection[] = [
         id: 'dashboard',
         href: ADMIN_ROUTES.dashboard,
         labelKey: 'sidebar.dashboard',
-        descriptionKey: 'sidebarDesc.dashboard',
         icon: 'dashboard',
       },
     ],
@@ -64,49 +73,48 @@ export const ADMIN_NAV_SECTIONS: AdminNavSection[] = [
         id: 'products',
         href: ADMIN_ROUTES.products,
         labelKey: 'sidebar.products',
-        descriptionKey: 'sidebarDesc.products',
         icon: 'products',
       },
-      // {
-      //   id: 'frameSizes',
-      //   href: ADMIN_ROUTES.frameSizes,
-      //   labelKey: 'sidebar.frameSizes',
-      //   descriptionKey: 'sidebarDesc.frameSizes',
-      //   icon: 'frameSizes',
-      // },
-      // {
-      //   id: 'frameColors',
-      //   href: ADMIN_ROUTES.frameColors,
-      //   labelKey: 'sidebar.frameColors',
-      //   descriptionKey: 'sidebarDesc.frameColors',
-      //   icon: 'frameColors',
-      // },
       {
-        id: 'templates',
-        href: ADMIN_ROUTES.templates,
-        labelKey: 'sidebar.templates',
-        descriptionKey: 'sidebarDesc.templates',
-        icon: 'templates',
+        id: 'frameOptions',
+        href: ADMIN_ROUTES.frameOptions,
+        labelKey: 'sidebar.frameOptions',
+        icon: 'frameOptions',
       },
       {
         id: 'accessories',
         href: ADMIN_ROUTES.accessories,
         labelKey: 'sidebar.accessories',
-        descriptionKey: 'sidebarDesc.accessories',
         icon: 'accessories',
+      },
+      {
+        id: 'characters',
+        href: ADMIN_ROUTES.characters,
+        labelKey: 'sidebar.characters',
+        icon: 'characters',
+      },
+      {
+        id: 'characterPresets',
+        href: ADMIN_ROUTES.characterPresets,
+        labelKey: 'sidebar.characterPresets',
+        icon: 'characters',
       },
       {
         id: 'banners',
         href: ADMIN_ROUTES.banners,
         labelKey: 'sidebar.banners',
-        descriptionKey: 'sidebarDesc.banners',
         icon: 'banners',
+      },
+      {
+        id: 'frameBackgrounds',
+        href: ADMIN_ROUTES.frameBackgrounds,
+        labelKey: 'sidebar.frameBackgrounds',
+        icon: 'frameBackgrounds',
       },
       {
         id: 'collections',
         href: ADMIN_ROUTES.collections,
         labelKey: 'sidebar.collections',
-        descriptionKey: 'sidebarDesc.collections',
         icon: 'collections',
       },
     ],
@@ -119,15 +127,19 @@ export const ADMIN_NAV_SECTIONS: AdminNavSection[] = [
         id: 'orders',
         href: ADMIN_ROUTES.orders,
         labelKey: 'sidebar.orders',
-        descriptionKey: 'sidebarDesc.orders',
         icon: 'orders',
       },
       {
         id: 'businessInquiries',
         href: ADMIN_ROUTES.businessInquiries,
         labelKey: 'sidebar.businessInquiries',
-        descriptionKey: 'sidebarDesc.businessInquiries',
         icon: 'businessInquiries',
+      },
+      {
+        id: 'vouchers',
+        href: ADMIN_ROUTES.vouchers,
+        labelKey: 'sidebar.vouchers',
+        icon: 'vouchers',
       },
     ],
   },
@@ -139,7 +151,6 @@ export const ADMIN_NAV_SECTIONS: AdminNavSection[] = [
         id: 'paymentSettings',
         href: ADMIN_ROUTES.paymentSettings,
         labelKey: 'sidebar.paymentSettings',
-        descriptionKey: 'sidebarDesc.paymentSettings',
         icon: 'paymentSettings',
       },
     ],

@@ -1,8 +1,9 @@
+import type { UpdatePaymentSettingsRequestContract } from '@lego-shop/shared';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { IsBoolean, IsInt, IsOptional, Max, Min } from 'class-validator';
 
-export class UpdatePaymentSettingsDto {
+export class UpdatePaymentSettingsDto implements UpdatePaymentSettingsRequestContract {
   @ApiPropertyOptional({
     example: true,
   })

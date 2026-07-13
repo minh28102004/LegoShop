@@ -1,4 +1,10 @@
-import { ProductStatus } from '@prisma/client';
+import type {
+  CreateProductRequestContract,
+  ProductComponentConfig,
+  ProductStatus,
+  ProductType,
+} from '@lego-shop/shared';
+import { PRODUCT_STATUS, PRODUCT_TYPE } from '@lego-shop/shared';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
 import {
@@ -7,12 +13,31 @@ import {
   IsEnum,
   IsInt,
   IsNotEmpty,
+  IsObject,
   IsOptional,
   IsString,
   Min,
 } from 'class-validator';
 
-export class CreateProductDto {
+const trimOptionalString = ({ value }: { value: unknown }) => {
+  if (typeof value !== 'string') return value;
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : undefined;
+};
+
+const parseJsonObject = ({ value }: { value: unknown }) => {
+  if (typeof value !== 'string') return value;
+  const trimmed = value.trim();
+  if (!trimmed) return undefined;
+
+  try {
+    return JSON.parse(trimmed);
+  } catch {
+    return value;
+  }
+};
+
+export class CreateProductDto implements CreateProductRequestContract {
   @ApiProperty({
     example: 'Dragon Brick Set',
   })
@@ -63,12 +88,42 @@ export class CreateProductDto {
   images?: string[];
 
   @ApiPropertyOptional({
-    enum: ProductStatus,
-    example: ProductStatus.active,
+    enum: PRODUCT_TYPE,
+    example: PRODUCT_TYPE.FINISHED,
   })
   @IsOptional()
-  @IsEnum(ProductStatus)
+  @IsEnum(PRODUCT_TYPE)
+  productType?: ProductType;
+
+  @ApiPropertyOptional({
+    type: Object,
+    example: {
+      frame: { id: 'frame-option-id', name: 'Khung 30x30 den', price: 30000 },
+      background: { id: 'background-id', name: 'Nen trai tim', price: 0 },
+      characters: [{ name: 'Nhan vat', quantity: 2, price: 10000 }],
+      accessories: [{ id: 'accessory-id', name: 'Charm trai tim', quantity: 1, price: 10000 }],
+    },
+  })
+  @Transform(parseJsonObject)
+  @IsOptional()
+  @IsObject()
+  componentConfig?: ProductComponentConfig;
+
+  @ApiPropertyOptional({
+    enum: PRODUCT_STATUS,
+    example: PRODUCT_STATUS.ACTIVE,
+  })
+  @IsOptional()
+  @IsEnum(PRODUCT_STATUS)
   status?: ProductStatus;
+
+  @ApiPropertyOptional({
+    example: 'a4f8236c-f03e-4f58-b48f-89b6c8d7d1f0',
+  })
+  @Transform(trimOptionalString)
+  @IsOptional()
+  @IsString()
+  collectionId?: string;
 
   @ApiPropertyOptional({
     example: true,

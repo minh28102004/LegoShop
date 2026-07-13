@@ -1,11 +1,20 @@
-"use client";
+'use client';
 
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import EntityManager, { type EntityField } from '@/modules/admin/components/entity-manager';
 import { useI18n } from '@/lib/i18n/useI18n';
+import { listResource } from '@/modules/admin/services/adminApi';
+import type { Collection } from '@/modules/admin/types/admin.types';
 
 export default function ProductsPage() {
   const { t } = useI18n();
+  const [collections, setCollections] = useState<Collection[]>([]);
+
+  useEffect(() => {
+    listResource('collections')
+      .then((data) => setCollections(data as Collection[]))
+      .catch(() => setCollections([]));
+  }, []);
 
   const PRODUCT_FIELDS: EntityField[] = useMemo(
     () => [
@@ -20,6 +29,24 @@ export default function ProductsPage() {
         label: t('productsPage.basePrice'),
         type: 'number',
         required: true,
+      },
+      {
+        key: 'productType',
+        label: 'Loại sản phẩm',
+        type: 'select',
+        options: [
+          { label: 'Sản phẩm hoàn thiện', value: 'finished' },
+          { label: 'Đồ lẻ', value: 'retail' },
+        ],
+      },
+      {
+        key: 'collectionId',
+        label: 'Bộ sưu tập',
+        type: 'select',
+        options: collections.map((collection) => ({
+          label: collection.name,
+          value: collection.id,
+        })),
       },
       {
         key: 'status',
@@ -49,7 +76,7 @@ export default function ProductsPage() {
       },
       { key: 'featured', label: t('productsPage.featured'), type: 'checkbox' },
     ],
-    [t],
+    [collections, t],
   );
 
   return (

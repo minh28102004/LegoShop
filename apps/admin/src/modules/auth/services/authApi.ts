@@ -1,10 +1,6 @@
-import { apiRequest } from '@/lib/api';
+import { adminApiClient } from '@/lib/api/admin-client';
 import type { LoginPayload, LoginResponse } from '@/modules/auth/types/auth.types';
 
 export async function login(payload: LoginPayload) {
-  return apiRequest<LoginResponse>('auth/login', {
-    method: 'POST',
-    auth: false,
-    body: JSON.stringify(payload),
-  });
+  return adminApiClient.auth.adminLogin(payload) as Promise<LoginResponse>;
 }

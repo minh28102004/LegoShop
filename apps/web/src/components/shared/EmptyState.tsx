@@ -5,8 +5,7 @@ import Link from 'next/link'
 import { PackageOpen } from 'lucide-react'
 
 import { Button } from '@/components/ui'
-import { cn } from '@/lib/cn'
-import type { EmptyStateConfig } from '@/types'
+import { cn, type EmptyStateConfig } from '@lego-shop/ui'
 
 export interface EmptyStateProps
   extends Omit<React.ComponentPropsWithoutRef<'div'>, 'title'>,

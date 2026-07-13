@@ -25,6 +25,14 @@ export default function AdminNavIcon({ name, className }: AdminNavIconProps) {
           <path d='M3 8V16L12 21L21 16V8' stroke='currentColor' strokeWidth='1.8' />
         </svg>
       );
+    case 'frameOptions':
+      return (
+        <svg viewBox='0 0 24 24' fill='none' className={iconClass} aria-hidden='true'>
+          <rect x='4' y='4' width='16' height='16' rx='3' stroke='currentColor' strokeWidth='1.8' />
+          <path d='M8 8H16V16H8V8Z' stroke='currentColor' strokeWidth='1.8' />
+          <path d='M12 4V8M12 16V20M4 12H8M16 12H20' stroke='currentColor' strokeWidth='1.8' strokeLinecap='round' />
+        </svg>
+      );
     case 'templates':
       return (
         <svg viewBox='0 0 24 24' fill='none' className={iconClass} aria-hidden='true'>
@@ -40,11 +48,38 @@ export default function AdminNavIcon({ name, className }: AdminNavIconProps) {
           <path d='M17 12L12 17L16 21L21 16L17 12Z' stroke='currentColor' strokeWidth='1.8' />
         </svg>
       );
+    case 'characters':
+      return (
+        <svg viewBox='0 0 24 24' fill='none' className={iconClass} aria-hidden='true'>
+          <circle cx='12' cy='7.5' r='3.25' stroke='currentColor' strokeWidth='1.8' />
+          <path
+            d='M6.5 20C6.9 16.6 9 14.5 12 14.5C15 14.5 17.1 16.6 17.5 20'
+            stroke='currentColor'
+            strokeWidth='1.8'
+            strokeLinecap='round'
+          />
+          <path d='M8 13L6 10M16 13L18 10' stroke='currentColor' strokeWidth='1.8' strokeLinecap='round' />
+        </svg>
+      );
     case 'banners':
       return (
         <svg viewBox='0 0 24 24' fill='none' className={iconClass} aria-hidden='true'>
           <rect x='3' y='5' width='18' height='14' rx='2' stroke='currentColor' strokeWidth='1.8' />
           <path d='M3 10H21' stroke='currentColor' strokeWidth='1.8' />
+        </svg>
+      );
+    case 'frameBackgrounds':
+      return (
+        <svg viewBox='0 0 24 24' fill='none' className={iconClass} aria-hidden='true'>
+          <rect x='4' y='4' width='16' height='16' rx='3' stroke='currentColor' strokeWidth='1.8' />
+          <path
+            d='M7.5 16L10 13.5C10.45 13.05 11.18 13.05 11.63 13.5L13 14.87L14.87 13C15.32 12.55 16.05 12.55 16.5 13L19 15.5'
+            stroke='currentColor'
+            strokeWidth='1.8'
+            strokeLinecap='round'
+            strokeLinejoin='round'
+          />
+          <circle cx='9' cy='8.75' r='1.35' fill='currentColor' />
         </svg>
       );
     case 'collections':
@@ -66,6 +101,14 @@ export default function AdminNavIcon({ name, className }: AdminNavIconProps) {
         <svg viewBox='0 0 24 24' fill='none' className={iconClass} aria-hidden='true'>
           <path d='M4 6H20V18H4V6Z' stroke='currentColor' strokeWidth='1.8' />
           <path d='M4 8L12 13L20 8' stroke='currentColor' strokeWidth='1.8' />
+        </svg>
+      );
+    case 'vouchers':
+      return (
+        <svg viewBox='0 0 24 24' fill='none' className={iconClass} aria-hidden='true'>
+          <path d='M4 7H20V17H4V7Z' stroke='currentColor' strokeWidth='1.8' />
+          <path d='M8 7V17M16 7V17' stroke='currentColor' strokeWidth='1.8' strokeLinecap='round' />
+          <path d='M10 12H14' stroke='currentColor' strokeWidth='1.8' strokeLinecap='round' />
         </svg>
       );
     case 'paymentSettings':

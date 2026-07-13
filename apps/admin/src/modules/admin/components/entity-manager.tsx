@@ -1,6 +1,6 @@
-﻿'use client';
+'use client';
 
-import { type FormEvent, type ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
+import { type FormEvent, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 import Badge, { getStatusBadgeLabel, StatusBadge } from '@/common/components/ui/Badge';
@@ -17,6 +17,7 @@ import Modal, {
 import PageShell from '@/common/components/ui/PageShell';
 import Select from '@/common/components/ui/Select';
 import Tooltip from '@/common/components/ui/Tooltip';
+import { resolveApiAssetUrl } from '@/lib/api';
 import { type AdminNavIcon as AdminNavIconName } from '@/common/constants/routes';
 import Table, {
   DEFAULT_TABLE_SORTS,
@@ -61,8 +62,29 @@ import {
 } from '@/modules/admin/components/entities/entity-filter.types';
 import type { PaginatedResourceResponse } from '@/modules/admin/types/admin.types';
 
-type FieldType = 'text' | 'number' | 'textarea' | 'checkbox' | 'select' | 'json' | 'image' | 'images';
+type FieldType =
+  | 'text'
+  | 'number'
+  | 'datetime'
+  | 'textarea'
+  | 'checkbox'
+  | 'select'
+  | 'json'
+  | 'tags'
+  | 'content-fields'
+  | 'image'
+  | 'images';
 type ImageInputMode = 'file' | 'url';
+type ContentFieldInputType = 'text' | 'date' | 'textarea' | 'image';
+
+type ContentFieldFormValue = {
+  key: string;
+  label: string;
+  type: ContentFieldInputType;
+  required: boolean;
+  placeholder: string;
+  helpText: string;
+};
 
 export type EntityField = {
   key: string;
@@ -71,12 +93,14 @@ export type EntityField = {
   required?: boolean;
   options?: Array<{ label: string; value: string }>;
   placeholder?: string;
+  helpText?: string;
 };
 
 type EntityManagerProps<K extends ResourceKey> = {
   title: string;
   resource: K;
   fields: EntityField[];
+  tableFields?: EntityField[];
   pageTitle?: string;
   pageDescription?: string;
   createButtonLabel?: string;
@@ -97,10 +121,41 @@ const CURRENCY_FORMAT = new Intl.NumberFormat('vi-VN', {
 });
 const ENTITY_PAGE_SIZE = 20;
 const PAGE_SIZE_LABEL = {
-  vi: 'Số dòng',
-  en: 'Rows',
+  vi: 'Mỗi trang',
+  en: 'Per page',
 } as const;
-const ENTITY_ACTION_COLUMN_CLASS = 'w-[124px] min-w-[124px] max-w-[124px] px-2 text-center';
+const ENTITY_ACTION_COLUMN_CLASS = 'w-[9%] min-w-[112px] max-w-[124px] px-2 text-center';
+const ENTITY_DATE_FILTER_RESOURCES = new Set<ResourceKey>([
+  'products',
+  'templates',
+  'frame-options',
+  'template-categories',
+  'accessories',
+  'characters',
+  'character-parts',
+  'character-presets',
+  'accessory-categories',
+  'banners',
+  'frame-backgrounds',
+  'collections',
+  'vouchers',
+]);
+const DATE_TIME_FORMATTERS = {
+  vi: new Intl.DateTimeFormat('vi-VN', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  }),
+  en: new Intl.DateTimeFormat('en-US', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  }),
+} as const;
 
 type SortDirection = 'asc' | 'desc';
 type EntityListMeta = PaginatedResourceResponse<unknown>['meta'];
@@ -114,10 +169,11 @@ function getFieldLayoutClass(field: EntityField, resource: ResourceKey) {
   const normalizedKey = field.key.toLowerCase();
 
   if (field.type === 'textarea') return 'lg:col-span-12';
-  if (field.type === 'json') return 'lg:col-span-12';
+  if (field.type === 'json' || field.type === 'tags' || field.type === 'content-fields') return 'lg:col-span-12';
   if (field.type === 'image' || field.type === 'images') return 'lg:col-span-12';
   if (field.type === 'checkbox') return 'lg:col-span-4 xl:col-span-3 max-w-[320px]';
   if (field.type === 'number') return 'lg:col-span-3';
+  if (field.type === 'datetime') return 'lg:col-span-5';
   if (field.type === 'select') {
     if (normalizedKey === 'status') {
       return resource === 'products' || resource === 'banners' || resource === 'collections'
@@ -158,19 +214,37 @@ function getTableColumnClass(field: EntityField) {
   return '';
 }
 
-function getEntityTableColumnClass(column: EntityTableColumn) {
+function getEntityPrimaryColumnClass(resource: ResourceKey) {
+  if (resource === 'frame-backgrounds') return 'w-[42%] min-w-[280px] max-w-[520px] text-left';
+  if (resource === 'products') return 'w-[28%] min-w-[260px] max-w-[420px] text-left';
+  if (resource === 'banners') return 'w-[26%] min-w-[220px] max-w-[360px] text-left';
+  if (resource === 'template-categories' || resource === 'accessory-categories') {
+    return 'w-[36%] min-w-[240px] max-w-[420px] text-left';
+  }
+  return 'w-[30%] min-w-[220px] max-w-[380px] text-left';
+}
+
+function getEntityTableColumnClass(column: EntityTableColumn, resource: ResourceKey) {
   const field = column.field;
   const normalizedKey = field.key.toLowerCase();
 
-  if (field.type === 'number') return 'w-[132px] text-right';
-  if (field.type === 'image' || field.type === 'images') return 'w-[112px] text-center';
-  if (normalizedKey.includes('status')) return 'w-[160px] text-center';
-  if (field.type === 'json') return 'min-w-[280px] max-w-[420px]';
+  if (normalizedKey === 'colorhex') return 'w-[96px] min-w-[96px] max-w-[96px] text-center';
+  if (normalizedKey === 'framesize') return 'w-[12%] min-w-[140px] max-w-[160px] text-center';
+  if (normalizedKey === 'createdat' || normalizedKey === 'updatedat') {
+    return 'w-[14%] min-w-[150px] max-w-[180px] text-center';
+  }
+  if (normalizedKey === 'stock' || normalizedKey === 'sortorder') {
+    return 'w-[10%] min-w-[104px] max-w-[128px] text-center';
+  }
+  if (field.type === 'number') return 'w-[12%] min-w-[128px] max-w-[150px] text-right';
+  if (field.type === 'image' || field.type === 'images') return 'w-[14%] min-w-[118px] max-w-[170px] text-center';
+  if (normalizedKey.includes('status')) return 'w-[14%] min-w-[148px] max-w-[180px] text-center';
+  if (field.type === 'json' || field.type === 'tags') return 'min-w-[280px] max-w-[420px]';
   if (normalizedKey.includes('description')) return 'min-w-[240px] max-w-[360px]';
   if (normalizedKey === 'slug' || normalizedKey.includes('url') || normalizedKey.includes('link')) {
-    return 'min-w-[180px] max-w-[240px]';
+    return 'w-[18%] min-w-[180px] max-w-[260px]';
   }
-  if (isPrimaryField(field)) return 'min-w-[200px] max-w-[280px]';
+  if (isPrimaryField(field)) return getEntityPrimaryColumnClass(resource);
 
   return getTableColumnClass(field);
 }
@@ -187,9 +261,41 @@ function getOptionalNumber(value: string): number | undefined {
   return Number.isFinite(numberValue) ? numberValue : undefined;
 }
 
+function getEntityTimestampLabel(locale: string, key: string) {
+  if (key === 'createdAt') return locale === 'vi' ? 'Ngày tạo' : 'Created';
+  if (key === 'updatedAt') return locale === 'vi' ? 'Ngày cập nhật' : 'Updated';
+  return key;
+}
+
+function getSyntheticEntityTableField(key: string, locale: string): EntityField | undefined {
+  if (key !== 'createdAt' && key !== 'updatedAt') return undefined;
+
+  return {
+    key,
+    label: getEntityTimestampLabel(locale, key),
+    type: 'text',
+  };
+}
+
+function formatEntityDateTime(value: unknown, locale: string) {
+  const date =
+    typeof value === 'string' || typeof value === 'number'
+      ? new Date(value)
+      : value instanceof Date
+        ? value
+        : null;
+
+  if (!date || Number.isNaN(date.getTime())) return '-';
+
+  return DATE_TIME_FORMATTERS[locale === 'vi' ? 'vi' : 'en'].format(date);
+}
+
 function getEntityUiText(locale: string, key: string) {
   const vi: Record<string, string> = {
     searchPlaceholder: 'Tìm theo tên, slug, mô tả...',
+    dateRange: 'Khoảng ngày',
+    dateFrom: 'Từ ngày',
+    dateTo: 'Đến ngày',
     allStatuses: 'Tất cả trạng thái',
     allCategories: 'Tất cả danh mục',
     priceMin: 'Giá từ',
@@ -203,6 +309,9 @@ function getEntityUiText(locale: string, key: string) {
   };
   const en: Record<string, string> = {
     searchPlaceholder: 'Search by name, slug, description...',
+    dateRange: 'Date range',
+    dateFrom: 'From date',
+    dateTo: 'To date',
     allStatuses: 'All statuses',
     allCategories: 'All categories',
     priceMin: 'Price from',
@@ -218,18 +327,26 @@ function getEntityUiText(locale: string, key: string) {
   return locale === 'vi' ? vi[key] : en[key];
 }
 
-function getEntityTableColumns(fields: EntityField[], resource: ResourceKey): EntityTableColumn[] {
+function getEntityTableColumns(fields: EntityField[], resource: ResourceKey, locale: string): EntityTableColumn[] {
   const columns: EntityTableColumn[] = [];
   const usedKeys = new Set<string>();
 
   const orderByResource: Partial<Record<ResourceKey, string[]>> = {
-    products: ['name', 'images', 'basePrice', 'slug', 'description', 'status'],
-    templates: ['name', 'imageUrl', 'categoryId', 'configJson', 'status'],
-    accessories: ['name', 'imageUrl', 'iconUrl', 'categoryId', 'status'],
-    banners: ['title', 'imageUrl', 'sortOrder', 'linkUrl', 'status'],
-    collections: ['name', 'imageUrl', 'slug', 'description', 'status'],
-    'template-categories': ['name', 'slug'],
-    'accessory-categories': ['name', 'slug'],
+    products: ['name', 'images', 'basePrice', 'status', 'createdAt', 'updatedAt'],
+    templates: ['name', 'imageUrl', 'categoryId', 'status', 'createdAt', 'updatedAt'],
+    'frame-options': ['frameSize', 'imageUrl', 'price', 'stock', 'createdAt', 'updatedAt'],
+    accessories: ['name', 'imageUrl', 'categoryId', 'status', 'createdAt', 'updatedAt'],
+    characters: ['name', 'imageUrl', 'price', 'sortOrder', 'status', 'updatedAt'],
+    'character-parts': ['name', 'type', 'imageUrl', 'sortOrder', 'status', 'updatedAt'],
+    'character-presets': ['name', 'description', 'sortOrder', 'status', 'updatedAt'],
+    banners: ['title', 'imageUrl', 'sortOrder', 'status', 'createdAt', 'updatedAt'],
+    'frame-backgrounds': ['title', 'description', 'imageUrl', 'sortOrder', 'status', 'updatedAt'],
+    collections: ['name', 'imageUrl', 'slug', 'status', 'createdAt', 'updatedAt'],
+    'template-categories': ['name', 'slug', 'createdAt', 'updatedAt'],
+    'accessory-categories': ['name', 'slug', 'createdAt', 'updatedAt'],
+    'frame-sizes': ['label', 'price', 'createdAt', 'updatedAt'],
+    'frame-colors': ['name', 'colorHex', 'createdAt', 'updatedAt'],
+    vouchers: ['code', 'discountType', 'discountValue', 'minOrderAmount', 'usedCount', 'status', 'expiresAt'],
   };
 
   const addField = (field?: EntityField) => {
@@ -242,7 +359,9 @@ function getEntityTableColumns(fields: EntityField[], resource: ResourceKey): En
     usedKeys.add(field.key);
   };
 
-  (orderByResource[resource] ?? []).forEach((key) => addField(fields.find((field) => field.key === key)));
+  (orderByResource[resource] ?? []).forEach((key) =>
+    addField(fields.find((field) => field.key === key) ?? getSyntheticEntityTableField(key, locale)),
+  );
   fields.forEach(addField);
 
   return columns.slice(0, 6);
@@ -251,11 +370,19 @@ function getEntityTableColumns(fields: EntityField[], resource: ResourceKey): En
 const ENTITY_SORT_FIELDS = {
   products: ['name', 'basePrice', 'status', 'featured', 'createdAt', 'updatedAt'],
   templates: ['name', 'status', 'categoryId', 'createdAt', 'updatedAt'],
+  'frame-options': ['type', 'name', 'price', 'stock', 'sortOrder', 'status', 'createdAt', 'updatedAt'],
   'template-categories': ['name', 'slug', 'createdAt', 'updatedAt'],
   accessories: ['name', 'status', 'categoryId', 'createdAt', 'updatedAt'],
+  characters: ['name', 'price', 'sortOrder', 'status', 'createdAt', 'updatedAt'],
+  'character-parts': ['name', 'type', 'sortOrder', 'status', 'createdAt', 'updatedAt'],
+  'character-presets': ['name', 'sortOrder', 'status', 'createdAt', 'updatedAt'],
   'accessory-categories': ['name', 'slug', 'createdAt', 'updatedAt'],
   banners: ['title', 'sortOrder', 'status', 'createdAt', 'updatedAt'],
+    'frame-backgrounds': ['title', 'sortOrder', 'status', 'updatedAt'],
   collections: ['name', 'slug', 'status', 'createdAt', 'updatedAt'],
+  'frame-sizes': ['name', 'createdAt', 'updatedAt'],
+  'frame-colors': ['name', 'createdAt', 'updatedAt'],
+  vouchers: ['code', 'discountType', 'discountValue', 'minOrderAmount', 'status', 'expiresAt', 'createdAt', 'updatedAt'],
 } satisfies Record<ResourceKey, string[]>;
 
 function isEntityColumnSortable(column: EntityTableColumn, resource: ResourceKey) {
@@ -435,22 +562,56 @@ function getRelatedDisplayValue(row: Record<string, unknown>, key: string) {
   return row[key];
 }
 
-function TableThumbnail({ src, alt }: { src?: string; alt: string }) {
+function TableThumbnail({
+  src,
+  alt,
+  onOpen,
+  zoomLabel,
+}: {
+  src?: string;
+  alt: string;
+  onOpen?: (src: string) => void;
+  zoomLabel?: string;
+}) {
   const [failed, setFailed] = useState(false);
-  const imageUrl = src?.trim();
+  const imageUrl = resolveApiAssetUrl(src);
+  const canOpen = Boolean(imageUrl && !failed && onOpen);
+
+  useEffect(() => {
+    setFailed(false);
+  }, [imageUrl]);
+
+  const content = imageUrl && !failed ? (
+    <img
+      src={imageUrl}
+      alt={alt}
+      loading='lazy'
+      className='h-full w-full object-cover transition-opacity duration-150 group-hover:opacity-55'
+      onError={() => setFailed(true)}
+    />
+  ) : (
+    <ImagePlaceholderIcon />
+  );
+
+  if (canOpen) {
+    return (
+      <button
+        type='button'
+        className='group relative grid h-11 w-11 shrink-0 place-items-center overflow-hidden rounded-xl border border-slate-200 bg-slate-50 text-slate-400 transition-all duration-150 hover:border-[var(--admin-primary)] hover:shadow-[0_10px_24px_-18px_rgba(15,23,42,0.45)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--admin-primary-ring)]'
+        aria-label={`${zoomLabel ?? 'Zoom image'}: ${alt}`}
+        onClick={() => onOpen?.(imageUrl)}
+      >
+        {content}
+        <span className='absolute inset-0 grid place-items-center bg-slate-950/38 px-1 text-center text-[9px] font-medium leading-tight text-white opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-visible:opacity-100'>
+          {zoomLabel ?? 'Zoom image'}
+        </span>
+      </button>
+    );
+  }
 
   return (
     <span className='grid h-11 w-11 shrink-0 place-items-center overflow-hidden rounded-xl border border-slate-200 bg-slate-50 text-slate-400'>
-      {imageUrl && !failed ? (
-        <img
-          src={imageUrl}
-          alt={alt}
-          className='h-full w-full object-cover'
-          onError={() => setFailed(true)}
-        />
-      ) : (
-        <ImagePlaceholderIcon />
-      )}
+      {content}
     </span>
   );
 }
@@ -495,6 +656,10 @@ function getInitialImageInputModes(
 function toInitialValues(fields: EntityField[]): Record<string, unknown> {
   const values: Record<string, unknown> = {};
   fields.forEach((field) => {
+    if (field.type === 'content-fields') {
+      values[field.key] = [];
+      return;
+    }
     if (field.type === 'images') {
       values[field.key] = [];
       return;
@@ -508,7 +673,7 @@ function toInitialValues(fields: EntityField[]): Record<string, unknown> {
       return;
     }
     if (field.type === 'number') {
-      values[field.key] = 0;
+      values[field.key] = field.required ? 0 : '';
       return;
     }
     values[field.key] = '';
@@ -516,26 +681,174 @@ function toInitialValues(fields: EntityField[]): Record<string, unknown> {
   return values;
 }
 
-function serializeFormValue(type: FieldType, rawValue: unknown): unknown {
-  if (type === 'checkbox') return Boolean(rawValue);
-  if (type === 'number') {
+function toDatetimeLocalValue(value: unknown) {
+  const date =
+    typeof value === 'string' || typeof value === 'number'
+      ? new Date(value)
+      : value instanceof Date
+        ? value
+        : null;
+
+  if (!date || Number.isNaN(date.getTime())) return '';
+
+  const offsetMs = date.getTimezoneOffset() * 60 * 1000;
+  return new Date(date.getTime() - offsetMs).toISOString().slice(0, 16);
+}
+
+const CONTENT_FIELD_TYPE_OPTIONS: Array<{ value: ContentFieldInputType; label: string }> = [
+  { value: 'text', label: 'Văn bản ngắn' },
+  { value: 'textarea', label: 'Lời nhắn dài' },
+  { value: 'date', label: 'Ngày tháng' },
+  { value: 'image', label: 'Ảnh tải lên' },
+];
+
+function createContentFieldFormValue(index: number): ContentFieldFormValue {
+  return {
+    key: `field_${index + 1}`,
+    label: '',
+    type: 'text',
+    required: index === 0,
+    placeholder: '',
+    helpText: '',
+  };
+}
+
+function isContentFieldInputType(value: unknown): value is ContentFieldInputType {
+  return value === 'text' || value === 'date' || value === 'textarea' || value === 'image';
+}
+
+function readStringValue(value: unknown): string {
+  return typeof value === 'string' ? value : '';
+}
+
+function parseTagsInput(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value
+      .map((tag) => (typeof tag === 'string' ? tag.trim() : ''))
+      .filter((tag, index, tags) => tag.length > 0 && tags.indexOf(tag) === index);
+  }
+
+  if (typeof value !== 'string') return [];
+
+  return value
+    .split(',')
+    .map((tag) => tag.trim())
+    .filter((tag, index, tags) => tag.length > 0 && tags.indexOf(tag) === index);
+}
+
+function formatTagsInputValue(value: unknown): string {
+  if (Array.isArray(value)) {
+    return value
+      .filter((tag): tag is string => typeof tag === 'string' && tag.trim().length > 0)
+      .join(', ');
+  }
+
+  return typeof value === 'string' ? value : '';
+}
+
+function buildContentFieldKey(label: string, index: number) {
+  const normalized = label
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '');
+
+  return normalized || `field_${index + 1}`;
+}
+
+function readContentFieldArray(value: unknown): unknown[] {
+  if (Array.isArray(value)) return value;
+  if (typeof value === 'string' && value.trim()) {
+    try {
+      return readContentFieldArray(JSON.parse(value));
+    } catch {
+      return [];
+    }
+  }
+  if (value && typeof value === 'object') {
+    const record = value as Record<string, unknown>;
+    if (Array.isArray(record.fields)) return record.fields;
+    if (Array.isArray(record.contentFields)) return record.contentFields;
+    if (Array.isArray(record.inputs)) return record.inputs;
+  }
+  return [];
+}
+
+function normalizeContentFieldFormValues(value: unknown): ContentFieldFormValue[] {
+  return readContentFieldArray(value).flatMap((item, index) => {
+    if (!item || typeof item !== 'object' || Array.isArray(item)) return [];
+
+    const record = item as Record<string, unknown>;
+    const type = isContentFieldInputType(record.type) ? record.type : 'text';
+
+    return [
+      {
+        key: readStringValue(record.key).trim() || buildContentFieldKey(readStringValue(record.label), index),
+        label: readStringValue(record.label) || readStringValue(record.name),
+        type,
+        required: typeof record.required === 'boolean' ? record.required : index === 0,
+        placeholder: readStringValue(record.placeholder),
+        helpText: readStringValue(record.helpText) || readStringValue(record.description),
+      },
+    ];
+  });
+}
+
+function serializeContentFieldFormValues(value: unknown) {
+  const fields = normalizeContentFieldFormValues(value)
+    .map((field, index) => {
+      const label = field.label.trim();
+      const key = field.key.trim() || buildContentFieldKey(label, index);
+
+      if (!label && !field.placeholder.trim() && !field.helpText.trim()) return null;
+
+      return {
+        key,
+        label: label || `Thông tin ${index + 1}`,
+        type: field.type,
+        required: field.required,
+        ...(field.placeholder.trim() ? { placeholder: field.placeholder.trim() } : {}),
+        ...(field.helpText.trim() ? { helpText: field.helpText.trim() } : {}),
+      };
+    })
+    .filter(Boolean);
+
+  return fields.length > 0 ? fields : undefined;
+}
+
+function serializeFormValue(field: EntityField, rawValue: unknown): unknown {
+  if (field.type === 'checkbox') return Boolean(rawValue);
+  if (field.type === 'number') {
+    if (rawValue === '') return field.key === 'stock' ? null : undefined;
     const asNumber = Number(rawValue);
     return Number.isFinite(asNumber) ? asNumber : 0;
   }
-  if (type === 'image') {
+  if (field.type === 'datetime') {
+    if (typeof rawValue !== 'string' || !rawValue.trim()) return undefined;
+    const date = new Date(rawValue);
+    return Number.isNaN(date.getTime()) ? undefined : date.toISOString();
+  }
+  if (field.type === 'image') {
     return typeof rawValue === 'string' ? rawValue.trim() : '';
   }
-  if (type === 'images') {
+  if (field.type === 'images') {
     if (!Array.isArray(rawValue)) return [];
     return rawValue
       .map((value) => (typeof value === 'string' ? value.trim() : ''))
       .filter((value) => value.length > 0);
   }
-  if (type === 'json') {
+  if (field.type === 'json') {
     if (typeof rawValue !== 'string' || !rawValue.trim()) return undefined;
     return JSON.parse(rawValue);
   }
-  if (type === 'text' || type === 'textarea' || type === 'select') {
+  if (field.type === 'tags') {
+    return parseTagsInput(rawValue);
+  }
+  if (field.type === 'content-fields') {
+    return serializeContentFieldFormValues(rawValue);
+  }
+  if (field.type === 'text' || field.type === 'textarea' || field.type === 'select') {
     if (typeof rawValue !== 'string') return '';
     return rawValue;
   }
@@ -560,18 +873,34 @@ function getEntityEmptyMessage(resource: ResourceKey, locale: string) {
       templates: 'Không có mẫu thiết kế nào.',
       'template-categories': 'Không có danh mục mẫu nào.',
       accessories: 'Không có phụ kiện nào.',
+      characters: 'Không có nhân vật nào.',
+      'character-parts': 'Chưa có bộ phận nhân vật nào.',
+      'character-presets': 'Chưa có mẫu nhân vật nào.',
       'accessory-categories': 'Không có danh mục phụ kiện nào.',
       banners: 'Không có banner nào.',
+      'frame-backgrounds': 'Chưa có nền ảnh khung nào.',
       collections: 'Không có bộ sưu tập nào.',
+      'frame-options': 'Chưa có khung tranh nào.',
+      'frame-sizes': 'Không có kích thước khung nào.',
+      'frame-colors': 'Không có màu khung nào.',
+      vouchers: 'Chưa có voucher nào.',
     },
     en: {
       products: 'No products found.',
       templates: 'No templates found.',
       'template-categories': 'No template categories found.',
       accessories: 'No accessories found.',
+      characters: 'No characters found.',
+      'character-parts': 'No character parts found.',
+      'character-presets': 'No character presets found.',
       'accessory-categories': 'No accessory categories found.',
       banners: 'No banners found.',
+      'frame-backgrounds': 'No frame image backgrounds found.',
       collections: 'No collections found.',
+      'frame-options': 'No picture frames found.',
+      'frame-sizes': 'No frame sizes found.',
+      'frame-colors': 'No frame colors found.',
+      vouchers: 'No vouchers found.',
     },
   } satisfies Record<string, Record<ResourceKey, string>>;
 
@@ -585,18 +914,34 @@ function getEntityNoun(resource: ResourceKey, locale: string, count?: number) {
       templates: 'mẫu thiết kế',
       'template-categories': 'danh mục mẫu',
       accessories: 'phụ kiện',
+      characters: 'nhân vật',
+      'character-parts': 'bộ phận nhân vật',
+      'character-presets': 'mẫu nhân vật',
       'accessory-categories': 'danh mục phụ kiện',
       banners: 'banner',
+      'frame-backgrounds': 'nền ảnh khung',
       collections: 'bộ sưu tập',
+      'frame-options': 'khung tranh',
+      'frame-sizes': 'kích thước khung',
+      'frame-colors': 'màu khung',
+      vouchers: 'voucher',
     },
     en: {
       products: count === 1 ? 'product' : 'products',
       templates: count === 1 ? 'template' : 'templates',
       'template-categories': count === 1 ? 'template category' : 'template categories',
       accessories: count === 1 ? 'accessory' : 'accessories',
+      characters: count === 1 ? 'character' : 'characters',
+      'character-parts': count === 1 ? 'character part' : 'character parts',
+      'character-presets': count === 1 ? 'character preset' : 'character presets',
       'accessory-categories': count === 1 ? 'accessory category' : 'accessory categories',
       banners: count === 1 ? 'banner' : 'banners',
+      'frame-backgrounds': count === 1 ? 'frame image background' : 'frame image backgrounds',
       collections: count === 1 ? 'collection' : 'collections',
+      'frame-options': count === 1 ? 'picture frame' : 'picture frames',
+      'frame-sizes': count === 1 ? 'frame size' : 'frame sizes',
+      'frame-colors': count === 1 ? 'frame color' : 'frame colors',
+      vouchers: count === 1 ? 'voucher' : 'vouchers',
     },
   } satisfies Record<string, Record<ResourceKey, string>>;
 
@@ -694,18 +1039,63 @@ function getEntityIconName(resource: ResourceKey): AdminNavIconName {
     templates: 'templates',
     'template-categories': 'templates',
     accessories: 'accessories',
+    characters: 'characters',
+    'character-parts': 'characters',
+    'character-presets': 'characters',
     'accessory-categories': 'accessories',
     banners: 'banners',
+    'frame-backgrounds': 'frameBackgrounds',
     collections: 'collections',
+    'frame-options': 'frameOptions',
+    'frame-sizes': 'products',
+    'frame-colors': 'products',
+    vouchers: 'vouchers',
   } satisfies Record<ResourceKey, AdminNavIconName>;
 
   return icons[resource];
+}
+
+const DEFAULT_COLOR_MAP: Record<string, string> = {
+  'tráng': '#ffffff',
+  'trắng': '#ffffff',
+  'white': '#ffffff',
+  'den': '#1a1a1a',
+  'đen': '#1a1a1a',
+  'black': '#1a1a1a',
+  'go': '#d7a15c',
+  'gỗ': '#d7a15c',
+  'wood': '#d7a15c',
+  'xám': '#808080',
+  'gray': '#808080',
+  'grey': '#808080',
+  'nâu': '#8b4513',
+  'brown': '#8b4513',
+  'đỏ': '#ff0000',
+  'red': '#ff0000',
+  'vàng': '#facc15',
+  'yellow': '#facc15',
+  'xanh lá': '#22c55e',
+  'green': '#22c55e',
+  'xanh dương': '#3b82f6',
+  'blue': '#3b82f6',
+};
+
+function getValidHexForInput(val: unknown): string {
+  const str = String(val ?? '').trim();
+  if (/^#[0-9A-F]{6}$/i.test(str)) {
+    return str;
+  }
+  if (/^[0-9A-F]{6}$/i.test(str)) {
+    return `#${str}`;
+  }
+  return '#ffffff';
 }
 
 export default function EntityManager<K extends ResourceKey>({
   title,
   resource,
   fields,
+  tableFields,
   pageTitle,
   pageDescription,
   createButtonLabel,
@@ -721,6 +1111,8 @@ export default function EntityManager<K extends ResourceKey>({
   const [categoryFilter, setCategoryFilter] = useState<string[]>([]);
   const [priceMinFilter, setPriceMinFilter] = useState('');
   const [priceMaxFilter, setPriceMaxFilter] = useState('');
+  const [dateFromFilter, setDateFromFilter] = useState(EMPTY_ENTITY_FILTER_DRAFT.dateFrom);
+  const [dateToFilter, setDateToFilter] = useState(EMPTY_ENTITY_FILTER_DRAFT.dateTo);
   const [sorts, setSorts] = useState<TableSort[]>([...DEFAULT_TABLE_SORTS]);
   const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
   const [draftFilters, setDraftFilters] = useState<EntityFilterDraft>(EMPTY_ENTITY_FILTER_DRAFT);
@@ -731,6 +1123,8 @@ export default function EntityManager<K extends ResourceKey>({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; label?: string } | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [imagePreview, setImagePreview] = useState<{ src: string; alt: string } | null>(null);
+  const requestSeq = useRef(0);
   const [formValues, setFormValues] = useState<Record<string, unknown>>(() =>
     toInitialValues(fields),
   );
@@ -740,7 +1134,10 @@ export default function EntityManager<K extends ResourceKey>({
   const [imageFileNames, setImageFileNames] = useState<Record<string, string>>({});
   const [imageLoadErrors, setImageLoadErrors] = useState<Record<string, boolean>>({});
 
-  const visibleColumns = useMemo(() => getEntityTableColumns(fields, resource), [fields, resource]);
+  const visibleColumns = useMemo(
+    () => getEntityTableColumns(tableFields ?? fields, resource, locale),
+    [fields, locale, resource, tableFields],
+  );
   const statusField = useMemo(
     () => fields.find((field) => field.key === 'status' && field.type === 'select'),
     [fields],
@@ -755,13 +1152,17 @@ export default function EntityManager<K extends ResourceKey>({
   );
   const statusOptions = useMemo(() => statusField?.options ?? [], [statusField]);
   const categoryOptions = useMemo(() => categoryField?.options ?? [], [categoryField]);
-  const activeFilterCount = useMemo(
+  const hasDateFilter = ENTITY_DATE_FILTER_RESOURCES.has(resource);
+  const hasEntityFilters = statusOptions.length > 0 || categoryOptions.length > 0 || hasPriceFilter || hasDateFilter;
+  const drawerFilterCount = useMemo(
     () =>
       statusFilter.length +
       categoryFilter.length +
-      Number(Boolean(priceMinFilter || priceMaxFilter)),
-    [categoryFilter, priceMaxFilter, priceMinFilter, statusFilter],
+      Number(Boolean(priceMinFilter || priceMaxFilter)) +
+      Number(Boolean(dateFromFilter || dateToFilter)),
+    [categoryFilter, dateFromFilter, dateToFilter, priceMaxFilter, priceMinFilter, statusFilter],
   );
+  const activeFilterCount = drawerFilterCount;
   const showResetFilters =
     Boolean(search.trim()) ||
     activeFilterCount > 0 ||
@@ -789,6 +1190,8 @@ export default function EntityManager<K extends ResourceKey>({
   }, [search]);
 
   const loadItems = useCallback(async () => {
+    const requestId = requestSeq.current + 1;
+    requestSeq.current = requestId;
     setLoading(true);
     setError(null);
     try {
@@ -803,18 +1206,37 @@ export default function EntityManager<K extends ResourceKey>({
         category_id: categoryFilter.length > 0 ? categoryFilter : undefined,
         price_min: hasPriceFilter ? getOptionalNumber(priceMinFilter) : undefined,
         price_max: hasPriceFilter ? getOptionalNumber(priceMaxFilter) : undefined,
+        date_from: hasDateFilter ? dateFromFilter || undefined : undefined,
+        date_to: hasDateFilter ? dateToFilter || undefined : undefined,
+        date_field: hasDateFilter && (dateFromFilter || dateToFilter) ? 'createdAt' : undefined,
       };
       const response = await listResource(resource, params);
-      setItems(response.data as ResourceDataMap[K][]);
-      setMeta(response.meta);
+      if (requestSeq.current !== requestId) return;
+      if (Array.isArray(response)) {
+        setItems(response as ResourceDataMap[K][]);
+        setMeta(null);
+      } else if (response && typeof response === 'object' && 'data' in response) {
+        const paginatedResponse = response as PaginatedResourceResponse<ResourceDataMap[K]>;
+        setItems(paginatedResponse.data);
+        setMeta(paginatedResponse.meta ?? null);
+      } else {
+        setItems([]);
+        setMeta(null);
+      }
     } catch (err) {
+      if (requestSeq.current !== requestId) return;
       setError(err instanceof Error ? err.message : t('entity.loadFailed'));
     } finally {
-      setLoading(false);
+      if (requestSeq.current === requestId) {
+        setLoading(false);
+      }
     }
   }, [
     categoryFilter,
+    dateFromFilter,
+    dateToFilter,
     debouncedSearch,
+    hasDateFilter,
     hasPriceFilter,
     page,
     pageSize,
@@ -827,13 +1249,7 @@ export default function EntityManager<K extends ResourceKey>({
   ]);
 
   useEffect(() => {
-    const timer = window.setTimeout(() => {
-      void loadItems();
-    }, 0);
-
-    return () => {
-      window.clearTimeout(timer);
-    };
+    void loadItems();
   }, [loadItems]);
 
   function resetForm() {
@@ -857,12 +1273,18 @@ export default function EntityManager<K extends ResourceKey>({
       const value = (item as unknown as Record<string, unknown>)[field.key];
       if (field.type === 'json') {
         nextValues[field.key] = value ? JSON.stringify(value, null, 2) : '';
+      } else if (field.type === 'tags') {
+        nextValues[field.key] = formatTagsInputValue(value);
+      } else if (field.type === 'content-fields') {
+        nextValues[field.key] = normalizeContentFieldFormValues(value);
       } else if (field.type === 'checkbox') {
         nextValues[field.key] = Boolean(value);
       } else if (field.type === 'images') {
         nextValues[field.key] = Array.isArray(value) ? [...value] : [];
       } else if (field.type === 'image') {
         nextValues[field.key] = typeof value === 'string' ? value : '';
+      } else if (field.type === 'datetime') {
+        nextValues[field.key] = toDatetimeLocalValue(value);
       } else {
         nextValues[field.key] = value ?? nextValues[field.key];
       }
@@ -881,11 +1303,21 @@ export default function EntityManager<K extends ResourceKey>({
     resetForm();
   }
 
+  function openImagePreview(src: string, alt: string) {
+    setImagePreview({ src, alt });
+  }
+
+  function closeImagePreview() {
+    setImagePreview(null);
+  }
+
   function applyEntityFilters(nextFilters: EntityFilterDraft) {
     setStatusFilter(nextFilters.status);
     setCategoryFilter(nextFilters.category);
     setPriceMinFilter(nextFilters.priceMin);
     setPriceMaxFilter(nextFilters.priceMax);
+    setDateFromFilter(nextFilters.dateFrom);
+    setDateToFilter(nextFilters.dateTo);
     setPage(1);
     setFilterDrawerOpen(false);
   }
@@ -897,6 +1329,8 @@ export default function EntityManager<K extends ResourceKey>({
     setCategoryFilter([]);
     setPriceMinFilter('');
     setPriceMaxFilter('');
+    setDateFromFilter('');
+    setDateToFilter('');
     setSorts([...DEFAULT_TABLE_SORTS]);
     setDraftFilters(EMPTY_ENTITY_FILTER_DRAFT);
     setPage(1);
@@ -921,8 +1355,8 @@ export default function EntityManager<K extends ResourceKey>({
       const payload: Record<string, unknown> = {};
       for (const field of fields) {
         const raw = formValues[field.key];
-        const value = serializeFormValue(field.type, raw);
-        if (value === '' || value === undefined || value === null) continue;
+        const value = serializeFormValue(field, raw);
+        if (value === '' || value === undefined || (value === null && field.key !== 'stock')) continue;
         payload[field.key] = value;
       }
 
@@ -1099,6 +1533,7 @@ export default function EntityManager<K extends ResourceKey>({
 
   function renderImagePreview(imageUrl: string, label: string, errorKey: string) {
     if (!imageUrl.trim()) return null;
+    const previewUrl = resolveApiAssetUrl(imageUrl);
 
     return (
       <div className='overflow-hidden rounded-[16px] border border-slate-200 bg-white p-2'>
@@ -1108,8 +1543,9 @@ export default function EntityManager<K extends ResourceKey>({
           </div>
         ) : (
           <img
-            src={imageUrl}
+            src={previewUrl}
             alt={label}
+            loading='lazy'
             className='max-h-[240px] w-full rounded-[12px] object-cover'
             onError={() => setImageLoadErrors((prev) => ({ ...prev, [errorKey]: true }))}
             onLoad={() => setImageLoadErrors((prev) => ({ ...prev, [errorKey]: false }))}
@@ -1352,6 +1788,196 @@ export default function EntityManager<K extends ResourceKey>({
       <div className='space-y-3'>
         {renderImageFieldHeader(field, mode)}
         {mode === 'file' ? renderFileDropzone(field, value) : renderUrlImageInput(field, value)}
+        {field.helpText && (
+          <p className='rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium leading-relaxed text-amber-700'>
+            ⚠️ {field.helpText}
+          </p>
+        )}
+      </div>
+    );
+  }
+
+  function updateContentFieldValue(
+    fieldKey: string,
+    index: number,
+    patch: Partial<ContentFieldFormValue>,
+  ) {
+    setFormValues((prev) => {
+      const current = normalizeContentFieldFormValues(prev[fieldKey]);
+      const next = current.length ? [...current] : [createContentFieldFormValue(0)];
+      const existing = next[index] ?? createContentFieldFormValue(index);
+      next[index] = { ...existing, ...patch };
+      return { ...prev, [fieldKey]: next };
+    });
+  }
+
+  function addContentFieldValue(fieldKey: string) {
+    setFormValues((prev) => {
+      const current = normalizeContentFieldFormValues(prev[fieldKey]);
+      return {
+        ...prev,
+        [fieldKey]: [...current, createContentFieldFormValue(current.length)],
+      };
+    });
+  }
+
+  function removeContentFieldValue(fieldKey: string, index: number) {
+    setFormValues((prev) => {
+      const current = normalizeContentFieldFormValues(prev[fieldKey]);
+      return {
+        ...prev,
+        [fieldKey]: current.filter((_, itemIndex) => itemIndex !== index),
+      };
+    });
+  }
+
+  function renderContentFieldsEditor(field: EntityField, value: unknown) {
+    const contentFields = normalizeContentFieldFormValues(value);
+
+    return (
+      <div className='rounded-[18px] border border-slate-200 bg-white p-4'>
+        <div className='flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between'>
+          <div>
+            <p className='text-sm font-semibold text-slate-900'>
+              {locale === 'vi' ? 'Trường khách cần điền' : 'Customer input fields'}
+            </p>
+            <p className='mt-1 text-[13px] leading-5 text-slate-500'>
+              {locale === 'vi'
+                ? 'Các trường này sẽ hiện ở bước Nội dung của Studio, theo đúng ảnh nền đang chọn.'
+                : 'These fields appear in the Studio content step for this background.'}
+            </p>
+          </div>
+          <Button
+            type='button'
+            variant='secondary'
+            leftIcon={<PlusIcon />}
+            className='h-10 rounded-[12px] px-4'
+            onClick={() => addContentFieldValue(field.key)}
+          >
+            {locale === 'vi' ? 'Thêm trường' : 'Add field'}
+          </Button>
+        </div>
+
+        {contentFields.length === 0 ? (
+          <div className='mt-4 rounded-[14px] border border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-center text-sm font-medium text-slate-500'>
+            {locale === 'vi'
+              ? 'Chưa có trường nội dung nào. Bấm “Thêm trường” để tạo ô khách cần nhập.'
+              : 'No content fields yet. Add one to collect customer input.'}
+          </div>
+        ) : (
+          <div className='mt-4 space-y-3'>
+            {contentFields.map((contentField, index) => (
+              <div
+                key={`${field.key}-${index}`}
+                className='rounded-[16px] border border-slate-200 bg-slate-50 p-3'
+              >
+                <div className='grid grid-cols-1 gap-3 lg:grid-cols-12'>
+                  <label className='space-y-1 lg:col-span-3'>
+                    <span className='text-[12px] font-semibold text-slate-600'>
+                      {locale === 'vi' ? 'Nhãn hiển thị' : 'Label'}
+                    </span>
+                    <Input
+                      value={contentField.label}
+                      size='md'
+                      placeholder={locale === 'vi' ? 'VD: Tên người nhận' : 'Recipient name'}
+                      onKeyDown={(event) => event.stopPropagation()}
+                      onChange={(event) => {
+                        const label = event.target.value;
+                        updateContentFieldValue(field.key, index, {
+                          label,
+                          key: contentField.key || buildContentFieldKey(label, index),
+                        });
+                      }}
+                    />
+                  </label>
+
+                  <label className='space-y-1 lg:col-span-2'>
+                    <span className='text-[12px] font-semibold text-slate-600'>Key</span>
+                    <Input
+                      value={contentField.key}
+                      size='md'
+                      placeholder='title'
+                      onChange={(event) =>
+                        updateContentFieldValue(field.key, index, { key: event.target.value })
+                      }
+                    />
+                  </label>
+
+                  <label className='space-y-1 lg:col-span-2'>
+                    <span className='text-[12px] font-semibold text-slate-600'>
+                      {locale === 'vi' ? 'Loại ô nhập' : 'Input type'}
+                    </span>
+                    <Select
+                      value={contentField.type}
+                      onChange={(event) =>
+                        updateContentFieldValue(field.key, index, {
+                          type: event.target.value as ContentFieldInputType,
+                        })
+                      }
+                    >
+                      {CONTENT_FIELD_TYPE_OPTIONS.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </Select>
+                  </label>
+
+                  <label className='space-y-1 lg:col-span-3'>
+                    <span className='text-[12px] font-semibold text-slate-600'>
+                      Placeholder
+                    </span>
+                    <Input
+                      value={contentField.placeholder}
+                      size='md'
+                      placeholder={locale === 'vi' ? 'VD: Nguyễn Văn A' : 'Example value'}
+                      onKeyDown={(event) => event.stopPropagation()}
+                      onChange={(event) =>
+                        updateContentFieldValue(field.key, index, { placeholder: event.target.value })
+                      }
+                    />
+                  </label>
+
+                  <div className='flex items-end gap-2 lg:col-span-2'>
+                    <label className='flex h-10 flex-1 items-center gap-2 rounded-[12px] border border-slate-200 bg-white px-3 text-[13px] font-semibold text-slate-700'>
+                      <input
+                        type='checkbox'
+                        checked={contentField.required}
+                        onChange={(event) =>
+                          updateContentFieldValue(field.key, index, { required: event.target.checked })
+                        }
+                      />
+                      {locale === 'vi' ? 'Bắt buộc' : 'Required'}
+                    </label>
+                    <Button
+                      type='button'
+                      variant='remove'
+                      className='h-10 rounded-[12px] px-3'
+                      onClick={() => removeContentFieldValue(field.key, index)}
+                    >
+                      <TrashIcon />
+                    </Button>
+                  </div>
+
+                  <label className='space-y-1 lg:col-span-12'>
+                    <span className='text-[12px] font-semibold text-slate-600'>
+                      {locale === 'vi' ? 'Ghi chú nhỏ dưới ô nhập' : 'Help text'}
+                    </span>
+                    <Input
+                      value={contentField.helpText}
+                      size='md'
+                      placeholder={locale === 'vi' ? 'VD: Dòng này in ở góc dưới ảnh' : 'Short hint shown under the field'}
+                      onKeyDown={(event) => event.stopPropagation()}
+                      onChange={(event) =>
+                        updateContentFieldValue(field.key, index, { helpText: event.target.value })
+                      }
+                    />
+                  </label>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     );
   }
@@ -1359,6 +1985,52 @@ export default function EntityManager<K extends ResourceKey>({
   function renderTableCell(column: EntityTableColumn, row: Record<string, unknown>) {
     const field = column.field;
     const value = getRelatedDisplayValue(row, field.key);
+
+    if (resource === 'frame-options' && field.key === 'frameSize') {
+      const width = row.widthCm;
+      const height = row.heightCm;
+      const label = typeof row.label === 'string' && row.label.trim() ? row.label.trim() : '';
+      const name = typeof row.name === 'string' && row.name.trim() ? row.name.trim() : '';
+
+      if (typeof width === 'number' && typeof height === 'number' && width > 0 && height > 0) {
+        return (
+          <span className='block text-center font-semibold tabular-nums text-slate-900'>
+            {NUMBER_FORMAT.format(width)} x {NUMBER_FORMAT.format(height)}
+          </span>
+        );
+      }
+
+      return (
+        <span className='block text-center font-semibold text-slate-900'>
+          {label || name || '-'}
+        </span>
+      );
+    }
+
+    if (field.key === 'colorHex') {
+      const hex = typeof value === 'string' ? value.trim() : '';
+      if (!hex) return <span className='text-slate-400'>-</span>;
+      if (resource === 'frame-options') {
+        return (
+          <div className='flex items-center justify-center'>
+            <span
+              className='h-8 w-8 shrink-0 rounded-full border border-slate-300 shadow-sm ring-2 ring-white'
+              style={{ backgroundColor: hex }}
+              title={hex}
+            />
+          </div>
+        );
+      }
+      return (
+        <div className='flex items-center gap-2'>
+          <span
+            className='h-4.5 w-4.5 shrink-0 rounded-full border border-slate-300 shadow-sm'
+            style={{ backgroundColor: hex }}
+          />
+          <span className='font-mono text-[13px] text-slate-700'>{hex}</span>
+        </div>
+      );
+    }
 
     if (typeof value === 'string' && field.key.toLowerCase().includes('status')) {
       const statusValue = value.trim();
@@ -1372,7 +2044,12 @@ export default function EntityManager<K extends ResourceKey>({
 
       return (
         <div className='flex items-center justify-center'>
-          <TableThumbnail src={imageUrl} alt={field.label} />
+          <TableThumbnail
+            src={imageUrl}
+            alt={field.label}
+            zoomLabel={locale === 'vi' ? 'Phóng to ảnh' : 'Zoom image'}
+            onOpen={(src) => openImagePreview(src, field.label)}
+          />
         </div>
       );
     }
@@ -1384,7 +2061,12 @@ export default function EntityManager<K extends ResourceKey>({
 
       return (
         <div className='flex items-center justify-center gap-2'>
-          <TableThumbnail src={imageUrls[0]} alt={field.label} />
+          <TableThumbnail
+            src={imageUrls[0]}
+            alt={field.label}
+            zoomLabel={locale === 'vi' ? 'Phóng to ảnh' : 'Zoom image'}
+            onOpen={(src) => openImagePreview(src, field.label)}
+          />
           {imageUrls.length > 1 ? (
             <span className='rounded-full bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-500'>
               +{imageUrls.length - 1}
@@ -1396,7 +2078,12 @@ export default function EntityManager<K extends ResourceKey>({
 
     if (typeof value === 'number') {
       return (
-        <span className='font-semibold tabular-nums text-slate-900'>
+        <span
+          className={cn(
+            'block font-semibold tabular-nums text-slate-900',
+            isCurrencyColumn(field.key) ? 'text-right' : 'text-center',
+          )}
+        >
           {isCurrencyColumn(field.key) ? CURRENCY_FORMAT.format(value) : NUMBER_FORMAT.format(value)}
         </span>
       );
@@ -1413,6 +2100,45 @@ export default function EntityManager<K extends ResourceKey>({
     const textValue = displayCellValue(value);
     const safeTextValue = textValue.trim() ? textValue : '-';
     const normalizedKey = field.key.toLowerCase();
+
+    if (
+      field.type === 'datetime' ||
+      normalizedKey === 'createdat' ||
+      normalizedKey === 'updatedat'
+    ) {
+      const formattedDate = formatEntityDateTime(value, locale);
+
+      return (
+        <span title={safeTextValue} className='block text-center text-[13px] font-semibold tabular-nums text-slate-700'>
+          {formattedDate}
+        </span>
+      );
+    }
+
+    if (field.type === 'tags') {
+      const tags = parseTagsInput(value);
+      if (tags.length === 0) {
+        return <span className='text-slate-400'>-</span>;
+      }
+
+      return (
+        <div className='flex max-w-[320px] flex-wrap gap-1.5'>
+          {tags.slice(0, 4).map((tag) => (
+            <span
+              key={tag}
+              className='rounded-full bg-slate-100 px-2 py-1 text-[11px] font-semibold text-slate-600'
+            >
+              {tag}
+            </span>
+          ))}
+          {tags.length > 4 ? (
+            <span className='rounded-full bg-slate-100 px-2 py-1 text-[11px] font-semibold text-slate-500'>
+              +{tags.length - 4}
+            </span>
+          ) : null}
+        </div>
+      );
+    }
 
     if (field.type === 'json') {
       return (
@@ -1483,6 +2209,7 @@ export default function EntityManager<K extends ResourceKey>({
           }
         >
         <AdminToolbarField
+          hideLabel
           wide
           icon={<AdminToolbarIcon name='search' />}
           label={t('common.search')}
@@ -1497,15 +2224,28 @@ export default function EntityManager<K extends ResourceKey>({
           />
         </AdminToolbarField>
 
-        <Button
-          type='button'
-          variant='secondary'
-          leftIcon={<FilterIconWithBadge count={activeFilterCount} />}
-          onClick={() => setFilterDrawerOpen(true)}
-          className={cn(adminToolbarButtonClass, 'px-4')}
-        >
-          {getEntityUiText(locale, 'filters')}
-        </Button>
+        {hasEntityFilters ? (
+          <Button
+            type='button'
+            variant='secondary'
+            leftIcon={<FilterIconWithBadge count={drawerFilterCount} />}
+            onClick={() => {
+              setDraftFilters({
+                status: [...statusFilter],
+                category: [...categoryFilter],
+                priceMin: priceMinFilter,
+                priceMax: priceMaxFilter,
+                dateFrom: dateFromFilter,
+                dateTo: dateToFilter,
+                sortDir: draftFilters.sortDir,
+              });
+              setFilterDrawerOpen(true);
+            }}
+            className={cn(adminToolbarButtonClass, 'px-4')}
+          >
+            {getEntityUiText(locale, 'filters')}
+          </Button>
+        ) : null}
 
         {showResetFilters ? (
           <Button
@@ -1536,11 +2276,13 @@ export default function EntityManager<K extends ResourceKey>({
         ) : null}
       </AdminToolbar>
 
+      {hasEntityFilters ? (
       <EntityFilterDrawer
         open={filterDrawerOpen}
         draftFilters={draftFilters}
         statusOptions={statusOptions}
         categoryOptions={categoryOptions}
+        hasDateFilter={hasDateFilter}
         hasPriceFilter={hasPriceFilter}
         onClose={() => setFilterDrawerOpen(false)}
         onDraftChange={setDraftFilters}
@@ -1550,6 +2292,9 @@ export default function EntityManager<K extends ResourceKey>({
           allStatuses: getEntityUiText(locale, 'allStatuses'),
           apply: getEntityUiText(locale, 'applyFilters'),
           category: categoryField?.label ?? getEntityUiText(locale, 'allCategories'),
+          dateFrom: getEntityUiText(locale, 'dateFrom'),
+          dateRange: getEntityUiText(locale, 'dateRange'),
+          dateTo: getEntityUiText(locale, 'dateTo'),
           filterTitle: getEntityUiText(locale, 'filterTitle'),
           priceMax: getEntityUiText(locale, 'priceMax'),
           priceMin: getEntityUiText(locale, 'priceMin'),
@@ -1559,13 +2304,14 @@ export default function EntityManager<K extends ResourceKey>({
           status: t('common.status'),
         }}
       />
+      ) : null}
 
-      <Table containerClassName='min-h-0'>
+      <Table containerClassName='min-h-0' minWidth='1080px'>
         <TableHeader>
           <tr>
             {visibleColumns.map((column) => {
               const sortable = isEntityColumnSortable(column, resource);
-              const className = getEntityTableColumnClass(column);
+              const className = getEntityTableColumnClass(column, resource);
 
               return sortable ? (
                 <SortableTableHead
@@ -1590,7 +2336,7 @@ export default function EntityManager<K extends ResourceKey>({
         </TableHeader>
 
         <TableBody>
-          {loading ? (
+          {loading && items.length === 0 ? (
             <TableEmptyState colSpan={visibleColumns.length + 1} variant='loading'>
               {t('common.loading')}
             </TableEmptyState>
@@ -1607,7 +2353,7 @@ export default function EntityManager<K extends ResourceKey>({
                   {visibleColumns.map((column) => (
                     <TableCell
                       key={column.id}
-                      className={cn('text-slate-700', getEntityTableColumnClass(column))}
+                      className={cn('text-slate-700', getEntityTableColumnClass(column, resource))}
                     >
                       {renderTableCell(column, row)}
                     </TableCell>
@@ -1644,7 +2390,7 @@ export default function EntityManager<K extends ResourceKey>({
       <TablePagination
         page={meta?.page ?? page}
         totalPages={meta?.totalPages ?? meta?.total_pages ?? 1}
-        total={meta?.total ?? 0}
+        total={meta?.total ?? items.length}
         itemLabel={getEntityNoun(resource, locale)}
         pageLabel={getEntityUiText(locale, 'page')}
         pageSize={meta?.limit ?? pageSize}
@@ -1736,6 +2482,26 @@ export default function EntityManager<K extends ResourceKey>({
                       />
                     ) : null}
 
+                    {field.type === 'tags' ? (
+                      <div className='space-y-2'>
+                        <Input
+                          value={String(value ?? '')}
+                          required={field.required}
+                          aria-label={field.label}
+                          placeholder={field.placeholder ?? 'VD: black, short, toc nam'}
+                          onChange={(event) =>
+                            setFormValues((prev) => ({ ...prev, [field.key]: event.target.value }))
+                          }
+                          size='md'
+                        />
+                        <p className='text-xs font-medium text-slate-500'>
+                          Nhập nhiều tag bằng dấu phẩy.
+                        </p>
+                      </div>
+                    ) : null}
+
+                    {field.type === 'content-fields' ? renderContentFieldsEditor(field, value) : null}
+
                     {field.type === 'select' ? (
                       <Select
                         value={String(value ?? '')}
@@ -1768,18 +2534,58 @@ export default function EntityManager<K extends ResourceKey>({
                       />
                     ) : null}
 
-                    {(field.type === 'text' || field.type === 'number') ? (
+                    {field.type === 'datetime' ? (
                       <Input
-                        type={field.type}
+                        type='datetime-local'
                         value={String(value ?? '')}
                         required={field.required}
                         aria-label={field.label}
-                        placeholder={getInputPlaceholder(field)}
                         onChange={(event) =>
                           setFormValues((prev) => ({ ...prev, [field.key]: event.target.value }))
                         }
                         size='md'
                       />
+                    ) : null}
+
+                    {(field.type === 'text' || field.type === 'number') ? (
+                      <div className={cn(field.key === 'colorHex' && 'flex items-center gap-2')}>
+                        <Input
+                          type={field.type}
+                          value={String(value ?? '')}
+                          required={field.required}
+                          aria-label={field.label}
+                          placeholder={getInputPlaceholder(field)}
+                          onChange={(event) => {
+                            const val = event.target.value;
+                            setFormValues((prev) => {
+                              const updated = { ...prev, [field.key]: val };
+                              if (resource === 'frame-colors' && field.key === 'name') {
+                                const normalized = val.trim().toLowerCase();
+                                const matchedHex = DEFAULT_COLOR_MAP[normalized];
+                                if (matchedHex && (!prev.colorHex || prev.colorHex === '')) {
+                                  updated.colorHex = matchedHex;
+                                }
+                              }
+                              return updated;
+                            });
+                          }}
+                          size='md'
+                          className='flex-1'
+                        />
+                        {field.key === 'colorHex' && (
+                          <div className='relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-slate-200 shadow-sm'>
+                            <input
+                              type='color'
+                              value={getValidHexForInput(value)}
+                              onChange={(event) => {
+                                const val = event.target.value;
+                                setFormValues((prev) => ({ ...prev, [field.key]: val }));
+                              }}
+                              className='absolute h-[150%] w-[150%] cursor-pointer border-none p-0 bg-transparent'
+                            />
+                          </div>
+                        )}
+                      </div>
                     ) : null}
 
                     {(field.type === 'image' || field.type === 'images') ? renderImageField(field, value) : null}
@@ -1816,6 +2622,43 @@ export default function EntityManager<K extends ResourceKey>({
             </Button>
           </ModalFooter>
         </form>
+      </Modal>
+
+      <Modal
+        open={Boolean(imagePreview)}
+        onClose={closeImagePreview}
+        ariaLabelledby='entity-image-preview-title'
+        containerClassName='bg-slate-950/70'
+        panelClassName='max-w-6xl !border-0 !bg-slate-950 text-white shadow-[0_30px_80px_-34px_rgba(15,23,42,0.85)]'
+      >
+        <div className='flex items-center justify-between gap-4 border-b border-white/10 bg-slate-950 px-4 py-3 sm:px-5'>
+          <h3
+            id='entity-image-preview-title'
+            className='truncate text-base font-semibold text-white'
+          >
+            {imagePreview?.alt}
+          </h3>
+          <motion.button
+            type='button'
+            onClick={closeImagePreview}
+            aria-label={t('common.close')}
+            whileHover={{ rotate: 90 }}
+            whileTap={{ scale: 0.96 }}
+            transition={{ type: 'spring', stiffness: 500, damping: 18 }}
+            className='inline-flex h-10 w-10 shrink-0 items-center justify-center self-center rounded-md bg-transparent p-2 text-white transition-colors duration-200 hover:bg-white/90 hover:text-[#2479b2] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#ffe16a]/45'
+          >
+            <CloseIcon />
+          </motion.button>
+        </div>
+        <div className='grid min-h-[220px] place-items-center bg-slate-950 p-3 sm:p-5'>
+          {imagePreview ? (
+            <img
+              src={imagePreview.src}
+              alt={imagePreview.alt}
+              className='max-h-[78vh] w-full rounded-[16px] object-contain'
+            />
+          ) : null}
+        </div>
       </Modal>
 
       <ConfirmDialog

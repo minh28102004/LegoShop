@@ -5,8 +5,7 @@ import { createPortal } from 'react-dom'
 import { AnimatePresence, motion, type HTMLMotionProps } from 'framer-motion'
 import { cva, type VariantProps } from 'class-variance-authority'
 
-import { cn } from '@/lib/cn'
-import type { Size } from '@/types'
+import { cn, type Size } from '@lego-shop/ui'
 
 const modalVariants = cva(
   'relative max-h-[calc(100dvh-32px)] w-full overflow-hidden rounded-md bg-background text-text-primary shadow-2xl',
@@ -149,7 +148,7 @@ export const Modal = React.forwardRef<HTMLDivElement, ModalProps>(
             <button
               type="button"
               aria-label="Đóng modal"
-              className="absolute inset-0 bg-dark/60"
+              className="absolute inset-0 bg-[rgb(7_29_58/0.6)]"
               onClick={onClose}
             />
             <motion.div

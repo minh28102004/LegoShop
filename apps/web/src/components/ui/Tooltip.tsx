@@ -4,8 +4,7 @@ import * as React from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { cva, type VariantProps } from 'class-variance-authority'
 
-import { cn } from '@/lib/cn'
-import type { Size } from '@/types'
+import { cn, type Size } from '@lego-shop/ui'
 
 const tooltipVariants = cva(
   'pointer-events-none absolute z-z-tooltip max-w-xs rounded-md bg-dark px-3 py-2 text-body-sm text-text-inverse shadow-lg',

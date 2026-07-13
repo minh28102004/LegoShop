@@ -1,160 +1,386 @@
-'use client'
+"use client";
 
-import * as React from 'react'
-import Link from 'next/link'
-import { Menu, Search, ShoppingBag, X } from 'lucide-react'
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { ChevronRight, Menu, ShoppingCart, X } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import { cn } from "@lego-shop/ui";
+import { BrandLogo } from "@/components/layout/BrandLogo";
+import { LanguageSwitcher } from "@/components/layout/LanguageSwitcher";
+import { HEADER_NAV_ITEMS, ROUTES, UI_MODAL_IDS } from "@/config/routes";
+import { useCart } from "@/features/cart/hooks/useCart";
+import { selectIsMobileMenuOpen, useUIStore } from "@/features/ui/store";
+import { useI18n } from "@/lib/i18n/useI18n";
 
-import { Badge, Button, Drawer } from '@/components/ui'
-import { HEADER_NAV, ROUTES, SITE, UI_MODAL_IDS } from '@/constants'
-import { useCart } from '@/features/cart/hooks/useCart'
-import { useScrollY } from '@/hooks/useScrollY'
-import { cn } from '@/lib/cn'
-import {
-  selectIsMobileMenuOpen,
-  useUIStore,
-} from '@/stores/uiStore'
-import { Container } from './Container'
+function isNavItemActive(pathname: string, href: string) {
+  if (href === ROUTES.home) {
+    return pathname === ROUTES.home;
+  }
 
-export interface HeaderProps extends React.ComponentPropsWithoutRef<'header'> {
-  transparent?: boolean
+  if (href.startsWith("/#")) {
+    return false;
+  }
+
+  return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-export const Header = React.forwardRef<HTMLElement, HeaderProps>(
-  ({ className, transparent = true, ...props }, ref) => {
-    const scrollY = useScrollY()
-    const { itemCount } = useCart()
-    const isMobileMenuOpen = useUIStore(selectIsMobileMenuOpen)
-    const closeMobileMenu = useUIStore((state) => state.closeMobileMenu)
-    const openMobileMenu = useUIStore((state) => state.openMobileMenu)
-    const openModal = useUIStore((state) => state.openModal)
-    const isScrolled = scrollY > 16
-    const shouldUseSolidBackground = !transparent || isScrolled
+export function Header() {
+  const pathname = usePathname();
+  const { itemCount, openCart } = useCart();
+  const { t } = useI18n();
 
-    return (
-      <>
-        <header
-          ref={ref}
-          className={cn(
-            'sticky top-0 z-z-sticky border-b transition-base',
-            shouldUseSolidBackground
-              ? 'border-border bg-background/90 shadow-sm backdrop-blur-xl'
-              : 'border-transparent bg-background/0',
-            className,
-          )}
-          {...props}
-        >
-          <Container className="flex h-[var(--header-height)] items-center justify-between gap-4">
-            <Link
-              href={ROUTES.home}
-              className="flex shrink-0 items-center gap-3"
-              aria-label={`${SITE.name} home`}
-            >
-              <span className="grid size-9 place-items-center rounded-md bg-primary text-primary-foreground shadow-sm">
-                BF
-              </span>
-              <span className="font-display text-body-xl font-semibold text-text-primary">
-                {SITE.name}
-              </span>
-            </Link>
+  const isMobileMenuOpen = useUIStore(selectIsMobileMenuOpen);
+  const closeMobileMenu = useUIStore((state) => state.closeMobileMenu);
+  const openMobileMenu = useUIStore((state) => state.openMobileMenu);
+  const openModal = useUIStore((state) => state.openModal);
 
-            <nav
-              className="hidden items-center gap-6 lg:flex"
-              aria-label="Điều hướng chính"
-            >
-              {HEADER_NAV.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className="text-body-sm font-semibold text-text-secondary transition-base hover:text-primary"
-                >
-                  {item.label}
-                </Link>
-              ))}
+  const [isScrolled, setIsScrolled] = useState(false);
+  const [hasMounted, setHasMounted] = useState(false);
+
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const drawerRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(() => setHasMounted(true));
+    return () => window.cancelAnimationFrame(frame);
+  }, []);
+
+  useEffect(() => {
+    closeMobileMenu();
+  }, [closeMobileMenu, pathname]);
+
+  useEffect(() => {
+    const scrollRoot = document.getElementById("site-scroll-root");
+
+    const updateScrollState = () => {
+      if (scrollRoot) {
+        setIsScrolled(scrollRoot.scrollTop > 10);
+      } else {
+        setIsScrolled(window.scrollY > 10);
+      }
+    };
+
+    updateScrollState();
+
+    if (scrollRoot) {
+      scrollRoot.addEventListener("scroll", updateScrollState, {
+        passive: true,
+      });
+
+      return () => {
+        scrollRoot.removeEventListener("scroll", updateScrollState);
+      };
+    }
+
+    window.addEventListener("scroll", updateScrollState, { passive: true });
+
+    return () => {
+      window.removeEventListener("scroll", updateScrollState);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!isMobileMenuOpen) {
+      return;
+    }
+
+    const { body, documentElement } = document;
+    const scrollRoot = document.getElementById("site-scroll-root");
+
+    const previousBodyOverflow = body.style.overflow;
+    const previousBodyTouchAction = body.style.touchAction;
+    const previousBodyOverscroll = body.style.overscrollBehavior;
+    const previousHtmlOverflow = documentElement.style.overflow;
+    const previousHtmlTouchAction = documentElement.style.touchAction;
+    const previousScrollRootOverflow = scrollRoot?.style.overflow ?? "";
+    const previousScrollRootTouchAction = scrollRoot?.style.touchAction ?? "";
+    const previousScrollRootOverscroll =
+      scrollRoot?.style.overscrollBehavior ?? "";
+
+    body.style.overflow = "hidden";
+    body.style.touchAction = "none";
+    body.style.overscrollBehavior = "none";
+    documentElement.style.overflow = "hidden";
+    documentElement.style.touchAction = "none";
+
+    if (scrollRoot) {
+      scrollRoot.style.overflow = "hidden";
+      scrollRoot.style.touchAction = "none";
+      scrollRoot.style.overscrollBehavior = "none";
+    }
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        closeMobileMenu();
+      }
+    };
+
+    const handlePointerDown = (event: PointerEvent | MouseEvent) => {
+      const target = event.target as Node | null;
+
+      // If click is inside the drawer or on the menu button, do nothing
+      if (
+        drawerRef.current?.contains(target as Node) ||
+        menuButtonRef.current?.contains(target as Node) ||
+        closeButtonRef.current?.contains(target as Node)
+      ) {
+        return;
+      }
+
+      // Otherwise close the mobile menu
+      closeMobileMenu();
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("pointerdown", handlePointerDown);
+
+    return () => {
+      body.style.overflow = previousBodyOverflow;
+      body.style.touchAction = previousBodyTouchAction;
+      body.style.overscrollBehavior = previousBodyOverscroll;
+      documentElement.style.overflow = previousHtmlOverflow;
+      documentElement.style.touchAction = previousHtmlTouchAction;
+
+      if (scrollRoot) {
+        scrollRoot.style.overflow = previousScrollRootOverflow;
+        scrollRoot.style.touchAction = previousScrollRootTouchAction;
+        scrollRoot.style.overscrollBehavior = previousScrollRootOverscroll;
+      }
+
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("pointerdown", handlePointerDown);
+    };
+  }, [closeMobileMenu, isMobileMenuOpen]);
+
+  const openCartDrawer = useCallback(() => {
+    openCart();
+    openModal(UI_MODAL_IDS.CART_DRAWER);
+  }, [openCart, openModal]);
+
+  const mobileDrawer = (
+    <div
+      className="fixed inset-0 lg:hidden"
+      style={{
+        zIndex: 1300,
+        pointerEvents: isMobileMenuOpen ? "auto" : "none",
+      }}
+      aria-hidden={!isMobileMenuOpen}
+    >
+      <div
+        aria-hidden="true"
+        onClick={closeMobileMenu}
+        className={cn(
+          "fixed inset-0 transition-opacity duration-300 ease-out",
+          isMobileMenuOpen ? "opacity-100" : "opacity-0",
+        )}
+        style={{
+          zIndex: 1300,
+          background: "rgba(0, 0, 0, 0.9)",
+          backdropFilter: "blur(12px)",
+          WebkitBackdropFilter: "blur(12px)",
+          display: isMobileMenuOpen ? "block" : "none",
+        }}
+      />
+
+      <aside
+        ref={drawerRef}
+        id="mobile-navigation-drawer"
+        role="dialog"
+        aria-modal="true"
+        aria-label={t("header.mobileMenuTitle")}
+        className="fixed flex flex-col overflow-hidden border-l border-[#dbe7f1] bg-white shadow-[-30px_0_70px_-28px_rgba(18,45,78,0.45)] transition-transform duration-300 ease-out will-change-transform"
+        style={{
+          top: 0,
+          right: 0,
+          bottom: 0,
+          zIndex: 1310,
+          width: "min(78dvw, 390px)",
+          maxWidth: "calc(100dvw - 96px)",
+          height: "100dvh",
+          transform: isMobileMenuOpen
+            ? "translate3d(0, 0, 0)"
+            : "translate3d(100%, 0, 0)",
+        }}
+      >
+        <div className="flex h-[60px] shrink-0 items-center justify-between gap-3 border-b border-[#dbe7f1] px-4 sm:px-5">
+          <BrandLogo compact className="min-w-0" />
+
+          <button
+            ref={closeButtonRef}
+            type="button"
+            aria-label={t("header.closeMenu")}
+            onClick={closeMobileMenu}
+            className="inline-flex h-11 w-11 shrink-0 appearance-none items-center justify-center rounded-none border-0! bg-transparent! p-0! text-navy! shadow-none! outline-none! ring-0! transition-colors duration-200 hover:bg-transparent! hover:text-[#2f91d0]! focus:border-0! focus:shadow-none! focus:outline-none! focus:ring-0! focus-visible:border-0! focus-visible:shadow-none! focus-visible:outline-none! focus-visible:ring-0! active:scale-100"
+            style={{
+              border: "none",
+              outline: "none",
+              boxShadow: "none",
+              background: "transparent",
+              WebkitTapHighlightColor: "transparent",
+            }}
+          >
+            <X className="h-6 w-6" strokeWidth={2.1} />
+          </button>
+        </div>
+
+        <div className="flex min-h-0 flex-1 flex-col bg-white">
+          <div className="min-h-0 flex-1 overflow-y-auto px-4 pt-5 sm:px-5">
+            <nav className="grid gap-2">
+              {HEADER_NAV_ITEMS.map((item) => {
+                const isActive = isNavItemActive(pathname, item.href);
+
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={closeMobileMenu}
+                    className={cn(
+                      "group flex items-center justify-between gap-4 rounded-[16px] px-5 py-[18px] text-[16px] font-semibold tracking-[-0.01em] transition-all duration-200",
+                      isActive
+                        ? "bg-[#eef7ff] text-[#2f91d0] shadow-[inset_0_0_0_1px_rgba(126,191,233,0.34)]"
+                        : "text-navy hover:bg-[#f8fbff] hover:text-[#2f91d0]",
+                    )}
+                  >
+                    <span className="inline-flex min-w-0 items-center gap-3">
+                      <span
+                        className={cn(
+                          "h-2.5 w-2.5 shrink-0 rounded-full transition-colors duration-200",
+                          isActive
+                            ? "bg-[#2f91d0]"
+                            : "bg-slate-300 group-hover:bg-[#9ed8f4]",
+                        )}
+                      />
+
+                      <span className="truncate">
+                        {t(`header.nav.${item.key}`)}
+                      </span>
+                    </span>
+
+                    <ChevronRight
+                      className={cn(
+                        "h-[18px] w-[18px] shrink-0 transition-all duration-200",
+                        isActive
+                          ? "translate-x-0 text-[#2f91d0]"
+                          : "text-slate-400 group-hover:translate-x-0.5 group-hover:text-[#2f91d0]",
+                      )}
+                      strokeWidth={2.2}
+                    />
+                  </Link>
+                );
+              })}
+            </nav>
+          </div>
+
+          <div className="shrink-0 overflow-visible bg-white px-4 pb-[calc(env(safe-area-inset-bottom)+24px)] pt-4 sm:px-5">
+            <div className="rounded-[22px] border border-[#dbe7f1] bg-white px-5 py-5 shadow-[0_18px_42px_-34px_rgba(18,45,78,0.24)]">
+              <LanguageSwitcher className="w-fit" portal={true} side="top" />
+            </div>
+          </div>
+        </div>
+      </aside>
+    </div>
+  );
+
+  return (
+    <>
+      <header
+        className={cn(
+          "fixed inset-x-0 top-0 z-60 w-full border-b bg-white transition-all duration-300 ease-out",
+          "before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-[3px] before:bg-linear-to-r before:from-[#7bc7f0] before:via-[#2f91d0] before:to-[#f6d76b]",
+          "after:pointer-events-none after:absolute after:inset-x-0 after:bottom-0 after:h-px after:bg-linear-to-r after:from-transparent after:via-[#b7def3] after:to-transparent",
+          isScrolled
+            ? "border-[#cfe4f1] shadow-[0_16px_42px_-30px_rgba(18,45,78,0.5)]"
+            : "border-[#e1edf5] shadow-[0_8px_28px_-26px_rgba(18,45,78,0.35)]",
+        )}
+      >
+        <div className="w-full px-4 sm:px-6 lg:px-8 xl:px-10 2xl:px-12">
+          <div className="grid min-h-[50px] grid-cols-[minmax(0,auto)_1fr_auto] items-center gap-3 transition-[min-height] duration-300 ease-out lg:min-h-[46px] lg:gap-7">
+            <BrandLogo className="min-w-0 shrink-0" />
+
+            <nav className="hidden min-w-0 items-center justify-center lg:flex">
+              <div className="flex flex-wrap items-center justify-center gap-1 xl:gap-2">
+                {HEADER_NAV_ITEMS.map((item) => {
+                  const isActive = isNavItemActive(pathname, item.href);
+
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className={cn(
+                        "group relative inline-flex items-center justify-center px-3 py-1.5 text-[15px] font-semibold tracking-[-0.01em] text-slate-800 transition-colors duration-200 hover:text-[#2f91d0] xl:px-4 xl:text-[15.5px]",
+                        isActive && "text-[#2f91d0]",
+                      )}
+                    >
+                      <span>{t(`header.nav.${item.key}`)}</span>
+
+                      <span
+                        className={cn(
+                          "pointer-events-none absolute inset-x-2 -bottom-px h-[2px] origin-center rounded-full bg-linear-to-r from-[#7bc7f0] via-[#2f91d0] to-[#7bc7f0] transition-transform duration-300 ease-out xl:inset-x-4",
+                          isActive
+                            ? "scale-x-100"
+                            : "scale-x-0 group-hover:scale-x-100",
+                        )}
+                      />
+                    </Link>
+                  );
+                })}
+              </div>
             </nav>
 
-            <div className="flex items-center gap-2">
+            <div className="flex shrink-0 items-center justify-end gap-2 sm:gap-3">
               <button
                 type="button"
-                aria-label="Tìm kiếm"
-                className="hidden size-10 items-center justify-center rounded-md text-text-secondary transition-base hover:bg-surface hover:text-text-primary md:flex"
+                aria-label={t("header.openCart")}
+                onClick={openCartDrawer}
+                className="relative inline-flex h-9 w-9 items-center justify-center rounded-[12px] border border-transparent bg-transparent text-slate-700 transition-all duration-200 hover:bg-[#edf8ff] hover:text-[#2f91d0]"
               >
-                <Search className="size-5" aria-hidden="true" />
-              </button>
-              <button
-                type="button"
-                aria-label="Mở giỏ hàng"
-                className="relative flex size-10 items-center justify-center rounded-md text-text-secondary transition-base hover:bg-surface hover:text-text-primary"
-                onClick={() => openModal(UI_MODAL_IDS.CART_DRAWER)}
-              >
-                <ShoppingBag className="size-5" aria-hidden="true" />
-                {itemCount > 0 ? (
-                  <Badge
-                    variant="primary"
-                    size="sm"
-                    className="absolute -right-2 -top-2 min-w-5 justify-center px-1"
-                  >
+                <ShoppingCart className="h-6 w-6" strokeWidth={1.8} />
+
+                {hasMounted && itemCount > 0 ? (
+                  <span className="absolute -right-1 -top-1 inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-[#f6d76b] px-1 text-[10px] font-extrabold text-navy">
                     {itemCount}
-                  </Badge>
+                  </span>
                 ) : null}
               </button>
-              <Button asChild className="hidden md:inline-flex">
-                <Link href={ROUTES.creatorStudio}>Tạo ngay</Link>
-              </Button>
-              <button
-                type="button"
-                aria-label="Mở menu"
-                className="flex size-10 items-center justify-center rounded-md text-text-secondary transition-base hover:bg-surface hover:text-text-primary lg:hidden"
-                onClick={openMobileMenu}
-              >
-                <Menu className="size-5" aria-hidden="true" />
-              </button>
-            </div>
-          </Container>
-        </header>
 
-        <Drawer
-          isOpen={isMobileMenuOpen}
-          onClose={closeMobileMenu}
-          title="Menu"
-          position="right"
-          size="sm"
-        >
-          <div className="flex flex-col gap-4">
-            <div className="flex items-center justify-between">
-              <span className="font-display text-body-xl font-semibold">
-                {SITE.name}
-              </span>
+              <LanguageSwitcher className="hidden lg:flex" />
+
               <button
+                ref={menuButtonRef}
                 type="button"
-                aria-label="Đóng menu"
-                className="rounded-md p-2 text-text-muted transition-base hover:bg-surface hover:text-text-primary"
-                onClick={closeMobileMenu}
+                aria-label={
+                  isMobileMenuOpen
+                    ? t("header.closeMenu")
+                    : t("header.openMenu")
+                }
+                aria-controls="mobile-navigation-drawer"
+                aria-expanded={isMobileMenuOpen}
+                onClick={isMobileMenuOpen ? closeMobileMenu : openMobileMenu}
+                className="inline-flex h-11 w-11 appearance-none items-center justify-center rounded-none border-0! bg-transparent! p-0! text-navy! shadow-none! outline-none! ring-0! transition-colors duration-200 hover:bg-transparent! hover:text-[#2f91d0]! focus:border-0! focus:shadow-none! focus:outline-none! focus:ring-0! focus-visible:border-0! focus-visible:shadow-none! focus-visible:outline-none! focus-visible:ring-0! active:scale-100 lg:hidden"
+                style={{
+                  border: "none",
+                  outline: "none",
+                  boxShadow: "none",
+                  background: "transparent",
+                  WebkitTapHighlightColor: "transparent",
+                }}
               >
-                <X className="size-5" aria-hidden="true" />
+                {isMobileMenuOpen ? (
+                  <X className="h-6 w-6" strokeWidth={2.1} />
+                ) : (
+                  <Menu className="h-6 w-6" strokeWidth={2.1} />
+                )}
               </button>
             </div>
-            <nav className="grid gap-2" aria-label="Điều hướng mobile">
-              {HEADER_NAV.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className="rounded-md px-3 py-3 text-body-md font-semibold text-text-primary transition-base hover:bg-surface"
-                  onClick={closeMobileMenu}
-                >
-                  {item.label}
-                </Link>
-              ))}
-            </nav>
-            <Button asChild className="mt-4">
-              <Link href={ROUTES.creatorStudio} onClick={closeMobileMenu}>
-                Tạo ngay
-              </Link>
-            </Button>
           </div>
-        </Drawer>
-      </>
-    )
-  },
-)
+        </div>
+      </header>
 
-Header.displayName = 'Header'
+      {hasMounted && typeof document !== "undefined"
+        ? createPortal(mobileDrawer, document.body)
+        : mobileDrawer}
+    </>
+  );
+}

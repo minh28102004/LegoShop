@@ -1,12 +1,30 @@
-import { apiRequest, toQueryString } from '@/lib/api';
+import {
+  ADMIN_RESOURCE_PATHS,
+  ApiClientError,
+  type AdminCreateResourcePayloadMap,
+  type AdminUpdateResourcePayloadMap,
+  type QueryParams,
+} from '@lego-shop/api';
+import type { ChangeAdminPasswordResponseContract } from '@lego-shop/shared';
+import { apiRequest } from '@/lib/api';
+import { adminApiClient } from '@/lib/api/admin-client';
+import { clearAccessToken } from '@/modules/auth/services/authStorage';
 import type {
   Accessory,
   AccessoryCategory,
   AdminProfile,
   Banner,
   BusinessInquiry,
+  Character,
+  CharacterPart,
+  CharacterPreset,
   Collection,
   DashboardStats,
+  FrameBackground,
+  FrameColor,
+  FrameOption,
+  FrameSize,
+  InquiryStatus,
   Order,
   OrderStatus,
   PaginatedOrders,
@@ -17,41 +35,60 @@ import type {
   ShippingStatus,
   Template,
   TemplateCategory,
+  Voucher,
 } from '@/modules/admin/types/admin.types';
 
 export type ResourceKey =
   | 'products'
   | 'templates'
+  | 'frame-options'
   | 'template-categories'
   | 'accessories'
+  | 'characters'
+  | 'character-parts'
+  | 'character-presets'
   | 'accessory-categories'
   | 'banners'
+  | 'frame-backgrounds'
   | 'collections'
   | 'frame-sizes'
-  | 'frame-colors';
+  | 'frame-colors'
+  | 'vouchers';
 
 const ADMIN_RESOURCE_ENDPOINTS: Record<ResourceKey, string> = {
-  products: 'admin/products',
-  templates: 'admin/templates',
-  'template-categories': 'admin/template-categories',
-  accessories: 'admin/accessories',
-  'accessory-categories': 'admin/accessory-categories',
-  banners: 'admin/banners',
-  collections: 'admin/collections',
-  'frame-sizes': 'admin/frame-sizes',
-  'frame-colors': 'admin/frame-colors',
+  products: ADMIN_RESOURCE_PATHS.products,
+  templates: ADMIN_RESOURCE_PATHS.templates,
+  'frame-options': ADMIN_RESOURCE_PATHS['frame-options'],
+  'template-categories': ADMIN_RESOURCE_PATHS['template-categories'],
+  accessories: ADMIN_RESOURCE_PATHS.accessories,
+  characters: ADMIN_RESOURCE_PATHS.characters,
+  'character-parts': ADMIN_RESOURCE_PATHS['character-parts'],
+  'character-presets': ADMIN_RESOURCE_PATHS['character-presets'],
+  'accessory-categories': ADMIN_RESOURCE_PATHS['accessory-categories'],
+  banners: ADMIN_RESOURCE_PATHS.banners,
+  'frame-backgrounds': ADMIN_RESOURCE_PATHS['frame-backgrounds'],
+  collections: ADMIN_RESOURCE_PATHS.collections,
+  'frame-sizes': ADMIN_RESOURCE_PATHS['frame-sizes'],
+  'frame-colors': ADMIN_RESOURCE_PATHS['frame-colors'],
+  vouchers: ADMIN_RESOURCE_PATHS.vouchers,
 };
 
 export type ResourceDataMap = {
   products: Product;
   templates: Template;
+  'frame-options': FrameOption;
   'template-categories': TemplateCategory;
   accessories: Accessory;
+  characters: Character;
+  'character-parts': CharacterPart;
+  'character-presets': CharacterPreset;
   'accessory-categories': AccessoryCategory;
   banners: Banner;
+  'frame-backgrounds': FrameBackground;
   collections: Collection;
-  'frame-sizes': any;
-  'frame-colors': any;
+  'frame-sizes': FrameSize;
+  'frame-colors': FrameColor;
+  vouchers: Voucher;
 };
 
 export type ResourceListParams = {
@@ -63,6 +100,7 @@ export type ResourceListParams = {
   sort_dir?: string;
   status?: string | string[];
   category_id?: string | string[];
+  type?: string | string[];
   price_min?: number;
   price_max?: number;
   preset?: string;
@@ -71,15 +109,55 @@ export type ResourceListParams = {
   date_field?: string;
 };
 
+function toQueryParams(params?: ResourceListParams): QueryParams | undefined {
+  if (!params) return undefined;
+
+  const query: QueryParams = {};
+  Object.entries(params).forEach(([key, value]) => {
+    if (value === undefined || value === '') return;
+    query[key] = Array.isArray(value) ? value.join(',') : value;
+  });
+  return query;
+}
+
+function serializeListParam(value?: string | string[] | '') {
+  if (Array.isArray(value)) return value.length > 0 ? value.join(',') : undefined;
+  return value || undefined;
+}
+
+async function withAdminAuth<T>(request: Promise<T>): Promise<T> {
+  try {
+    return await request;
+  } catch (error) {
+    if (error instanceof ApiClientError && error.status === 401) {
+      clearAccessToken();
+    }
+    throw error;
+  }
+}
+
 export async function me() {
-  return apiRequest<AdminProfile>('auth/me');
+  return withAdminAuth(adminApiClient.auth.adminMe()) as Promise<AdminProfile>;
+}
+
+export async function updateAdminProfile(payload: { name?: string | null }) {
+  return withAdminAuth(adminApiClient.auth.updateAdminProfile(payload)) as Promise<AdminProfile>;
+}
+
+export async function changeAdminPassword(payload: {
+  currentPassword: string;
+  newPassword: string;
+}) {
+  return withAdminAuth(
+    adminApiClient.auth.changeAdminPassword(payload),
+  ) as Promise<ChangeAdminPasswordResponseContract>;
 }
 
 export async function uploadImage(file: File) {
   const formData = new FormData();
   formData.append('file', file);
 
-  return apiRequest<{ url: string; fileName: string; originalName: string }>('uploads/image', {
+  return apiRequest<{ url: string; fileName: string; originalName: string }>('uploads/admin/image', {
     method: 'POST',
     body: formData,
   });
@@ -96,24 +174,25 @@ export async function listResource<K extends ResourceKey>(
   key: K,
   params?: ResourceListParams,
 ) {
-  const query = params ? toQueryString(params) : '';
-  return apiRequest<ResourceDataMap[K][] | PaginatedResourceResponse<ResourceDataMap[K]>>(
-    `${ADMIN_RESOURCE_ENDPOINTS[key]}${query}`,
-  );
+  return withAdminAuth(adminApiClient.admin.listResource(key, toQueryParams(params))) as Promise<
+    ResourceDataMap[K][] | PaginatedResourceResponse<ResourceDataMap[K]>
+  >;
 }
 
 export async function getResourceById<K extends ResourceKey>(key: K, id: string) {
-  return apiRequest<ResourceDataMap[K]>(`${ADMIN_RESOURCE_ENDPOINTS[key]}/${id}`);
+  return withAdminAuth(adminApiClient.admin.getResource(key, id)) as Promise<ResourceDataMap[K]>;
 }
 
 export async function createResource<K extends ResourceKey>(
   key: K,
   payload: Partial<ResourceDataMap[K]>,
 ) {
-  return apiRequest<ResourceDataMap[K]>(ADMIN_RESOURCE_ENDPOINTS[key], {
-    method: 'POST',
-    body: JSON.stringify(payload),
-  });
+  return withAdminAuth(
+    adminApiClient.admin.createResource(
+      key,
+      payload as unknown as AdminCreateResourcePayloadMap[K],
+    ),
+  ) as Promise<ResourceDataMap[K]>;
 }
 
 export async function updateResource<K extends ResourceKey>(
@@ -121,10 +200,13 @@ export async function updateResource<K extends ResourceKey>(
   id: string,
   payload: Partial<ResourceDataMap[K]>,
 ) {
-  return apiRequest<ResourceDataMap[K]>(`${ADMIN_RESOURCE_ENDPOINTS[key]}/${id}`, {
-    method: 'PATCH',
-    body: JSON.stringify(payload),
-  });
+  return withAdminAuth(
+    adminApiClient.admin.updateResource(
+      key,
+      id,
+      payload as unknown as AdminUpdateResourcePayloadMap[K],
+    ),
+  ) as Promise<ResourceDataMap[K]>;
 }
 
 export async function deleteResource(key: ResourceKey, id: string) {
@@ -154,12 +236,7 @@ export async function listOrders(params: {
   page?: number;
   limit?: number;
 }) {
-  const serializeListParam = (value?: string | string[] | '') => {
-    if (Array.isArray(value)) return value.length > 0 ? value.join(',') : undefined;
-    return value || undefined;
-  };
-
-  const query = toQueryString({
+  const query: QueryParams = {
     search: params.search,
     search_fields: params.search_fields,
     orderStatus: serializeListParam(params.orderStatus),
@@ -176,34 +253,25 @@ export async function listOrders(params: {
     date_field: params.date_field,
     page: params.page,
     limit: params.limit,
-  });
+  };
 
-  return apiRequest<PaginatedOrders>(`admin/orders${query}`);
+  return withAdminAuth(adminApiClient.admin.listOrders(query)) as Promise<PaginatedOrders>;
 }
 
 export async function getOrderById(id: string) {
-  return apiRequest<Order>(`admin/orders/${id}`);
+  return withAdminAuth(adminApiClient.admin.getOrder(id)) as Promise<Order>;
 }
 
 export async function updateOrderStatus(id: string, status: OrderStatus) {
-  return apiRequest<Order>(`admin/orders/${id}/status`, {
-    method: 'PATCH',
-    body: JSON.stringify({ status }),
-  });
+  return withAdminAuth(adminApiClient.admin.updateOrderStatus(id, { status })) as Promise<Order>;
 }
 
 export async function updateOrderPaymentStatus(id: string, status: PaymentStatus) {
-  return apiRequest<Order>(`admin/orders/${id}/payment-status`, {
-    method: 'PATCH',
-    body: JSON.stringify({ status }),
-  });
+  return withAdminAuth(adminApiClient.admin.updateOrderPaymentStatus(id, { status })) as Promise<Order>;
 }
 
 export async function updateOrderShippingStatus(id: string, status: ShippingStatus) {
-  return apiRequest<Order>(`admin/orders/${id}/shipping-status`, {
-    method: 'PATCH',
-    body: JSON.stringify({ status }),
-  });
+  return withAdminAuth(adminApiClient.admin.updateOrderShippingStatus(id, { status })) as Promise<Order>;
 }
 
 export async function listBusinessInquiries(): Promise<BusinessInquiry[]>;
@@ -211,35 +279,30 @@ export async function listBusinessInquiries(
   params: ResourceListParams,
 ): Promise<PaginatedResourceResponse<BusinessInquiry>>;
 export async function listBusinessInquiries(params?: ResourceListParams) {
-  const query = params ? toQueryString(params) : '';
-  return apiRequest<BusinessInquiry[] | PaginatedResourceResponse<BusinessInquiry>>(
-    `admin/business-inquiries${query}`,
-  );
+  return withAdminAuth(adminApiClient.admin.listBusinessInquiries(toQueryParams(params))) as Promise<
+    BusinessInquiry[] | PaginatedResourceResponse<BusinessInquiry>
+  >;
 }
 
 export async function getBusinessInquiryById(id: string) {
-  return apiRequest<BusinessInquiry>(`admin/business-inquiries/${id}`);
+  return withAdminAuth(adminApiClient.admin.getBusinessInquiry(id)) as Promise<BusinessInquiry>;
 }
 
 export async function updateBusinessInquiryStatus(id: string, status: string) {
-  return apiRequest<BusinessInquiry>(`admin/business-inquiries/${id}/status`, {
-    method: 'PATCH',
-    body: JSON.stringify({ status }),
-  });
+  return withAdminAuth(
+    adminApiClient.admin.updateBusinessInquiryStatus(id, { status: status as InquiryStatus }),
+  ) as Promise<BusinessInquiry>;
 }
 
 export async function getPaymentSettings() {
-  return apiRequest<PaymentSettings>('admin/payment-settings');
+  return withAdminAuth(adminApiClient.admin.getPaymentSettings()) as Promise<PaymentSettings>;
 }
 
 export async function updatePaymentSettings(payload: Partial<PaymentSettings>) {
-  return apiRequest<PaymentSettings>('admin/payment-settings', {
-    method: 'PATCH',
-    body: JSON.stringify(payload),
-  });
+  return withAdminAuth(adminApiClient.admin.updatePaymentSettings(payload)) as Promise<PaymentSettings>;
 }
 
 export async function getDashboardStats() {
-  return apiRequest<DashboardStats>('admin-dashboard/stats');
+  return withAdminAuth(adminApiClient.admin.getDashboardStats()) as Promise<DashboardStats>;
 }
 

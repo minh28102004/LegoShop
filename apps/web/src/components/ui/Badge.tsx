@@ -3,20 +3,19 @@
 import * as React from 'react'
 import { cva, type VariantProps } from 'class-variance-authority'
 
-import { cn } from '@/lib/cn'
-import type { Size } from '@/types'
+import { cn, type Size } from '@lego-shop/ui'
 
 const badgeVariants = cva(
   'inline-flex w-fit items-center rounded-full border font-semibold',
   {
     variants: {
       variant: {
-        default: 'border-transparent bg-surface text-text-secondary',
+        default: 'border-transparent bg-surface-soft text-muted',
         primary: 'border-transparent bg-primary text-primary-foreground',
-        success: 'border-transparent bg-success text-text-inverse',
-        warning: 'border-transparent bg-warning text-text-inverse',
+        success: 'border-transparent bg-success-soft text-success',
+        warning: 'border-transparent bg-warning-soft text-warning',
         error: 'border-transparent bg-error text-text-inverse',
-        outline: 'border-border bg-background text-text-primary',
+        outline: 'border-border bg-background text-navy',
       },
       size: {
         sm: 'px-2 py-0.5 text-body-xs',

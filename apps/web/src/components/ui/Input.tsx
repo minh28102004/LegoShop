@@ -2,8 +2,7 @@
 
 import * as React from 'react'
 
-import { cn } from '@/lib/cn'
-import type { FieldState } from '@/types'
+import { cn, type FieldState } from '@lego-shop/ui'
 
 export interface InputProps
   extends Omit<React.ComponentPropsWithoutRef<'input'>, 'size'> {

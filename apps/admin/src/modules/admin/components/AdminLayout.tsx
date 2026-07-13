@@ -30,10 +30,11 @@ function AdminShell({
   const { t } = useI18n();
   const { isExpanded, isMobileOpen, closeMobileSidebar } = useAdminSidebar();
 
-  const pageTitle = useMemo(() => {
-    const titleMap: Array<{ href: string; label: string }> = [
+  const breadcrumbs = useMemo(() => {
+    const routeMap: Array<{ href: string; label: string }> = [
       { href: ADMIN_ROUTES.dashboard, label: t('sidebar.dashboard') },
       { href: ADMIN_ROUTES.orders, label: t('sidebar.orders') },
+      { href: ADMIN_ROUTES.frameOptions, label: t('sidebar.frameOptions') },
       { href: ADMIN_ROUTES.frameSizes, label: t('sidebar.frameSizes') },
       { href: ADMIN_ROUTES.frameColors, label: t('sidebar.frameColors') },
       { href: ADMIN_ROUTES.templates, label: t('sidebar.templates') },
@@ -43,14 +44,40 @@ function AdminShell({
       { href: ADMIN_ROUTES.products, label: t('sidebar.products') },
       { href: ADMIN_ROUTES.collections, label: t('sidebar.collections') },
       { href: ADMIN_ROUTES.banners, label: t('sidebar.banners') },
+      { href: ADMIN_ROUTES.frameBackgrounds, label: t('sidebar.frameBackgrounds') },
       { href: ADMIN_ROUTES.businessInquiries, label: t('sidebar.businessInquiries') },
       { href: ADMIN_ROUTES.paymentSettings, label: t('sidebar.paymentSettings') },
+      { href: ADMIN_ROUTES.profile, label: t('account.profileTitle') },
+      { href: ADMIN_ROUTES.changePassword, label: t('account.changePasswordTitle') },
     ];
 
-    const found = titleMap.find((item) =>
+    const found = routeMap.find((item) =>
       pathname === item.href || pathname.startsWith(`${item.href}/`),
     );
-    return found?.label ?? t('header.adminControl');
+
+    const rootCrumb = {
+      href: ADMIN_ROUTES.dashboard,
+      label: t('header.adminControl'),
+    };
+
+    if (!found) {
+      return [{ label: t('header.adminControl') }];
+    }
+
+    if (pathname === found.href) {
+      return [rootCrumb, { label: found.label }];
+    }
+
+    const pathSegments = pathname.split('/').filter(Boolean);
+    const fallbackDetailLabel = pathSegments[pathSegments.length - 1] ?? found.label;
+    const detailLabel =
+      found.href === ADMIN_ROUTES.orders
+        ? t('orders.detail')
+        : found.href === ADMIN_ROUTES.businessInquiries
+          ? t('inquiries.detail')
+          : fallbackDetailLabel;
+
+    return [rootCrumb, { href: found.href, label: found.label }, { label: detailLabel }];
   }, [pathname, t]);
 
   const mainContentMargin = isMobileOpen
@@ -88,7 +115,7 @@ function AdminShell({
       >
         <div className='h-[var(--admin-shell-header-height)] shrink-0 [&>*]:h-full'>
           <AdminHeader
-            title={pageTitle}
+            breadcrumbs={breadcrumbs}
             profileName={profileName}
             profileEmail={profileEmail}
             profileRole={profileRole}

@@ -2,6 +2,8 @@
 
 import Image from 'next/image';
 import { useState } from 'react';
+import toast from 'react-hot-toast';
+
 import Dropdown from '@/common/components/ui/Dropdown';
 import { cn } from '@/common/utils/cn';
 import { type Locale } from '@/lib/i18n/config';
@@ -15,17 +17,22 @@ const LOCALE_OPTIONS: Array<{
 }> = [
   {
     value: 'vi',
-    label: 'Tiếng Việt',
+    label: 'VI',
     flagSrc: '/flags/vi.svg',
     flagAlt: 'Cờ Việt Nam',
   },
   {
     value: 'en',
-    label: 'English',
+    label: 'EN',
     flagSrc: '/flags/en.svg',
     flagAlt: 'English flag',
   },
 ];
+
+const LOCALE_TOAST_LABEL: Record<Locale, string> = {
+  vi: 'Tiếng Việt',
+  en: 'English',
+};
 
 type LanguageSwitcherProps = {
   className?: string;
@@ -54,6 +61,16 @@ export default function LanguageSwitcher({
   const [open, setOpen] = useState(false);
   const selected = LOCALE_OPTIONS.find((option) => option.value === locale) ?? LOCALE_OPTIONS[0];
 
+  function handleLocaleChange(nextLocale: Locale) {
+    if (nextLocale === locale) return;
+
+    setLocale(nextLocale);
+    const localeLabel = LOCALE_TOAST_LABEL[nextLocale];
+    toast.success(
+      nextLocale === 'vi' ? `Đã chuyển sang ${localeLabel}` : `Language changed to ${localeLabel}`,
+    );
+  }
+
   return (
     <div
       className={cn(
@@ -71,12 +88,12 @@ export default function LanguageSwitcher({
         offset={6}
         panelRole='listbox'
         onOpenChange={setOpen}
-        className={cn('w-[136px] min-w-[136px]', compact && 'w-[128px] min-w-[128px]')}
+        className={cn('w-[96px] min-w-[96px]', compact && 'w-[90px] min-w-[90px]')}
         panelClassName='p-1.5'
         trigger={
           <button
             type='button'
-            className='admin-control admin-control-md inline-flex h-10 min-h-10 items-center gap-2 rounded-[12px] px-3 text-left text-[13px] font-semibold shadow-[0_1px_2px_rgba(15,23,42,0.04)]'
+            className='admin-control admin-control-md inline-flex h-10 min-h-10 items-center gap-1.5 rounded-[12px] px-2 text-left text-[13px] font-semibold shadow-[0_1px_2px_rgba(15,23,42,0.04)]'
             aria-label={t('common.language')}
           >
             <Image
@@ -87,7 +104,12 @@ export default function LanguageSwitcher({
               className='h-5 w-5 shrink-0 rounded-full object-cover'
             />
             <span className='min-w-0 flex-1 truncate'>{selected.label}</span>
-            <span className={cn('shrink-0 text-slate-400 transition-transform duration-150', open && 'rotate-180 text-[var(--admin-primary-strong)]')}>
+            <span
+              className={cn(
+                'shrink-0 text-slate-400 transition-transform duration-150',
+                open && 'rotate-180 text-[var(--admin-primary-strong)]',
+              )}
+            >
               <ChevronDownIcon />
             </span>
           </button>
@@ -111,8 +133,11 @@ export default function LanguageSwitcher({
                       : 'text-slate-700 hover:bg-[var(--admin-primary-soft)] hover:text-[var(--admin-primary-strong)]',
                   )}
                   onClick={() => {
-                    setLocale(option.value);
                     close();
+
+                    if (option.value === locale) return;
+
+                    handleLocaleChange(option.value);
                   }}
                 >
                   <Image

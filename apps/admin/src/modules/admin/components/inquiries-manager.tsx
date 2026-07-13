@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Badge, { getStatusBadgeLabel, StatusBadge } from '@/common/components/ui/Badge';
 import Button from '@/common/components/ui/Button';
 import Input from '@/common/components/ui/Input';
@@ -114,6 +114,7 @@ export default function InquiriesManager() {
   const [payload, setPayload] = useState<InquiryPayload | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const requestSeq = useRef(0);
   const inquiries = payload?.data ?? [];
 
   function statusLabel(value: string) {
@@ -151,6 +152,8 @@ export default function InquiriesManager() {
     !areTableSortsEqual(sorts, DEFAULT_TABLE_SORTS);
 
   const load = useCallback(async () => {
+    const requestId = requestSeq.current + 1;
+    requestSeq.current = requestId;
     setLoading(true);
     setError(null);
     try {
@@ -163,11 +166,15 @@ export default function InquiriesManager() {
         sort_by: serializedSorts.sortBy,
         sort_dir: serializedSorts.sortDir,
       });
+      if (requestSeq.current !== requestId) return;
       setPayload(data);
     } catch (err) {
+      if (requestSeq.current !== requestId) return;
       setError(err instanceof Error ? err.message : t('inquiries.loadFailed'));
     } finally {
-      setLoading(false);
+      if (requestSeq.current === requestId) {
+        setLoading(false);
+      }
     }
   }, [debouncedSearch, page, pageSize, sorts, statusFilter, t]);
 
@@ -183,13 +190,7 @@ export default function InquiriesManager() {
   }, [search]);
 
   useEffect(() => {
-    const timer = window.setTimeout(() => {
-      void load();
-    }, 0);
-
-    return () => {
-      window.clearTimeout(timer);
-    };
+    void load();
   }, [load]);
 
   async function updateStatus(id: string, status: InquiryStatus) {
@@ -234,6 +235,7 @@ export default function InquiriesManager() {
           }
         >
         <AdminToolbarField
+          hideLabel
           wide
           icon={<AdminToolbarIcon name='search' />}
           label={t('common.search')}
@@ -276,6 +278,7 @@ export default function InquiriesManager() {
         draftFilters={draftFilters}
         statusOptions={inquiryStatusOptions}
         categoryOptions={[]}
+        hasDateFilter={false}
         hasPriceFilter={false}
         onClose={() => setFilterDrawerOpen(false)}
         onDraftChange={setDraftFilters}
@@ -285,6 +288,9 @@ export default function InquiriesManager() {
           allStatuses: getInquiryUiText(locale, 'allStatuses'),
           apply: locale === 'vi' ? 'Áp dụng' : 'Apply filters',
           category: '',
+          dateFrom: locale === 'vi' ? 'Tá»« ngÃ y' : 'From date',
+          dateRange: locale === 'vi' ? 'Khoáº£ng ngÃ y' : 'Date range',
+          dateTo: locale === 'vi' ? 'Äáº¿n ngÃ y' : 'To date',
           filterTitle: locale === 'vi' ? 'Bộ lọc' : 'Filters',
           priceMax: '',
           priceMin: '',
@@ -295,7 +301,7 @@ export default function InquiriesManager() {
         }}
       />
 
-      <Table containerClassName='min-h-0'>
+      <Table containerClassName='min-h-0' minWidth='980px'>
         <TableHeader>
           <tr>
             <SortableTableHead
@@ -348,7 +354,7 @@ export default function InquiriesManager() {
         </TableHeader>
 
         <TableBody>
-          {loading ? (
+          {loading && !payload ? (
             <TableEmptyState colSpan={6} variant='loading'>{t('inquiries.loading')}</TableEmptyState>
           ) : error ? (
             <TableEmptyState colSpan={6} variant='error'>
@@ -417,7 +423,7 @@ export default function InquiriesManager() {
         itemLabel={getInquiryUiText(locale, 'inquiries')}
         pageLabel={getInquiryUiText(locale, 'page')}
         pageSize={payload?.meta.limit ?? pageSize}
-        pageSizeLabel={locale === 'vi' ? 'Số dòng' : 'Rows'}
+        pageSizeLabel={locale === 'vi' ? 'Mỗi trang' : 'Per page'}
         totalLabel={t('common.total')}
         previousLabel={t('common.previous')}
         nextLabel={t('common.next')}

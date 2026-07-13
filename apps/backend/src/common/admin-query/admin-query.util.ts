@@ -1,3 +1,4 @@
+import type { PaginationMeta } from '@lego-shop/shared';
 import { BadRequestException } from '@nestjs/common';
 import { AdminListQueryDto } from '../dto/admin-list-query.dto';
 
@@ -25,11 +26,7 @@ export type AdminPagination = {
   take: number;
 };
 
-export type AdminListMeta = {
-  page: number;
-  limit: number;
-  total: number;
-  totalPages: number;
+export type AdminListMeta = PaginationMeta & {
   total_pages: number;
   sort_by: string;
   sort_dir: string;

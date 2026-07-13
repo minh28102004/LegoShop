@@ -31,8 +31,7 @@ WORKDIR /app
 # CHỈ COPY những file/folder cốt lõi cấu thành nên cấu trúc Monorepo.
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
 COPY apps/ ./apps/
-# Nếu có thư mục packages, uncomment dòng dưới:
-# COPY packages/ ./packages/
+COPY packages/ ./packages/
 
 # Bắt buộc: KHÔNG `pnpm install` ở đây.
 # Sử dụng trực tiếp `pnpm dlx` để tải và chạy Turbo ở vùng không gian cô lập.
@@ -54,13 +53,16 @@ RUN pnpm install --frozen-lockfile
 FROM base AS builder
 WORKDIR /app
 
+# Build-time Prisma commands only need a syntactically valid URL; they do not connect to the DB.
+ENV DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy"
+
 # Tái sử dụng TOÀN BỘ node_modules đã được install từ Stage Deps (bao gồm cả thư mục con)
 COPY --from=deps /app/ .
 # Lấy mã nguồn thực tế (source files) từ Stage Pruner
 COPY --from=pruner /app/out/full/ .
 
-# Prisma Generate: NGUYÊN TẮC là chỉ sinh ra client trong lúc build.
-# Không bao giờ chạy lệnh này lúc start app ở Production Runner.
+# Prisma Generate lần 1: BẮT BUỘC phải sinh ra ở đây để TypeScript có Type mà compile code NestJS
+# Truyền biến DATABASE_URL ảo để vượt qua PrismaConfigEnvError trên Render
 WORKDIR /app/apps/backend
 RUN npx prisma generate
 
@@ -73,11 +75,19 @@ RUN pnpm dlx turbo@2.9.18 run build --filter=backend
 RUN pnpm --filter backend --prod deploy /pruned
 
 # Chuyển kết quả biên dịch và cấu trúc DB sang thư mục production
-# Đồng thời bắt buộc phải copy thủ công thư mục `.prisma` (do pnpm deploy sẽ bỏ qua file sinh tự động)
 RUN cp -r apps/backend/dist /pruned/dist && \
-    cp -r apps/backend/prisma /pruned/prisma && \
-    cp -r node_modules/.prisma /pruned/node_modules/.prisma || true && \
-    cp -r apps/backend/node_modules/.prisma /pruned/node_modules/.prisma || true
+    cp -r apps/backend/prisma /pruned/prisma
+
+# Shared visual assets are served by the backend at /shared/images/* for admin/web.
+RUN mkdir -p /pruned/shared && \
+    cp -r packages/assets/images /pruned/shared/images
+
+# Generate Prisma Client inside the production bundle so .prisma lands in /pruned/node_modules.
+# Remove prisma.config.ts here because the production bundle intentionally excludes the prisma CLI package.
+# DATABASE_URL only needs a valid shape here; prisma generate does not connect to the DB.
+WORKDIR /pruned
+RUN rm -f prisma.config.ts && \
+    npx --yes prisma generate --schema=prisma/schema.prisma
 
 # ── Stage 5: Production Runner ────────────────────────────────────────────────
 FROM base AS runner

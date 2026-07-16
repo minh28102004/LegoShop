@@ -7,6 +7,7 @@ import {
   OnModuleInit,
 } from '@nestjs/common';
 import {
+  CharacterPartType,
   FrameOptionType,
   OrderStatusHistoryType,
   OrderStatus,
@@ -63,6 +64,14 @@ type ResolvedFrameOption = {
   price: number;
   stock: number | null;
 };
+type ResolvedCharacterPart = {
+  id: string;
+  name: string;
+  type: CharacterPartType;
+  imageUrl: string;
+  priceAdjustment: number;
+};
+
 
 type NormalizedCustomerInfo = {
   name: string;
@@ -575,7 +584,7 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
     const accessoryIds = Array.from(
       new Set(items.flatMap((item) => this.extractAccessoryIds(item))),
     );
-    const [products, frameOptions, backgrounds, accessories] =
+    const [products, frameOptions, backgrounds, accessories, characterParts] =
       await this.prisma.$transaction([
         this.prisma.product.findMany({
           where: {
@@ -634,6 +643,18 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
             price: true,
           },
         }),
+        this.prisma.characterPart.findMany({
+          where: {
+            status: ProductStatus.active,
+          },
+          select: {
+            id: true,
+            name: true,
+            type: true,
+            imageUrl: true,
+            priceAdjustment: true,
+          },
+        }),
       ]);
     const productsById = new Map(
       products.map((product) => [product.id, product]),
@@ -656,6 +677,10 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
       accessories.map((accessory) => [accessory.id, accessory]),
     );
 
+    const characterPartsById = new Map<string, ResolvedCharacterPart>(
+      characterParts.map((part) => [part.id, part]),
+    );
+
     return items.map((item) => {
       if (this.isRetailOrderItem(item)) {
         return this.resolveRetailOrderItem(
@@ -663,8 +688,16 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
           frameOptionsById,
           backgroundsById,
           accessoriesById,
+          characterPartsById,
         );
       }
+      if (this.isCustomCharacterOrderItem(item)) {
+        return this.resolveCustomCharacterOrderItem(
+          item,
+          characterPartsById,
+        );
+      }
+
 
       if (item.productId) {
         const product = productsById.get(item.productId);
@@ -767,6 +800,7 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
     frameOptionsById: Map<string, ResolvedFrameOption>,
     backgroundsById: Map<string, { id: string; title: string }>,
     accessoriesById: Map<string, { id: string; name: string; price: number }>,
+    characterPartsById: Map<string, ResolvedCharacterPart>,
   ): ResolvedOrderItem {
     const retailType = this.readString(item.designData?.retailType);
 
@@ -838,9 +872,93 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
         previewUrl: item.previewUrl,
       };
     }
+    if (retailType === 'character_part') {
+      const partId = this.readString(item.designData?.sourceId);
+      const part = partId ? characterPartsById.get(partId) : undefined;
+      if (!part) {
+        throw new BadRequestException('Character part is not available');
+      }
+
+      return {
+        productName: item.productName || part.name,
+        quantity: item.quantity,
+        price: Math.max(0, part.priceAdjustment),
+        note: item.note,
+        designData: item.designData,
+        previewUrl: item.previewUrl || part.imageUrl,
+      };
+    }
+
+
 
     throw new BadRequestException('Retail item type is invalid');
   }
+
+  private resolveCustomCharacterOrderItem(
+    item: CreateOrderItemDto,
+    characterPartsById: Map<string, ResolvedCharacterPart>,
+  ): ResolvedOrderItem {
+    const rawPartIds = Array.isArray(item.designData?.partIds)
+      ? item.designData.partIds
+      : [];
+    const partIds = Array.from(
+      new Set(rawPartIds.filter((id): id is string => typeof id === 'string')),
+    );
+    if (partIds.length === 0) {
+      throw new BadRequestException('Character part ids are required');
+    }
+
+    const selectedParts = partIds.map((id) => {
+      const part = characterPartsById.get(id);
+      if (!part) {
+        throw new BadRequestException(`Character part ${id} is not available`);
+      }
+      return part;
+    });
+
+    const requiredTypes: CharacterPartType[] = [
+      CharacterPartType.FACE,
+      CharacterPartType.HAIR,
+      CharacterPartType.TORSO,
+      CharacterPartType.LEGS,
+    ];
+    for (const type of requiredTypes) {
+      if (!selectedParts.some((part) => part.type === type)) {
+        throw new BadRequestException(`Character part ${type} is required`);
+      }
+    }
+
+    const price =
+      CHARACTER_PRICE +
+      selectedParts.reduce(
+        (sum, part) => sum + Math.max(0, part.priceAdjustment),
+        0,
+      );
+    const designData = this.isRecord(item.designData)
+      ? { ...item.designData }
+      : {};
+
+    return {
+      productName: item.productName || 'Nhan vat LEGO tuy rap',
+      quantity: item.quantity,
+      price,
+      note: item.note,
+      designData: {
+        ...designData,
+        type: 'CUSTOM_CHARACTER',
+        partIds,
+        resolvedParts: selectedParts.map((part) => ({
+          id: part.id,
+          name: part.name,
+          type: part.type,
+          imageUrl: part.imageUrl,
+          priceAdjustment: Math.max(0, part.priceAdjustment),
+        })),
+      },
+      previewUrl: item.previewUrl || selectedParts[0]?.imageUrl,
+    };
+  }
+
 
   private getFrameOptionSizeLabel(frameOption: {
     name: string;
@@ -1031,6 +1149,10 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
 
   private isRetailOrderItem(item: CreateOrderItemDto) {
     return this.readString(item.designData?.type) === 'RETAIL_ITEM';
+  }
+
+  private isCustomCharacterOrderItem(item: CreateOrderItemDto) {
+    return this.readString(item.designData?.type) === 'CUSTOM_CHARACTER';
   }
 
   private normalizeCustomDesignData(

@@ -1,12 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import Link from "next/link";
 import Image from "next/image";
 import {
-  ArrowUpRight,
   Check,
   ChevronDown,
+  Eye,
   Grid3X3,
   Heart,
   Layers,
@@ -23,6 +22,7 @@ import { useDebounce } from "@lego-shop/hooks";
 import { formatCurrency as formatPrice } from "@lego-shop/shared";
 import type {
   Accessory,
+  CharacterPart,
   Collection as ApiCollection,
   FrameBackground,
   FrameOption,
@@ -30,7 +30,7 @@ import type {
   ProductComponentPart,
 } from "@lego-shop/shared";
 
-import { ROUTES, UI_MODAL_IDS } from "@/config/routes";
+import { UI_MODAL_IDS } from "@/config/routes";
 import { resolveApiAssetUrl } from "@/lib/api/assets";
 import { publicApiClient } from "@/lib/api/public-client";
 import {
@@ -46,6 +46,7 @@ import type {
   RetailCatalogItem,
   RetailType,
 } from "@/modules/lego-frame/types/lego-frame.types";
+import { CharacterBuilderShop } from "@/modules/lego-frame/components/CharacterBuilderShop";
 
 const PRICE_FILTERS = [
   "Tất cả",
@@ -228,13 +229,21 @@ function matchesComplexity(product: Product, filter: string) {
 function getRetailTypeLabel(type: RetailType) {
   if (type === "frame") return "Khung tranh";
   if (type === "background") return "Nền ảnh";
-  return "Phụ kiện";
+  if (type === "character_part") return "Bộ phận nhân vật";
+  return "Phụ kiện trang trí";
+}
+
+function getProductTypeLabel(product: Product) {
+  if (product.productType === "premade_character") return "Nhân vật ráp sẵn";
+  if (product.productType === "diy_kit") return "Bộ DIY";
+  return "Thiết kế hoàn thiện";
 }
 
 function buildRetailItems(
   frameOptions: FrameOption[],
   backgrounds: FrameBackground[],
   accessories: Accessory[],
+  characterParts: CharacterPart[],
 ): RetailCatalogItem[] {
   const frames = frameOptions
     .filter((option) => option.type === "size" && isActiveStatus(option.status))
@@ -272,7 +281,19 @@ function buildRetailItems(
       source: accessory,
     }));
 
-  return [...frames, ...backgroundItems, ...accessoryItems];
+  const characterPartItems = characterParts
+    .filter((part) => isActiveStatus(part.status))
+    .map((part): RetailCatalogItem => ({
+      id: part.id,
+      type: "character_part",
+      name: part.name,
+      description: `Part ${part.type} dùng để tự ráp nhân vật LEGO.`,
+      price: Math.max(0, part.priceAdjustment),
+      imageUrl: resolveApiAssetUrl(part.imageUrl),
+      source: part,
+    }));
+
+  return [...frames, ...backgroundItems, ...accessoryItems, ...characterPartItems];
 }
 
 function openCartDrawer() {
@@ -523,30 +544,44 @@ function ModeSwitch({
   setMode: (mode: CatalogMode) => void;
 }) {
   return (
-    <div className="flex w-full rounded-2xl border border-white/70 bg-white/75 p-1 shadow-[0_10px_24px_-16px_rgba(15,23,42,0.25)] backdrop-blur md:w-auto">
+    <div className="grid w-full grid-cols-3 rounded-2xl border border-white/70 bg-white/75 p-1 shadow-[0_10px_24px_-16px_rgba(15,23,42,0.25)] backdrop-blur">
       <button
         type="button"
         onClick={() => setMode("finished")}
-        className={`flex flex-1 items-center justify-center gap-2 rounded-xl px-3.5 py-2.5 text-xs font-bold transition-all duration-300 md:flex-none ${
+        className={`flex min-w-0 items-center justify-center gap-2 rounded-xl px-2 py-2.5 text-xs font-bold transition-all duration-300 ${
           mode === "finished"
             ? "bg-slate-950 text-white shadow-sm"
             : "text-slate-500 hover:text-slate-950"
         }`}
       >
         <Grid3X3 className="h-4 w-4" />
-        Sản phẩm hoàn thiện
+        <span className="hidden sm:inline">Mẫu có sẵn</span>
+        <span className="sm:hidden">Mẫu</span>
+      </button>
+      <button
+        type="button"
+        onClick={() => setMode("character")}
+        className={`flex min-w-0 items-center justify-center gap-2 rounded-xl px-2 py-2.5 text-xs font-bold transition-all duration-300 ${
+          mode === "character"
+            ? "bg-slate-950 text-white shadow-sm"
+            : "text-slate-500 hover:text-slate-950"
+        }`}
+      >
+        <Layers className="h-4 w-4" />
+        <span className="hidden sm:inline">Ráp nhân vật</span>
+        <span className="sm:hidden">Ráp LEGO</span>
       </button>
       <button
         type="button"
         onClick={() => setMode("retail")}
-        className={`flex flex-1 items-center justify-center gap-2 rounded-xl px-3.5 py-2.5 text-xs font-bold transition-all duration-300 md:flex-none ${
+        className={`flex min-w-0 items-center justify-center gap-2 rounded-xl px-2 py-2.5 text-xs font-bold transition-all duration-300 ${
           mode === "retail"
             ? "bg-slate-950 text-white shadow-sm"
             : "text-slate-500 hover:text-slate-950"
         }`}
       >
         <Package className="h-4 w-4" />
-        Mua đồ lẻ
+        Linh kiện
       </button>
     </div>
   );
@@ -705,8 +740,10 @@ export function LegoFramePage() {
   const [frameOptions, setFrameOptions] = useState<FrameOption[]>([]);
   const [backgrounds, setBackgrounds] = useState<FrameBackground[]>([]);
   const [accessories, setAccessories] = useState<Accessory[]>([]);
+  const [characterParts, setCharacterParts] = useState<CharacterPart[]>([]);
   const [loading, setLoading] = useState(true);
   const [mode, setMode] = useState<CatalogMode>("finished");
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [activeCollectionId, setActiveCollectionId] = useState(ALL_COLLECTIONS);
   const [activePriceFilter, setActivePriceFilter] =
     useState<(typeof PRICE_FILTERS)[number]>("Tất cả");
@@ -726,12 +763,14 @@ export function LegoFramePage() {
           frameOptionsRes,
           backgroundsRes,
           accessoriesRes,
+          characterPartsRes,
         ] = await Promise.all([
           publicApiClient.products.listProducts({ limit: 100 }),
           publicApiClient.products.listCollections(),
           publicApiClient.products.listFrameOptions({ type: "size" }),
           publicApiClient.products.listFrameBackgrounds(),
           publicApiClient.products.listAccessories(),
+          publicApiClient.products.listCharacterParts(),
         ]);
 
         if (cancelled) return;
@@ -744,6 +783,7 @@ export function LegoFramePage() {
         setFrameOptions(frameOptionsRes);
         setBackgrounds(backgroundsRes);
         setAccessories(accessoriesRes);
+        setCharacterParts(characterPartsRes);
       } catch (error) {
         console.error(error);
       } finally {
@@ -767,8 +807,8 @@ export function LegoFramePage() {
     [products],
   );
   const retailItems = useMemo(
-    () => buildRetailItems(frameOptions, backgrounds, accessories),
-    [accessories, backgrounds, frameOptions],
+    () => buildRetailItems(frameOptions, backgrounds, accessories, characterParts),
+    [accessories, backgrounds, characterParts, frameOptions],
   );
 
   const filteredProducts = useMemo(
@@ -932,6 +972,10 @@ export function LegoFramePage() {
       </section>
 
       <main className="container mx-auto max-w-7xl px-4 py-7 sm:py-8">
+        {mode === "character" ? (
+          <CharacterBuilderShop parts={characterParts} loading={loading} />
+        ) : (
+          <>
         <MobileFilterBar
           mode={mode}
           activePriceFilter={activePriceFilter}
@@ -990,6 +1034,7 @@ export function LegoFramePage() {
               <FinishedProductsGrid
                 products={filteredProducts}
                 onAdd={addFinishedProductToCart}
+                onView={setSelectedProduct}
               />
             ) : (
               <RetailItemsGrid
@@ -1003,7 +1048,19 @@ export function LegoFramePage() {
             ) : null}
           </section>
         </div>
+          </>
+        )}
       </main>
+      {selectedProduct ? (
+        <ProductDetailModal
+          product={selectedProduct}
+          onClose={() => setSelectedProduct(null)}
+          onAdd={(product) => {
+            addFinishedProductToCart(product);
+            setSelectedProduct(null);
+          }}
+        />
+      ) : null}
     </div>
   );
 }
@@ -1053,12 +1110,92 @@ function EmptyCatalogState({ onReset }: { onReset: () => void }) {
   );
 }
 
+function ProductDetailModal({
+  product,
+  onClose,
+  onAdd,
+}: {
+  product: Product;
+  onClose: () => void;
+  onAdd: (product: Product) => void;
+}) {
+  const parts = getProductParts(product);
+  const imageUrl = getProductImage(product);
+
+  return (
+    <div
+      className="fixed inset-0 z-[80] flex items-end justify-center bg-slate-950/55 p-0 backdrop-blur-sm sm:items-center sm:p-5"
+      role="dialog"
+      aria-modal="true"
+      aria-label={`Chi tiết ${product.name}`}
+      onMouseDown={(event) => {
+        if (event.currentTarget === event.target) onClose();
+      }}
+    >
+      <div className="max-h-[92vh] w-full max-w-5xl overflow-y-auto bg-white shadow-2xl sm:max-h-[88vh]">
+        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-200 bg-white/95 px-5 py-4 backdrop-blur">
+          <div className="min-w-0">
+            <p className="text-xs font-bold uppercase text-primary">{getProductTypeLabel(product)}</p>
+            <h2 className="truncate text-lg font-extrabold text-slate-950">{product.name}</h2>
+          </div>
+          <button type="button" onClick={onClose} className="flex h-10 w-10 shrink-0 items-center justify-center text-slate-500 transition hover:bg-slate-100 hover:text-slate-950" title="Đóng">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+        <div className="grid lg:grid-cols-[1.05fr_0.95fr]">
+          <div className="relative min-h-[320px] bg-slate-100 lg:min-h-[560px]">
+            {imageUrl ? <img src={imageUrl} alt={product.name} className="absolute inset-0 h-full w-full object-contain p-6" /> : <Package className="absolute left-1/2 top-1/2 h-20 w-20 -translate-x-1/2 -translate-y-1/2 text-slate-300" />}
+          </div>
+          <div className="p-5 sm:p-7">
+            <p className="text-sm leading-6 text-slate-600">{product.description || "Thiết kế đã được admin hoàn thiện và sẵn sàng để đặt mua."}</p>
+            <div className="my-6 flex items-end justify-between border-y border-slate-200 py-5">
+              <div>
+                <p className="text-xs font-bold uppercase text-slate-400">Giá bán</p>
+                <p className="mt-1 text-2xl font-extrabold text-slate-950">{formatPrice(product.basePrice)}</p>
+              </div>
+              <span className="bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-700">Thiết kế sẵn</span>
+            </div>
+            <div>
+              <div className="mb-3 flex items-center justify-between">
+                <h3 className="text-sm font-extrabold text-slate-950">Thành phần sản phẩm</h3>
+                <span className="text-xs font-semibold text-slate-400">{parts.length} loại</span>
+              </div>
+              <div className="max-h-[280px] space-y-2 overflow-y-auto pr-1">
+                {parts.map((part, index) => {
+                  const partImage = resolveApiAssetUrl(part.imageUrl);
+                  return (
+                    <div key={`${part.type}-${part.id ?? index}`} className="flex items-center gap-3 border border-slate-200 p-2.5">
+                      <div className="relative h-12 w-12 shrink-0 overflow-hidden bg-slate-50">
+                        {partImage ? <img src={partImage} alt="" className="h-full w-full object-contain" /> : null}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-xs font-bold text-slate-900">{part.name}</p>
+                        <p className="mt-1 text-[11px] font-semibold text-slate-500">{part.quantity} × {formatPrice(part.unitPrice)}</p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+            <button type="button" onClick={() => onAdd(product)} className="mt-7 flex h-12 w-full items-center justify-center gap-2 bg-primary px-5 text-sm font-bold text-white transition hover:bg-primary/90">
+              <ShoppingCart className="h-4 w-4" />
+              Mua thiết kế này
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function FinishedProductsGrid({
   products,
   onAdd,
+  onView,
 }: {
   products: Product[];
   onAdd: (product: Product) => void;
+  onView: (product: Product) => void;
 }) {
   return (
     <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
@@ -1123,13 +1260,14 @@ function FinishedProductsGrid({
                 </div>
 
                 <div className="grid grid-cols-[1fr_auto] items-center gap-3">
-                  <Link
-                    href={`${ROUTES.creatorStudio}?productId=${encodeURIComponent(product.id)}`}
+                  <button
+                    type="button"
+                    onClick={() => onView(product)}
                     className="group/link flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 py-3 text-xs font-bold text-slate-700 transition-all duration-300 hover:border-primary/30 hover:bg-primary/5 hover:text-primary"
                   >
-                    Tùy chỉnh
-                    <ArrowUpRight className="h-3.5 w-3.5 transition-transform duration-300 group-hover/link:-translate-y-0.5 group-hover/link:translate-x-0.5" />
-                  </Link>
+                    Xem thiết kế
+                    <Eye className="h-3.5 w-3.5" />
+                  </button>
                   <button
                     type="button"
                     onClick={() => onAdd(product)}

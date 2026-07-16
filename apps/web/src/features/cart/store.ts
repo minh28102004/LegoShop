@@ -11,6 +11,7 @@ export type CartItemPartType =
   | 'frame'
   | 'background'
   | 'character'
+  | 'character_part'
   | 'accessory'
   | 'product'
   | 'retail'

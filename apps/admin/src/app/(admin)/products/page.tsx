@@ -35,8 +35,10 @@ export default function ProductsPage() {
         label: 'Loại sản phẩm',
         type: 'select',
         options: [
-          { label: 'Sản phẩm hoàn thiện', value: 'finished' },
-          { label: 'Đồ lẻ', value: 'retail' },
+          { label: 'Sản phẩm thiết kế hoàn thiện', value: 'finished' },
+          { label: 'Nhân vật LEGO ráp sẵn', value: 'premade_character' },
+          { label: 'Bộ linh kiện DIY', value: 'diy_kit' },
+          { label: 'Đồ lẻ dạng sản phẩm', value: 'retail' },
         ],
       },
       {
@@ -73,6 +75,14 @@ export default function ProductsPage() {
         label: t('productsPage.images'),
         type: 'images',
         placeholder: t('productsPage.images'),
+      },
+      {
+        key: 'componentConfig',
+        label: 'Cấu hình thiết kế và thành phần',
+        type: 'json',
+        placeholder: '{\n  "parts": [\n    { "id": "...", "type": "character", "name": "Nhân vật", "price": 10000, "quantity": 1, "imageUrl": "/uploads/..." }\n  ]\n}',
+        helpText:
+          'Khai báo parts để khách xem thiết kế có sẵn trước khi mua. Mỗi part gồm id (nếu có), type, name, price, quantity và imageUrl.',
       },
       { key: 'featured', label: t('productsPage.featured'), type: 'checkbox' },
     ],

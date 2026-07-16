@@ -6,6 +6,8 @@ export const PRODUCT_STATUS = {
 export const PRODUCT_TYPE = {
   RETAIL: 'retail',
   FINISHED: 'finished',
+  PREMADE_CHARACTER: 'premade_character',
+  DIY_KIT: 'diy_kit',
 } as const;
 
 export const FRAME_OPTION_TYPE = {

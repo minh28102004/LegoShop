@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { Be_Vietnam_Pro } from "next/font/google";
 
 import { Footer } from "@/components/layout/Footer";
 import { Header } from "@/components/layout/Header";
@@ -6,6 +7,13 @@ import { SITE, siteConfig } from "@/config/site";
 import { CartDrawer } from "@/modules/cart/components/CartDrawer";
 import { Providers } from "./providers";
 import "./globals.css";
+
+const beVietnamPro = Be_Vietnam_Pro({
+  subsets: ["latin", "vietnamese"],
+  weight: ["400", "500", "600", "700"],
+  display: "swap",
+  variable: "--font-be-vietnam-pro",
+});
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE.url),
@@ -72,7 +80,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="vi" className="h-full w-full scroll-smooth antialiased">
+    <html
+      lang="vi"
+      className={`${beVietnamPro.variable} h-full w-full scroll-smooth antialiased`}
+    >
       <body className="h-dvh w-full overflow-hidden bg-background font-body text-text-primary antialiased">
         <Providers>
           <div className="flex h-dvh w-full min-w-0 flex-col overflow-hidden">

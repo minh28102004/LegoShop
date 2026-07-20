@@ -1,5 +1,11 @@
-import { LegoFramePage } from '@/modules/lego-frame/components/LegoFramePage'
+import { Suspense } from "react";
+
+import { CollectionPage } from "@/modules/collection/components/CollectionPage";
 
 export default function Page() {
-  return <LegoFramePage />
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-[#f7faff]" />}>
+      <CollectionPage />
+    </Suspense>
+  );
 }

@@ -25,5 +25,8 @@ export type Collection = Timestamped & {
   slug: string;
   description: Nullable<string>;
   imageUrl: Nullable<URLString>;
+  sortOrder: number;
+  naturalWidth: Nullable<number>;
+  naturalHeight: Nullable<number>;
   status: ProductStatus;
 };

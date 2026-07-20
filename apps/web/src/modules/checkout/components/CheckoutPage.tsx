@@ -570,6 +570,18 @@ export default function CheckoutPage() {
   const [voucherLoading, setVoucherLoading] = useState(false);
   const [voucherError, setVoucherError] = useState<string | null>(null);
   const [referralCode, setReferralCode] = useState("");
+  const needsCharacterParts = useMemo(
+    () =>
+      items.some(
+        (item) =>
+          isCustomFrameDesignData(item.designData) &&
+          item.designData.characters.length > 0,
+      ),
+    [items],
+  );
+  const visibleCheckoutCharacterParts = needsCharacterParts
+    ? checkoutCharacterParts
+    : [];
 
   const [formData, setFormData] = useState({
     phone: "",
@@ -605,14 +617,7 @@ export default function CheckoutPage() {
   }, []);
 
   useEffect(() => {
-    const needsCharacterParts = items.some(
-      (item) => isCustomFrameDesignData(item.designData) && item.designData.characters.length > 0,
-    );
-
-    if (!needsCharacterParts) {
-      setCheckoutCharacterParts([]);
-      return;
-    }
+    if (!needsCharacterParts) return;
 
     let cancelled = false;
     publicApiClient.products
@@ -629,7 +634,7 @@ export default function CheckoutPage() {
     return () => {
       cancelled = true;
     };
-  }, [items]);
+  }, [needsCharacterParts]);
 
   const shippingFee = 0;
   const giftFee = giftPackage ? 30000 * itemCount : 0;
@@ -1103,7 +1108,7 @@ export default function CheckoutPage() {
                               {templateName ? <span className="truncate">Nền: {templateName}</span> : null}
                               {accessoryNames.length ? <span className="truncate">Phụ kiện: {accessoryNames.join(", ")}</span> : null}
                             </div>
-                            <CheckoutDesignPreview item={item} previewUrl={previewUrl} characterParts={checkoutCharacterParts} />
+                            <CheckoutDesignPreview item={item} previewUrl={previewUrl} characterParts={visibleCheckoutCharacterParts} />
                             {canEditDesign ? (
                               <Link
                                 href={getEditDesignHref(item, parts)}

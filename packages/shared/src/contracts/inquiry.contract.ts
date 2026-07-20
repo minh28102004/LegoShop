@@ -12,6 +12,12 @@ export type CreateBusinessInquiryRequestContract = {
   message: string;
 };
 
+export type CreateBusinessInquiryResponseContract = {
+  success: true;
+  message: string;
+  data: BusinessInquiryContract;
+};
+
 export type UpdateBusinessInquiryStatusRequestContract = {
   status: InquiryStatus;
 };

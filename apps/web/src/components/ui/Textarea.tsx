@@ -1,16 +1,15 @@
-'use client'
+"use client";
 
-import * as React from 'react'
+import * as React from "react";
 
-import { cn, type FieldState } from '@lego-shop/ui'
+import { cn, type FieldState } from "@lego-shop/ui";
 
-export interface TextareaProps
-  extends React.ComponentPropsWithoutRef<'textarea'> {
-  label?: string
-  error?: string
-  hint?: string
-  showCount?: boolean
-  fieldState?: FieldState
+export interface TextareaProps extends React.ComponentPropsWithoutRef<"textarea"> {
+  label?: string;
+  error?: string;
+  hint?: string;
+  showCount?: boolean;
+  fieldState?: FieldState;
 }
 
 export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
@@ -32,18 +31,18 @@ export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
     },
     ref,
   ) => {
-    const generatedId = React.useId()
-    const textareaId = id ?? name ?? generatedId
-    const hintId = `${textareaId}-hint`
-    const errorId = `${textareaId}-error`
-    const describedBy = error ? errorId : hint ? hintId : undefined
-    const hasError = Boolean(error) || fieldState === 'error'
+    const generatedId = React.useId();
+    const textareaId = id ?? name ?? generatedId;
+    const hintId = `${textareaId}-hint`;
+    const errorId = `${textareaId}-error`;
+    const describedBy = error ? errorId : hint ? hintId : undefined;
+    const hasError = Boolean(error) || fieldState === "error";
     const currentLength =
-      typeof value === 'string'
+      typeof value === "string"
         ? value.length
-        : typeof defaultValue === 'string'
+        : typeof defaultValue === "string"
           ? defaultValue.length
-          : 0
+          : 0;
 
     return (
       <div className="w-full space-y-2">
@@ -67,8 +66,8 @@ export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
           aria-invalid={hasError}
           aria-describedby={describedBy}
           className={cn(
-            'min-h-32 w-full resize-y rounded-md border border-input bg-background px-3 py-3 text-body-md text-text-primary shadow-xs transition-base placeholder:text-text-muted focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring/20 disabled:cursor-not-allowed disabled:opacity-60',
-            hasError && 'border-error focus:border-error focus:ring-error/20',
+            "min-h-32 w-full resize-y rounded-input border border-input bg-surface px-3 py-3 text-body-md text-text-primary shadow-control transition-base placeholder:text-text-muted focus-visible:border-primary disabled:cursor-not-allowed disabled:bg-surface-soft disabled:opacity-60",
+            hasError && "border-error focus-visible:border-error",
             className,
           )}
           {...props}
@@ -92,8 +91,8 @@ export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
           ) : null}
         </div>
       </div>
-    )
+    );
   },
-)
+);
 
-Textarea.displayName = 'Textarea'
+Textarea.displayName = "Textarea";

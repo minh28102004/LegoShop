@@ -1,66 +1,67 @@
-'use client'
+"use client";
 
-import * as React from 'react'
-import Link from 'next/link'
-import { ArrowRight, ShoppingBag } from 'lucide-react'
-import { cva, type VariantProps } from 'class-variance-authority'
-import type { Product } from '@lego-shop/shared'
+import * as React from "react";
+import Link from "next/link";
+import { ArrowRight, ShoppingBag } from "lucide-react";
+import { cva, type VariantProps } from "class-variance-authority";
+import type { Product } from "@lego-shop/shared";
 
-import { Badge, Button, Card } from '@/components/ui'
-import { ROUTES } from '@/config/routes'
-import { resolveApiAssetUrl } from '@/lib/api/assets'
-import { cn } from '@lego-shop/ui'
-import { LazyImage } from './LazyImage'
-import { PriceDisplay } from './PriceDisplay'
-import { StarRating } from './StarRating'
+import { Badge, Button, Card } from "@/components/ui";
+import { ROUTES } from "@/config/routes";
+import { resolveApiAssetUrl } from "@/lib/api/assets";
+import { cn } from "@lego-shop/ui";
+import { ProductImage } from "./ProductImage";
+import { PriceDisplay } from "./PriceDisplay";
+import { StarRating } from "./StarRating";
 
-const productCardVariants = cva('group overflow-hidden', {
+const productCardVariants = cva("group overflow-hidden", {
   variants: {
     variant: {
-      grid: 'flex flex-col',
-      list: 'grid gap-5 md:grid-cols-[220px_1fr]',
-      compact: 'grid grid-cols-[72px_1fr] gap-3 rounded-md border border-border bg-background p-2',
+      grid: "flex flex-col",
+      list: "grid gap-5 md:grid-cols-[220px_1fr]",
+      compact:
+        "grid grid-cols-[72px_1fr] gap-3 rounded-md border border-border bg-background p-2",
     },
   },
   defaultVariants: {
-    variant: 'grid',
+    variant: "grid",
   },
-})
+});
 
 export interface ProductCardProps
-  extends React.ComponentPropsWithoutRef<'div'>,
+  extends
+    React.ComponentPropsWithoutRef<"div">,
     VariantProps<typeof productCardVariants> {
   product: Product & {
-    rating?: number
-    reviewCount?: number
-    shortDescription?: string
-  }
-  variant?: 'grid' | 'list' | 'compact'
+    rating?: number;
+    reviewCount?: number;
+    shortDescription?: string;
+  };
+  variant?: "grid" | "list" | "compact";
 }
 
-const PRODUCT_IMAGE_PLACEHOLDER = '/window.svg'
-
-function getProductImage(product: Product): string {
-  return resolveApiAssetUrl(product.images[0]) || PRODUCT_IMAGE_PLACEHOLDER
+function getProductImage(product: Product): string | null {
+  return resolveApiAssetUrl(product.images[0]) || null;
 }
 
 export const ProductCard = React.forwardRef<HTMLDivElement, ProductCardProps>(
-  ({ className, product, variant = 'grid', ...props }, ref) => {
-    const imageSrc = getProductImage(product)
-    const rating = product.rating ?? 0
-    const reviewCount = product.reviewCount
-    const detailHref = ROUTES.creatorStudio
+  ({ className, product, variant = "grid", ...props }, ref) => {
+    const imageSrc = getProductImage(product);
+    const rating = product.rating ?? 0;
+    const reviewCount = product.reviewCount;
+    const detailHref = ROUTES.creatorStudio;
 
-    if (variant === 'compact') {
+    if (variant === "compact") {
       return (
         <div
           ref={ref}
           className={cn(productCardVariants({ variant }), className)}
           {...props}
         >
-          <LazyImage
+          <ProductImage
             src={imageSrc}
             alt={product.name}
+            compactFallback
             width={72}
             height={72}
             wrapperClassName="size-[72px] rounded-md"
@@ -73,13 +74,17 @@ export const ProductCard = React.forwardRef<HTMLDivElement, ProductCardProps>(
             >
               {product.name}
             </Link>
-            <PriceDisplay price={product.basePrice} size="sm" className="mt-1" />
+            <PriceDisplay
+              price={product.basePrice}
+              size="sm"
+              className="mt-1"
+            />
           </div>
         </div>
-      )
+      );
     }
 
-    if (variant === 'list') {
+    if (variant === "list") {
       return (
         <Card
           ref={ref}
@@ -89,7 +94,7 @@ export const ProductCard = React.forwardRef<HTMLDivElement, ProductCardProps>(
           {...props}
         >
           <Link href={detailHref} className="relative block overflow-hidden">
-            <LazyImage
+            <ProductImage
               src={imageSrc}
               alt={product.name}
               fill
@@ -116,7 +121,9 @@ export const ProductCard = React.forwardRef<HTMLDivElement, ProductCardProps>(
                 <p className="text-body-sm text-text-muted">Chưa có đánh giá</p>
               )}
               <p className="line-clamp-2 text-body-md text-text-secondary">
-                {product.shortDescription ?? product.description ?? 'Khung trưng bày cao cấp cho bộ sưu tập gạch yêu thích của bạn.'}
+                {product.shortDescription ??
+                  product.description ??
+                  "Khung trưng bày cao cấp cho bộ sưu tập gạch yêu thích của bạn."}
               </p>
             </div>
             <div className="mt-auto flex flex-wrap items-center justify-between gap-3">
@@ -132,7 +139,7 @@ export const ProductCard = React.forwardRef<HTMLDivElement, ProductCardProps>(
             </div>
           </div>
         </Card>
-      )
+      );
     }
 
     return (
@@ -144,7 +151,7 @@ export const ProductCard = React.forwardRef<HTMLDivElement, ProductCardProps>(
         {...props}
       >
         <Link href={detailHref} className="relative block overflow-hidden">
-          <LazyImage
+          <ProductImage
             src={imageSrc}
             alt={product.name}
             fill
@@ -179,14 +186,19 @@ export const ProductCard = React.forwardRef<HTMLDivElement, ProductCardProps>(
           )}
           <div className="mt-auto flex items-center justify-between gap-3">
             <PriceDisplay price={product.basePrice} />
-            <Button asChild variant="ghost" size="sm" rightIcon={<ArrowRight className="size-4" />}>
+            <Button
+              asChild
+              variant="ghost"
+              size="sm"
+              rightIcon={<ArrowRight className="size-4" />}
+            >
               <Link href={detailHref}>Xem chi tiết</Link>
             </Button>
           </div>
         </div>
       </Card>
-    )
+    );
   },
-)
+);
 
-ProductCard.displayName = 'ProductCard'
+ProductCard.displayName = "ProductCard";

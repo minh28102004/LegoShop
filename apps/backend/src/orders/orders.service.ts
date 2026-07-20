@@ -72,7 +72,6 @@ type ResolvedCharacterPart = {
   priceAdjustment: number;
 };
 
-
 type NormalizedCustomerInfo = {
   name: string;
   phone: string;
@@ -282,9 +281,7 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
         province: customer.province,
         district: customer.district,
         ward: customer.ward,
-        receiveDate: dto.receiveDate
-          ? new Date(dto.receiveDate)
-          : undefined,
+        receiveDate: dto.receiveDate ? new Date(dto.receiveDate) : undefined,
         note: dto.note,
         shippingMethod: pricing.shippingMethod,
         shippingFee: pricing.shippingFee,
@@ -384,20 +381,22 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
       throw new NotFoundException('Order not found');
     }
 
-    return this.toPublicTrackingSummary(order);
+    return this.toPublicTrackingSummary(order, true);
   }
 
   private async findOrderForPublicTracking(orderCode: string) {
     const payosOrderCode = this.parseSafePayosLookupCode(orderCode);
     const order = await this.prisma.order.findFirst({
       where: {
-        OR: [
-          { orderCode },
-          ...(payosOrderCode ? [{ payosOrderCode }] : []),
-        ],
+        OR: [{ orderCode }, ...(payosOrderCode ? [{ payosOrderCode }] : [])],
       },
       include: {
         items: true,
+        statusHistories: {
+          orderBy: {
+            createdAt: 'asc',
+          },
+        },
       },
     });
 
@@ -692,12 +691,8 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
         );
       }
       if (this.isCustomCharacterOrderItem(item)) {
-        return this.resolveCustomCharacterOrderItem(
-          item,
-          characterPartsById,
-        );
+        return this.resolveCustomCharacterOrderItem(item, characterPartsById);
       }
-
 
       if (item.productId) {
         const product = productsById.get(item.productId);
@@ -727,7 +722,9 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
 
       const frameOptionId = this.getCustomFrameOptionId(item);
       if (!frameOptionId) {
-        throw new BadRequestException('frameOptionId is required for custom frame items');
+        throw new BadRequestException(
+          'frameOptionId is required for custom frame items',
+        );
       }
 
       const frameOption = frameOptionsById.get(frameOptionId);
@@ -772,9 +769,7 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
       );
       const characterCount = this.getCharacterCount(designData);
       const serverComputedPrice =
-        frameOption.price +
-        accessoriesTotal +
-        characterCount * CHARACTER_PRICE;
+        frameOption.price + accessoriesTotal + characterCount * CHARACTER_PRICE;
 
       return {
         productId: undefined,
@@ -791,7 +786,6 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
         designData,
         previewUrl: item.previewUrl,
       };
-
     });
   }
 
@@ -807,12 +801,16 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
     if (retailType === 'frame') {
       const frameOptionId = this.getCustomFrameOptionId(item);
       if (!frameOptionId) {
-        throw new BadRequestException('frameOptionId is required for retail frame items');
+        throw new BadRequestException(
+          'frameOptionId is required for retail frame items',
+        );
       }
 
       const frameOption = frameOptionsById.get(frameOptionId);
       if (!frameOption) {
-        throw new BadRequestException(`Frame option ${frameOptionId} is not available`);
+        throw new BadRequestException(
+          `Frame option ${frameOptionId} is not available`,
+        );
       }
 
       return {
@@ -832,12 +830,16 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
     if (retailType === 'background') {
       const backgroundId = this.getBackgroundId(item);
       if (!backgroundId) {
-        throw new BadRequestException('backgroundId is required for retail background items');
+        throw new BadRequestException(
+          'backgroundId is required for retail background items',
+        );
       }
 
       const background = backgroundsById.get(backgroundId);
       if (!background) {
-        throw new BadRequestException(`Frame background ${backgroundId} is not available`);
+        throw new BadRequestException(
+          `Frame background ${backgroundId} is not available`,
+        );
       }
 
       return {
@@ -852,9 +854,14 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
     }
 
     if (retailType === 'accessory') {
-      const resolvedAccessories = this.resolveAccessorySnapshot(item, accessoriesById);
+      const resolvedAccessories = this.resolveAccessorySnapshot(
+        item,
+        accessoriesById,
+      );
       if (resolvedAccessories.length === 0) {
-        throw new BadRequestException('Accessory id is required for retail accessory items');
+        throw new BadRequestException(
+          'Accessory id is required for retail accessory items',
+        );
       }
 
       const price = resolvedAccessories.reduce(
@@ -863,7 +870,9 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
       );
 
       return {
-        productName: item.productName || resolvedAccessories.map((accessory) => accessory.name).join(', '),
+        productName:
+          item.productName ||
+          resolvedAccessories.map((accessory) => accessory.name).join(', '),
         quantity: item.quantity,
         price,
         note: item.note,
@@ -888,8 +897,6 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
         previewUrl: item.previewUrl || part.imageUrl,
       };
     }
-
-
 
     throw new BadRequestException('Retail item type is invalid');
   }
@@ -959,7 +966,6 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
     };
   }
 
-
   private getFrameOptionSizeLabel(frameOption: {
     name: string;
     label: string | null;
@@ -1027,7 +1033,10 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
       giftFee,
       polaroidOption,
       polaroidFee,
-      totalAmount: Math.max(0, discountableAmount - discountAmount + shippingFee),
+      totalAmount: Math.max(
+        0,
+        discountableAmount - discountAmount + shippingFee,
+      ),
     };
   }
 
@@ -1166,19 +1175,36 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
       ? base.content
       : {
           recipientName:
-            this.readString((base.printText as Record<string, unknown> | undefined)?.title) ??
-            this.readString((base.contentValues as Record<string, unknown> | undefined)?.recipientName) ??
+            this.readString(
+              (base.printText as Record<string, unknown> | undefined)?.title,
+            ) ??
+            this.readString(
+              (base.contentValues as Record<string, unknown> | undefined)
+                ?.recipientName,
+            ) ??
             '',
           graduationDate:
-            this.readString((base.printText as Record<string, unknown> | undefined)?.date) ??
-            this.readString((base.contentValues as Record<string, unknown> | undefined)?.graduationDate) ??
+            this.readString(
+              (base.printText as Record<string, unknown> | undefined)?.date,
+            ) ??
+            this.readString(
+              (base.contentValues as Record<string, unknown> | undefined)
+                ?.graduationDate,
+            ) ??
             '',
           majorOrSchool:
-            this.readString((base.contentValues as Record<string, unknown> | undefined)?.majorOrSchool) ??
-            '',
+            this.readString(
+              (base.contentValues as Record<string, unknown> | undefined)
+                ?.majorOrSchool,
+            ) ?? '',
           message:
-            this.readString((base.printText as Record<string, unknown> | undefined)?.message) ??
-            this.readString((base.contentValues as Record<string, unknown> | undefined)?.message) ??
+            this.readString(
+              (base.printText as Record<string, unknown> | undefined)?.message,
+            ) ??
+            this.readString(
+              (base.contentValues as Record<string, unknown> | undefined)
+                ?.message,
+            ) ??
             '',
         };
 
@@ -1203,7 +1229,10 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
   ): Array<Record<string, unknown>> {
     if (Array.isArray(designData.accessories)) {
       return designData.accessories
-        .filter((accessory) => this.isRecord(accessory) && typeof accessory.id === 'string')
+        .filter(
+          (accessory) =>
+            this.isRecord(accessory) && typeof accessory.id === 'string',
+        )
         .map((accessory) => ({
           id: accessory.id,
           name: this.readString(accessory.name) ?? '',
@@ -1226,21 +1255,34 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
           name: this.readString(character.name) ?? `NV ${index + 1}`,
           x:
             this.readNumber(character.x) ??
-            this.readNumber((character.position as Record<string, unknown> | undefined)?.x) ??
+            this.readNumber(
+              (character.position as Record<string, unknown> | undefined)?.x,
+            ) ??
             0,
           y:
             this.readNumber(character.y) ??
-            this.readNumber((character.position as Record<string, unknown> | undefined)?.y) ??
+            this.readNumber(
+              (character.position as Record<string, unknown> | undefined)?.y,
+            ) ??
             0,
           scale:
             this.readNumber(character.scale) ??
-            this.readNumber((character.position as Record<string, unknown> | undefined)?.scale) ??
+            this.readNumber(
+              (character.position as Record<string, unknown> | undefined)
+                ?.scale,
+            ) ??
             1,
           rotation:
             this.readNumber(character.rotation) ??
             this.readNumber(character.rotate) ??
-            this.readNumber((character.position as Record<string, unknown> | undefined)?.rotation) ??
-            this.readNumber((character.position as Record<string, unknown> | undefined)?.rotate) ??
+            this.readNumber(
+              (character.position as Record<string, unknown> | undefined)
+                ?.rotation,
+            ) ??
+            this.readNumber(
+              (character.position as Record<string, unknown> | undefined)
+                ?.rotate,
+            ) ??
             0,
           faceId: this.readString(character.faceId) ?? null,
           hairId: this.readString(character.hairId) ?? null,
@@ -1254,14 +1296,19 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
 
     if (Array.isArray(designData.elements)) {
       return designData.elements
-        .filter((element) => this.isRecord(element) && element.type === 'character')
+        .filter(
+          (element) => this.isRecord(element) && element.type === 'character',
+        )
         .map((element, index) => ({
           id: this.readString(element.id) ?? `character-${index + 1}`,
           name: this.readString(element.content) ?? `NV ${index + 1}`,
           x: this.readNumber(element.x) ?? 0,
           y: this.readNumber(element.y) ?? 0,
           scale: this.readNumber(element.scale) ?? 1,
-          rotation: this.readNumber(element.rotation) ?? this.readNumber(element.rotate) ?? 0,
+          rotation:
+            this.readNumber(element.rotation) ??
+            this.readNumber(element.rotate) ??
+            0,
           faceId: this.readString(element.faceId) ?? null,
           hairId: this.readString(element.hairId) ?? null,
           torsoId: this.readString(element.torsoId) ?? null,
@@ -1326,10 +1373,7 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
 
     if (Array.isArray(elements)) {
       elements.forEach((element) => {
-        if (
-          this.isRecord(element) &&
-          typeof element.accessoryId === 'string'
-        ) {
+        if (this.isRecord(element) && typeof element.accessoryId === 'string') {
           quantities.set(
             element.accessoryId,
             (quantities.get(element.accessoryId) ?? 0) + 1,
@@ -1349,22 +1393,24 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
     item: CreateOrderItemDto,
     accessoriesById: Map<string, { id: string; name: string; price: number }>,
   ) {
-    return Array.from(this.getAccessoryQuantityMap(item).entries()).map(([accessoryId, quantity]) => {
-      const accessory = accessoriesById.get(accessoryId);
+    return Array.from(this.getAccessoryQuantityMap(item).entries()).map(
+      ([accessoryId, quantity]) => {
+        const accessory = accessoriesById.get(accessoryId);
 
-      if (!accessory) {
-        throw new BadRequestException(
-          `Accessory ${accessoryId} is not available`,
-        );
-      }
+        if (!accessory) {
+          throw new BadRequestException(
+            `Accessory ${accessoryId} is not available`,
+          );
+        }
 
-      return {
-        id: accessory.id,
-        name: accessory.name,
-        price: accessory.price,
-        quantity,
-      };
-    });
+        return {
+          id: accessory.id,
+          name: accessory.name,
+          price: accessory.price,
+          quantity,
+        };
+      },
+    );
   }
 
   private getCharacterCount(designData?: Record<string, unknown>) {
@@ -1580,43 +1626,56 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
     };
   }
 
-  private toPublicTrackingSummary(order: {
-    orderCode: string;
-    phone: string;
-    email: string | null;
-    address: string;
-    receiveDate: Date | null;
-    paymentMethod: PaymentMethod;
-    paymentStatus: PaymentStatus;
-    orderStatus: OrderStatus;
-    shippingStatus: ShippingStatus;
-    itemsAmount: number;
-    shippingMethod: string | null;
-    discountAmount: number;
-    voucherCode: string | null;
-    totalAmount: number;
-    depositRequired: boolean;
-    depositPercent: number;
-    depositAmount: number;
-    remainingAmount: number;
-    payosCheckoutUrl: string | null;
-    expiresAt?: Date | null;
-    createdAt: Date;
-    updatedAt?: Date;
-    items: Array<{
-      productName: string;
-      quantity: number;
-      price: number;
+  private toPublicTrackingSummary(
+    order: {
+      orderCode: string;
+      customerName: string;
+      phone: string;
+      email: string | null;
+      address: string;
       note: string | null;
-      frameSizeLabel: string | null;
-      frameColorName: string | null;
-      accessories: Prisma.JsonValue | null;
-      designData: Prisma.JsonValue | null;
-      previewUrl: string | null;
-    }>;
-  }) {
+      receiveDate: Date | null;
+      paymentMethod: PaymentMethod;
+      paymentStatus: PaymentStatus;
+      orderStatus: OrderStatus;
+      shippingStatus: ShippingStatus;
+      itemsAmount: number;
+      shippingMethod: string | null;
+      discountAmount: number;
+      voucherCode: string | null;
+      totalAmount: number;
+      depositRequired: boolean;
+      depositPercent: number;
+      depositAmount: number;
+      remainingAmount: number;
+      payosCheckoutUrl: string | null;
+      expiresAt?: Date | null;
+      createdAt: Date;
+      updatedAt?: Date;
+      items: Array<{
+        productName: string;
+        quantity: number;
+        price: number;
+        note: string | null;
+        frameSizeLabel: string | null;
+        frameColorName: string | null;
+        accessories: Prisma.JsonValue | null;
+        designData: Prisma.JsonValue | null;
+        previewUrl: string | null;
+      }>;
+      statusHistories?: Array<{
+        type: OrderStatusHistoryType;
+        fromValue: string | null;
+        toValue: string | null;
+        note: string | null;
+        createdAt: Date;
+      }>;
+    },
+    includePrivateDetails = false,
+  ) {
     return {
       orderCode: order.orderCode,
+      customerName: includePrivateDetails ? order.customerName : null,
       orderStatus: order.orderStatus,
       paymentStatus: order.paymentStatus,
       shippingStatus: order.shippingStatus,
@@ -1646,6 +1705,17 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
       updatedAt: order.updatedAt,
       expiresAt: order.expiresAt ?? null,
       receiveDate: order.receiveDate,
+      estimatedDelivery: order.receiveDate,
+      trackingCode: null,
+      shippingProvider: order.shippingMethod,
+      notes: includePrivateDetails ? order.note : null,
+      statusHistory: (order.statusHistories ?? []).map((history) => ({
+        type: history.type,
+        fromValue: history.fromValue,
+        toValue: history.toValue,
+        note: history.note,
+        createdAt: history.createdAt,
+      })),
       maskedPhone: this.maskPhone(order.phone),
       maskedEmail: this.maskEmail(order.email),
       maskedAddress: this.maskAddress(order.address),
@@ -1663,11 +1733,13 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
         return [];
       }
 
-      return [{
-        id: String(item.id),
-        name: this.readString(item.name) ?? 'Accessory',
-        quantity: this.readPositiveInt(item.quantity) ?? 1,
-      }];
+      return [
+        {
+          id: String(item.id),
+          name: this.readString(item.name) ?? 'Accessory',
+          quantity: this.readPositiveInt(item.quantity) ?? 1,
+        },
+      ];
     });
   }
 
@@ -1705,7 +1777,10 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
   }
 
   private maskAddress(value: string) {
-    const parts = value.split(',').map((part) => part.trim()).filter(Boolean);
+    const parts = value
+      .split(',')
+      .map((part) => part.trim())
+      .filter(Boolean);
     if (parts.length <= 2) return '***';
     return `***, ${parts.slice(1).join(', ')}`;
   }

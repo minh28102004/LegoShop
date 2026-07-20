@@ -18,6 +18,10 @@ import {
 } from '../common/admin-query/admin-query.util';
 import { AdminListQueryDto } from '../common/dto/admin-list-query.dto';
 import { PrismaService } from '../prisma/prisma.service';
+import {
+  stagedSampleMediaPublicStatus,
+  stagedSampleMediaSeedTag,
+} from '../common/sample-media-preview';
 import { CreateCollectionDto } from './dto/create-collection.dto';
 import { UpdateCollectionDto } from './dto/update-collection.dto';
 
@@ -25,22 +29,69 @@ import { UpdateCollectionDto } from './dto/update-collection.dto';
 export class CollectionsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  findPublicCollections() {
-    return this.prisma.collection.findMany({
-      where: {
-        status: ProductStatus.active,
+  async findPublicCollections() {
+    const previewSeedTag = stagedSampleMediaSeedTag();
+    const collections = await this.prisma.collection.findMany({
+      where: previewSeedTag
+        ? {
+            OR: [
+              { status: ProductStatus.active },
+              { status: ProductStatus.inactive, seedTag: previewSeedTag },
+            ],
+          }
+        : { status: ProductStatus.active },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        description: true,
+        imageUrl: true,
+        sortOrder: true,
+        naturalWidth: true,
+        naturalHeight: true,
+        seedTag: true,
+        status: true,
+        createdAt: true,
+        updatedAt: true,
       },
-      orderBy: {
-        createdAt: 'desc',
-      },
+      orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }],
     });
+    return collections.map(({ seedTag, ...collection }) => ({
+      ...collection,
+      status: stagedSampleMediaPublicStatus(
+        collection.status,
+        Boolean(previewSeedTag && seedTag === previewSeedTag),
+      ),
+    }));
   }
 
   async findPublicCollectionBySlug(slug: string) {
+    const previewSeedTag = stagedSampleMediaSeedTag();
     const collection = await this.prisma.collection.findFirst({
       where: {
         slug,
-        status: ProductStatus.active,
+        ...(previewSeedTag
+          ? {
+              OR: [
+                { status: ProductStatus.active },
+                { status: ProductStatus.inactive, seedTag: previewSeedTag },
+              ],
+            }
+          : { status: ProductStatus.active }),
+      },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        description: true,
+        imageUrl: true,
+        sortOrder: true,
+        naturalWidth: true,
+        naturalHeight: true,
+        seedTag: true,
+        status: true,
+        createdAt: true,
+        updatedAt: true,
       },
     });
 
@@ -48,7 +99,14 @@ export class CollectionsService {
       throw new NotFoundException('Collection not found');
     }
 
-    return collection;
+    const { seedTag, ...publicCollection } = collection;
+    return {
+      ...publicCollection,
+      status: stagedSampleMediaPublicStatus(
+        publicCollection.status,
+        Boolean(previewSeedTag && seedTag === previewSeedTag),
+      ),
+    };
   }
 
   async findAdminCollections(query?: AdminListQueryDto) {

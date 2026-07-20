@@ -174,11 +174,14 @@ export class CharacterPartsService {
     return this.prisma.characterPart.create({
       data: {
         name: dto.name,
-        type: dto.type as CharacterPartType,
+        type: dto.type,
         imageUrl: dto.imageUrl,
         priceAdjustment: dto.priceAdjustment,
         sortOrder: dto.sortOrder,
-        tags: dto.tags === undefined ? undefined : (dto.tags as Prisma.InputJsonValue),
+        tags:
+          dto.tags === undefined
+            ? undefined
+            : (dto.tags as Prisma.InputJsonValue),
         status: dto.status,
       },
     });
@@ -197,9 +200,10 @@ export class CharacterPartsService {
     const data: Prisma.CharacterPartUpdateInput = {};
 
     if (dto.name !== undefined) data.name = dto.name;
-    if (dto.type !== undefined) data.type = dto.type as CharacterPartType;
+    if (dto.type !== undefined) data.type = dto.type;
     if (dto.imageUrl !== undefined) data.imageUrl = dto.imageUrl;
-    if (dto.priceAdjustment !== undefined) data.priceAdjustment = dto.priceAdjustment;
+    if (dto.priceAdjustment !== undefined)
+      data.priceAdjustment = dto.priceAdjustment;
     if (dto.sortOrder !== undefined) data.sortOrder = dto.sortOrder;
     if (dto.tags !== undefined) data.tags = dto.tags as Prisma.InputJsonValue;
     if (dto.status !== undefined) data.status = dto.status;
@@ -239,10 +243,16 @@ export class CharacterPartsService {
   private isMissingTableError(
     error: unknown,
   ): error is Prisma.PrismaClientKnownRequestError {
+    const modelName =
+      error instanceof Prisma.PrismaClientKnownRequestError
+        ? error.meta?.modelName
+        : undefined;
+
     return (
       error instanceof Prisma.PrismaClientKnownRequestError &&
       error.code === 'P2021' &&
-      String(error.meta?.modelName ?? '').includes('CharacterPart')
+      typeof modelName === 'string' &&
+      modelName.includes('CharacterPart')
     );
   }
 }

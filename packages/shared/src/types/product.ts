@@ -40,6 +40,56 @@ export type Product = Timestamped & {
   featured: boolean;
   collectionId: Nullable<ID>;
   collection?: Nullable<Collection>;
+  originalPrice?: Nullable<PriceInVND>;
+  orderCount?: number;
+  characterCount?: number;
+  accessoryCount?: number;
+  charmCount?: number;
+  includedItemLabels?: string[];
+};
+
+export type PublicProductsSort =
+  | 'featured'
+  | 'newest'
+  | 'popular'
+  | 'price_asc'
+  | 'price_desc'
+  | 'name_asc';
+
+export type PublicProductsQuery = {
+  page?: number;
+  pageSize?: number;
+  search?: string;
+  collection?: string;
+  collections?: string[];
+  collectionIds?: string[];
+  minPrice?: number;
+  maxPrice?: number;
+  characterCount?: number;
+  characterCounts?: number[];
+  charmCount?: number;
+  charmCounts?: number[];
+  statuses?: ProductStatus[];
+  sort?: PublicProductsSort;
+  type?: string;
+  featured?: boolean;
+  isNew?: boolean;
+  includedGift?: boolean;
+  frameSize?: string;
+};
+
+export type PublicProductsMeta = {
+  page: number;
+  pageSize: number;
+  totalItems: number;
+  totalPages: number;
+  hasNextPage: boolean;
+  hasPreviousPage: boolean;
+};
+
+export type PublicProductsResponse = {
+  items: Product[];
+  meta: PublicProductsMeta;
 };
 
 export type ProductSummary = Pick<
@@ -70,9 +120,13 @@ export type Template = Timestamped & {
 export type Accessory = Timestamped & {
   id: ID;
   name: string;
+  slug: Nullable<string>;
   price: PriceInVND;
   imageUrl: Nullable<URLString>;
   iconUrl: Nullable<URLString>;
+  sortOrder: number;
+  naturalWidth: Nullable<number>;
+  naturalHeight: Nullable<number>;
   status: ProductStatus;
   categoryId: Nullable<ID>;
   category?: Nullable<AccessoryCategory>;
@@ -104,15 +158,22 @@ export type Banner = Timestamped & {
   imageUrl: URLString;
   linkUrl: Nullable<URLString>;
   sortOrder: number;
+  naturalWidth: Nullable<number>;
+  naturalHeight: Nullable<number>;
   status: ProductStatus;
 };
 
 export type FrameBackground = Timestamped & {
   id: ID;
   title: string;
+  slug: Nullable<string>;
+  category: Nullable<string>;
   description: Nullable<string>;
   instructions: Nullable<string>;
   imageUrl: URLString;
+  thumbnailUrl: Nullable<URLString>;
+  naturalWidth: Nullable<number>;
+  naturalHeight: Nullable<number>;
   contentFields: Nullable<JsonValue>;
   frameOptionIds: ID[];
   sortOrder: number;
@@ -166,4 +227,66 @@ export type CharacterPreset = Timestamped & {
   hatHint: Nullable<string>;
   sortOrder: number;
   status: ProductStatus;
+};
+
+export type ProductTemplateFrameSize = {
+  id: ID;
+  label: string;
+  price: PriceInVND;
+  priceAdjustment: PriceInVND;
+  recommended: boolean;
+};
+
+export type ProductTemplateCharacter = {
+  id: ID;
+  name: string;
+  price: PriceInVND;
+  imageUrl: Nullable<URLString>;
+  quantity: number;
+};
+
+export type ProductTemplateAccessory = {
+  id: ID;
+  name: string;
+  price: PriceInVND;
+  originalPrice: Nullable<PriceInVND>;
+  imageUrl: Nullable<URLString>;
+  iconUrl: Nullable<URLString>;
+  quantity: number;
+  maxQuantity: number;
+  colorVariants: Array<{
+    name: string;
+    colorHex: string;
+  }>;
+};
+
+export type ProductIncludedItem = {
+  id: string;
+  name: string;
+  quantity: number;
+  icon: 'gift' | 'package' | 'sparkles';
+};
+
+export type ProductCustomizableField = {
+  key: string;
+  label: string;
+  required: boolean;
+};
+
+export type ProductPricingSummary = {
+  basePrice: PriceInVND;
+  originalPrice: Nullable<PriceInVND>;
+  minimumPrice: PriceInVND;
+};
+
+export type ProductDetail = Product & {
+  requiresNote: boolean;
+  frameSizes: ProductTemplateFrameSize[];
+  recommendedFrameSizeId: Nullable<ID>;
+  characters: ProductTemplateCharacter[];
+  accessories: ProductTemplateAccessory[];
+  availableAccessories: ProductTemplateAccessory[];
+  includedItems: ProductIncludedItem[];
+  customizableFields: ProductCustomizableField[];
+  pricing: ProductPricingSummary;
 };

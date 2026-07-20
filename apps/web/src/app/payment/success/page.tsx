@@ -21,18 +21,16 @@ const PAYMENT_STATUS_LABELS: Record<string, string> = {
 function PaymentSuccessContent() {
   const searchParams = useSearchParams();
   const orderCode = searchParams.get("orderCode");
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => Boolean(orderCode));
   const [order, setOrder] = useState<TrackOrderResponseContract | null>(null);
 
   useEffect(() => {
-    if (orderCode) {
-      publicApiClient.orders.trackOrderByCode(orderCode)
-        .then(data => setOrder(data))
-        .catch(err => console.error(err))
-        .finally(() => setLoading(false));
-    } else {
-      setLoading(false);
-    }
+    if (!orderCode) return;
+
+    publicApiClient.orders.trackOrderByCode(orderCode)
+      .then(data => setOrder(data))
+      .catch(err => console.error(err))
+      .finally(() => setLoading(false));
   }, [orderCode]);
 
   const paymentStatus = order?.paymentStatus as string | undefined;

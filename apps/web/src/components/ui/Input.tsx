@@ -1,17 +1,19 @@
-'use client'
+"use client";
 
-import * as React from 'react'
+import * as React from "react";
 
-import { cn, type FieldState } from '@lego-shop/ui'
+import { cn, type FieldState } from "@lego-shop/ui";
 
-export interface InputProps
-  extends Omit<React.ComponentPropsWithoutRef<'input'>, 'size'> {
-  label?: string
-  error?: string
-  hint?: string
-  leftIcon?: React.ReactNode
-  rightIcon?: React.ReactNode
-  fieldState?: FieldState
+export interface InputProps extends Omit<
+  React.ComponentPropsWithoutRef<"input">,
+  "size"
+> {
+  label?: string;
+  error?: string;
+  hint?: string;
+  leftIcon?: React.ReactNode;
+  rightIcon?: React.ReactNode;
+  fieldState?: FieldState;
 }
 
 export const Input = React.forwardRef<HTMLInputElement, InputProps>(
@@ -31,12 +33,12 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
     },
     ref,
   ) => {
-    const generatedId = React.useId()
-    const inputId = id ?? name ?? generatedId
-    const hintId = `${inputId}-hint`
-    const errorId = `${inputId}-error`
-    const describedBy = error ? errorId : hint ? hintId : undefined
-    const hasError = Boolean(error) || fieldState === 'error'
+    const generatedId = React.useId();
+    const inputId = id ?? name ?? generatedId;
+    const hintId = `${inputId}-hint`;
+    const errorId = `${inputId}-error`;
+    const describedBy = error ? errorId : hint ? hintId : undefined;
+    const hasError = Boolean(error) || fieldState === "error";
 
     return (
       <div className="w-full space-y-2">
@@ -63,10 +65,10 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
             aria-invalid={hasError}
             aria-describedby={describedBy}
             className={cn(
-              'h-11 w-full rounded-md border border-input bg-background px-3 text-body-md text-text-primary shadow-xs transition-base placeholder:text-text-muted focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring/20 disabled:cursor-not-allowed disabled:opacity-60',
-              leftIcon && 'pl-10',
-              rightIcon && 'pr-10',
-              hasError && 'border-error focus:border-error focus:ring-error/20',
+              "h-11 w-full rounded-input border border-input bg-surface px-3 text-body-md text-text-primary shadow-control transition-base placeholder:text-text-muted focus-visible:border-primary disabled:cursor-not-allowed disabled:bg-surface-soft disabled:opacity-60",
+              leftIcon && "pl-10",
+              rightIcon && "pr-10",
+              hasError && "border-error focus-visible:border-error",
               className,
             )}
             {...props}
@@ -87,8 +89,8 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
           </p>
         ) : null}
       </div>
-    )
+    );
   },
-)
+);
 
-Input.displayName = 'Input'
+Input.displayName = "Input";

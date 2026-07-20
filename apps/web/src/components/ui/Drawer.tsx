@@ -51,6 +51,8 @@ export interface DrawerProps
   onClose: () => void
   title?: string
   size?: Extract<Size, 'sm' | 'md' | 'lg' | 'xl'>
+  contentClassName?: string
+  overlayClassName?: string
   children: React.ReactNode
 }
 
@@ -74,8 +76,10 @@ export const Drawer = React.forwardRef<HTMLDivElement, DrawerProps>(
     {
       children,
       className,
+      contentClassName,
       isOpen,
       onClose,
+      overlayClassName,
       position = 'right',
       size,
       title,
@@ -85,6 +89,19 @@ export const Drawer = React.forwardRef<HTMLDivElement, DrawerProps>(
   ) => {
     const [mounted, setMounted] = React.useState<boolean>(false)
     const titleId = React.useId()
+    const drawerRef = React.useRef<HTMLDivElement | null>(null)
+    const setDrawerRef = React.useCallback(
+      (node: HTMLDivElement | null) => {
+        drawerRef.current = node
+
+        if (typeof ref === 'function') {
+          ref(node)
+        } else if (ref) {
+          ref.current = node
+        }
+      },
+      [ref],
+    )
 
     React.useEffect(() => {
       setMounted(true)
@@ -96,19 +113,60 @@ export const Drawer = React.forwardRef<HTMLDivElement, DrawerProps>(
       }
 
       const previousOverflow = document.body.style.overflow
+      const previouslyFocused =
+        document.activeElement instanceof HTMLElement
+          ? document.activeElement
+          : null
+      const focusableSelector =
+        'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+
       document.body.style.overflow = 'hidden'
+
+      const focusTimer = window.setTimeout(() => {
+        const firstFocusable =
+          drawerRef.current?.querySelector<HTMLElement>(focusableSelector)
+        ;(firstFocusable ?? drawerRef.current)?.focus()
+      }, 0)
 
       const handleKeyDown = (event: KeyboardEvent): void => {
         if (event.key === 'Escape') {
           onClose()
+          return
+        }
+
+        if (event.key !== 'Tab' || !drawerRef.current) {
+          return
+        }
+
+        const focusableElements = Array.from(
+          drawerRef.current.querySelectorAll<HTMLElement>(focusableSelector),
+        )
+
+        if (focusableElements.length === 0) {
+          event.preventDefault()
+          drawerRef.current.focus()
+          return
+        }
+
+        const firstElement = focusableElements[0]!
+        const lastElement = focusableElements[focusableElements.length - 1]!
+
+        if (event.shiftKey && document.activeElement === firstElement) {
+          event.preventDefault()
+          lastElement.focus()
+        } else if (!event.shiftKey && document.activeElement === lastElement) {
+          event.preventDefault()
+          firstElement.focus()
         }
       }
 
       document.addEventListener('keydown', handleKeyDown)
 
       return () => {
+        window.clearTimeout(focusTimer)
         document.removeEventListener('keydown', handleKeyDown)
         document.body.style.overflow = previousOverflow
+        previouslyFocused?.focus()
       }
     }, [isOpen, onClose])
 
@@ -125,21 +183,25 @@ export const Drawer = React.forwardRef<HTMLDivElement, DrawerProps>(
             <motion.button
               type="button"
               aria-label="Đóng drawer"
-              className="fixed inset-0 z-z-overlay bg-[rgb(7_29_58/0.6)]"
+              className={cn(
+                'fixed inset-0 z-z-overlay bg-[rgb(7_29_58/0.6)]',
+                overlayClassName,
+              )}
               onClick={onClose}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
             />
             <motion.div
-              ref={ref}
+              ref={setDrawerRef}
+              tabIndex={-1}
               role="dialog"
               aria-modal="true"
               aria-labelledby={title ? titleId : undefined}
               initial={initialPosition}
               animate={{ x: 0, y: 0 }}
               exit={initialPosition}
-              transition={{ type: 'spring', stiffness: 360, damping: 36 }}
+              transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
               className={cn(drawerVariants({ position, size }), className)}
               {...props}
             >
@@ -150,7 +212,9 @@ export const Drawer = React.forwardRef<HTMLDivElement, DrawerProps>(
                   </h2>
                 </div>
               ) : null}
-              <div className="h-full overflow-y-auto p-6">{children}</div>
+              <div className={cn('h-full overflow-y-auto p-6', contentClassName)}>
+                {children}
+              </div>
             </motion.div>
           </>
         ) : null}

@@ -26,8 +26,8 @@ export function BrandLogo({ className, compact = false }: BrandLogoProps) {
         className={cn(
           "relative flex shrink-0 items-center justify-center overflow-visible",
           compact
-            ? "h-[50px] w-[50px] sm:h-[54px] sm:w-[54px] lg:h-[58px] lg:w-[58px]"
-            : "h-[52px] w-[52px] sm:h-[58px] sm:w-[58px] lg:h-[62px] lg:w-[62px]",
+            ? "h-[50px] w-[50px] max-[430px]:h-[42px] max-[430px]:w-[42px] sm:h-[54px] sm:w-[54px] lg:h-[50px] lg:w-[50px] xl:h-[58px] xl:w-[58px]"
+            : "h-[52px] w-[52px] max-[430px]:h-[42px] max-[430px]:w-[42px] sm:h-[58px] sm:w-[58px] lg:h-[52px] lg:w-[52px] xl:h-[62px] xl:w-[62px]",
         )}
       >
         <Image
@@ -44,10 +44,10 @@ export function BrandLogo({ className, compact = false }: BrandLogoProps) {
 
       <span
         className={cn(
-          "min-w-0 whitespace-nowrap font-display font-semibold leading-none tracking-[-0.05em] text-[#2f91d0] transition-colors duration-200 group-hover:text-[#197fc0]",
+          "min-w-0 whitespace-nowrap font-display font-semibold leading-none tracking-[-0.018em] text-[#2f91d0] transition-colors duration-200 group-hover:text-[#197fc0]",
           compact
-            ? "text-[1.55rem] sm:text-[1.68rem] lg:text-[1.78rem]"
-            : "text-[1.72rem] sm:text-[1.86rem] lg:text-[2rem]",
+            ? "text-[1.55rem] max-[430px]:text-[1.35rem] sm:text-[1.68rem] lg:text-[1.7rem] xl:text-[1.8rem]"
+            : "text-[1.72rem] max-[430px]:text-[1.35rem] sm:text-[1.86rem] lg:text-[1.75rem] xl:text-[1.9rem]",
         )}
       >
         Figure Lab

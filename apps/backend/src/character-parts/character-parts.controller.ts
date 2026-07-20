@@ -44,7 +44,9 @@ export class CharacterPartsController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   createCharacterPart(@Body() createCharacterPartDto: CreateCharacterPartDto) {
-    return this.characterPartsService.createCharacterPart(createCharacterPartDto);
+    return this.characterPartsService.createCharacterPart(
+      createCharacterPartDto,
+    );
   }
 
   @Patch('admin/character-parts/:id')
@@ -54,7 +56,10 @@ export class CharacterPartsController {
     @Param('id') id: string,
     @Body() updateCharacterPartDto: UpdateCharacterPartDto,
   ) {
-    return this.characterPartsService.updateCharacterPart(id, updateCharacterPartDto);
+    return this.characterPartsService.updateCharacterPart(
+      id,
+      updateCharacterPartDto,
+    );
   }
 
   @Delete('admin/character-parts/:id')

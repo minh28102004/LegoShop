@@ -1,442 +1,965 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import {
+  Suspense,
+  useEffect,
+  useRef,
+  useState,
+  type FormEvent,
+  type ReactNode,
+  type Ref,
+} from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { AlertCircle, CheckCircle, ChevronRight, Clock, Package, Search, Truck } from "lucide-react";
-import { formatCurrency as formatPrice, type TrackOrderItemSummaryContract, type TrackOrderResponseContract } from "@lego-shop/shared";
+import {
+  ArrowRight,
+  Check,
+  ChevronDown,
+  CircleAlert,
+  Clock3,
+  ExternalLink,
+  LoaderCircle,
+  MapPin,
+  Search,
+  ShieldCheck,
+} from "lucide-react";
+import { ApiClientError } from "@lego-shop/api";
+import {
+  formatCurrency,
+  type TrackOrderResponseContract,
+} from "@lego-shop/shared";
 
+import { Container } from "@/components/layout/Container";
+import { ScrollReveal } from "@/components/shared/ScrollReveal";
 import { ROUTES } from "@/config/routes";
-import { resolveApiAssetUrl } from "@/lib/api/assets";
+import { useI18n } from "@/lib/i18n/useI18n";
 import { publicApiClient } from "@/lib/api/public-client";
+import { ORDER_TRACKING_COPY } from "@/modules/lookup/data/order-tracking.translations";
 
-type TrackingResult = TrackOrderResponseContract | { error: true };
+const FLUENT_ICONS = {
+  package: "/assets/icons/fluent-emoji/package-3d.png",
+  receipt: "/assets/icons/fluent-emoji/receipt-3d.png",
+  search: "/assets/icons/fluent-emoji/receipt-3d.png",
+  truck: "/assets/icons/fluent-emoji/delivery-truck-3d.png",
+  check: "/assets/icons/fluent-emoji/check-mark-3d.png",
+  envelope: "/assets/icons/fluent-emoji/envelope-3d.png",
+  phone: "/assets/icons/fluent-emoji/telephone-receiver-3d.png",
+  gift: "/assets/icons/fluent-emoji/wrapped-gift-3d.png",
+  calendar: "/assets/icons/fluent-emoji/calendar-3d.png",
+  shield: "/assets/icons/fluent-emoji/shield-3d.png",
+} as const;
 
-const ORDER_STATUSES: Record<string, { label: string; color: string }> = {
-  pending: { label: "Chờ xác nhận", color: "bg-yellow-100 text-yellow-700" },
-  confirmed: { label: "Đã xác nhận", color: "bg-blue-100 text-blue-700" },
-  processing: { label: "Đang xử lý", color: "bg-purple-100 text-purple-700" },
-  shipping: { label: "Đang giao", color: "bg-orange-100 text-orange-700" },
-  completed: { label: "Hoàn thành", color: "bg-emerald-100 text-emerald-700" },
-  cancelled: { label: "Đã hủy", color: "bg-red-100 text-red-700" },
-};
+type Feedback = { tone: "error" | "success"; message: string };
+type TrackingCopy =
+  (typeof ORDER_TRACKING_COPY)[keyof typeof ORDER_TRACKING_COPY];
 
-const PAYMENT_STATUSES: Record<string, { label: string; color: string }> = {
-  unpaid: { label: "Chưa thanh toán", color: "text-yellow-600" },
-  pending: { label: "Đang chờ thanh toán", color: "text-yellow-600" },
-  deposit_pending: { label: "Đang chờ đặt cọc", color: "text-yellow-600" },
-  deposit_paid: { label: "Đã đặt cọc", color: "text-blue-600" },
-  paid: { label: "Đã thanh toán", color: "text-emerald-600" },
-  failed: { label: "Thanh toán thất bại", color: "text-red-600" },
-  cancelled: { label: "Đã hủy thanh toán", color: "text-red-600" },
-  refunded: { label: "Đã hoàn tiền", color: "text-slate-600" },
-};
-
-const SHIPPING_METHOD_LABELS: Record<string, string> = {
-  shop_support: "Shop hỗ trợ đặt ship",
-  standard: "Ship thường",
-  fast: "Ship nhanh",
-  self: "Tự book ship / Qua lấy",
-};
-
-const STEPS = [
-  { key: "pending", label: "Tiếp nhận", icon: Package },
-  { key: "confirmed", label: "Xác nhận", icon: Clock },
-  { key: "processing", label: "Đang làm", icon: Clock },
-  { key: "shipping", label: "Đang giao", icon: Truck },
-  { key: "completed", label: "Hoàn thành", icon: CheckCircle },
+const GUIDE_ICONS = [
+  FLUENT_ICONS.search,
+  FLUENT_ICONS.receipt,
+  FLUENT_ICONS.truck,
+];
+const STATUS_ICONS = [
+  FLUENT_ICONS.receipt,
+  FLUENT_ICONS.shield,
+  FLUENT_ICONS.search,
+  FLUENT_ICONS.gift,
+  FLUENT_ICONS.package,
+  FLUENT_ICONS.truck,
+  FLUENT_ICONS.check,
+];
+const WHERE_ICONS = [
+  FLUENT_ICONS.envelope,
+  FLUENT_ICONS.phone,
+  FLUENT_ICONS.receipt,
 ];
 
-function getStepIndex(status: string) {
-  return STEPS.findIndex((step) => step.key === status);
-}
+function formatDate(
+  value: string | null | undefined,
+  locale: "vi" | "en",
+): string {
+  if (!value) return "—";
 
-function formatDate(value: string | null | undefined) {
-  if (!value) return "-";
-  return new Date(value).toLocaleDateString("vi-VN", {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "—";
+
+  return new Intl.DateTimeFormat(locale === "vi" ? "vi-VN" : "en-US", {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
-  });
+  }).format(date);
 }
 
-function TrackingContent() {
+function normalizeTrackingResult(
+  data: TrackOrderResponseContract,
+): TrackOrderResponseContract {
+  return {
+    ...data,
+    items: Array.isArray(data.items) ? data.items : [],
+    statusHistory: Array.isArray(data.statusHistory) ? data.statusHistory : [],
+  };
+}
+
+function getProgressIndex(result: TrackOrderResponseContract): number {
+  if (
+    result.orderStatus === "cancelled" ||
+    result.shippingStatus === "cancelled"
+  )
+    return -1;
+  if (
+    result.orderStatus === "completed" ||
+    result.shippingStatus === "delivered"
+  )
+    return 6;
+  if (result.orderStatus === "shipping" || result.shippingStatus === "shipping")
+    return 5;
+  if (result.shippingStatus === "preparing") return 4;
+  if (result.orderStatus === "processing") return 3;
+  if (result.orderStatus === "confirmed") return 1;
+  return 0;
+}
+
+function labelFrom(record: object, key: string): string {
+  return (record as Record<string, string>)[key] ?? key;
+}
+
+function FluentIcon({
+  src,
+  alt = "",
+  className = "h-12 w-12",
+}: {
+  src: string;
+  alt?: string;
+  className?: string;
+}) {
+  return (
+    <Image
+      src={src}
+      alt={alt}
+      width={72}
+      height={72}
+      className={`${className} object-contain`}
+    />
+  );
+}
+
+function Eyebrow({
+  children,
+  inverse = false,
+}: {
+  children: ReactNode;
+  inverse?: boolean;
+}) {
+  return (
+    <span
+      className={`inline-flex items-center gap-2 text-[0.72rem] font-bold uppercase tracking-[0.2em] ${
+        inverse ? "text-sky-200" : "text-[#1687c7]"
+      }`}
+    >
+      <span
+        className={`h-1.5 w-1.5 rounded-full ${inverse ? "bg-[#f6d76b]" : "bg-[#f6c947]"}`}
+      />
+      {children}
+    </span>
+  );
+}
+
+function TrackingPageContent() {
+  const { locale } = useI18n();
+  const copy = ORDER_TRACKING_COPY[locale];
   const searchParams = useSearchParams();
   const router = useRouter();
-  const initialCode = searchParams.get("code") || "";
-  const [orderCode, setOrderCode] = useState(initialCode);
+  const resultRef = useRef<HTMLElement | null>(null);
+  const [orderCode, setOrderCode] = useState(
+    () => searchParams.get("code") ?? "",
+  );
   const [phone, setPhone] = useState("");
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<TrackingResult | null>(null);
+  const [result, setResult] = useState<TrackOrderResponseContract | null>(null);
+  const [feedback, setFeedback] = useState<Feedback | null>(null);
 
-  const loadOrder = async (code: string, phoneValue: string, pushUrl = true) => {
-    const normalizedCode = code.trim().toUpperCase();
-    const normalizedPhone = phoneValue.trim();
-    if (!normalizedCode || !normalizedPhone) return;
+  useEffect(() => {
+    if (!result) return;
+
+    const frame = window.requestAnimationFrame(() => {
+      resultRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, [result]);
+
+  async function handleLookup(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const normalizedCode = orderCode.trim().toUpperCase();
+    const normalizedPhone = phone.replace(/\s+/g, "").trim();
+
+    if (!normalizedCode || !normalizedPhone) {
+      setFeedback({ tone: "error", message: copy.lookup.requiredError });
+      return;
+    }
+
+    if (normalizedPhone.replace(/\D/g, "").length < 8) {
+      setFeedback({ tone: "error", message: copy.lookup.phoneError });
+      return;
+    }
 
     setLoading(true);
+    setFeedback(null);
+    setResult(null);
+
     try {
-      const data = await publicApiClient.orders.trackOrder({
+      const response = await publicApiClient.orders.trackOrder({
         orderCode: normalizedCode,
         phone: normalizedPhone,
       });
-      setResult(data);
-      if (pushUrl) {
-        router.push(`${ROUTES.orderTracking}?code=${encodeURIComponent(normalizedCode)}`);
-      }
-    } catch {
-      setResult({ error: true });
+      setResult(normalizeTrackingResult(response));
+      setFeedback({ tone: "success", message: copy.lookup.success });
+      router.replace(
+        `${ROUTES.orderTracking}?code=${encodeURIComponent(normalizedCode)}`,
+        { scroll: false },
+      );
+    } catch (error: unknown) {
+      const notFound = error instanceof ApiClientError && error.status === 404;
+      setFeedback({
+        tone: "error",
+        message: notFound
+          ? copy.lookup.notFoundError
+          : copy.lookup.networkError,
+      });
     } finally {
       setLoading(false);
     }
-  };
-
-  useEffect(() => {
-    setOrderCode(initialCode);
-  }, [initialCode]);
-
-  const handleSearch = async (event: React.FormEvent) => {
-    event.preventDefault();
-    await loadOrder(orderCode, phone);
-  };
-
-  const currentStepIdx = result && !("error" in result) ? getStepIndex(result.orderStatus) : -1;
+  }
 
   return (
-    <div className="min-h-screen bg-background py-10">
-      <div className="container mx-auto max-w-3xl px-4">
-        <nav className="mb-8 flex items-center gap-1.5 text-xs text-text-muted">
-          <Link href="/" className="hover:text-primary">Trang chủ</Link>
-          <ChevronRight className="h-3 w-3" />
-          <span className="font-semibold text-text-secondary">Tra cứu đơn hàng</span>
-        </nav>
-
-        <div className="mb-10 text-center">
-          <h1 className="mb-2 text-3xl font-black text-text-primary">Tra Cứu Đơn Hàng</h1>
-          <p className="text-text-secondary">Nhập mã đơn và số điện thoại đặt hàng để kiểm tra trạng thái.</p>
-        </div>
-
-        <form onSubmit={handleSearch} className="mx-auto mb-12 grid max-w-xl gap-3 sm:grid-cols-[1fr_1fr_auto]">
-          <input
-            type="text"
-            required
-            placeholder="ORD123456"
-            value={orderCode}
-            onChange={(event) => setOrderCode(event.target.value.toUpperCase())}
-            className="rounded-xl border border-border bg-surface px-4 py-3 font-mono text-sm font-bold uppercase tracking-widest text-text-primary outline-none focus:border-primary focus:ring-2 focus:ring-primary"
-          />
-          <input
-            type="tel"
-            required
-            placeholder="Số điện thoại"
-            value={phone}
-            onChange={(event) => setPhone(event.target.value)}
-            className="rounded-xl border border-border bg-surface px-4 py-3 text-sm font-semibold text-text-primary outline-none focus:border-primary focus:ring-2 focus:ring-primary"
-          />
-          <button
-            type="submit"
-            disabled={loading}
-            className="inline-flex items-center justify-center gap-2 rounded-xl bg-[hsl(var(--color-cta))] px-6 py-3 font-bold text-white transition-colors hover:bg-[hsl(var(--color-cta-hover))] disabled:opacity-50"
-          >
-            {loading ? (
-              <span className="h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-            ) : (
-              <Search className="h-5 w-5" />
-            )}
-          </button>
-        </form>
-
-        {result && "error" in result ? (
-          <div className="mb-8 flex items-center gap-3 rounded-2xl border border-red-200 bg-red-50 p-5 text-red-700">
-            <AlertCircle className="h-5 w-5 shrink-0" />
-            <p>Không tìm thấy đơn hàng khớp với mã đơn và số điện thoại đã nhập.</p>
-          </div>
-        ) : null}
-
-        {result && !("error" in result) ? (
-          <div className="overflow-hidden rounded-3xl border border-border bg-surface shadow-sm">
-            <div className="flex flex-col justify-between gap-4 border-b border-border bg-background px-6 py-5 sm:flex-row sm:items-center">
-              <div>
-                <p className="mb-1 text-xs font-medium uppercase tracking-wide text-text-muted">Đơn hàng</p>
-                <h2 className="font-mono text-xl font-black tracking-[0.1em] text-text-primary">{result.orderCode}</h2>
-                <p className="mt-1 text-xs text-text-muted">Đặt ngày: {formatDate(result.createdAt)}</p>
-              </div>
-              <div className="flex flex-col items-start gap-1.5 sm:items-end">
-                <span className={`rounded-full px-3 py-1 text-xs font-bold ${ORDER_STATUSES[result.orderStatus]?.color ?? "bg-border text-text-secondary"}`}>
-                  {ORDER_STATUSES[result.orderStatus]?.label ?? result.orderStatus}
+    <main className="overflow-x-clip bg-[#f7faff] text-[#10233f]">
+      <section className="relative overflow-hidden pb-14 pt-10 lg:pb-16 lg:pt-14">
+        <div className="pointer-events-none absolute -left-28 top-8 h-80 w-80 rounded-full bg-[#dceeff]/70 blur-2xl" />
+        <div className="pointer-events-none absolute -right-24 top-20 h-72 w-72 rounded-full bg-[#fff0b8]/70 blur-2xl" />
+        <Container
+          size="wide"
+          className="relative grid items-center gap-10 lg:grid-cols-[0.92fr_1.08fr] lg:gap-14"
+        >
+          <ScrollReveal variant="slideLeft" className="max-w-2xl">
+            <Eyebrow>{copy.hero.eyebrow}</Eyebrow>
+            <h1 className="mt-5 max-w-[13ch] text-balance text-[clamp(2.75rem,5.4vw,5.3rem)] font-bold leading-[0.98] tracking-[-0.055em] text-[#0c213d]">
+              {copy.hero.title}
+            </h1>
+            <p className="mt-6 max-w-xl text-[1.02rem] leading-8 text-slate-600 sm:text-lg">
+              {copy.hero.description}
+            </p>
+            <div className="mt-7 flex flex-wrap gap-x-5 gap-y-3">
+              {copy.hero.trust.map((item) => (
+                <span
+                  key={item}
+                  className="inline-flex items-center gap-2 text-sm font-semibold text-slate-700"
+                >
+                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#fff2bd] text-[#9f7100]">
+                    <Check className="h-3.5 w-3.5" strokeWidth={2.4} />
+                  </span>
+                  {item}
                 </span>
-                <span className={`text-sm font-semibold ${PAYMENT_STATUSES[result.paymentStatus]?.color ?? "text-text-muted"}`}>
-                  {PAYMENT_STATUSES[result.paymentStatus]?.label ?? result.paymentStatus}
-                </span>
-              </div>
+              ))}
             </div>
+            <a
+              href="#lookup-form"
+              className="group mt-8 inline-flex h-12 items-center gap-3 rounded-full bg-[#168fce] px-6 text-sm font-bold text-white shadow-[0_12px_28px_-18px_rgba(0,119,182,0.85)] transition-all duration-300 hover:-translate-y-0.5 hover:bg-[#087ab7] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-200 motion-reduce:transform-none"
+            >
+              {copy.lookup.submit}
+              <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1 motion-reduce:transform-none" />
+            </a>
+          </ScrollReveal>
 
-            <div className="overflow-x-auto border-b border-border px-6 py-6">
-              <div className="relative flex min-w-[320px] justify-between">
-                <div className="absolute left-0 right-0 top-5 z-0 h-0.5 bg-border" />
-                <div
-                  className="absolute left-0 top-5 z-0 h-0.5 bg-primary transition-all duration-500"
-                  style={{ width: `${Math.max(0, currentStepIdx / (STEPS.length - 1)) * 100}%` }}
-                />
-                {STEPS.map((step, index) => {
-                  const Icon = step.icon;
-                  const done = index <= currentStepIdx;
-                  const current = index === currentStepIdx;
-                  return (
-                    <div key={step.key} className="relative z-10 flex flex-col items-center gap-2">
-                      <div className={`flex h-10 w-10 items-center justify-center rounded-full transition-colors ${done ? "bg-primary text-white" : "bg-border text-text-muted"} ${current ? "ring-4 ring-primary/20" : ""}`}>
-                        <Icon className="h-5 w-5" />
-                      </div>
-                      <span className={`whitespace-nowrap text-xs font-semibold ${done ? "text-primary" : "text-text-muted"}`}>{step.label}</span>
+          <ScrollReveal variant="slideRight" delay={0.08}>
+            <div className="relative mx-auto max-w-[650px] rounded-[2.2rem] border border-white/80 bg-white/72 p-4 shadow-[0_28px_70px_-42px_rgba(16,35,63,0.42)] backdrop-blur sm:p-6">
+              <div className="relative min-h-[390px] overflow-hidden rounded-[1.75rem] bg-[linear-gradient(145deg,#eaf6ff_0%,#f8fbff_54%,#fff7d8_100%)] p-5 sm:min-h-[430px] sm:p-8">
+                <div className="absolute right-5 top-5 rotate-6 rounded-2xl border border-white bg-white/90 p-3 shadow-sm motion-safe:animate-[float_5s_ease-in-out_infinite]">
+                  <FluentIcon
+                    src={FLUENT_ICONS.package}
+                    className="h-14 w-14"
+                  />
+                </div>
+                <div className="absolute bottom-8 left-6 -rotate-6 rounded-2xl border border-white bg-white/90 p-3 shadow-sm motion-safe:animate-[float_6s_ease-in-out_infinite_reverse]">
+                  <FluentIcon src={FLUENT_ICONS.truck} className="h-12 w-12" />
+                </div>
+
+                <div className="relative mx-auto mt-10 max-w-[410px] rounded-[1.75rem] border border-[#d8e9f7] bg-white p-5 shadow-[0_22px_55px_-38px_rgba(16,35,63,0.5)] sm:p-7">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <span className="text-[0.68rem] font-bold uppercase tracking-[0.18em] text-slate-400">
+                        {copy.result.orderCode}
+                      </span>
+                      <p className="mt-1 font-mono text-sm font-bold tracking-[0.12em] text-[#10233f] sm:text-base">
+                        {copy.hero.visualCode}
+                      </p>
                     </div>
-                  );
-                })}
+                    <span className="rounded-full bg-[#e8f7ef] px-3 py-1.5 text-xs font-bold text-emerald-700">
+                      04 / 07
+                    </span>
+                  </div>
+                  <div className="mt-8 flex justify-between">
+                    {[
+                      FLUENT_ICONS.receipt,
+                      FLUENT_ICONS.search,
+                      FLUENT_ICONS.gift,
+                      FLUENT_ICONS.truck,
+                    ].map((icon, index) => (
+                      <div
+                        key={icon}
+                        className="relative z-10 flex flex-col items-center"
+                      >
+                        <span
+                          className={`flex h-12 w-12 items-center justify-center rounded-2xl border ${index <= 2 ? "border-[#b9dcf2] bg-[#eef8ff]" : "border-slate-200 bg-white"}`}
+                        >
+                          <FluentIcon src={icon} className="h-7 w-7" />
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="relative -mt-6 h-px bg-slate-200">
+                    <div className="h-full w-[68%] bg-[#2f9bd4]" />
+                  </div>
+                  <div className="mt-9 rounded-2xl bg-[#f5f9fd] p-4">
+                    <div className="flex items-center gap-3">
+                      <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-white shadow-sm">
+                        <Clock3 className="h-5 w-5 text-[#168fce]" />
+                      </span>
+                      <div>
+                        <p className="text-sm font-bold text-[#10233f]">
+                          {copy.hero.visualStatus}
+                        </p>
+                        <p className="mt-1 text-xs text-slate-500">
+                          {copy.hero.visualHint}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </ScrollReveal>
+        </Container>
+      </section>
+
+      <section id="lookup-form" className="scroll-mt-28 pb-20">
+        <Container size="default">
+          <ScrollReveal className="relative overflow-hidden rounded-[2rem] border border-[#d8e9f7] bg-white p-6 shadow-[0_24px_60px_-42px_rgba(16,35,63,0.42)] sm:p-8 lg:p-10">
+            <div className="pointer-events-none absolute right-0 top-0 h-32 w-32 rounded-bl-full bg-[#fff4c7]/70" />
+            <div className="relative flex flex-col justify-between gap-4 lg:flex-row lg:items-end">
+              <div>
+                <Eyebrow>{copy.lookup.eyebrow}</Eyebrow>
+                <h2 className="mt-3 text-2xl font-bold tracking-[-0.035em] text-[#10233f] sm:text-3xl">
+                  {copy.lookup.title}
+                </h2>
+                <p className="mt-2 text-sm leading-6 text-slate-500 sm:text-base">
+                  {copy.lookup.description}
+                </p>
+              </div>
+              <ShieldCheck className="hidden h-9 w-9 text-[#168fce] lg:block" />
+            </div>
+
+            <form
+              onSubmit={handleLookup}
+              noValidate
+              className="relative mt-7 grid gap-4 lg:grid-cols-[1fr_1fr_auto] lg:items-end"
+            >
+              <label className="block">
+                <span className="mb-2 block text-sm font-bold text-slate-700">
+                  {copy.lookup.orderCodeLabel}
+                </span>
+                <span className="flex h-[52px] items-center rounded-2xl border border-[#d8e5f0] bg-[#fbfdff] px-4 transition focus-within:border-[#5fb5e4] focus-within:ring-4 focus-within:ring-[#dff2ff]">
+                  <Search className="mr-3 h-4 w-4 shrink-0 text-slate-400" />
+                  <input
+                    value={orderCode}
+                    onChange={(event) =>
+                      setOrderCode(event.target.value.toUpperCase())
+                    }
+                    placeholder={copy.lookup.orderCodePlaceholder}
+                    autoComplete="off"
+                    className="h-[52px] min-w-0 flex-1 bg-transparent font-mono text-sm font-semibold uppercase tracking-wide text-[#10233f] outline-none placeholder:font-sans placeholder:font-normal placeholder:normal-case placeholder:tracking-normal placeholder:text-slate-400"
+                  />
+                </span>
+                <span className="mt-2 block text-xs leading-5 text-slate-400">
+                  {copy.lookup.codeHint}
+                </span>
+              </label>
+
+              <label className="block">
+                <span className="mb-2 block text-sm font-bold text-slate-700">
+                  {copy.lookup.phoneLabel}
+                </span>
+                <span className="flex h-[52px] items-center rounded-2xl border border-[#d8e5f0] bg-[#fbfdff] px-4 transition focus-within:border-[#5fb5e4] focus-within:ring-4 focus-within:ring-[#dff2ff]">
+                  <ShieldCheck className="mr-3 h-4 w-4 shrink-0 text-slate-400" />
+                  <input
+                    type="tel"
+                    inputMode="tel"
+                    value={phone}
+                    onChange={(event) => setPhone(event.target.value)}
+                    placeholder={copy.lookup.phonePlaceholder}
+                    autoComplete="tel"
+                    className="h-[52px] min-w-0 flex-1 bg-transparent text-sm font-semibold text-[#10233f] outline-none placeholder:font-normal placeholder:text-slate-400"
+                  />
+                </span>
+                <span className="mt-2 block text-xs leading-5 text-slate-400">
+                  {copy.lookup.phoneHint}
+                </span>
+              </label>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="group relative mb-7 inline-flex h-[52px] min-w-[180px] items-center justify-center gap-2 overflow-hidden rounded-2xl bg-[#168fce] px-6 text-sm font-bold text-white shadow-[0_14px_28px_-20px_rgba(0,119,182,0.9)] transition-all duration-300 hover:-translate-y-0.5 hover:bg-[#087ab7] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-200 disabled:cursor-wait disabled:opacity-70 motion-reduce:transform-none"
+              >
+                {loading ? (
+                  <LoaderCircle className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Search className="h-4 w-4" />
+                )}
+                {loading ? copy.lookup.submitting : copy.lookup.submit}
+                <span className="pointer-events-none absolute inset-y-0 -left-1/2 w-1/3 -skew-x-12 bg-gradient-to-r from-transparent via-white/35 to-transparent transition-transform duration-700 group-hover:translate-x-[500%] motion-reduce:hidden" />
+              </button>
+            </form>
+
+            <div className="mt-2 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-5 text-sm">
+              <a
+                href="#where-code"
+                className="font-semibold text-[#087ab7] hover:underline"
+              >
+                {copy.lookup.forgotCode}
+              </a>
+              <a
+                href="#support"
+                className="font-semibold text-slate-500 hover:text-[#087ab7]"
+              >
+                {copy.lookup.needSupport}
+              </a>
+            </div>
+            <div aria-live="polite" className="mt-4 min-h-6">
+              {feedback ? (
+                <div
+                  className={`flex items-start gap-2 rounded-xl px-4 py-3 text-sm font-medium ${feedback.tone === "error" ? "bg-red-50 text-red-700" : "bg-emerald-50 text-emerald-700"}`}
+                >
+                  {feedback.tone === "error" ? (
+                    <CircleAlert className="mt-0.5 h-4 w-4 shrink-0" />
+                  ) : (
+                    <Check className="mt-0.5 h-4 w-4 shrink-0" />
+                  )}
+                  {feedback.message}
+                </div>
+              ) : null}
+            </div>
+          </ScrollReveal>
+        </Container>
+      </section>
+
+      <section className="pb-20">
+        <Container size="default">
+          <SectionHeading
+            eyebrow={copy.guide.eyebrow}
+            title={copy.guide.title}
+            description={copy.guide.description}
+          />
+          <div className="mt-9 grid gap-5 md:grid-cols-3">
+            {copy.guide.items.map((item, index) => (
+              <ScrollReveal key={item.title} delay={index * 0.06}>
+                <article className="group relative h-full overflow-hidden rounded-3xl border border-[#dbe8f3] bg-white p-6 shadow-[0_12px_35px_-30px_rgba(16,35,63,0.45)] transition-all duration-300 hover:-translate-y-1 hover:border-[#add5ed] hover:shadow-[0_18px_42px_-28px_rgba(16,35,63,0.32)] motion-reduce:transform-none">
+                  <span className="pointer-events-none absolute inset-y-0 -left-1/2 w-1/3 -skew-x-12 bg-gradient-to-r from-transparent via-white/70 to-transparent transition-transform duration-700 group-hover:translate-x-[500%] motion-reduce:hidden" />
+                  <div className="flex items-start justify-between gap-4">
+                    <span className="flex h-16 w-16 items-center justify-center rounded-2xl bg-[#eef7ff] transition-transform duration-300 group-hover:scale-105 motion-reduce:transform-none">
+                      <FluentIcon
+                        src={GUIDE_ICONS[index] ?? FLUENT_ICONS.receipt}
+                        className="h-10 w-10"
+                      />
+                    </span>
+                    <span className="font-mono text-xs font-bold text-[#168fce]">
+                      0{index + 1}
+                    </span>
+                  </div>
+                  <h3 className="mt-6 text-lg font-bold text-[#10233f]">
+                    {item.title}
+                  </h3>
+                  <p className="mt-2 text-sm leading-6 text-slate-500">
+                    {item.description}
+                  </p>
+                </article>
+              </ScrollReveal>
+            ))}
+          </div>
+        </Container>
+      </section>
+
+      <section className="border-y border-[#dfeaf4] bg-[#edf6fd] py-20">
+        <Container size="wide">
+          <SectionHeading
+            eyebrow={copy.statuses.eyebrow}
+            title={copy.statuses.title}
+            description={copy.statuses.description}
+            centered
+          />
+          <div className="relative mt-12 grid gap-4 md:grid-cols-2 lg:grid-cols-7 lg:gap-3">
+            <div className="absolute left-[7%] right-[7%] top-10 hidden h-px bg-[#a9d5ee] lg:block" />
+            {copy.statuses.items.map((item, index) => (
+              <ScrollReveal
+                key={item.key}
+                delay={index * 0.045}
+                className="relative"
+              >
+                <article className="group relative flex h-full gap-4 overflow-hidden rounded-3xl border border-white/90 bg-white/80 p-5 backdrop-blur transition-all duration-300 hover:-translate-y-1 hover:border-[#b5d9ee] hover:shadow-sm lg:block lg:bg-transparent lg:p-2 lg:text-center lg:hover:shadow-none motion-reduce:transform-none">
+                  <span className="relative z-10 flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl border border-[#d6e9f6] bg-white shadow-sm transition-transform duration-300 group-hover:scale-105 motion-reduce:transform-none lg:mx-auto">
+                    <FluentIcon
+                      src={STATUS_ICONS[index] ?? FLUENT_ICONS.package}
+                      className="h-9 w-9"
+                    />
+                    <span className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-[#f6cf4b] text-[0.65rem] font-bold text-[#10233f]">
+                      {index + 1}
+                    </span>
+                  </span>
+                  <div className="lg:mt-5">
+                    <h3 className="text-sm font-bold text-[#10233f]">
+                      {item.title}
+                    </h3>
+                    <p className="mt-1 text-xs leading-5 text-slate-500">
+                      {item.description}
+                    </p>
+                  </div>
+                </article>
+              </ScrollReveal>
+            ))}
+          </div>
+        </Container>
+      </section>
+
+      <section id="where-code" className="scroll-mt-28 py-20">
+        <Container
+          size="default"
+          className="grid items-center gap-10 lg:grid-cols-[1fr_0.85fr]"
+        >
+          <ScrollReveal variant="slideLeft">
+            <SectionHeading
+              eyebrow={copy.where.eyebrow}
+              title={copy.where.title}
+              description={copy.where.description}
+            />
+            <div className="mt-8 space-y-3">
+              {copy.where.items.map((item, index) => (
+                <div
+                  key={item.title}
+                  className="flex items-center gap-4 rounded-2xl border border-[#dce8f2] bg-white p-4 transition hover:border-[#b9d9ed] hover:shadow-sm"
+                >
+                  <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#f0f8ff]">
+                    <FluentIcon
+                      src={WHERE_ICONS[index] ?? FLUENT_ICONS.receipt}
+                      className="h-8 w-8"
+                    />
+                  </span>
+                  <div>
+                    <h3 className="text-sm font-bold text-[#10233f]">
+                      {item.title}
+                    </h3>
+                    <p className="mt-1 text-sm leading-5 text-slate-500">
+                      {item.description}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </ScrollReveal>
+          <ScrollReveal variant="slideRight" delay={0.08}>
+            <div className="relative mx-auto max-w-md rounded-[2rem] border border-[#d8e8f4] bg-white p-6 shadow-[0_24px_60px_-44px_rgba(16,35,63,0.45)]">
+              <div className="rounded-3xl bg-[#f2f8fd] p-6">
+                <div className="flex items-center justify-between">
+                  <FluentIcon
+                    src={FLUENT_ICONS.receipt}
+                    className="h-14 w-14"
+                  />
+                  <span className="rounded-full bg-white px-3 py-1 text-[0.65rem] font-bold uppercase tracking-wider text-[#168fce]">
+                    Figure Lab
+                  </span>
+                </div>
+                <p className="mt-8 text-xs font-bold uppercase tracking-[0.18em] text-slate-400">
+                  {copy.where.sampleLabel}
+                </p>
+                <p className="mt-2 font-mono text-xl font-bold tracking-[0.13em] text-[#10233f]">
+                  {copy.where.sampleCode}
+                </p>
+                <div className="mt-6 space-y-2">
+                  <span className="block h-2 w-full rounded-full bg-white" />
+                  <span className="block h-2 w-4/5 rounded-full bg-white" />
+                  <span className="block h-2 w-2/3 rounded-full bg-white" />
+                </div>
+              </div>
+              <div className="absolute -bottom-4 -right-4 flex h-16 w-16 items-center justify-center rounded-2xl border-4 border-[#f7faff] bg-[#fff1b6] shadow-sm">
+                <Search className="h-6 w-6 text-[#9e7400]" />
+              </div>
+            </div>
+          </ScrollReveal>
+        </Container>
+      </section>
+
+      <section className="pb-20">
+        <Container size="default">
+          <SectionHeading eyebrow={copy.faq.eyebrow} title={copy.faq.title} />
+          <div className="mt-8 grid gap-4 lg:grid-cols-2">
+            {copy.faq.items.map((item) => (
+              <details
+                key={item.question}
+                className="group rounded-2xl border border-[#dce8f2] bg-white p-5 open:border-[#a9d3eb] open:shadow-sm"
+              >
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-sm font-bold text-[#10233f] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300">
+                  {item.question}
+                  <ChevronDown className="h-4 w-4 shrink-0 text-[#168fce] transition-transform duration-300 group-open:rotate-180" />
+                </summary>
+                <p className="mt-3 border-t border-slate-100 pt-3 text-sm leading-6 text-slate-500">
+                  {item.answer}
+                </p>
+              </details>
+            ))}
+          </div>
+
+          <ScrollReveal
+            id="support"
+            className="mt-10 scroll-mt-28 overflow-hidden rounded-[2rem] bg-[#102c4d] px-6 py-9 text-white sm:px-10 lg:flex lg:items-center lg:justify-between lg:px-12"
+          >
+            <div className="max-w-2xl">
+              <Eyebrow inverse>{copy.support.eyebrow}</Eyebrow>
+              <h2 className="mt-3 text-2xl font-bold tracking-[-0.03em] sm:text-3xl">
+                {copy.support.title}
+              </h2>
+              <p className="mt-3 text-sm leading-6 text-slate-300 sm:text-base">
+                {copy.support.description}
+              </p>
+            </div>
+            <Link
+              href={ROUTES.contact}
+              className="group mt-6 inline-flex h-12 items-center gap-2 rounded-full bg-[#f6d76b] px-6 text-sm font-bold text-[#10233f] transition hover:-translate-y-0.5 hover:bg-[#ffe38a] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-white/30 lg:mt-0 motion-reduce:transform-none"
+            >
+              {copy.support.button}
+              <ExternalLink className="h-4 w-4 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5 motion-reduce:transform-none" />
+            </Link>
+          </ScrollReveal>
+        </Container>
+      </section>
+
+      {result ? (
+        <TrackingResultSection
+          ref={resultRef}
+          result={result}
+          copy={copy}
+          locale={locale}
+        />
+      ) : null}
+    </main>
+  );
+}
+
+const TrackingResultSection = ({
+  result,
+  copy,
+  locale,
+  ref,
+}: {
+  result: TrackOrderResponseContract;
+  copy: TrackingCopy;
+  locale: "vi" | "en";
+  ref: Ref<HTMLElement>;
+}) => {
+  const progressIndex = getProgressIndex(result);
+  const isCancelled = progressIndex < 0;
+  const latestHistory = result.statusHistory?.at(-1);
+
+  return (
+    <section
+      ref={ref}
+      className="scroll-mt-24 border-t border-[#dce8f2] bg-white py-20"
+    >
+      <Container size="default">
+        <ScrollReveal>
+          <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
+            <SectionHeading
+              eyebrow={copy.result.eyebrow}
+              title={copy.result.title}
+            />
+            <span
+              className={`w-fit rounded-full px-4 py-2 text-xs font-bold ${isCancelled ? "bg-red-50 text-red-700" : "bg-[#e9f7ef] text-emerald-700"}`}
+            >
+              {isCancelled
+                ? copy.statuses.cancelled
+                : labelFrom(copy.orderStatusLabels, result.orderStatus)}
+            </span>
+          </div>
+
+          <div className="mt-8 grid gap-5 lg:grid-cols-[1.08fr_0.92fr]">
+            <div className="rounded-[2rem] border border-[#dce8f2] bg-[#f8fbfe] p-6 sm:p-8">
+              <div className="grid gap-5 sm:grid-cols-2">
+                <ResultDatum
+                  label={copy.result.orderCode}
+                  value={result.orderCode}
+                  mono
+                />
+                <ResultDatum
+                  label={copy.result.customer}
+                  value={
+                    result.customerName ||
+                    result.maskedPhone ||
+                    copy.result.hiddenCustomer
+                  }
+                />
+                <ResultDatum
+                  label={copy.result.orderDate}
+                  value={formatDate(result.createdAt, locale)}
+                />
+                <ResultDatum
+                  label={copy.result.total}
+                  value={formatCurrency(result.totalAmount, {
+                    locale: locale === "vi" ? "vi-VN" : "en-US",
+                  })}
+                  strong
+                />
+                <ResultDatum
+                  label={copy.result.currentStatus}
+                  value={labelFrom(copy.orderStatusLabels, result.orderStatus)}
+                />
+                <ResultDatum
+                  label={copy.result.paymentStatus}
+                  value={labelFrom(
+                    copy.paymentStatusLabels,
+                    String(result.paymentStatus),
+                  )}
+                />
               </div>
             </div>
 
-            <div className="grid gap-6 p-6 sm:grid-cols-2">
-              <div>
-                <h3 className="mb-3 text-sm font-bold uppercase tracking-wide text-text-secondary">Thông tin nhận hàng</h3>
-                <div className="space-y-2 text-sm">
-                  <InfoRow label="SĐT" value={result.maskedPhone ?? "-"} />
-                  <InfoRow label="Email" value={result.maskedEmail ?? "-"} />
-                  <InfoRow label="Địa chỉ" value={result.maskedAddress ?? "-"} />
-                  <InfoRow label="Ngày nhận" value={formatDate(result.receiveDate)} />
-                  <InfoRow label="Vận chuyển" value={result.shippingMethod ? SHIPPING_METHOD_LABELS[result.shippingMethod] ?? result.shippingMethod : "-"} />
-                </div>
+            <div className="rounded-[2rem] border border-[#dce8f2] bg-white p-6 sm:p-8">
+              <h3 className="flex items-center gap-2 text-base font-bold text-[#10233f]">
+                <MapPin className="h-5 w-5 text-[#168fce]" />
+                {copy.result.delivery}
+              </h3>
+              <div className="mt-5 space-y-4">
+                <ResultDatum
+                  label={copy.result.estimatedDelivery}
+                  value={formatDate(
+                    result.estimatedDelivery || result.receiveDate,
+                    locale,
+                  )}
+                  compact
+                />
+                <ResultDatum
+                  label={copy.result.provider}
+                  value={
+                    result.shippingProvider
+                      ? labelFrom(copy.shippingLabels, result.shippingProvider)
+                      : copy.result.noData
+                  }
+                  compact
+                />
+                <ResultDatum
+                  label={copy.result.trackingCode}
+                  value={result.trackingCode || copy.result.noData}
+                  compact
+                  mono
+                />
+                <ResultDatum
+                  label={copy.result.note}
+                  value={result.notes || copy.result.noData}
+                  compact
+                />
               </div>
+            </div>
+          </div>
 
-              <div>
-                <h3 className="mb-3 text-sm font-bold uppercase tracking-wide text-text-secondary">Thanh toán</h3>
-                <div className="space-y-2 text-sm">
-                  <MoneyRow label="Tạm tính sản phẩm" value={result.itemsAmount} />
-                  {result.discountAmount > 0 ? (
-                    <MoneyRow label={`Voucher ${result.voucherCode ?? ""}`} value={-result.discountAmount} />
-                  ) : null}
-                  <MoneyRow label="Đã thanh toán" value={result.paidAmount} />
-                  <MoneyRow label="Tổng đơn hàng" value={result.totalAmount} bold />
-                  {result.depositRequired ? (
-                    <>
-                      <MoneyRow label={`Đặt cọc (${result.depositPercent}%)`} value={result.depositAmount} primary />
-                      <MoneyRow label="Còn lại khi nhận" value={result.remainingAmount} />
-                    </>
-                  ) : null}
-                  <InfoRow label="Hình thức" value={result.paymentMethod} />
-                  {result.expiresAt ? <InfoRow label="Hạn thanh toán" value={new Date(result.expiresAt).toLocaleString("vi-VN")} /> : null}
-                </div>
-                {result.checkoutUrl && result.paymentStatus !== "paid" && result.paymentStatus !== "deposit_paid" ? (
-                  <a
-                    href={result.checkoutUrl}
-                    className="mt-4 inline-flex rounded-xl bg-primary px-4 py-2 text-sm font-bold text-white hover:bg-primary/90"
-                  >
-                    Tiếp tục thanh toán
-                  </a>
+          <div className="mt-5 rounded-[2rem] border border-[#dce8f2] bg-white p-6 sm:p-8">
+            <div className="flex items-center justify-between gap-4">
+              <h3 className="text-base font-bold text-[#10233f]">
+                {copy.result.currentStatus}
+              </h3>
+              {latestHistory ? (
+                <span className="text-xs text-slate-400">
+                  {formatDate(latestHistory.createdAt, locale)}
+                </span>
+              ) : null}
+            </div>
+            <div className="relative mt-8 grid gap-4 md:grid-cols-2 lg:grid-cols-7 lg:gap-2">
+              <div className="absolute left-[7%] right-[7%] top-6 hidden h-1 rounded-full bg-slate-100 lg:block">
+                {!isCancelled ? (
+                  <div
+                    className="h-full rounded-full bg-[#36a1d8] transition-all duration-700"
+                    style={{ width: `${(progressIndex / 6) * 100}%` }}
+                  />
                 ) : null}
               </div>
+              {copy.statuses.items.map((step, index) => {
+                const done = !isCancelled && index < progressIndex;
+                const current = !isCancelled && index === progressIndex;
+                return (
+                  <div
+                    key={step.key}
+                    className="relative z-10 flex items-center gap-3 lg:block lg:text-center"
+                  >
+                    <span
+                      className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border text-sm font-bold transition-all lg:mx-auto ${done ? "border-[#36a1d8] bg-[#36a1d8] text-white" : current ? "border-[#36a1d8] bg-white text-[#168fce] ring-4 ring-[#dff2ff]" : "border-slate-200 bg-white text-slate-400"}`}
+                    >
+                      {done ? <Check className="h-5 w-5" /> : index + 1}
+                    </span>
+                    <span
+                      className={`text-xs font-semibold ${done || current ? "text-[#10233f]" : "text-slate-400"} lg:mt-3 lg:block`}
+                    >
+                      {step.title}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
-
-            {result.items.length > 0 ? (
-              <div className="border-t border-border px-6 pb-6 pt-5">
-                <h3 className="mb-4 text-sm font-bold uppercase tracking-wide text-text-secondary">Sản phẩm</h3>
-                <div className="space-y-3">
-                  {result.items.map((item, index) => (
-                    <OrderItemRow key={`${item.productName}-${index}`} item={item} />
-                  ))}
-                </div>
-              </div>
+            {latestHistory?.note ? (
+              <p className="mt-8 rounded-2xl bg-[#f3f8fc] px-4 py-3 text-sm text-slate-600">
+                <strong className="text-[#10233f]">
+                  {copy.result.latestUpdate}:{" "}
+                </strong>
+                {latestHistory.note}
+              </p>
             ) : null}
           </div>
-        ) : null}
-      </div>
-    </div>
-  );
-}
 
-function InfoRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex gap-2">
-      <span className="w-28 shrink-0 font-semibold text-text-secondary">{label}:</span>
-      <span className="text-text-primary">{value}</span>
-    </div>
-  );
-}
+          <div className="mt-5 rounded-[2rem] border border-[#dce8f2] bg-white p-6 sm:p-8">
+            <h3 className="text-base font-bold text-[#10233f]">
+              {copy.result.products}
+            </h3>
+            <div className="mt-5 divide-y divide-slate-100">
+              {result.items.length > 0 ? (
+                result.items.map((item, index) => (
+                  <div
+                    key={`${item.productName}-${index}`}
+                    className="flex items-start justify-between gap-5 py-4 first:pt-0 last:pb-0"
+                  >
+                    <div>
+                      <p className="text-sm font-bold text-[#10233f]">
+                        {item.productName}
+                      </p>
+                      <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-slate-500">
+                        <span>
+                          {copy.result.quantity}: {item.quantity}
+                        </span>
+                        {item.frameSizeLabel ? (
+                          <span>{item.frameSizeLabel}</span>
+                        ) : null}
+                        {item.frameColorName ? (
+                          <span>{item.frameColorName}</span>
+                        ) : null}
+                      </div>
+                    </div>
+                    <span className="shrink-0 text-sm font-bold text-[#168fce]">
+                      {formatCurrency(item.price * item.quantity)}
+                    </span>
+                  </div>
+                ))
+              ) : (
+                <p className="py-4 text-center text-sm text-slate-500">
+                  {copy.result.noData}
+                </p>
+              )}
+            </div>
+          </div>
 
-function MoneyRow({ label, value, bold = false, primary = false }: { label: string; value: number; bold?: boolean; primary?: boolean }) {
-  return (
-    <div className="flex justify-between gap-3">
-      <span className="text-text-secondary">{label}</span>
-      <span className={`${bold ? "font-bold" : "font-semibold"} ${primary ? "text-primary" : "text-text-primary"}`}>
-        {formatPrice(value)}
-      </span>
-    </div>
+          <div className="mt-7 flex flex-wrap gap-3">
+            <Link
+              href={ROUTES.contact}
+              className="inline-flex h-11 items-center gap-2 rounded-full bg-[#168fce] px-5 text-sm font-bold text-white hover:bg-[#087ab7]"
+            >
+              {copy.result.contact}
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+            <Link
+              href={ROUTES.collection}
+              className="inline-flex h-11 items-center rounded-full border border-[#cfe2ef] bg-white px-5 text-sm font-bold text-[#10233f] hover:border-[#8ec7e7]"
+            >
+              {copy.result.collection}
+            </Link>
+            <Link
+              href={ROUTES.home}
+              className="inline-flex h-11 items-center px-3 text-sm font-semibold text-slate-500 hover:text-[#087ab7]"
+            >
+              {copy.result.home}
+            </Link>
+          </div>
+        </ScrollReveal>
+      </Container>
+    </section>
   );
-}
-
-type TrackingPart = {
-  name: string;
-  quantity: number;
-  totalPrice?: number;
-  imageUrl?: string | null;
-  meta?: string;
 };
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
-}
-
-function readString(value: unknown) {
-  return typeof value === "string" && value.trim() ? value.trim() : null;
-}
-
-function readNumber(value: unknown) {
-  return typeof value === "number" && Number.isFinite(value) ? value : null;
-}
-
-function readQuantity(value: unknown) {
-  const numberValue = readNumber(value);
-  return numberValue && numberValue > 0 ? Math.round(numberValue) : 1;
-}
-
-function readPositionMeta(value: unknown) {
-  if (!isRecord(value)) return null;
-  const x = readNumber(value.x);
-  const y = readNumber(value.y);
-  if (x === null || y === null) return null;
-  return `Vị trí x${Math.round(x)}, y${Math.round(y)}`;
-}
-
-function getTrackingParts(item: TrackOrderItemSummaryContract): TrackingPart[] {
-  const designData = isRecord(item.designData) ? item.designData : null;
-  if (!designData) return [];
-
-  const configuredParts = Array.isArray(designData.parts)
-    ? designData.parts.flatMap((part): TrackingPart[] => {
-        if (!isRecord(part)) return [];
-        const name = readString(part.name);
-        if (!name) return [];
-        const quantity = readQuantity(part.quantity);
-        const totalPrice = readNumber(part.totalPrice);
-        const unitPrice = readNumber(part.unitPrice);
-        const imageUrl = readString(part.imageUrl);
-        return [{
-          name,
-          quantity,
-          ...(totalPrice !== null ? { totalPrice } : unitPrice !== null ? { totalPrice: unitPrice * quantity } : {}),
-          ...(imageUrl ? { imageUrl } : {}),
-        }];
-      })
-    : [];
-
-  if (configuredParts.length > 0) return configuredParts;
-  if (designData.type !== "CUSTOM_FRAME") return [];
-
-  const parts: TrackingPart[] = [];
-  if (item.frameSizeLabel) {
-    parts.push({
-      name: [item.frameSizeLabel, item.frameColorName].filter(Boolean).join(" - "),
-      quantity: item.quantity,
-    });
-  }
-
-  const backgroundName = readString(designData.backgroundName);
-  if (backgroundName) {
-    parts.push({
-      name: backgroundName,
-      quantity: item.quantity,
-      imageUrl: readString(designData.previewUrl),
-    });
-  }
-
-  if (Array.isArray(designData.characters)) {
-    designData.characters.forEach((character, index) => {
-      if (!isRecord(character)) return;
-      const price = readNumber(character.price);
-      const imageUrl = readString(character.imageUrl);
-      const meta = readPositionMeta(character.position);
-      parts.push({
-        name: readString(character.name) ?? `Nhân vật ${index + 1}`,
-        quantity: item.quantity,
-        ...(price !== null ? { totalPrice: price * item.quantity } : {}),
-        ...(imageUrl ? { imageUrl } : {}),
-        ...(meta ? { meta } : {}),
-      });
-    });
-  }
-
-  if (Array.isArray(designData.accessories)) {
-    designData.accessories.forEach((accessory) => {
-      if (!isRecord(accessory)) return;
-      const name = readString(accessory.name);
-      const meta = readPositionMeta(accessory.position);
-      if (!name) return;
-      parts.push({
-        name,
-        quantity: readQuantity(accessory.quantity) * item.quantity,
-        ...(meta ? { meta } : {}),
-      });
-    });
-  }
-
-  return parts;
-}
-
-function OrderItemRow({ item }: { item: TrackOrderItemSummaryContract }) {
-  const previewUrl = resolveApiAssetUrl(item.previewUrl);
-  const accessories = item.accessories ?? [];
-  const parts = getTrackingParts(item);
-  const frameDescription = [item.frameSizeLabel, item.frameColorName]
-    .filter(Boolean)
-    .join(" · ");
-
+function SectionHeading({
+  eyebrow,
+  title,
+  description,
+  centered = false,
+}: {
+  eyebrow: string;
+  title: string;
+  description?: string;
+  centered?: boolean;
+}) {
   return (
-    <div className="flex items-center gap-3 rounded-xl border border-border bg-background p-3">
-      {previewUrl ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={previewUrl} alt="" className="h-12 w-12 shrink-0 rounded-lg border border-border object-cover" />
-      ) : null}
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-semibold text-text-primary">{item.productName}</p>
-        <p className="text-xs text-text-muted">
-          x{item.quantity}
-          {frameDescription ? ` · ${frameDescription}` : ""}
+    <div className={centered ? "mx-auto max-w-3xl text-center" : "max-w-2xl"}>
+      <Eyebrow>{eyebrow}</Eyebrow>
+      <h2 className="mt-3 text-balance text-[clamp(1.8rem,3.4vw,3.1rem)] font-bold leading-[1.08] tracking-[-0.04em] text-[#10233f]">
+        {title}
+      </h2>
+      {description ? (
+        <p className="mt-3 text-sm leading-6 text-slate-500 sm:text-base">
+          {description}
         </p>
-        {parts.length > 0 ? (
-          <div className="mt-2 space-y-1.5">
-            {parts.map((part, index) => {
-              const partImage = resolveApiAssetUrl(part.imageUrl);
-              return (
-                <div key={`${part.name}-${index}`} className="flex items-center gap-2 rounded-lg border border-border bg-surface px-2 py-1.5">
-                  {partImage ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={partImage} alt="" className="h-8 w-8 shrink-0 rounded-md object-cover" />
-                  ) : null}
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-[11px] font-semibold text-text-primary">{part.name} x{part.quantity}</p>
-                    {part.meta ? <p className="text-[10px] text-text-muted">{part.meta}</p> : null}
-                  </div>
-                  {typeof part.totalPrice === "number" ? (
-                    <span className="shrink-0 text-[11px] font-bold text-text-primary">{formatPrice(part.totalPrice)}</span>
-                  ) : null}
-                </div>
-              );
-            })}
-          </div>
-        ) : accessories.length > 0 ? (
-          <p className="truncate text-xs text-text-muted">
-            Phụ kiện: {accessories.map((accessory) => `${accessory.name}${accessory.quantity && accessory.quantity > 1 ? ` x${accessory.quantity}` : ""}`).join(", ")}
-          </p>
-        ) : null}
-        {item.note ? <p className="line-clamp-2 text-xs text-text-muted">Ghi chú: {item.note}</p> : null}
-      </div>
-      <span className="shrink-0 text-sm font-bold text-text-primary">{formatPrice(item.price * item.quantity)}</span>
+      ) : null}
     </div>
+  );
+}
+
+function ResultDatum({
+  label,
+  value,
+  mono = false,
+  strong = false,
+  compact = false,
+}: {
+  label: string;
+  value: string;
+  mono?: boolean;
+  strong?: boolean;
+  compact?: boolean;
+}) {
+  return (
+    <div
+      className={
+        compact
+          ? "flex items-start justify-between gap-4 border-b border-slate-100 pb-3 last:border-0 last:pb-0"
+          : ""
+      }
+    >
+      <p className="text-[0.68rem] font-bold uppercase tracking-[0.15em] text-slate-400">
+        {label}
+      </p>
+      <p
+        className={`${compact ? "max-w-[62%] text-right" : "mt-1.5"} ${mono ? "font-mono" : ""} ${strong ? "text-xl text-[#168fce]" : "text-sm text-[#10233f]"} font-bold`}
+      >
+        {value}
+      </p>
+    </div>
+  );
+}
+
+function TrackingFallback() {
+  return (
+    <main className="flex min-h-[70vh] items-center justify-center bg-[#f7faff]">
+      <LoaderCircle
+        className="h-7 w-7 animate-spin text-[#168fce]"
+        aria-label="Loading"
+      />
+    </main>
   );
 }
 
 export function LookupPage() {
   return (
-    <Suspense fallback={<div className="flex min-h-[60vh] items-center justify-center"><div className="h-12 w-12 animate-spin rounded-full border-4 border-primary/30 border-t-primary" /></div>}>
-      <TrackingContent />
+    <Suspense fallback={<TrackingFallback />}>
+      <TrackingPageContent />
     </Suspense>
   );
 }

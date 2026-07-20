@@ -14,6 +14,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { AdminListQueryDto } from '../common/dto/admin-list-query.dto';
 import { ProductsService } from './products.service';
 import { CreateProductDto } from './dto/create-product.dto';
+import { PublicProductsQueryDto } from './dto/public-products-query.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 
 @ApiTags('Products')
@@ -22,8 +23,8 @@ export class ProductsController {
   constructor(private readonly productsService: ProductsService) {}
 
   @Get('public/products')
-  findPublicProducts() {
-    return this.productsService.findPublicProducts();
+  findPublicProducts(@Query() query: PublicProductsQueryDto) {
+    return this.productsService.findPublicProducts(query);
   }
 
   @Get('public/products/:slug')

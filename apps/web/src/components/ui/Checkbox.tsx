@@ -1,15 +1,17 @@
-'use client'
+"use client";
 
-import * as React from 'react'
+import * as React from "react";
 
-import { cn, type FieldState } from '@lego-shop/ui'
+import { cn, type FieldState } from "@lego-shop/ui";
 
-export interface CheckboxProps
-  extends Omit<React.ComponentPropsWithoutRef<'input'>, 'type'> {
-  label: string
-  description?: string
-  error?: string
-  fieldState?: FieldState
+export interface CheckboxProps extends Omit<
+  React.ComponentPropsWithoutRef<"input">,
+  "type"
+> {
+  label: string;
+  description?: string;
+  error?: string;
+  fieldState?: FieldState;
 }
 
 export const Checkbox = React.forwardRef<HTMLInputElement, CheckboxProps>(
@@ -27,12 +29,16 @@ export const Checkbox = React.forwardRef<HTMLInputElement, CheckboxProps>(
     },
     ref,
   ) => {
-    const generatedId = React.useId()
-    const checkboxId = id ?? name ?? generatedId
-    const descriptionId = `${checkboxId}-description`
-    const errorId = `${checkboxId}-error`
-    const describedBy = error ? errorId : description ? descriptionId : undefined
-    const hasError = Boolean(error) || fieldState === 'error'
+    const generatedId = React.useId();
+    const checkboxId = id ?? name ?? generatedId;
+    const descriptionId = `${checkboxId}-description`;
+    const errorId = `${checkboxId}-error`;
+    const describedBy = error
+      ? errorId
+      : description
+        ? descriptionId
+        : undefined;
+    const hasError = Boolean(error) || fieldState === "error";
 
     return (
       <div className="space-y-2">
@@ -49,9 +55,9 @@ export const Checkbox = React.forwardRef<HTMLInputElement, CheckboxProps>(
             aria-invalid={hasError}
             aria-describedby={describedBy}
             className={cn(
-              'mt-0.5 size-5 appearance-none rounded-sm border border-input bg-background transition-base checked:border-primary checked:bg-primary focus:outline-none focus:ring-2 focus:ring-ring/20 disabled:cursor-not-allowed disabled:opacity-60',
-              'checked:bg-[linear-gradient(135deg,transparent_0_40%,hsl(var(--color-primary-foreground))_40%_60%,transparent_60%)]',
-              hasError && 'border-error focus:ring-error/20',
+              "mt-0.5 size-5 appearance-none rounded-sm border border-input bg-surface shadow-control transition-base checked:border-primary checked:bg-primary focus-visible:border-primary disabled:cursor-not-allowed disabled:opacity-60",
+              "checked:bg-[linear-gradient(135deg,transparent_0_40%,hsl(var(--color-primary-foreground))_40%_60%,transparent_60%)]",
+              hasError && "border-error focus-visible:border-error",
               className,
             )}
             {...props}
@@ -77,8 +83,8 @@ export const Checkbox = React.forwardRef<HTMLInputElement, CheckboxProps>(
           </p>
         ) : null}
       </div>
-    )
+    );
   },
-)
+);
 
-Checkbox.displayName = 'Checkbox'
+Checkbox.displayName = "Checkbox";

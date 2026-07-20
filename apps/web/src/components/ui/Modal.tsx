@@ -2,7 +2,12 @@
 
 import * as React from 'react'
 import { createPortal } from 'react-dom'
-import { AnimatePresence, motion, type HTMLMotionProps } from 'framer-motion'
+import {
+  AnimatePresence,
+  motion,
+  useReducedMotion,
+  type HTMLMotionProps,
+} from 'framer-motion'
 import { cva, type VariantProps } from 'class-variance-authority'
 
 import { cn, type Size } from '@lego-shop/ui'
@@ -32,6 +37,7 @@ export interface ModalProps
   title?: string
   size?: Extract<Size, 'sm' | 'md' | 'lg'> | 'full'
   children: React.ReactNode
+  contentClassName?: string
 }
 
 function getFocusableElements(container: HTMLElement): HTMLElement[] {
@@ -47,6 +53,7 @@ export const Modal = React.forwardRef<HTMLDivElement, ModalProps>(
     {
       children,
       className,
+      contentClassName,
       isOpen,
       onClose,
       size,
@@ -56,6 +63,7 @@ export const Modal = React.forwardRef<HTMLDivElement, ModalProps>(
     ref,
   ) => {
     const [mounted, setMounted] = React.useState<boolean>(false)
+    const shouldReduceMotion = useReducedMotion()
     const dialogRef = React.useRef<HTMLDivElement | null>(null)
     const titleId = React.useId()
 
@@ -137,7 +145,7 @@ export const Modal = React.forwardRef<HTMLDivElement, ModalProps>(
     }
 
     return createPortal(
-      <AnimatePresence>
+      <AnimatePresence initial={false}>
         {isOpen ? (
           <motion.div
             className="fixed inset-0 z-z-modal flex items-center justify-center p-4"
@@ -148,7 +156,7 @@ export const Modal = React.forwardRef<HTMLDivElement, ModalProps>(
             <button
               type="button"
               aria-label="Đóng modal"
-              className="absolute inset-0 bg-[rgb(7_29_58/0.6)]"
+              className="absolute inset-0 bg-[rgb(7_29_58/0.58)] backdrop-blur-[2px]"
               onClick={onClose}
             />
             <motion.div
@@ -157,10 +165,22 @@ export const Modal = React.forwardRef<HTMLDivElement, ModalProps>(
               aria-modal="true"
               aria-labelledby={title ? titleId : undefined}
               tabIndex={-1}
-              initial={{ opacity: 0, scale: 0.96, y: 16 }}
+              initial={
+                shouldReduceMotion
+                  ? { opacity: 0 }
+                  : { opacity: 0, scale: 0.97, y: 16 }
+              }
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.96, y: 16 }}
-              transition={{ type: 'spring', stiffness: 360, damping: 32 }}
+              exit={
+                shouldReduceMotion
+                  ? { opacity: 0 }
+                  : { opacity: 0, scale: 0.97, y: 16 }
+              }
+              transition={
+                shouldReduceMotion
+                  ? { duration: 0.12 }
+                  : { type: 'spring', stiffness: 360, damping: 34 }
+              }
               className={cn(modalVariants({ size }), className)}
               {...props}
             >
@@ -171,7 +191,9 @@ export const Modal = React.forwardRef<HTMLDivElement, ModalProps>(
                   </h2>
                 </div>
               ) : null}
-              <div className="overflow-y-auto p-6">{children}</div>
+              <div className={cn('overflow-y-auto p-6', contentClassName)}>
+                {children}
+              </div>
             </motion.div>
           </motion.div>
         ) : null}

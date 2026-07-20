@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { PointerEvent, ReactNode } from "react";
 import {
@@ -10,7 +11,6 @@ import {
   Move,
   Plus,
   Redo,
-  RotateCcw,
   Share2,
   Sparkles,
   Trash2,
@@ -18,12 +18,17 @@ import {
   Undo,
 } from "lucide-react";
 
+import { DecorativeIcon } from "@/components/shared/FeatureIcon";
+import { DECORATIVE_ICON_PATHS } from "@/config/icons";
 import { uploadCustomerImage } from "@/lib/api/uploads";
+import { useStudioI18n } from "../hooks/useStudioI18n";
 import {
   useStudio,
   type StudioCharacterPartSnapshot,
   type StudioElement,
 } from "./StudioContext";
+
+const ZOOM_LEVELS = [0.5, 0.7, 1, 1.4, 2] as const;
 
 const getFrameColorHex = (name: string, apiHex?: string | null): string => {
   if (apiHex && apiHex.startsWith("#")) return apiHex;
@@ -73,11 +78,14 @@ function CharacterLayeredPreview({ element }: { element: StudioElement }) {
   return (
     <div className="pointer-events-none relative h-full w-full overflow-visible">
       {layers.map((part) => (
-        <img
+        <Image
           key={`${part.type}-${part.id}`}
           src={part.imageUrl ?? ""}
           alt=""
-          className="absolute inset-0 h-full w-full object-contain"
+          fill
+          unoptimized
+          sizes="160px"
+          className="object-contain"
           draggable={false}
           onError={(event) => {
             event.currentTarget.style.display = "none";
@@ -221,10 +229,13 @@ function CanvasElementView({
         <CharacterLayeredPreview element={element} />
       ) : (element.type === "accessory" || element.type === "character") &&
         element.imageUrl ? (
-        <img
+        <Image
           src={element.imageUrl}
-          alt={element.content}
-          className="pointer-events-none h-full w-full object-contain"
+          alt={element.content ?? ""}
+          fill
+          unoptimized
+          sizes="160px"
+          className="pointer-events-none object-contain"
           draggable={false}
         />
       ) : element.type === "character" ? (
@@ -254,6 +265,7 @@ function CanvasElementView({
 }
 
 export function StudioCanvas() {
+  const { text } = useStudioI18n();
   const {
     elements,
     selectedId,
@@ -270,6 +282,10 @@ export function StudioCanvas() {
     customBackgroundUrl,
     setCustomBackgroundUrl,
     setCustomBackgroundOriginalName,
+    canUndo,
+    canRedo,
+    undo,
+    redo,
   } = useStudio();
 
   const currentTemplate = templates.find(
@@ -290,84 +306,14 @@ export function StudioCanvas() {
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [isPanning, setIsPanning] = useState(false);
-
-  const selectedIdRef = useRef<string | null>(selectedId ?? null);
-  const selectionHistoryRef = useRef<(string | null)[]>([selectedId ?? null]);
-  const selectionIndexRef = useRef(0);
-  const [, forceSelectionHistoryRender] = useState(0);
-
-  const bumpSelectionHistoryRender = () => {
-    forceSelectionHistoryRender((value) => value + 1);
-  };
-
-  useEffect(() => {
-    const current = selectedId ?? null;
-
-    if (selectedIdRef.current === current) return;
-
-    selectedIdRef.current = current;
-
-    if (selectionHistoryRef.current[selectionIndexRef.current] === current) {
-      return;
-    }
-
-    const nextHistory = selectionHistoryRef.current.slice(
-      0,
-      selectionIndexRef.current + 1,
-    );
-
-    nextHistory.push(current);
-
-    selectionHistoryRef.current = nextHistory.slice(-50);
-    selectionIndexRef.current = selectionHistoryRef.current.length - 1;
-
-    bumpSelectionHistoryRender();
-  }, [selectedId]);
+  const [fitMode, setFitMode] = useState(true);
 
   const commitSelection = useCallback(
     (nextId: string | null) => {
-      if (selectedIdRef.current === nextId) return;
-
-      selectedIdRef.current = nextId;
-
-      const nextHistory = selectionHistoryRef.current.slice(
-        0,
-        selectionIndexRef.current + 1,
-      );
-
-      nextHistory.push(nextId);
-
-      selectionHistoryRef.current = nextHistory.slice(-50);
-      selectionIndexRef.current = selectionHistoryRef.current.length - 1;
-
       setSelectedId(nextId);
-      bumpSelectionHistoryRender();
     },
     [setSelectedId],
   );
-
-  const goSelectionHistory = useCallback(
-    (direction: -1 | 1) => {
-      const nextIndex = selectionIndexRef.current + direction;
-
-      if (nextIndex < 0 || nextIndex >= selectionHistoryRef.current.length) {
-        return;
-      }
-
-      selectionIndexRef.current = nextIndex;
-
-      const nextId = selectionHistoryRef.current[nextIndex] ?? null;
-
-      selectedIdRef.current = nextId;
-      setSelectedId(nextId);
-      bumpSelectionHistoryRender();
-    },
-    [setSelectedId],
-  );
-
-  const canUndoSelection = selectionIndexRef.current > 0;
-  const canRedoSelection =
-    selectionIndexRef.current < selectionHistoryRef.current.length - 1;
 
   useEffect(() => {
     const node = viewportRef.current;
@@ -452,14 +398,17 @@ export function StudioCanvas() {
     return Math.min(1, usableW / contentOuterW, usableH / contentOuterH);
   }, [contentOuterH, contentOuterW, viewportSize.height, viewportSize.width]);
 
-  const previewScale = fitScale * zoom;
+  const previewScale = fitMode ? fitScale : zoom;
   const scaledW = contentOuterW * previewScale;
   const scaledH = contentOuterH * previewScale;
-  const isZoomedIn = zoom > 1.001;
+  const isCanvasOverflowing =
+    viewportSize.width > 0 &&
+    viewportSize.height > 0 &&
+    (scaledW + 48 > viewportSize.width || scaledH + 48 > viewportSize.height);
 
-  const scrollPadX = isZoomedIn ? 84 : 32;
-  const scrollPadTop = isZoomedIn ? 84 : 34;
-  const scrollPadBottom = isZoomedIn ? 132 : 92;
+  const scrollPadX = isCanvasOverflowing ? 48 : 24;
+  const scrollPadTop = isCanvasOverflowing ? 48 : 24;
+  const scrollPadBottom = isCanvasOverflowing ? 64 : 24;
 
   const dragRef = useRef<{
     id: string;
@@ -570,7 +519,7 @@ export function StudioCanvas() {
   };
 
   const handleCanvasPointerDown = (event: PointerEvent<HTMLDivElement>) => {
-    if (!isZoomedIn || event.button !== 0) return;
+    if (!isCanvasOverflowing || event.button !== 0) return;
 
     const target = event.target;
 
@@ -648,6 +597,7 @@ export function StudioCanvas() {
     centerFractionRef.current = null;
   }, [
     zoom,
+    fitMode,
     canvasW,
     canvasH,
     fitScale,
@@ -678,7 +628,7 @@ export function StudioCanvas() {
       setCustomBackgroundOriginalName(uploaded.originalName);
     } catch (error) {
       setUploadError(
-        error instanceof Error ? error.message : "Không tải được ảnh lên",
+        error instanceof Error ? error.message : text.canvas.uploadError,
       );
     } finally {
       setUploadingBackground(false);
@@ -715,17 +665,32 @@ export function StudioCanvas() {
 
   const increaseZoom = () => {
     captureCenterFraction();
-    setZoom(Math.min(1.8, Number((zoom + 0.1).toFixed(2))));
+    setFitMode(false);
+    setZoom(
+      ZOOM_LEVELS.find((level) => level > previewScale + 0.001) ??
+        2,
+    );
   };
 
   const decreaseZoom = () => {
     captureCenterFraction();
-    setZoom(Math.max(0.7, Number((zoom - 0.1).toFixed(2))));
+    setFitMode(false);
+    setZoom(
+      [...ZOOM_LEVELS].reverse().find(
+        (level) => level < previewScale - 0.001,
+      ) ?? 0.5,
+    );
   };
 
   const resetZoom = () => {
-    centerFractionRef.current = null;
+    captureCenterFraction();
+    setFitMode(false);
     setZoom(1);
+  };
+
+  const fitCanvas = () => {
+    centerFractionRef.current = null;
+    setFitMode(true);
   };
 
   return (
@@ -738,34 +703,63 @@ export function StudioCanvas() {
         onClick={(event) => event.stopPropagation()}
       >
         <div className="flex shrink-0 items-center gap-1 rounded-full border border-slate-200/70 bg-white/90 px-1.5 py-1 shadow-sm backdrop-blur">
-          <ToolbarIconButton title="Reset zoom" onClick={resetZoom}>
-            <RotateCcw className="h-4 w-4" />
+          <ToolbarIconButton title={text.canvas.fitCanvas} onClick={fitCanvas}>
+            <Maximize2 className="h-4 w-4" />
           </ToolbarIconButton>
+
+          <button
+            type="button"
+            title={text.canvas.actualSize}
+            onClick={resetZoom}
+            className="h-8 rounded-full px-2 text-xs font-semibold text-slate-500 outline-none transition-colors hover:bg-[#f4f9fd] hover:text-[#2f91d0] focus-visible:ring-2 focus-visible:ring-[#9ed0ef]/60"
+          >
+            100%
+          </button>
 
           <div className="h-5 w-px bg-[#dce7f0]" />
 
-          <ToolbarIconButton title="Thu nhỏ" onClick={decreaseZoom}>
+          <ToolbarIconButton title={text.canvas.zoomOut} onClick={decreaseZoom}>
             <Minus className="h-4 w-4" />
           </ToolbarIconButton>
 
-          <span className="min-w-[54px] text-center text-sm font-semibold text-slate-700">
-            {Math.round(zoom * 100)}%
-          </span>
+          <select
+            aria-label={`${text.canvas.zoomOut} / ${text.canvas.zoomIn}`}
+            value={fitMode ? "fit" : String(zoom)}
+            onChange={(event) => {
+              captureCenterFraction();
 
-          <ToolbarIconButton title="Phóng to" onClick={increaseZoom}>
+              if (event.target.value === "fit") {
+                setFitMode(true);
+                return;
+              }
+
+              setFitMode(false);
+              setZoom(Number(event.target.value));
+            }}
+            className="h-8 min-w-[68px] cursor-pointer appearance-none rounded-full border-0 bg-transparent px-2 text-center text-sm font-semibold text-slate-700 outline-none transition-colors hover:bg-[#f4f9fd] focus-visible:ring-2 focus-visible:ring-[#9ed0ef]/60"
+          >
+            <option value="fit">{text.canvas.fitCanvas}</option>
+            {ZOOM_LEVELS.map((level) => (
+              <option key={level} value={level}>
+                {Math.round(level * 100)}%
+              </option>
+            ))}
+          </select>
+
+          <ToolbarIconButton title={text.canvas.zoomIn} onClick={increaseZoom}>
             <Plus className="h-4 w-4" />
           </ToolbarIconButton>
         </div>
 
         <div className="flex shrink-0 items-center gap-1.5">
           <ToolbarTextButton
-            title="Thêm chữ"
-            label="Thêm chữ"
+            title={text.canvas.addText}
+            label={text.canvas.addText}
             icon={<Type className="h-3.5 w-3.5" />}
             onClick={() =>
               addElement({
                 type: "text",
-                content: "Văn bản mới",
+                content: text.canvas.newText,
                 x: 120 + Math.random() * 160,
                 y: 120 + Math.random() * 160,
                 fontSize: 14,
@@ -775,8 +769,10 @@ export function StudioCanvas() {
           />
 
           <ToolbarTextButton
-            title="Thêm hình ảnh"
-            label={uploadingBackground ? "Đang tải..." : "Hình ảnh"}
+            title={text.canvas.addImage}
+            label={
+              uploadingBackground ? text.common.loading : text.canvas.image
+            }
             tone="success"
             disabled={uploadingBackground}
             icon={<ImageIcon className="h-3.5 w-3.5" />}
@@ -797,24 +793,24 @@ export function StudioCanvas() {
         <div className="flex shrink-0 items-center gap-1.5">
           <div className="hidden items-center gap-1 rounded-full border border-slate-200/70 bg-white/90 px-1.5 py-1 shadow-sm backdrop-blur lg:flex">
             <ToolbarIconButton
-              title="Quay lại lựa chọn trước"
-              disabled={!canUndoSelection}
-              onClick={() => goSelectionHistory(-1)}
+              title={text.canvas.undo}
+              disabled={!canUndo}
+              onClick={undo}
             >
               <Undo className="h-4 w-4" />
             </ToolbarIconButton>
 
             <ToolbarIconButton
-              title="Tiến tới lựa chọn sau"
-              disabled={!canRedoSelection}
-              onClick={() => goSelectionHistory(1)}
+              title={text.canvas.redo}
+              disabled={!canRedo}
+              onClick={redo}
             >
               <Redo className="h-4 w-4" />
             </ToolbarIconButton>
           </div>
 
           <ToolbarIconButton
-            title="Xóa"
+            title={text.canvas.delete}
             tone={selectedId ? "danger" : "default"}
             disabled={!selectedId}
             onClick={removeSelectedElement}
@@ -822,19 +818,19 @@ export function StudioCanvas() {
             <Trash2 className="h-4 w-4" />
           </ToolbarIconButton>
 
-          <ToolbarIconButton title="Chia sẻ">
+          <ToolbarIconButton title={text.canvas.shareUnavailable} disabled>
             <Share2 className="h-4 w-4" />
           </ToolbarIconButton>
         </div>
       </div>
 
-      <div
-        ref={viewportRef}
-        className="relative flex min-h-0 flex-1 px-4 pb-8 pt-[62px] sm:px-5 sm:pb-9"
-      >
+      <div className="relative flex min-h-0 flex-1 px-4 pb-8 pt-[62px] sm:px-5 sm:pb-9">
         <DecorativeCanvasIcons />
 
-        <div className="relative mx-auto min-h-0 w-full max-w-[980px] flex-1 overflow-hidden rounded-[28px] border border-slate-200/60 bg-white/70 shadow-[0_24px_60px_-40px_rgba(15,23,42,0.28)] backdrop-blur-sm">
+        <div
+          ref={viewportRef}
+          className="relative mx-auto min-h-0 w-full max-w-[980px] flex-1 overflow-hidden rounded-[28px] border border-slate-200/60 bg-white/70 shadow-sm backdrop-blur-sm"
+        >
           <div
             ref={scrollRef}
             onPointerDown={handleCanvasPointerDown}
@@ -842,19 +838,16 @@ export function StudioCanvas() {
             onPointerUp={handleCanvasPointerUp}
             onPointerCancel={handleCanvasPointerUp}
             className={[
-              "h-full w-full min-w-0 overflow-scroll overscroll-contain admin-scrollbar",
-              isZoomedIn
+              "h-full w-full min-w-0 overflow-auto overscroll-contain",
+              isCanvasOverflowing
                 ? isPanning
                   ? "cursor-grabbing"
                   : "cursor-grab"
                 : "cursor-default",
             ].join(" ")}
-            style={{
-              scrollbarGutter: "stable both-edges",
-            }}
           >
             <div
-              className="flex items-start justify-center"
+              className="flex box-border items-center justify-center"
               style={{
                 minWidth: Math.max(
                   viewportSize.width,
@@ -907,11 +900,16 @@ export function StudioCanvas() {
                   >
                     {!activeTemplateImage && elements.length === 0 ? (
                       <div className="pointer-events-none absolute inset-8 flex flex-col items-center justify-center rounded-[18px] border border-dashed border-[#c8dced] bg-white/52 text-[#7e97b4]">
+                        <DecorativeIcon
+                          src={DECORATIVE_ICON_PATHS.framedPicture}
+                          size="md"
+                          className="mb-2 opacity-90"
+                        />
                         <span className="text-center text-sm font-semibold">
-                          Khu vực thiết kế
+                          {text.canvas.emptyTitle}
                         </span>
                         <span className="mt-1 max-w-[180px] text-center text-xs opacity-75">
-                          Chọn mẫu hoặc thêm chữ và phụ kiện để bắt đầu
+                          {text.canvas.emptyDescription}
                         </span>
                       </div>
                     ) : null}

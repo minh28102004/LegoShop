@@ -416,38 +416,49 @@ function CatalogImageBox({
   className?: string;
   children?: ReactNode;
 }) {
-  const [errored, setErrored] = useState(false);
-  const showFallback = !src || errored;
-
-  useEffect(() => {
-    setErrored(false);
-  }, [src]);
-
   return (
     <div
       className={`catalog-shine relative aspect-[4/3] min-h-[188px] overflow-hidden bg-gradient-to-br from-[#f3ecdf] via-white to-[#e8e0d1] ${className}`}
     >
-      {showFallback ? (
-        <div className="flex h-full w-full flex-col items-center justify-center gap-2 text-slate-300">
-          <Package className="h-9 w-9" strokeWidth={1.5} />
-          <span className="text-[11px] font-semibold text-slate-400">
-            Chưa có ảnh
-          </span>
-        </div>
-      ) : (
-        <Image
-          src={src as string}
-          alt={alt}
-          fill
-          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-          onError={() => setErrored(true)}
-          className={`transition-transform duration-700 ease-out group-hover:scale-[1.05] ${
-            fit === "contain" ? "object-contain p-5" : "object-cover"
-          }`}
-        />
-      )}
+      <CatalogImage key={src ?? "missing"} src={src} alt={alt} fit={fit} />
       {children}
     </div>
+  );
+}
+
+function CatalogImage({
+  src,
+  alt,
+  fit,
+}: {
+  src: string | null;
+  alt: string;
+  fit: "contain" | "cover";
+}) {
+  const [errored, setErrored] = useState(false);
+
+  if (!src || errored) {
+    return (
+      <div className="flex h-full w-full flex-col items-center justify-center gap-2 text-slate-300">
+        <Package className="h-9 w-9" strokeWidth={1.5} />
+        <span className="text-[11px] font-semibold text-slate-400">
+          Chưa có ảnh
+        </span>
+      </div>
+    );
+  }
+
+  return (
+    <Image
+      src={src}
+      alt={alt}
+      fill
+      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+      onError={() => setErrored(true)}
+      className={`transition-transform duration-700 ease-out group-hover:scale-[1.05] ${
+        fit === "contain" ? "object-contain p-5" : "object-cover"
+      }`}
+    />
   );
 }
 

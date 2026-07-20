@@ -118,7 +118,7 @@ function getLegacyCustomParts(item: SimpleCartItem): CartItemPart[] {
     const background = makePart({
       id: designData.backgroundId,
       type: "background",
-      name: designData.backgroundName ?? "Nen anh tuy chinh",
+      name: designData.backgroundName ?? "Nền ảnh tùy chỉnh",
       quantity: item.quantity,
       unitPrice: 0,
       imageUrl: backgroundImage,
@@ -129,7 +129,7 @@ function getLegacyCustomParts(item: SimpleCartItem): CartItemPart[] {
       const part = makePart({
         id: character.catalogId ?? character.id,
         type: "character",
-        name: character.name ?? `Nhan vat ${index + 1}`,
+        name: character.name ?? `Nhân vật ${index + 1}`,
         quantity: item.quantity,
         unitPrice: character.price ?? DEFAULT_CHARACTER_PRICE,
         imageUrl: character.imageUrl,

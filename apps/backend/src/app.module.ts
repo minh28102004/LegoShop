@@ -1,7 +1,7 @@
-import { Module } from "@nestjs/common";
-import { ConfigModule } from "@nestjs/config";
-import { AppController } from "./app.controller";
-import { AppService } from "./app.service";
+import { Module } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
+import { AppController } from './app.controller';
+import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
 import { ProductsModule } from './products/products.module';
 import { TemplatesModule } from './templates/templates.module';
@@ -31,10 +31,40 @@ import { CharacterPartsModule } from './character-parts/character-parts.module';
 import { CharacterPresetsModule } from './character-presets/character-presets.module';
 
 @Module({
-  imports: [ConfigModule.forRoot({
-      isGlobal: true
-    }), AuthModule, ProductsModule, TemplatesModule, AccessoriesModule, BannersModule, CollectionsModule, FrameBackgroundsModule, UploadsModule, PaymentSettingsModule, PaymentsModule, OrdersModule, AdminOrdersModule, BusinessInquiriesModule, AdminBusinessInquiriesModule, AdminDashboardModule, TemplateCategoriesModule, AccessoryCategoriesModule, FrameSizesModule, FrameColorsModule, FrameOptionsModule, PrismaModule, UsersModule, UserDesignsModule, VouchersModule, CharactersModule, CharacterPartsModule, CharacterPresetsModule],
+  imports: [
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: ['.env.local', '.env'],
+    }),
+    AuthModule,
+    ProductsModule,
+    TemplatesModule,
+    AccessoriesModule,
+    BannersModule,
+    CollectionsModule,
+    FrameBackgroundsModule,
+    UploadsModule,
+    PaymentSettingsModule,
+    PaymentsModule,
+    OrdersModule,
+    AdminOrdersModule,
+    BusinessInquiriesModule,
+    AdminBusinessInquiriesModule,
+    AdminDashboardModule,
+    TemplateCategoriesModule,
+    AccessoryCategoriesModule,
+    FrameSizesModule,
+    FrameColorsModule,
+    FrameOptionsModule,
+    PrismaModule,
+    UsersModule,
+    UserDesignsModule,
+    VouchersModule,
+    CharactersModule,
+    CharacterPartsModule,
+    CharacterPresetsModule,
+  ],
   controllers: [AppController],
-  providers: [AppService]
+  providers: [AppService],
 })
 export class AppModule {}

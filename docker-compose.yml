@@ -24,9 +24,16 @@ services:
     environment:
       - NODE_ENV=production
 
+    # Imported media must survive image/container replacement.
+    volumes:
+      - legoshop-uploads:/app/public/uploads
+
     # Quản lý giới hạn log (chống đầy ổ cứng VPS)
     logging:
       driver: "json-file"
       options:
         max-size: "10m"
         max-file: "3"
+
+volumes:
+  legoshop-uploads:

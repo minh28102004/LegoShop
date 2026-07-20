@@ -1,54 +1,92 @@
 "use client";
 
 import { Check } from "lucide-react";
+import toast from "react-hot-toast";
+
+import {
+  DEFAULT_PANEL_TAB_BY_STEP,
+  DEFAULT_TOOL_BY_STEP,
+  STUDIO_STEP_INDEX,
+  STUDIO_STEPS,
+  type StudioStep,
+} from "../state/studio.types";
+import { useStudioI18n } from "../hooks/useStudioI18n";
 import { useStudio } from "./StudioContext";
 
-const steps = [
-  { num: 1, label: "Chọn khung" },
-  { num: 2, label: "Nội dung" },
-  { num: 3, label: "Nhân vật" },
-  { num: 4, label: "Hoàn tất" },
-];
-
 export function StudioStepper() {
-  const { step, setStep } = useStudio();
+  const {
+    activeStep,
+    setActiveStep,
+    validateStep,
+    setActiveTool,
+    setActivePanelTab,
+    setIsContextPanelCollapsed,
+  } = useStudio();
+  const { text } = useStudioI18n();
+  const steps = STUDIO_STEPS.map((id, index) => ({
+    id,
+    number: index + 1,
+    label: text.steps[index],
+  }));
+  const activeIndex = STUDIO_STEP_INDEX[activeStep];
 
-  const progressPercent =
-    ((Math.max(1, Math.min(step, steps.length)) - 1) / (steps.length - 1)) *
-    100;
+  function activateStep(targetStep: StudioStep) {
+    setActiveStep(targetStep);
+    setActiveTool(DEFAULT_TOOL_BY_STEP[targetStep]);
+    setActivePanelTab(DEFAULT_PANEL_TAB_BY_STEP[targetStep]);
+    setIsContextPanelCollapsed(false);
+  }
+
+  function handleStepChange(targetStep: StudioStep) {
+    const targetIndex = STUDIO_STEP_INDEX[targetStep];
+    if (targetIndex <= activeIndex) {
+      activateStep(targetStep);
+      return;
+    }
+
+    for (let index = activeIndex; index < targetIndex; index += 1) {
+      const stepToValidate = STUDIO_STEPS[index];
+      if (!stepToValidate) continue;
+
+      const validation = validateStep(stepToValidate);
+      if (!validation.isValid) {
+        toast.error(validation.summaryErrors[0] ?? text.toast.validationError);
+        return;
+      }
+    }
+
+    activateStep(targetStep);
+  }
+
+  const progressPercent = (activeIndex / (steps.length - 1)) * 100;
 
   return (
-    <div className="w-full max-w-[660px] overflow-x-auto overflow-y-visible py-2 scrollbar-hide">
-      <div className="relative flex min-w-[600px] items-center justify-between">
-        <div className="pointer-events-none absolute left-7 right-7 top-1/2 z-0 h-[2px] -translate-y-1/2 rounded-full bg-[#dbe7f1]" />
-
+    <div className="mx-auto w-full max-w-[760px] overflow-x-auto overflow-y-visible py-1 scrollbar-hide">
+      <div className="relative flex min-w-[680px] items-center justify-between">
+        <div className="pointer-events-none absolute left-5 right-5 top-1/2 z-0 h-px -translate-y-1/2 bg-[#dbe7f1]" />
         <div
-          className="pointer-events-none absolute left-7 top-1/2 z-0 h-[2px] -translate-y-1/2 rounded-full bg-[#2f91d0] transition-[width] duration-500 ease-out"
-          style={{
-            width: `calc((100% - 56px) * ${progressPercent / 100})`,
-          }}
+          className="pointer-events-none absolute left-5 top-1/2 z-0 h-px -translate-y-1/2 bg-[#2f91d0] transition-[width] duration-500 ease-out motion-reduce:transition-none"
+          style={{ width: `calc((100% - 40px) * ${progressPercent / 100})` }}
         />
 
-        {steps.map((item) => {
-          const isPast = step > item.num;
-          const isActive = step === item.num;
+        {steps.map((item, index) => {
+          const isPast = activeIndex > index;
+          const isActive = activeStep === item.id;
 
           return (
             <button
-              key={item.num}
+              key={item.id}
               type="button"
-              onClick={() => setStep(item.num)}
+              onClick={() => handleStepChange(item.id)}
               aria-current={isActive ? "step" : undefined}
               className={[
-                "group relative z-10 box-border inline-flex h-10 shrink-0 items-center gap-2 rounded-full border-2 px-4 text-sm font-semibold",
-                "transition-all duration-200 ease-out",
-                "outline-none focus:outline-none focus:ring-0 focus-visible:ring-2 focus-visible:ring-[#9ed0ef]/60",
-                "hover:-translate-y-px active:translate-y-0",
+                "group relative z-10 inline-flex h-9 shrink-0 items-center gap-2 rounded-full border px-3 text-[13px] font-semibold",
+                "outline-none transition-colors duration-200 ease-out focus-visible:ring-2 focus-visible:ring-[#9ed0ef]/70 motion-reduce:transition-none",
                 isActive
-                  ? "border-[#2f91d0] bg-[#2f91d0] text-white shadow-none"
+                  ? "border-[#2f91d0] bg-[#2f91d0] text-white ring-1 ring-inset ring-[#7fc2ea]/70"
                   : isPast
-                    ? "border-[#7fc2ea] bg-white text-[#2f91d0] shadow-none hover:border-[#2f91d0] hover:bg-[#f4faff]"
-                    : "border-[#dbe7f1] bg-white text-slate-500 shadow-none hover:border-[#b9d8ed] hover:bg-[#f8fbff] hover:text-slate-800",
+                    ? "border-[#9ed0ef] bg-white text-[#2f91d0] hover:border-[#70bde9] hover:bg-[#f8fbff]"
+                    : "border-[#dbe7f1] bg-white text-slate-500 hover:border-[#b9d8ed] hover:bg-[#f8fbff] hover:text-slate-800",
               ].join(" ")}
             >
               <span
@@ -58,19 +96,12 @@ export function StudioStepper() {
                     ? "bg-white text-[#2f91d0]"
                     : isPast
                       ? "bg-[#2f91d0] text-white"
-                      : "bg-slate-200 text-slate-600 group-hover:bg-[#d9edf9] group-hover:text-[#2f91d0]",
+                      : "bg-slate-100 text-slate-600 group-hover:bg-[#e9f5fc] group-hover:text-[#2f91d0]",
                 ].join(" ")}
               >
-                {isPast ? (
-                  <Check className="h-3 w-3" strokeWidth={3} />
-                ) : (
-                  item.num
-                )}
+                {isPast ? <Check className="h-3 w-3" strokeWidth={3} /> : item.number}
               </span>
-
-              <span className="whitespace-nowrap leading-none">
-                {item.label}
-              </span>
+              <span className="whitespace-nowrap leading-none">{item.label}</span>
             </button>
           );
         })}

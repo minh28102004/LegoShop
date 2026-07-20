@@ -18,12 +18,13 @@ export function uploadCustomerImage(file: File) {
   });
 }
 
-export function uploadPreviewImage(file: File) {
+export function uploadPreviewImage(file: File, signal?: AbortSignal) {
   const formData = new FormData();
   formData.append("file", file);
 
   return publicApiClient.request<UploadedImageResponse>("uploads/previews/image", {
     method: "POST",
     body: formData,
+    ...(signal ? { signal } : {}),
   });
 }

@@ -1,4 +1,13 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { FrameSizesService } from './frame-sizes.service';
 import { CreateFrameSizeDto } from './dto/create-frame-size.dto';
@@ -39,10 +48,7 @@ export class FrameSizesController {
   @Patch('admin/frame-sizes/:id')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  update(
-    @Param('id') id: string,
-    @Body() updateDto: UpdateFrameSizeDto,
-  ) {
+  update(@Param('id') id: string, @Body() updateDto: UpdateFrameSizeDto) {
     return this.frameSizesService.update(id, updateDto);
   }
 

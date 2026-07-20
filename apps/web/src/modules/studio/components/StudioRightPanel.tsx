@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useState, useMemo, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { formatCurrency as formatPrice } from "@lego-shop/shared";
@@ -9,29 +10,34 @@ import {
   type ApiCharacterPreset,
   type ApiFrameSize,
   type StudioCharacterInput,
-  type StudioCharacterPartSnapshot,
   type StudioContentField,
   type StudioElement,
 } from "./StudioContext";
 import {
   Search,
-  ShoppingCart,
   Zap,
   UploadCloud,
   Check,
   ChevronLeft,
   ChevronRight,
-  ArrowRight,
   AlertCircle,
   X,
   CalendarDays,
+  PanelRightClose,
 } from "lucide-react";
-import { useCartStore, type CartItemPart } from "@/features/cart/store";
-import { useUIStore } from "@/features/ui/store";
-import { UI_MODAL_IDS } from "@/config/routes";
 import { uploadCustomerImage } from "@/lib/api/uploads";
-import { isPersistableImageUrl } from "../lib/design-data";
-import type { CustomFrameDesignData, JsonObject } from "@lego-shop/shared";
+import { Modal } from "@/components/ui/Modal";
+import { useStudioI18n } from "../hooks/useStudioI18n";
+import { StudioReviewPanel } from "./StudioReviewPanel";
+import { StudioSidebar } from "./StudioSidebar";
+import { StudioSearchableMultiSelect } from "./StudioSearchableMultiSelect";
+import {
+  DEFAULT_PANEL_TAB_BY_STEP,
+  DEFAULT_TOOL_BY_STEP,
+  STUDIO_STEPS,
+  STUDIO_STEP_INDEX,
+  type StudioStep,
+} from "../state/studio.types";
 
 const getFrameColorHex = (name: string, apiHex?: string | null): string => {
   if (apiHex && apiHex.startsWith("#")) return apiHex;
@@ -42,264 +48,168 @@ const getFrameColorHex = (name: string, apiHex?: string | null): string => {
   return "#d1d5db";
 };
 
-const STUDIO_CANVAS_MAX_BOUND = 500;
-const STUDIO_CANVAS_MIN_BOUND = 240;
-
-function parseFrameDimensions(label?: string | null) {
-  const match = label?.match(/(\d+(?:\.\d+)?)\s*x\s*(\d+(?:\.\d+)?)/i);
-
-  if (match?.[1] && match?.[2]) {
-    return {
-      width: Number(match[1]),
-      height: Number(match[2]),
-    };
-  }
-
-  return { width: 30, height: 30 };
-}
-
-function getFrameDimensions(size?: ApiFrameSize | null) {
-  if (
-    typeof size?.widthCm === "number" &&
-    Number.isFinite(size.widthCm) &&
-    typeof size.heightCm === "number" &&
-    Number.isFinite(size.heightCm)
-  ) {
-    return {
-      width: size.widthCm,
-      height: size.heightCm,
-    };
-  }
-
-  return parseFrameDimensions(size?.label);
-}
-
-function getStudioCanvasSize(
-  selectedSize: ApiFrameSize | null | undefined,
-  allSizes: ApiFrameSize[],
-) {
-  const parsedSizes = allSizes.map(getFrameDimensions);
-  const maxDim =
-    parsedSizes.length > 0
-      ? Math.max(...parsedSizes.map((size) => Math.max(size.width, size.height)), 30)
-      : 30;
-  const currentSize = getFrameDimensions(selectedSize);
-
-  return {
-    width: Math.max(
-      STUDIO_CANVAS_MIN_BOUND,
-      Math.round((currentSize.width / maxDim) * STUDIO_CANVAS_MAX_BOUND),
-    ),
-    height: Math.max(
-      STUDIO_CANVAS_MIN_BOUND,
-      Math.round((currentSize.height / maxDim) * STUDIO_CANVAS_MAX_BOUND),
-    ),
-  };
-}
-
-function serializeCharacterPart(part: StudioCharacterPartSnapshot): JsonObject {
-  return {
-    id: part.id,
-    name: part.name,
-    type: part.type,
-    imageUrl: part.imageUrl,
-  };
-}
-
-function serializeCharacterParts(parts: StudioElement["characterParts"]): JsonObject {
-  const serialized: JsonObject = {};
-  if (!parts) return serialized;
-
-  Object.entries(parts).forEach(([key, value]) => {
-    if (!value) return;
-
-    if (Array.isArray(value)) {
-      serialized[key] = value.map(serializeCharacterPart);
-      return;
-    }
-
-    serialized[key] = serializeCharacterPart(value);
-  });
-
-  return serialized;
-}
-
-function NoButtonChromeStyle() {
-  return (
-    <style>{`
- .studio-no-button-chrome button {
- -webkit-appearance: none !important;
- appearance: none !important;
- box-shadow: none !important;
- filter: none !important;
- outline: none !important;
- -webkit-tap-highlight-color: transparent;
- background-image: none;
- }
-
- .studio-no-button-chrome button:focus,
- .studio-no-button-chrome button:focus-visible,
- .studio-no-button-chrome button:active {
- box-shadow: none !important;
- outline: none !important;
- }
-
- .studio-no-button-chrome button[data-flat-button="true"],
- .studio-no-button-chrome button:not([class*="border"]) {
- border: 0 !important;
- border-width: 0 !important;
- border-style: solid !important;
- border-color: transparent !important;
- }
-
- .studio-no-button-chrome button:disabled {
- box-shadow: none !important;
- filter: none !important;
- transform: none !important;
- border: 0 !important;
- border-color: transparent !important;
- }
-
- .studio-no-button-chrome button[data-soft-border="true"] {
- border-style: solid !important;
- border-width: 1px !important;
- }
-
- .studio-no-button-chrome button[data-flat-button="true"] {
- position: relative;
- overflow: hidden;
- }
-
- .studio-no-button-chrome button:not(:disabled) {
- transition-property: background-color, border-color, color, opacity, transform;
- transition-duration: 180ms;
- transition-timing-function: ease;
- }
-
- .studio-no-button-chrome button:not(:disabled):hover {
- transform: translateY(-1px);
- }
-
- .studio-no-button-chrome button:not(:disabled):active {
- transform: translateY(0);
- }
-
- .studio-no-button-chrome button[data-flat-button="true"]::after {
- content: "";
- pointer-events: none;
- position: absolute;
- top: 0;
- bottom: 0;
- left: -56%;
- width: 44%;
- transform: skewX(-16deg);
- background: linear-gradient(90deg, transparent, rgba(255,255,255,0.26), transparent);
- opacity: 0;
- }
-
- .studio-no-button-chrome button[data-flat-button="true"]:not(:disabled):hover::after {
- left: 115%;
- opacity: 1;
- transition: left 620ms ease, opacity 260ms ease;
- }
- `}</style>
-  );
-}
-
-function getMissingRequiredContentField(
-  fields: StudioContentField[],
-  values: Record<string, string>,
-) {
-  return fields.find((field) => field.required && !values[field.key]?.trim());
-}
-
 export function StudioRightPanel() {
   const {
-    step,
-    setStep,
+    activeStep,
+    setActiveStep,
     totalPrice,
-    frameSize,
-    contentFields,
-    contentValues,
     isLoadingData,
     dataError,
+    validateStep,
+    activeTool,
+    setActiveTool,
+    activePanelTab,
+    setActivePanelTab,
+    setIsContextPanelCollapsed,
   } = useStudio();
+  const { text } = useStudioI18n();
+  const currentStepIndex = STUDIO_STEP_INDEX[activeStep];
 
   const validationMessage = useMemo(() => {
-    if (isLoadingData) return "Đang tải dữ liệu thiết kế...";
+    if (isLoadingData) return text.common.loading;
     if (dataError) return dataError;
-    if (step === 1 && !frameSize) return "Vui lòng chọn khung.";
-    if (step === 2) {
-      const missingField = getMissingRequiredContentField(
-        contentFields,
-        contentValues,
-      );
-      if (missingField)
-        return `Vui lòng nhập ${missingField.label.toLowerCase()} để tiếp tục.`;
-    }
-    return null;
-  }, [contentFields, contentValues, dataError, frameSize, isLoadingData, step]);
+    return validateStep(activeStep).summaryErrors[0] ?? null;
+  }, [activeStep, dataError, isLoadingData, text.common.loading, validateStep]);
   const canContinue = !validationMessage;
+
+  const activateStep = (nextStep: StudioStep) => {
+    setActiveStep(nextStep);
+    setActiveTool(DEFAULT_TOOL_BY_STEP[nextStep]);
+    setActivePanelTab(DEFAULT_PANEL_TAB_BY_STEP[nextStep]);
+    setIsContextPanelCollapsed(false);
+  };
 
   const handleNext = () => {
     if (!canContinue) return;
-    setStep(Math.min(4, step + 1));
+    const nextStep = STUDIO_STEPS[currentStepIndex + 1];
+    if (nextStep) activateStep(nextStep);
   };
-  const handleBack = () => setStep(Math.max(1, step - 1));
+  const handleBack = () => {
+    const previousStep = STUDIO_STEPS[currentStepIndex - 1];
+    if (previousStep) activateStep(previousStep);
+  };
+
+  const panelTitle = text.workflow[activeStep];
+
+  const contextualContent = (() => {
+    if (activeStep === "review" || activePanelTab === "review") {
+      return <StudioReviewPanel />;
+    }
+    if (
+      activeStep === "characters" ||
+      activePanelTab === "characters" ||
+      activePanelTab === "accessories"
+    ) {
+      return <Step3Characters />;
+    }
+    if (activeStep === "frame" || activePanelTab === "frame") {
+      return <Step1Frame />;
+    }
+    if (
+      activeStep === "background" ||
+      activePanelTab === "templates" ||
+      activePanelTab === "backgrounds"
+    ) {
+      return (
+        <div className="space-y-5">
+          <Step2Content mode="background" />
+          <StudioSidebar embedded />
+        </div>
+      );
+    }
+    if (
+      activeStep === "content" ||
+      activePanelTab === "information" ||
+      activePanelTab === "uploads" ||
+      activePanelTab === "add-text" ||
+      activePanelTab === "formatting"
+    ) {
+      return (
+        <div className="space-y-5">
+          <Step2Content mode="content" />
+          <StudioSidebar embedded />
+        </div>
+      );
+    }
+    return <StudioSidebar embedded />;
+  })();
 
   return (
-    <div className="studio-no-button-chrome z-20 flex h-full min-h-0 w-full shrink-0 flex-col bg-white">
-      <NoButtonChromeStyle />
-      {/* Body: only this area scrolls */}
-      <div className="min-h-0 flex-1 overflow-y-auto bg-[linear-gradient(180deg,#ffffff_0%,#fbfdff_100%)] px-5 py-5 pb-6 admin-scrollbar">
-        <div className="animate-fade-in space-y-5">
-          {step === 1 && <Step1Frame />}
-          {step === 2 && <Step2Content />}
-          {step === 3 && <Step3Characters />}
-          {step === 4 && <Step4Finish />}
+    <div className="z-20 flex h-full min-h-0 w-full shrink-0 flex-col bg-white">
+      <div className="relative flex h-16 shrink-0 items-center justify-between gap-3 border-b border-[#e5edf5] px-4 pt-2 lg:h-14 lg:pt-0">
+        <span
+          aria-hidden="true"
+          className="absolute left-1/2 top-2 h-1 w-10 -translate-x-1/2 rounded-full bg-slate-200 lg:hidden"
+        />
+        <div className="min-w-0">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#2f91d0]">
+            Studio
+          </p>
+          <h2 className="truncate text-base font-bold text-slate-950">
+            {panelTitle}
+          </h2>
+        </div>
+        <button
+          type="button"
+          data-studio-panel-close
+          onClick={() => setIsContextPanelCollapsed(true)}
+          aria-label={text.common.closePanel}
+          className="grid h-9 w-9 shrink-0 place-items-center rounded-xl text-slate-400 outline-none transition-colors duration-200 hover:bg-slate-100 hover:text-slate-800 focus-visible:ring-2 focus-visible:ring-[#9ed0ef]/60"
+        >
+          <X className="h-[18px] w-[18px] lg:hidden" />
+          <PanelRightClose className="hidden h-[18px] w-[18px] lg:block" />
+        </button>
+      </div>
+
+      <div className="min-h-0 flex-1 overflow-y-auto bg-[linear-gradient(180deg,#ffffff_0%,#fbfdff_100%)] px-4 py-4">
+        <div
+          key={`${activeStep}-${activeTool}-${activePanelTab}`}
+          className="animate-fade-in"
+        >
+          {contextualContent}
         </div>
       </div>
 
-      {/* Footer: always fixed at the bottom of the panel, never scrolls */}
-      <div className="shrink-0 border-t border-[#dbe7f1] bg-white/96 px-5 py-5 backdrop-blur-md">
+      {activeStep !== "review" ? (
+      <div className="shrink-0 border-t border-[#dbe7f1] bg-white/96 px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-4 backdrop-blur-md lg:pb-4">
         {validationMessage && (
-          <div className="mb-4 rounded-[20px] border border-amber-200/80 bg-amber-50/90 px-4 py-3.5 text-sm font-semibold leading-relaxed text-amber-800">
+          <div className="mb-3 rounded-2xl border border-amber-200/80 bg-amber-50/90 px-3.5 py-3 text-xs font-semibold leading-relaxed text-amber-800">
             {validationMessage}
           </div>
         )}
-        <div className="mb-4 flex items-center justify-between px-1">
-          <span className="text-sm font-bold uppercase tracking-wider text-slate-500">
-            Giá tạm tính:
+        <div className="mb-3 flex items-center justify-between px-1">
+          <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+            {text.panels.estimatedPrice}
           </span>
-          <span className="text-2xl font-bold text-[#2f91d0]">
+          <span className="text-xl font-bold text-[#2f91d0]">
             {formatPrice(totalPrice)}
           </span>
         </div>
 
         <div className="flex items-center gap-3">
-          {step > 1 && (
+          {currentStepIndex > 0 && (
             <button
               type="button"
               onClick={handleBack}
-              className="flex h-12 min-w-[120px] appearance-none items-center justify-center gap-1.5 rounded-[18px] border border-[#e4edf5] bg-white px-4 text-sm font-semibold text-slate-600 outline-none transition-all duration-200 hover:border-[#c4dbed] hover:bg-[#fbfdff] hover:text-slate-950 focus:outline-none focus-visible:outline-none"
+              className="flex h-11 min-w-[108px] items-center justify-center gap-1.5 rounded-2xl border border-[#e4edf5] bg-white px-4 text-sm font-semibold text-slate-600 outline-none transition-colors duration-200 hover:border-[#c4dbed] hover:bg-[#f8fbff] hover:text-slate-950 focus-visible:ring-2 focus-visible:ring-[#9ed0ef]/60"
             >
-              <ChevronLeft className="h-4 w-4" /> Quay lại
+              <ChevronLeft className="h-4 w-4" /> {text.common.back}
             </button>
           )}
 
-          {step < 4 && (
+          {currentStepIndex < STUDIO_STEPS.length - 1 && (
             <button
               type="button"
-              data-flat-button="true"
               onClick={handleNext}
               disabled={!canContinue}
-              className="flex h-12 flex-1 appearance-none items-center justify-center gap-2 rounded-[18px] border-0 bg-[#2f91d0] px-6 text-sm font-bold text-white outline-none transition-all duration-200 hover:bg-[#257fb7] active:bg-[#1f6d9f] disabled:cursor-not-allowed disabled:border-transparent disabled:bg-slate-200 disabled:text-slate-500 focus:outline-none focus-visible:outline-none"
+              className="flex h-11 flex-1 items-center justify-center gap-2 rounded-2xl bg-[#2f91d0] px-5 text-sm font-bold text-white outline-none transition-colors duration-200 hover:bg-[#257fb7] active:bg-[#1f6d9f] disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500 focus-visible:ring-2 focus-visible:ring-[#80c4e9]/70"
             >
-              Tiếp theo <ChevronRight className="h-4 w-4" />
+              {text.common.next} <ChevronRight className="h-4 w-4" />
             </button>
           )}
         </div>
       </div>
+      ) : null}
     </div>
   );
 }
@@ -347,6 +257,7 @@ function buildFrameSizeGroups(frameSizes: ApiFrameSize[]): FrameSizeGroup[] {
 // ==================== Step 1: Chọn khung ====================
 function Step1Frame() {
   const { frameSize, setFrameSize, frameSizes, isLoadingData } = useStudio();
+  const { text } = useStudioI18n();
 
   const frameSizeGroups = useMemo(
     () => buildFrameSizeGroups(frameSizes),
@@ -406,7 +317,7 @@ function Step1Frame() {
   if (frameSizeGroups.length === 0) {
     return (
       <div className="rounded-[24px] border border-[#e4edf5] bg-white p-5 text-sm font-medium text-slate-500">
-        Chưa có kích thước khung.
+        {text.panels.noFrame}
       </div>
     );
   }
@@ -414,7 +325,7 @@ function Step1Frame() {
   return (
     <div className="rounded-[24px] border border-[#e4edf5] bg-white p-5">
       <h3 className="mb-4 text-xs font-semibold tracking-wide text-slate-950 uppercase">
-        Chọn kích thước
+        {text.panels.selectSize}
       </h3>
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
         {frameSizeGroups.map((group) => {
@@ -437,7 +348,7 @@ function Step1Frame() {
             >
               {group.popular && (
                 <span className="absolute right-2 top-[-7px] max-w-[88px] truncate rounded-full bg-amber-200 px-2 py-0.5 text-[9px] font-extrabold leading-none text-amber-900">
-                  Phổ biến
+                  {text.panels.popular}
                 </span>
               )}
               <span className="max-w-full truncate text-[13px] font-bold leading-tight">
@@ -456,12 +367,12 @@ function Step1Frame() {
       <div className="my-4 h-px bg-[#e4edf5]" />
 
       <p className="mb-2 text-[11px] font-semibold tracking-wide text-slate-500 uppercase">
-        Màu khung
+        {text.panels.frameColor}
       </p>
       <div className="flex flex-wrap gap-2">
         {(selectedFrameGroup?.variants ?? []).map((variant) => {
           const active = variant.id === frameSize;
-          const colorName = variant.colorName ?? "Màu khung";
+          const colorName = variant.colorName ?? text.panels.frameColorFallback;
 
           return (
             <button
@@ -493,7 +404,11 @@ function Step1Frame() {
 }
 
 // ==================== Step 2: Nội dung ====================
-function Step2Content() {
+function Step2Content({
+  mode = "background",
+}: {
+  mode?: "background" | "content";
+}) {
   const {
     activeTemplate,
     setActiveTemplate,
@@ -502,23 +417,33 @@ function Step2Content() {
     setCustomBackgroundOriginalName,
     templates,
     templateCategories,
-    printText,
-    setPrintText,
     contentFields,
     contentValues,
     setContentValue,
     clearContentValues,
-    isLoadingData,
+    isBackgroundsLoading,
+    backgroundsError,
   } = useStudio();
-  const [activeCategoryId, setActiveCategoryId] = useState<string | null>(null);
+  const { text } = useStudioI18n();
+  const [activeCategoryIds, setActiveCategoryIds] = useState<string[]>([]);
   const backgroundInputRef = useRef<HTMLInputElement | null>(null);
   const [isUploadingBackground, setIsUploadingBackground] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const effectiveCategoryIds = useMemo(
+    () =>
+      activeCategoryIds.filter((categoryId) =>
+        templateCategories.some((category) => category.id === categoryId),
+      ),
+    [activeCategoryIds, templateCategories],
+  );
 
   const filteredTemplates = useMemo(() => {
-    if (!activeCategoryId) return templates;
-    return templates.filter((t) => t.categoryId === activeCategoryId);
-  }, [templates, activeCategoryId]);
+    if (effectiveCategoryIds.length === 0) return templates;
+    return templates.filter(
+      (template) =>
+        template.categoryId && effectiveCategoryIds.includes(template.categoryId),
+    );
+  }, [templates, effectiveCategoryIds]);
   const selectedTemplate = useMemo(
     () => templates.find((t) => t.id === activeTemplate) ?? null,
     [activeTemplate, templates],
@@ -536,7 +461,7 @@ function Step2Content() {
       clearContentValues();
     } catch (error) {
       setUploadError(
-        error instanceof Error ? error.message : "Không tải được ảnh lên",
+        error instanceof Error ? error.message : text.canvas.uploadError,
       );
     } finally {
       setIsUploadingBackground(false);
@@ -545,45 +470,47 @@ function Step2Content() {
 
   return (
     <div className="space-y-5">
+      {mode === "background" ? (
       <div className="rounded-[24px] border border-[#e4edf5] bg-white p-5">
         <div className="mb-4 flex items-center justify-between">
           <h3 className="text-xs font-semibold tracking-wide text-slate-950 uppercase">
-            Chọn ảnh nền
+            {text.panels.chooseBackground}
           </h3>
           <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-500">
-            {filteredTemplates.length + (customBackgroundUrl ? 1 : 0)} mẫu
+            {text.panels.backgroundCount(
+              filteredTemplates.length + (customBackgroundUrl ? 1 : 0),
+            )}
           </span>
         </div>
 
-        <div className="mb-4 flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
-          <button
-            type="button"
-            onClick={() => setActiveCategoryId(null)}
-            className={`shrink-0 rounded-full px-3.5 py-1.5 text-xs font-semibold appearance-none outline-none transition-all duration-200 focus:outline-none focus-visible:outline-none ${
-              !activeCategoryId
-                ? "bg-[#2f91d0] text-white"
-                : "border border-[#e4edf5] bg-[#fbfdff] text-slate-600 hover:border-[#bfdcf0] hover:bg-white"
-            }`}
-          >
-            TẤT CẢ
-          </button>
-          {templateCategories.map((cat) => (
-            <button
-              key={cat.id}
-              type="button"
-              onClick={() => setActiveCategoryId(cat.id)}
-              className={`shrink-0 rounded-full px-3.5 py-1.5 text-xs font-semibold appearance-none outline-none transition-all duration-200 focus:outline-none focus-visible:outline-none ${
-                activeCategoryId === cat.id
-                  ? "bg-[#2f91d0] text-white"
-                  : "border border-[#e4edf5] bg-[#fbfdff] text-slate-600 hover:border-[#bfdcf0] hover:bg-white"
-              }`}
-            >
-              {cat.name.toUpperCase()}
-            </button>
-          ))}
-        </div>
+        {templateCategories.length > 0 ? (
+          <div className="mb-4">
+            <StudioSearchableMultiSelect
+              label={text.common.all}
+              options={templateCategories.map((category) => ({
+                value: category.id,
+                label: category.name,
+              }))}
+              value={effectiveCategoryIds}
+              onChange={setActiveCategoryIds}
+              searchPlaceholder={text.sidebar.searchTemplates}
+              emptyLabel={text.sidebar.noTemplateMatches}
+              clearLabel={text.panels.clearAll}
+            />
+          </div>
+        ) : null}
 
-        <div className="grid max-h-[350px] grid-cols-4 gap-3 overflow-y-auto pr-1 admin-scrollbar">
+        {backgroundsError ? (
+          <div
+            role="status"
+            className="mb-4 flex items-start gap-2 rounded-[16px] border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs font-semibold leading-relaxed text-amber-800"
+          >
+            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+            <span>{backgroundsError}</span>
+          </div>
+        ) : null}
+
+        <div className="grid max-h-[350px] grid-cols-4 gap-3 overflow-y-auto pr-1">
           {customBackgroundUrl && (
             <button
               type="button"
@@ -598,10 +525,13 @@ function Step2Content() {
                   : "border-[#e8eff6] bg-white hover:border-[#bfdcf0]"
               }`}
             >
-              <img
+              <Image
                 src={customBackgroundUrl}
-                alt="Ảnh nền của bạn"
-                className="h-full w-full object-contain bg-white p-2 transition-transform duration-500"
+                alt={text.panels.yourBackground}
+                fill
+                unoptimized
+                sizes="96px"
+                className="object-contain bg-white p-2 transition-transform duration-500"
               />
               {!activeTemplate && (
                 <div className="absolute inset-0 flex items-center justify-center bg-[#2f91d0]/12 backdrop-blur-[1px]">
@@ -612,12 +542,12 @@ function Step2Content() {
               )}
               <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-2 pt-6 text-center">
                 <span className="block truncate text-[9px] font-semibold uppercase tracking-wider text-white">
-                  Ảnh của bạn
+                  {text.panels.yourBackground}
                 </span>
               </div>
             </button>
           )}
-          {isLoadingData ? (
+          {isBackgroundsLoading ? (
             Array.from({ length: 12 }).map((_, i) => (
               <div
                 key={i}
@@ -626,7 +556,7 @@ function Step2Content() {
             ))
           ) : filteredTemplates.length === 0 && !customBackgroundUrl ? (
             <div className="col-span-4 py-10 text-center text-sm font-medium text-slate-500">
-              Chưa có mẫu nào
+              {text.panels.noBackgrounds}
             </div>
           ) : (
             filteredTemplates.map((tpl) => (
@@ -644,12 +574,14 @@ function Step2Content() {
                     : "border-[#e8eff6] bg-white hover:border-[#bfdcf0]"
                 }`}
               >
-                {tpl.imageUrl ? (
-                  <img
-                    src={tpl.imageUrl}
+                {tpl.thumbnailUrl || tpl.imageUrl ? (
+                  <Image
+                    src={tpl.thumbnailUrl ?? tpl.imageUrl ?? ""}
                     alt={tpl.name}
-                    loading="lazy"
-                    className="h-full w-full object-contain bg-white p-2 transition-transform duration-500"
+                    fill
+                    unoptimized
+                    sizes="96px"
+                    className="object-contain bg-white p-2 transition-transform duration-500"
                   />
                 ) : (
                   <div className="flex h-full w-full items-center justify-center bg-[#f8fbff] p-2">
@@ -686,8 +618,8 @@ function Step2Content() {
           >
             <UploadCloud className="h-4 w-4 transition-transform" />
             {isUploadingBackground
-              ? "ĐANG TẢI ẢNH..."
-              : "TẢI ẢNH NỀN CỦA BẠN LÊN"}
+              ? text.panels.uploadingBackground.toUpperCase()
+              : text.panels.uploadBackground.toUpperCase()}
           </button>
           <input
             ref={backgroundInputRef}
@@ -705,7 +637,9 @@ function Step2Content() {
           ) : null}
         </div>
       </div>
+      ) : null}
 
+      {mode === "content" ? (
       <div className="rounded-[24px] border border-[#e4edf5] bg-[linear-gradient(180deg,#ffffff_0%,#fbfdff_100%)] p-5">
         <div className="mb-4 flex justify-end">
           <button
@@ -713,7 +647,7 @@ function Step2Content() {
             onClick={clearContentValues}
             className="rounded-full border-0 bg-transparent px-3 py-1.5 text-xs font-semibold text-slate-500 appearance-none outline-none transition-colors duration-200 hover:bg-rose-50 hover:text-rose-600 focus:outline-none focus-visible:outline-none"
           >
-            XÓA TẤT CẢ
+            {text.panels.clearAll.toUpperCase()}
           </button>
         </div>
         {(selectedTemplate?.description || selectedTemplate?.instructions) && (
@@ -739,73 +673,12 @@ function Step2Content() {
               onChange={(value) => setContentValue(field.key, value)}
             />
           ))}
-          {false && (
-            <>
-              <div>
-                <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-wider text-slate-600">
-                  Tên / Lời tựa ngắn <span className="text-red-600">*</span>
-                </label>
-                <input
-                  type="text"
-                  placeholder="VD: Tú & Lan"
-                  value={printText.title}
-                  onChange={(e) =>
-                    setPrintText({ ...printText, title: e.target.value })
-                  }
-                  className="w-full rounded-[18px] border border-[#e4edf5] bg-white p-3.5 text-sm font-medium text-slate-950 appearance-none outline-none transition-all duration-200 focus:border-[#b9d8ed] focus:bg-[#fbfdff] focus-visible:outline-none"
-                />
-              </div>
-              <div>
-                <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-wider text-slate-600">
-                  Ngày kỷ niệm (nếu có)
-                </label>
-                <input
-                  type="date"
-                  value={printText.date}
-                  onChange={(e) =>
-                    setPrintText({ ...printText, date: e.target.value })
-                  }
-                  className="w-full rounded-[18px] border border-[#e4edf5] bg-white p-3.5 text-sm font-medium text-slate-950 appearance-none outline-none transition-all duration-200 focus:border-[#b9d8ed] focus:bg-[#fbfdff] focus-visible:outline-none"
-                />
-              </div>
-              <div>
-                <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-wider text-slate-600">
-                  Lời nhắn (nếu có)
-                </label>
-                <textarea
-                  placeholder="VD: Chúc mừng sinh nhật..."
-                  value={printText.message}
-                  onChange={(e) =>
-                    setPrintText({ ...printText, message: e.target.value })
-                  }
-                  rows={3}
-                  className="w-full resize-none rounded-[16px] border border-[#e4edf5] bg-white p-3 text-sm font-medium text-slate-950 appearance-none outline-none transition-all duration-200 focus:border-[#b9d8ed] focus:bg-[#fbfdff] focus-visible:outline-none"
-                />
-              </div>
-            </>
-          )}
         </div>
       </div>
+      ) : null}
     </div>
   );
 }
-
-const VN_MONTHS = [
-  "Tháng Một",
-  "Tháng Hai",
-  "Tháng Ba",
-  "Tháng Tư",
-  "Tháng Năm",
-  "Tháng Sáu",
-  "Tháng Bảy",
-  "Tháng Tám",
-  "Tháng Chín",
-  "Tháng Mười",
-  "Tháng Mười Một",
-  "Tháng Mười Hai",
-];
-
-const VN_WEEKDAYS = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"];
 
 function parseISODate(value: string) {
   if (!value) return null;
@@ -863,6 +736,7 @@ function DateFieldInput({
   placeholder?: string | undefined;
   inputClass: string;
 }) {
+  const { locale, text } = useStudioI18n();
   const selectedDate = parseISODate(value);
   const [open, setOpen] = useState(false);
   const [viewDate, setViewDate] = useState(() => selectedDate ?? new Date());
@@ -882,14 +756,16 @@ function DateFieldInput({
     return () => document.removeEventListener("mousedown", handlePointerDown);
   }, [open]);
 
-  useEffect(() => {
-    if (open && selectedDate) {
-      setViewDate(selectedDate);
-    }
-  }, [open, selectedDate?.getTime()]);
-
   const days = getCalendarDays(viewDate);
   const today = new Date();
+  const weekdays =
+    locale === "vi"
+      ? ["T2", "T3", "T4", "T5", "T6", "T7", "CN"]
+      : ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+  const monthLabel = new Intl.DateTimeFormat(
+    locale === "vi" ? "vi-VN" : "en-US",
+    { month: "long", year: "numeric" },
+  ).format(viewDate);
 
   const changeMonth = (direction: -1 | 1) => {
     setViewDate((current) => {
@@ -904,11 +780,17 @@ function DateFieldInput({
     setOpen(false);
   };
 
+  const toggleCalendar = () => {
+    const nextOpen = !open;
+    if (nextOpen && selectedDate) setViewDate(selectedDate);
+    setOpen(nextOpen);
+  };
+
   return (
     <div ref={rootRef} className="relative">
       <button
         type="button"
-        onClick={() => setOpen((current) => !current)}
+        onClick={toggleCalendar}
         className={`${inputClass} flex items-center justify-between text-left`}
       >
         <span className={value ? "text-slate-900" : "text-slate-400"}>
@@ -924,27 +806,25 @@ function DateFieldInput({
               type="button"
               onClick={() => changeMonth(-1)}
               className="grid h-9 w-9 place-items-center rounded-full border border-[#e4edf5] bg-white text-slate-500 appearance-none outline-none transition-all duration-200 hover:bg-[#f8fbff] hover:text-[#2f91d0] focus:outline-none focus-visible:outline-none"
-              aria-label="Tháng trước"
+              aria-label={text.common.previousMonth}
             >
               <ChevronLeft className="h-4 w-4" />
             </button>
 
-            <p className="text-sm font-bold text-slate-900">
-              {VN_MONTHS[viewDate.getMonth()]} {viewDate.getFullYear()}
-            </p>
+            <p className="text-sm font-bold text-slate-900">{monthLabel}</p>
 
             <button
               type="button"
               onClick={() => changeMonth(1)}
               className="grid h-9 w-9 place-items-center rounded-full border border-[#e4edf5] bg-white text-slate-500 appearance-none outline-none transition-all duration-200 hover:bg-[#f8fbff] hover:text-[#2f91d0] focus:outline-none focus-visible:outline-none"
-              aria-label="Tháng sau"
+              aria-label={text.common.nextMonth}
             >
               <ChevronRight className="h-4 w-4" />
             </button>
           </div>
 
           <div className="grid grid-cols-7 gap-1 text-center">
-            {VN_WEEKDAYS.map((weekday) => (
+            {weekdays.map((weekday) => (
               <span
                 key={weekday}
                 className="py-1 text-[11px] font-bold text-slate-400"
@@ -989,14 +869,14 @@ function DateFieldInput({
               }}
               className="rounded-full border-0 bg-transparent px-3 py-1.5 text-xs font-semibold text-slate-500 appearance-none outline-none transition-colors duration-200 hover:bg-rose-50 hover:text-rose-600 focus:outline-none focus-visible:outline-none"
             >
-              Xóa ngày
+              {text.common.clearDate}
             </button>
             <button
               type="button"
               onClick={() => selectDate(new Date())}
               className="rounded-full border-0 bg-[#eef7ff] px-3 py-1.5 text-xs font-bold text-[#2f91d0] appearance-none outline-none transition-colors duration-200 hover:bg-[#dff0fb] focus:outline-none focus-visible:outline-none"
             >
-              Hôm nay
+              {text.common.today}
             </button>
           </div>
         </div>
@@ -1014,8 +894,9 @@ function ContentFieldInput({
   value: string;
   onChange: (value: string) => void;
 }) {
+  const { text } = useStudioI18n();
   const inputClass =
-    "h-12 w-full rounded-[18px] border border-[#e4edf5] bg-white px-4 text-sm font-medium text-slate-900 outline-none transition-colors duration-200 placeholder:text-slate-400 focus:border-[#b9d8ed] focus:bg-[#fbfdff] focus-visible:outline-none";
+    "h-11 w-full rounded-2xl border border-[#dbe7f1] bg-white px-4 text-sm font-medium text-slate-900 outline-none transition-all duration-200 placeholder:text-slate-400 hover:border-[#b9d8ed] focus:border-[#2f91d0] focus:bg-white focus:ring-4 focus:ring-[#d9eefb]/70 focus-visible:outline-none";
 
   return (
     <div>
@@ -1030,12 +911,12 @@ function ContentFieldInput({
           onChange={(event) => onChange(event.target.value)}
           placeholder={field.placeholder}
           rows={3}
-          className={`${inputClass} resize-none`}
+          className={`${inputClass} h-auto min-h-24 max-h-40 resize-y overflow-y-auto py-3`}
         />
       ) : field.type === "image" ? (
         <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-[20px] border border-dashed border-[#d3e3f0] bg-[#fbfdff] px-4 py-5 text-center text-sm font-semibold text-slate-600 appearance-none outline-none transition-all duration-200 hover:border-[#aed2eb] hover:bg-white hover:text-[#2f91d0]">
           <UploadCloud className="h-5 w-5" />
-          <span>{value || field.placeholder || "Chọn ảnh tải lên"}</span>
+          <span>{value || field.placeholder || text.common.chooseUpload}</span>
           <input
             type="file"
             accept="image/*"
@@ -1070,6 +951,8 @@ function ContentFieldInput({
 }
 
 // ==================== Step 3: Nhân vật ====================
+const CHARACTER_ACCESSORY_PAGE_SIZE = 24;
+
 function Step3Characters() {
   const {
     characterPrice,
@@ -1084,28 +967,70 @@ function Step3Characters() {
     removeElement,
     selectedId,
     setSelectedId,
-    isLoadingData,
+    isAccessoriesLoading,
+    accessoriesError,
+    isAccessoryCategoriesLoading,
+    accessoryCategoriesError,
   } = useStudio();
+  const { text } = useStudioI18n();
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeCategoryId, setActiveCategoryId] = useState<string | null>(null);
+  const [activeAccessoryCategoryIds, setActiveAccessoryCategoryIds] = useState<
+    string[]
+  >([]);
+  const [accessoryPagination, setAccessoryPagination] = useState({
+    key: "",
+    count: CHARACTER_ACCESSORY_PAGE_SIZE,
+  });
   const [builderOpen, setBuilderOpen] = useState(false);
   const [editingCharacterId, setEditingCharacterId] = useState<string | null>(
     null,
   );
+  const [pendingCharacterRemoval, setPendingCharacterRemoval] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
 
   const filteredAccessories = useMemo(() => {
     let list = accessories;
-    if (activeCategoryId)
-      list = list.filter((a) => a.categoryId === activeCategoryId);
+    if (activeAccessoryCategoryIds.length > 0) {
+      list = list.filter(
+        (accessory) =>
+          accessory.categoryId &&
+          activeAccessoryCategoryIds.includes(accessory.categoryId),
+      );
+    }
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       list = list.filter((a) => a.name.toLowerCase().includes(q));
     }
     return list;
-  }, [accessories, activeCategoryId, searchQuery]);
+  }, [accessories, activeAccessoryCategoryIds, searchQuery]);
 
+  const accessoryPaginationKey = `${searchQuery.trim().toLowerCase()}:${activeAccessoryCategoryIds.join(",")}`;
+  const visibleAccessoryCount =
+    accessoryPagination.key === accessoryPaginationKey
+      ? accessoryPagination.count
+      : CHARACTER_ACCESSORY_PAGE_SIZE;
+  const visibleAccessories = useMemo(
+    () => filteredAccessories.slice(0, visibleAccessoryCount),
+    [filteredAccessories, visibleAccessoryCount],
+  );
+
+  const selectedAccessoryElements = useMemo(
+    () =>
+      elements.filter(
+        (element) => element.type === "accessory" && element.accessoryId,
+      ),
+    [elements],
+  );
   const addedAccessoryIds = new Set(
-    elements.filter((e) => e.accessoryId).map((e) => e.accessoryId),
+    selectedAccessoryElements
+      .map((element) => element.accessoryId)
+      .filter((id): id is string => Boolean(id)),
+  );
+  const selectedAccessoriesTotal = selectedAccessoryElements.reduce(
+    (total, element) => total + (element.price ?? 0),
+    0,
   );
   const characterElements = useMemo(
     () => elements.filter((element) => element.type === "character"),
@@ -1151,9 +1076,14 @@ function Step3Characters() {
   };
 
   const handleRemoveCharacter = (id: string, name: string) => {
-    if (window.confirm(`Xóa ${name} khỏi thiết kế?`)) {
-      removeElement(id);
-    }
+    setPendingCharacterRemoval({ id, name });
+  };
+
+  const confirmCharacterRemoval = () => {
+    if (!pendingCharacterRemoval) return;
+
+    removeElement(pendingCharacterRemoval.id);
+    setPendingCharacterRemoval(null);
   };
 
   const getCharacterPartFee = (character: StudioElement): number => {
@@ -1174,23 +1104,22 @@ function Step3Characters() {
   return (
     <div className="space-y-5">
       <div className="rounded-[22px] border border-[#cfe4f4] bg-[#f4faff] p-[18px] text-sm font-semibold leading-relaxed text-[#2f6690]">
-        Phí vận chuyển chưa cộng vào đơn. Shop sẽ báo phí trước khi giao và
-        khách trả trực tiếp cho tài xế.
+        {text.panels.shippingBanner}
       </div>
 
       <div className="rounded-[24px] border border-[#e4edf5] bg-white p-5">
         {/* Header */}
         <div className="mb-4 flex items-center justify-between gap-3">
           <h3 className="text-xs font-semibold tracking-wide text-slate-950 uppercase">
-            Quản lý nhân vật
+            {text.panels.manageCharacters}
           </h3>
           <button
             type="button"
             onClick={openCreateBuilder}
-            title="Tạo nhanh nhân vật ngẫu nhiên"
+            title={text.panels.randomCharacterTitle}
             className="flex h-8 shrink-0 items-center gap-1.5 rounded-full border border-[#b9d8ed] bg-[#f4faff] px-3 text-xs font-bold text-[#2f91d0] appearance-none outline-none transition-all duration-200 hover:border-[#2f91d0] hover:bg-[#2f91d0] hover:text-white focus:outline-none focus-visible:outline-none"
           >
-            <Zap className="h-3.5 w-3.5" /> Ngẫu nhiên
+            <Zap className="h-3.5 w-3.5" /> {text.panels.randomCharacter}
           </button>
         </div>
 
@@ -1212,7 +1141,7 @@ function Step3Characters() {
                   type="button"
                   onClick={() => openEditBuilder(character)}
                   className="max-w-[72px] truncate appearance-none outline-none focus:outline-none focus-visible:outline-none"
-                  title={`Sửa ${label}`}
+                  title={`${text.common.edit} ${label}`}
                 >
                   {label}
                 </button>
@@ -1220,7 +1149,7 @@ function Step3Characters() {
                   type="button"
                   onClick={() => handleRemoveCharacter(character.id, label)}
                   className="ml-0.5 grid h-4 w-4 shrink-0 place-items-center rounded-full bg-red-100 text-red-500 opacity-70 appearance-none outline-none transition-colors duration-200 hover:bg-red-500 hover:text-white hover:opacity-100 focus:outline-none focus-visible:outline-none"
-                  aria-label={`Xóa ${label}`}
+                  aria-label={`${text.common.remove} ${label}`}
                 >
                   <X className="h-2.5 w-2.5" />
                 </button>
@@ -1235,16 +1164,16 @@ function Step3Characters() {
             className="inline-flex h-10 appearance-none items-center gap-2 rounded-full border-0 bg-emerald-500 px-4 text-sm font-bold text-white outline-none transition-all duration-200 hover:bg-emerald-600 active:bg-emerald-700 focus:outline-none focus-visible:outline-none"
           >
             <span className="text-base leading-none">+</span>
-            <span>Thêm</span>
+            <span>{text.panels.addShort}</span>
             <span className="rounded-full bg-white/20 px-2 py-1 text-[11px] font-bold leading-none text-white">
-              10.000
+              {formatPrice(characterPrice)}
             </span>
           </button>
         </div>
 
         {characterElements.length === 0 && (
           <p className="mt-3 text-xs font-medium text-slate-500">
-            Nhấn &quot;+ Thêm&quot; để thêm nhân vật vào khung.
+            {text.panels.noCharactersHint}
           </p>
         )}
 
@@ -1264,7 +1193,7 @@ function Step3Characters() {
                     {formatPrice(characterPrice + partFee)}
                     {partFee > 0 && (
                       <span className="ml-1 font-medium text-slate-500">
-                        (+{formatPrice(partFee)} part)
+                        (+{formatPrice(partFee)} {text.panels.partFee})
                       </span>
                     )}
                   </span>
@@ -1272,7 +1201,9 @@ function Step3Characters() {
               );
             })}
             <div className="mt-2 flex items-center justify-between border-t border-[#e4edf5] pt-2 text-xs">
-              <span className="font-bold text-slate-950">Tổng nhân vật</span>
+              <span className="font-bold text-slate-950">
+                {text.panels.characterTotal}
+              </span>
               <span className="font-bold text-[#2f91d0]">
                 {formatPrice(
                   charactersTotalPrice +
@@ -1290,63 +1221,69 @@ function Step3Characters() {
       <div className="flex flex-col overflow-hidden rounded-[24px] border border-[#e4edf5] bg-white">
         <div className="border-b border-[#e4edf5] bg-[#fbfdff] p-5">
           <h3 className="mb-4 text-xs font-semibold tracking-wide text-slate-950 uppercase">
-            Thêm phụ kiện &amp; Charm
+            {text.panels.accessoriesAndCharms}
           </h3>
 
           <div className="relative mb-4">
             <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
             <input
               type="text"
-              placeholder="Tìm phụ kiện (hoa, xe, bóng bay...)"
+              placeholder={text.panels.searchAccessories}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="h-12 w-full rounded-full border border-[#e4edf5] bg-white pl-10 pr-4 text-sm font-medium text-slate-900 appearance-none outline-none transition-all duration-200 placeholder:text-slate-400 focus:border-[#b9d8ed] focus:bg-[#fbfdff] focus-visible:outline-none"
+              className="h-11 w-full rounded-2xl border border-[#dbe7f1] bg-white pl-10 pr-4 text-sm font-medium text-slate-900 appearance-none outline-none transition-all duration-200 placeholder:text-slate-400 hover:border-[#b9d8ed] focus:border-[#2f91d0] focus:bg-white focus:ring-4 focus:ring-[#d9eefb]/70 focus-visible:outline-none"
             />
           </div>
 
-          <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
-            <button
-              type="button"
-              onClick={() => setActiveCategoryId(null)}
-              className={`shrink-0 rounded-full px-3.5 py-1.5 text-xs font-semibold appearance-none outline-none transition-all duration-200 focus:outline-none focus-visible:outline-none ${
-                !activeCategoryId
-                  ? "bg-[#2f91d0] text-white"
-                  : "border border-[#e4edf5] bg-[#fbfdff] text-slate-600 hover:border-[#bfdcf0] hover:bg-white"
-              }`}
-            >
-              TẤT CẢ
-            </button>
-            {accessoryCategories.map((cat) => (
-              <button
-                key={cat.id}
-                type="button"
-                onClick={() => setActiveCategoryId(cat.id)}
-                className={`shrink-0 rounded-full px-3.5 py-1.5 text-xs font-semibold appearance-none outline-none transition-all duration-200 focus:outline-none focus-visible:outline-none ${
-                  activeCategoryId === cat.id
-                    ? "bg-[#2f91d0] text-white"
-                    : "border border-[#e4edf5] bg-[#fbfdff] text-slate-600 hover:border-[#bfdcf0] hover:bg-white"
-                }`}
-              >
-                {cat.name.toUpperCase()}
-              </button>
-            ))}
-          </div>
+          {isAccessoryCategoriesLoading ? (
+            <div
+              className="h-11 animate-pulse rounded-2xl bg-slate-100"
+              aria-hidden="true"
+            />
+          ) : accessoryCategories.length > 0 ? (
+            <StudioSearchableMultiSelect
+              label={text.common.all}
+              options={accessoryCategories.map((category) => ({
+                value: category.id,
+                label: category.name,
+              }))}
+              value={activeAccessoryCategoryIds}
+              onChange={setActiveAccessoryCategoryIds}
+              searchPlaceholder={text.panels.searchAccessories}
+              emptyLabel={text.panels.noAccessoryMatches}
+              clearLabel={text.common.remove}
+            />
+          ) : null}
+
+          {accessoryCategoriesError ? (
+            <p className="mt-3 flex items-start gap-2 text-xs font-semibold leading-relaxed text-amber-700">
+              <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+              <span>{accessoryCategoriesError}</span>
+            </p>
+          ) : null}
         </div>
 
-        <div className="grid max-h-[380px] grid-cols-4 gap-3 overflow-y-auto p-5 admin-scrollbar">
-          {isLoadingData ? (
+        <div className="grid max-h-[380px] grid-cols-4 gap-3 overflow-y-auto p-5">
+          {isAccessoriesLoading ? (
             Array.from({ length: 12 }).map((_, i) => (
               <div
                 key={i}
                 className="aspect-square animate-pulse rounded-[16px] bg-[#eef3f8]"
               />
             ))
+          ) : accessoriesError ? (
+            <div className="col-span-4 flex items-start gap-2 rounded-[16px] border border-rose-200 bg-rose-50 px-3 py-3 text-xs font-semibold leading-relaxed text-rose-700">
+              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+              <span>{accessoriesError}</span>
+            </div>
           ) : filteredAccessories.length === 0 ? (
             <div className="col-span-4 py-10 text-center text-sm font-medium text-slate-500">
-              Không tìm thấy phụ kiện phù hợp
+              {accessories.length === 0
+                ? text.panels.noAccessoriesAvailable
+                : text.panels.noAccessoryMatches}
             </div>
           ) : (
-            filteredAccessories.map((acc) => {
+            visibleAccessories.map((acc) => {
               const isAdded = addedAccessoryIds.has(acc.id);
               return (
                 <button
@@ -1377,10 +1314,12 @@ function Step3Characters() {
                   }`}
                 >
                   {acc.imageUrl || acc.iconUrl ? (
-                    <img
+                    <Image
                       src={acc.imageUrl || acc.iconUrl || ""}
                       alt={acc.name}
-                      loading="lazy"
+                      width={40}
+                      height={40}
+                      unoptimized
                       className="h-10 w-10 object-contain transition-transform duration-300"
                     />
                   ) : (
@@ -1404,14 +1343,48 @@ function Step3Characters() {
               );
             })
           )}
+
+          {!isAccessoriesLoading &&
+          !accessoriesError &&
+          visibleAccessories.length < filteredAccessories.length ? (
+            <button
+              type="button"
+              onClick={() =>
+                setAccessoryPagination({
+                  key: accessoryPaginationKey,
+                  count: Math.min(
+                    visibleAccessoryCount + CHARACTER_ACCESSORY_PAGE_SIZE,
+                    filteredAccessories.length,
+                  ),
+                })
+              }
+              className="col-span-4 h-10 rounded-xl border border-[#dbe7f1] bg-white text-xs font-semibold text-[#227eb8] transition-colors duration-200 hover:border-[#b9d8ed] hover:bg-[#f8fbff] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#80c4e9]/70"
+            >
+              {text.sidebar.loadMore(
+                visibleAccessories.length,
+                filteredAccessories.length,
+              )}
+            </button>
+          ) : null}
+        </div>
+
+        <div className="flex items-center justify-between gap-3 border-t border-[#e4edf5] bg-[#fbfdff] px-5 py-3 text-xs">
+          <span className="font-semibold text-slate-600">
+            {text.panels.selectedCharms(selectedAccessoryElements.length)}
+          </span>
+          <span className="font-bold text-[#2f91d0]">
+            {formatPrice(selectedAccessoriesTotal)}
+          </span>
         </div>
       </div>
 
       <CharacterBuilderModal
+        key={`${builderOpen ? "open" : "closed"}:${editingCharacter?.id ?? "new"}:${characterElements.length}`}
         open={builderOpen}
         editingCharacter={editingCharacter}
         characterParts={characterParts}
         characterPresets={characterPresets}
+        characterPrice={characterPrice}
         characterIndex={
           editingCharacter
             ? Math.max(
@@ -1425,6 +1398,37 @@ function Step3Characters() {
         onClose={closeBuilder}
         onSave={handleSaveCharacter}
       />
+
+      <Modal
+        isOpen={pendingCharacterRemoval !== null}
+        onClose={() => setPendingCharacterRemoval(null)}
+        title={text.panels.removeCharacterTitle}
+        size="sm"
+        contentClassName="p-5 sm:p-6"
+        className="max-w-md rounded-[24px] border border-[#e4edf5] bg-white shadow-sm"
+      >
+        <p className="text-sm font-medium leading-6 text-slate-600">
+          {pendingCharacterRemoval
+            ? text.panels.removeCharacter(pendingCharacterRemoval.name)
+            : ""}
+        </p>
+        <div className="mt-6 flex justify-end gap-3">
+          <button
+            type="button"
+            onClick={() => setPendingCharacterRemoval(null)}
+            className="h-10 rounded-xl border border-[#dbe7f1] bg-white px-4 text-sm font-semibold text-slate-700 transition-colors duration-200 hover:border-[#b9d8ed] hover:bg-[#f8fbff]"
+          >
+            {text.common.cancel}
+          </button>
+          <button
+            type="button"
+            onClick={confirmCharacterRemoval}
+            className="h-10 rounded-xl border border-rose-500 bg-rose-500 px-4 text-sm font-semibold text-white transition-colors duration-200 hover:border-rose-600 hover:bg-rose-600"
+          >
+            {text.common.remove}
+          </button>
+        </div>
+      </Modal>
     </div>
   );
 }
@@ -1444,20 +1448,15 @@ type CharacterBuilderSelection = {
 
 const CHARACTER_PART_TABS: Array<{
   type: CharacterPartTab;
-  label: string;
-  requiredMessage?: string;
+  required?: boolean;
 }> = [
-  { type: "PRESET", label: "Mẫu có sẵn" },
-  {
-    type: "FACE",
-    label: "Khuôn mặt",
-    requiredMessage: "Vui lòng chọn khuôn mặt",
-  },
-  { type: "HAIR", label: "Tóc", requiredMessage: "Vui lòng chọn tóc" },
-  { type: "TORSO", label: "Áo", requiredMessage: "Vui lòng chọn áo" },
-  { type: "LEGS", label: "Quần", requiredMessage: "Vui lòng chọn quần" },
-  { type: "HAT", label: "Mũ" },
-  { type: "ACCESSORY", label: "Phụ kiện" },
+  { type: "PRESET" },
+  { type: "FACE", required: true },
+  { type: "HAIR", required: true },
+  { type: "TORSO", required: true },
+  { type: "LEGS", required: true },
+  { type: "HAT" },
+  { type: "ACCESSORY" },
 ];
 
 type CharacterPresetConfig = {
@@ -1471,45 +1470,36 @@ type CharacterPresetConfig = {
   hatHint?: string | undefined;
 };
 
-const FALLBACK_PRESETS: CharacterPresetConfig[] = [
+const FALLBACK_PRESET_CONFIGS: Omit<
+  CharacterPresetConfig,
+  "name" | "description"
+>[] = [
   {
     id: "graduation-male",
-    name: "Nam tốt nghiệp",
-    description: "Tóc nam + mũ tốt nghiệp",
     hairHint: "nam",
     hatHint: "tốt nghiệp",
   },
   {
     id: "graduation-female",
-    name: "Nữ tốt nghiệp",
-    description: "Tóc nữ + mũ tốt nghiệp",
     hairHint: "nữ",
     hatHint: "tốt nghiệp",
   },
   {
     id: "couple-red",
-    name: "Đôi đỏ",
-    description: "Áo và quần đỏ",
     torsoHint: "đỏ",
     legsHint: "đỏ",
   },
   {
     id: "couple-black",
-    name: "Đôi đen",
-    description: "Áo và quần đen",
     torsoHint: "đen",
     legsHint: "đen",
   },
   {
     id: "casual-male",
-    name: "Nam bình thường",
-    description: "Tóc nam tự nhiên",
     hairHint: "nam",
   },
   {
     id: "casual-female",
-    name: "Nữ bình thường",
-    description: "Tóc nữ tự nhiên",
     hairHint: "nữ",
   },
 ];
@@ -1547,17 +1537,17 @@ const COLOR_FILTER_TABS: ReadonlyArray<CharacterPartTab> = [
 ];
 
 const PART_COLOR_KEYWORDS = [
-  { key: "đen", label: "Đen", hex: "#1f1f21" },
-  { key: "trắng", label: "Trắng", hex: "#e5e7eb" },
-  { key: "đỏ", label: "Đỏ", hex: "#ef4444" },
-  { key: "xanh", label: "Xanh", hex: "#3b82f6" },
-  { key: "vàng", label: "Vàng", hex: "#facc15" },
-  { key: "hồng", label: "Hồng", hex: "#f472b6" },
-  { key: "xám", label: "Xám", hex: "#9ca3af" },
-  { key: "nâu", label: "Nâu", hex: "#92400e" },
-  { key: "tím", label: "Tím", hex: "#a855f7" },
-  { key: "cam", label: "Cam", hex: "#f97316" },
-  { key: "xanh lá", label: "Xanh lá", hex: "#22c55e" },
+  { key: "đen", labelVi: "Đen", labelEn: "Black", hex: "#1f1f21" },
+  { key: "trắng", labelVi: "Trắng", labelEn: "White", hex: "#e5e7eb" },
+  { key: "đỏ", labelVi: "Đỏ", labelEn: "Red", hex: "#ef4444" },
+  { key: "xanh", labelVi: "Xanh", labelEn: "Blue", hex: "#3b82f6" },
+  { key: "vàng", labelVi: "Vàng", labelEn: "Yellow", hex: "#facc15" },
+  { key: "hồng", labelVi: "Hồng", labelEn: "Pink", hex: "#f472b6" },
+  { key: "xám", labelVi: "Xám", labelEn: "Gray", hex: "#9ca3af" },
+  { key: "nâu", labelVi: "Nâu", labelEn: "Brown", hex: "#92400e" },
+  { key: "tím", labelVi: "Tím", labelEn: "Purple", hex: "#a855f7" },
+  { key: "cam", labelVi: "Cam", labelEn: "Orange", hex: "#f97316" },
+  { key: "xanh lá", labelVi: "Xanh lá", labelEn: "Green", hex: "#22c55e" },
 ] as const;
 
 function getCharacterPartImage(part?: ApiCharacterPart | null) {
@@ -1584,6 +1574,7 @@ function CharacterBuilderModal({
   editingCharacter,
   characterParts,
   characterPresets,
+  characterPrice,
   characterIndex,
   onClose,
   onSave,
@@ -1592,30 +1583,33 @@ function CharacterBuilderModal({
   editingCharacter: StudioElement | null;
   characterParts: ApiCharacterPart[];
   characterPresets: ApiCharacterPreset[];
+  characterPrice: number;
   characterIndex: number;
   onClose: () => void;
   onSave: (input: StudioCharacterInput) => void;
 }) {
-  const [activeTab, setActiveTab] = useState<CharacterPartTab>("FACE");
+  const { locale, text } = useStudioI18n();
+  const [activeTab, setActiveTab] = useState<CharacterPartTab>("PRESET");
   const [selection, setSelection] = useState<CharacterBuilderSelection>(() =>
     getCharacterBuilderInitialSelection(editingCharacter, characterIndex),
   );
   const [error, setError] = useState<string | null>(null);
   const [colorFilter, setColorFilter] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!open) return;
-    setActiveTab("PRESET");
-    setSelection(
-      getCharacterBuilderInitialSelection(editingCharacter, characterIndex),
-    );
-    setError(null);
-    setColorFilter(null);
-  }, [characterIndex, editingCharacter, open]);
+  const characterPartLabels: Record<CharacterPartTab, string> = {
+    PRESET: text.panels.presets,
+    FACE: text.panels.face,
+    HAIR: text.panels.hair,
+    TORSO: text.panels.torso,
+    LEGS: text.panels.legs,
+    HAT: text.panels.hat,
+    ACCESSORY: text.panels.characterAccessories,
+  };
 
-  useEffect(() => {
+  const changeActiveTab = (tab: CharacterPartTab) => {
+    setActiveTab(tab);
     setColorFilter(null);
-  }, [activeTab]);
+  };
 
   const partsByType = useMemo(() => {
     const groups = new Map<CharacterPartTab, ApiCharacterPart[]>();
@@ -1668,7 +1662,11 @@ function CharacterBuilderModal({
   const activePresets: CharacterPresetConfig[] =
     characterPresets.length > 0
       ? characterPresets.map(mapApiPreset)
-      : FALLBACK_PRESETS;
+      : FALLBACK_PRESET_CONFIGS.map((preset, index) => ({
+          ...preset,
+          name: text.panels.fallbackPresets[index]?.[0] ?? preset.id,
+          description: text.panels.fallbackPresets[index]?.[1] ?? "",
+        }));
 
   const randomize = () => {
     const pick = (type: CharacterPartTab) => {
@@ -1704,7 +1702,7 @@ function CharacterBuilderModal({
       HAT: preset.hatHint ? findPartByHint(hats, preset.hatHint) : curr.HAT,
       ACCESSORY: [],
     }));
-    setActiveTab("FACE");
+    changeActiveTab("FACE");
     setError(null);
   };
 
@@ -1736,21 +1734,21 @@ function CharacterBuilderModal({
   const save = () => {
     for (const tab of CHARACTER_PART_TABS) {
       if (
-        !tab.requiredMessage ||
+        !tab.required ||
         tab.type === "PRESET" ||
         tab.type === "ACCESSORY" ||
         tab.type === "HAT"
       )
         continue;
       if (!selection[tab.type]) {
-        setError(tab.requiredMessage);
-        setActiveTab(tab.type);
+        setError(text.panels.requiredPart(characterPartLabels[tab.type]));
+        changeActiveTab(tab.type);
         return;
       }
     }
 
     if (!selectedFace || !selectedHair || !selectedTorso || !selectedLegs) {
-      setError("Vui lòng chọn đủ bộ phận nhân vật");
+      setError(text.panels.requiredCharacterParts);
       return;
     }
 
@@ -1768,7 +1766,10 @@ function CharacterBuilderModal({
     onSave(payload);
   };
 
-  const activeParts = partsByType.get(activeTab) ?? [];
+  const activeParts = useMemo(
+    () => partsByType.get(activeTab) ?? [],
+    [activeTab, partsByType],
+  );
 
   const availableColors = useMemo(() => {
     if (!COLOR_FILTER_TABS.includes(activeTab)) return [];
@@ -1798,6 +1799,9 @@ function CharacterBuilderModal({
       onClick={onClose}
     >
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="studio-character-builder-title"
         className="isolate flex w-full flex-col overflow-hidden rounded-[28px] border border-[#dbe7f1] bg-white"
         style={{
           width: "min(1040px, calc(100vw - 32px))",
@@ -1808,29 +1812,34 @@ function CharacterBuilderModal({
       >
         <div className="flex shrink-0 items-center justify-between gap-4 bg-gradient-to-br from-[#2f91d0] to-[#58afe2] px-5 py-5 text-white sm:px-6">
           <div className="min-w-0">
-            <h3 className="truncate text-xl font-extrabold text-white sm:text-2xl">
-              Tạo nhân vật LEGO
+            <h3
+              id="studio-character-builder-title"
+              className="truncate text-xl font-extrabold text-white sm:text-2xl"
+            >
+              {editingCharacter
+                ? text.panels.editCharacter
+                : text.panels.createCharacter}
             </h3>
             <p className="mt-1 text-sm font-semibold text-white/95">
               {editingCharacter
-                ? "Sửa lựa chọn part cho nhân vật"
-                : "Chọn đủ khuôn mặt, tóc, áo và quần"}
+                ? text.panels.builderSubtitleEdit
+                : text.panels.builderSubtitleCreate}
             </p>
           </div>
           <div className="flex shrink-0 items-center gap-2">
             <button
               type="button"
               onClick={randomize}
-              title="Chọn ngẫu nhiên"
+              title={text.panels.randomCharacterTitle}
               className="flex items-center gap-1.5 rounded-full border-0 bg-white/15 px-3 py-2 text-xs font-bold text-white appearance-none outline-none transition-all duration-200 hover:bg-white/25 focus:outline-none focus-visible:outline-none"
             >
-              <Zap className="h-3.5 w-3.5" /> Ngẫu nhiên
+              <Zap className="h-3.5 w-3.5" /> {text.panels.randomCharacter}
             </button>
             <button
               type="button"
               onClick={onClose}
               className="grid h-10 w-10 shrink-0 place-items-center rounded-full border-0 bg-white/15 text-white appearance-none outline-none transition-all duration-200 hover:bg-white hover:text-slate-900 focus:outline-none focus-visible:outline-none"
-              aria-label="Đóng"
+              aria-label={text.common.close}
             >
               <X className="h-5 w-5" />
             </button>
@@ -1841,7 +1850,7 @@ function CharacterBuilderModal({
           <div className="flex min-h-0 flex-col gap-5 border-b border-[#e4edf5] bg-[#f8fafc] p-5 sm:p-6 md:border-b-0 md:border-r">
             <label className="block">
               <span className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500">
-                Tên nhân vật
+                {text.panels.characterName}
               </span>
               <input
                 value={selection.name}
@@ -1851,7 +1860,7 @@ function CharacterBuilderModal({
                     name: event.target.value,
                   }))
                 }
-                className="h-11 w-full rounded-[16px] border border-[#e4edf5] bg-white px-3 text-sm font-bold text-slate-950 appearance-none outline-none transition-all duration-200 focus:border-[#2f91d0] focus-visible:outline-none"
+                className="h-11 w-full rounded-2xl border border-[#dbe7f1] bg-white px-3 text-sm font-semibold text-slate-950 appearance-none outline-none transition-all duration-200 hover:border-[#b9d8ed] focus:border-[#2f91d0] focus:bg-white focus:ring-4 focus:ring-[#d9eefb]/70 focus-visible:outline-none"
               />
             </label>
 
@@ -1879,7 +1888,7 @@ function CharacterBuilderModal({
                   <button
                     key={tab.type}
                     type="button"
-                    onClick={() => setActiveTab(tab.type)}
+                    onClick={() => changeActiveTab(tab.type)}
                     className={`shrink-0 rounded-full border px-4 py-2 text-xs font-bold appearance-none outline-none transition-colors duration-200 focus:outline-none focus-visible:outline-none ${
                       activeTab === tab.type
                         ? "border-[#b9d8ed] bg-[#f4faff] text-[#2f91d0]"
@@ -1888,18 +1897,17 @@ function CharacterBuilderModal({
                           : "border-[#e4edf5] bg-white text-slate-600 hover:border-[#9ed0ef]"
                     }`}
                   >
-                    {tab.label}
+                    {characterPartLabels[tab.type]}
                   </button>
                 );
               })}
             </div>
 
-            <div className="min-h-0 flex-1 overflow-y-auto bg-white p-5 sm:p-6 admin-scrollbar">
+            <div className="min-h-0 flex-1 overflow-y-auto bg-white p-5 sm:p-6">
               {activeTab === "PRESET" ? (
                 <div className="space-y-3">
                   <p className="text-xs font-medium text-slate-500">
-                    Chọn mẫu có sẵn để điền nhanh. Bạn vẫn có thể sửa từng part
-                    sau khi chọn.
+                    {text.panels.presetHelp}
                   </p>
                   <div className="grid grid-cols-2 gap-3.5">
                     {activePresets.map((preset) => (
@@ -1916,7 +1924,7 @@ function CharacterBuilderModal({
                           {preset.description}
                         </span>
                         <span className="mt-0.5 rounded-full bg-[#f4faff] px-2 py-0.5 text-[10px] font-bold text-[#2f91d0]">
-                          Áp dụng
+                          {text.panels.applyPreset}
                         </span>
                       </button>
                     ))}
@@ -1926,10 +1934,10 @@ function CharacterBuilderModal({
                 <div className="grid min-h-[300px] place-items-center rounded-[18px] border border-dashed border-slate-200 bg-slate-50 px-6 text-center">
                   <div>
                     <p className="text-sm font-bold text-slate-700">
-                      Chưa có part trong nhóm này
+                      {text.panels.noPartsTitle}
                     </p>
                     <p className="mt-1 text-xs font-medium text-slate-500">
-                      Thêm part ở admin để khách chọn được trong Studio.
+                      {text.panels.noPartsAdminHint}
                     </p>
                   </div>
                 </div>
@@ -1946,7 +1954,7 @@ function CharacterBuilderModal({
                             : "border-[#e4edf5] bg-white text-slate-600 hover:border-[#9ed0ef]"
                         }`}
                       >
-                        Tất cả
+                        {text.common.all}
                       </button>
                       {availableColors.map((color) => (
                         <button
@@ -1957,7 +1965,9 @@ function CharacterBuilderModal({
                               colorFilter === color.key ? null : color.key,
                             )
                           }
-                          title={color.label}
+                          title={
+                            locale === "vi" ? color.labelVi : color.labelEn
+                          }
                           className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-bold appearance-none outline-none transition-colors duration-200 focus:outline-none focus-visible:outline-none ${
                             colorFilter === color.key
                               ? "border-[#b9d8ed] bg-[#f4faff] text-[#2f91d0]"
@@ -1968,14 +1978,14 @@ function CharacterBuilderModal({
                             className="h-3 w-3 shrink-0 rounded-full border border-slate-300"
                             style={{ backgroundColor: color.hex }}
                           />
-                          {color.label}
+                          {locale === "vi" ? color.labelVi : color.labelEn}
                         </button>
                       ))}
                     </div>
                   )}
                   {filteredParts.length === 0 ? (
                     <div className="flex min-h-[120px] items-center justify-center rounded-[16px] border border-dashed border-slate-200 bg-slate-50 text-xs font-medium text-slate-500">
-                      Không có part màu này
+                      {text.panels.noPartsForColor}
                     </div>
                   ) : (
                     <div className="grid grid-cols-2 gap-3.5 sm:grid-cols-3 lg:grid-cols-3">
@@ -1995,10 +2005,10 @@ function CharacterBuilderModal({
                             <X className="h-6 w-6 text-slate-400" />
                           </div>
                           <span className="text-[11px] font-bold text-slate-600">
-                            Không chọn
+                            {text.panels.noSelection}
                           </span>
                           <span className="text-[10px] font-bold text-slate-500">
-                            Miễn phí
+                            {text.common.free}
                           </span>
                           {!selection.HAT && (
                             <span className="absolute right-2 top-2 grid h-5 w-5 place-items-center rounded-full bg-[#2f91d0] text-white">
@@ -2025,11 +2035,13 @@ function CharacterBuilderModal({
                           >
                             <div className="relative min-h-0 w-full flex-1">
                               {part.imageUrl ? (
-                                <img
+                                <Image
                                   src={part.imageUrl}
                                   alt={part.name}
-                                  loading="lazy"
-                                  className="h-full w-full object-contain transition-transform"
+                                  fill
+                                  unoptimized
+                                  sizes="120px"
+                                  className="object-contain transition-transform"
                                   onError={(e) => {
                                     e.currentTarget.style.display = "none";
                                   }}
@@ -2054,7 +2066,7 @@ function CharacterBuilderModal({
                               >
                                 {part.priceAdjustment > 0
                                   ? `+${formatPrice(part.priceAdjustment)}`
-                                  : "Miễn phí"}
+                                  : text.common.free}
                               </span>
                             </div>
                           </button>
@@ -2076,11 +2088,12 @@ function CharacterBuilderModal({
           ) : null}
           <div className="mb-3 flex items-center justify-between rounded-[16px] bg-[#f4faff] px-4 py-2 text-xs">
             <span className="font-medium text-slate-600">
-              1 nhân vật: 10.000
-              {totalPartFee > 0 && ` + part: +${formatPrice(totalPartFee)}`}
+              {text.panels.characterBaseLine}: {formatPrice(characterPrice)}
+              {totalPartFee > 0 &&
+                ` + ${text.panels.partFee}: +${formatPrice(totalPartFee)}`}
             </span>
             <span className="font-bold text-[#2f91d0]">
-              {formatPrice(10000 + totalPartFee)}
+              {formatPrice(characterPrice + totalPartFee)}
             </span>
           </div>
           <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end sm:gap-3">
@@ -2089,7 +2102,7 @@ function CharacterBuilderModal({
               onClick={onClose}
               className="h-12 rounded-[18px] border border-[#e4edf5] bg-white px-5 text-sm font-bold text-slate-600 appearance-none outline-none transition-colors duration-200 hover:bg-[#fbfdff] focus:outline-none focus-visible:outline-none"
             >
-              Hủy
+              {text.common.cancel}
             </button>
             <button
               type="button"
@@ -2097,7 +2110,7 @@ function CharacterBuilderModal({
               onClick={save}
               className="h-12 rounded-[18px] border-0 bg-[#2f91d0] px-6 text-sm font-bold text-white appearance-none outline-none transition-colors duration-200 hover:bg-[#257fb7] focus:outline-none focus-visible:outline-none"
             >
-              Lưu nhân vật
+              {text.panels.saveCharacter}
             </button>
           </div>
         </div>
@@ -2133,11 +2146,14 @@ function CharacterBuilderPreview({
       <div className="relative mx-auto h-72 w-44 overflow-visible rounded-[22px] bg-[#f4faff]">
         {layers.length > 0 ? (
           layers.map((part) => (
-            <img
+            <Image
               key={`${part.type}-${part.id}`}
               src={getCharacterPartImage(part)}
               alt=""
-              className="absolute inset-0 h-full w-full object-contain"
+              fill
+              unoptimized
+              sizes="176px"
+              className="object-contain"
               onError={(event) => {
                 event.currentTarget.style.display = "none";
               }}
@@ -2152,471 +2168,6 @@ function CharacterBuilderPreview({
       <p className="mt-3 truncate text-center text-sm font-bold text-slate-950">
         {name}
       </p>
-    </div>
-  );
-}
-
-// ==================== Step 4: Hoàn tất ====================
-function Step4Finish() {
-  const {
-    totalPrice,
-    frameSize,
-    frameSizes,
-    characterCount,
-    characterPrice,
-    elements,
-    printText,
-    contentFields,
-    contentValues,
-    activeTemplate,
-    customBackgroundUrl,
-    customBackgroundOriginalName,
-    templates,
-    isEditMode,
-    editCartItemId,
-    setStep,
-  } = useStudio();
-  const addItem = useCartStore((state) => state.addItem);
-  const updateItem = useCartStore((state) => state.updateItem);
-  const openCart = useCartStore((state) => state.openCart);
-  const openModal = useUIStore((state) => state.openModal);
-
-  const [seconds, setSeconds] = useState(15 * 60);
-  useEffect(() => {
-    const interval = setInterval(
-      () => setSeconds((s) => Math.max(0, s - 1)),
-      1000,
-    );
-    return () => clearInterval(interval);
-  }, []);
-
-  const timerMins = String(Math.floor(seconds / 60)).padStart(2, "0");
-  const timerSecs = String(seconds % 60).padStart(2, "0");
-
-  const frameObj = frameSizes.find((s) => s.id === frameSize);
-  const designCanvasSize = getStudioCanvasSize(frameObj, frameSizes);
-  const accessoryItems = elements.filter((e) => e.type === "accessory");
-  const characterItems = elements.filter((e) => e.type === "character");
-  const selectedTemplate = templates.find((t) => t.id === activeTemplate);
-  const previewUrl = customBackgroundUrl ?? selectedTemplate?.imageUrl ?? null;
-  const missingRequiredContent = getMissingRequiredContentField(
-    contentFields,
-    contentValues,
-  );
-  const hasPersistablePreview = isPersistableImageUrl(previewUrl);
-  const canCheckout = Boolean(
-    frameSize && !missingRequiredContent && hasPersistablePreview,
-  );
-  const checkoutBlockMessage = !frameSize
-    ? "Vui lòng chọn khung trước khi thanh toán."
-    : missingRequiredContent
-      ? `Vui lòng nhập ${missingRequiredContent.label.toLowerCase()} trước khi thanh toán.`
-      : !hasPersistablePreview
-        ? "Vui lòng chọn mẫu nền hoặc tải ảnh để tiếp tục thanh toán."
-        : null;
-  const accessorySnapshot = accessoryItems
-    .filter((el) => typeof el.accessoryId === "string")
-    .map((el) => ({
-      id: el.accessoryId as string,
-      name: el.content || "Accessory",
-      price: el.price || 0,
-      quantity: 1,
-    }));
-  const charactersTotalPrice = characterItems.reduce(
-    (sum, character) => sum + (character.price ?? characterPrice),
-    0,
-  );
-
-  const getContentValue = (candidates: string[], fallback = "") => {
-    for (const candidate of candidates) {
-      const directValue = contentValues[candidate];
-      if (directValue?.trim()) return directValue.trim();
-    }
-
-    const matchedField = contentFields.find((field) => {
-      const haystack = `${field.key} ${field.label}`.toLowerCase();
-      return candidates.some((candidate) =>
-        haystack.includes(candidate.toLowerCase()),
-      );
-    });
-    const matchedValue = matchedField
-      ? contentValues[matchedField.key]
-      : undefined;
-
-    return matchedValue?.trim() || fallback;
-  };
-
-  const backgroundId =
-    selectedTemplate?.source === "background" &&
-    selectedTemplate.id.startsWith("background:")
-      ? selectedTemplate.id.replace("background:", "")
-      : null;
-
-  const buildDesignData = (): CustomFrameDesignData => ({
-    version: 1,
-    type: "CUSTOM_FRAME",
-    frameOptionId: frameSize,
-    frameOptionLabel: frameObj?.label ?? frameSize,
-    ...(frameObj?.colorName ? { frameColorName: frameObj.colorName } : {}),
-    ...(frameObj?.colorHex ? { frameColorHex: frameObj.colorHex } : {}),
-    canvasSize: designCanvasSize,
-    backgroundId,
-    backgroundName: selectedTemplate?.name ?? null,
-    content: {
-      recipientName: getContentValue(
-        ["recipientName", "title", "name", "ten"],
-        printText.title,
-      ),
-      graduationDate: getContentValue(
-        ["graduationDate", "date", "ngay"],
-        printText.date,
-      ),
-      majorOrSchool: getContentValue([
-        "majorOrSchool",
-        "major",
-        "school",
-        "nganh",
-        "truong",
-      ]),
-      message: getContentValue(
-        ["message", "note", "loi", "thong"],
-        printText.message,
-      ),
-    },
-    contentValues: { ...contentValues },
-    printText: { ...printText },
-    elements: elements
-      .filter((el) => el.type === "text")
-      .map((el) => ({
-        id: el.id,
-        type: el.type,
-        x: el.x,
-        y: el.y,
-        ...(el.content ? { content: el.content } : {}),
-        ...(typeof el.fontSize === "number" ? { fontSize: el.fontSize } : {}),
-        ...(el.color ? { color: el.color } : {}),
-        ...(typeof el.width === "number" ? { width: el.width } : {}),
-        ...(typeof el.height === "number" ? { height: el.height } : {}),
-      })),
-    uploadedImages: customBackgroundUrl
-      ? [
-          {
-            id: "background-upload",
-            url: customBackgroundUrl,
-            type: "background",
-            originalName: customBackgroundOriginalName,
-            position: { x: 0, y: 0, scale: 1, rotate: 0 },
-          },
-        ]
-      : [],
-    accessories: accessoryItems
-      .filter((el) => typeof el.accessoryId === "string")
-      .map((el) => ({
-        id: el.accessoryId as string,
-        name: el.content || "Accessory",
-        quantity: 1,
-        imageUrl: el.imageUrl ?? null,
-        position: {
-          x: el.x,
-          y: el.y,
-          scale: el.width ? el.width / 60 : 1,
-          rotate: 0,
-        },
-      })),
-    characters: characterItems.map((el, index) => {
-      const x = el.x;
-      const y = el.y;
-      const scale = el.scale ?? (el.width ? el.width / 54 : 1);
-      const rotation = el.rotation ?? 0;
-
-      return {
-        id: el.id,
-        ...(el.characterId ? { catalogId: el.characterId } : {}),
-        name: el.content || `NV ${index + 1}`,
-        x,
-        y,
-        scale,
-        rotation,
-        faceId: el.faceId ?? "",
-        hairId: el.hairId ?? "",
-        torsoId: el.torsoId ?? "",
-        legsId: el.legsId ?? "",
-        ...(el.hatId ? { hatId: el.hatId } : {}),
-        accessoryIds: el.accessoryIds ?? [],
-        characterParts: serializeCharacterParts(el.characterParts),
-        imageUrl: el.imageUrl ?? null,
-        price: el.price ?? characterPrice,
-        position: {
-          x,
-          y,
-          scale,
-          rotate: rotation,
-          rotation,
-        },
-      };
-    }),
-    previewUrl,
-  });
-
-  const buildCartParts = (): CartItemPart[] => {
-    const parts: CartItemPart[] = [];
-
-    if (frameObj) {
-      parts.push({
-        id: frameSize,
-        type: "frame",
-        name: [frameObj.label, frameObj.colorName].filter(Boolean).join(" - "),
-        quantity: 1,
-        unitPrice: frameObj.price,
-        totalPrice: frameObj.price,
-      });
-    }
-
-    if (selectedTemplate || customBackgroundUrl) {
-      const imageUrl =
-        customBackgroundUrl ?? selectedTemplate?.imageUrl ?? null;
-      parts.push({
-        ...(backgroundId ? { id: backgroundId } : {}),
-        type: "background",
-        name:
-          selectedTemplate?.name ??
-          customBackgroundOriginalName ??
-          "Anh nen tuy chinh",
-        quantity: 1,
-        unitPrice: 0,
-        totalPrice: 0,
-        imageUrl,
-      });
-    }
-
-    characterItems.forEach((character, index) => {
-      parts.push({
-        ...(character.characterId ? { id: character.characterId } : {}),
-        type: "character",
-        name: character.content || `NV ${index + 1}`,
-        quantity: 1,
-        unitPrice: character.price ?? characterPrice,
-        totalPrice: character.price ?? characterPrice,
-        ...(character.imageUrl ? { imageUrl: character.imageUrl } : {}),
-      });
-    });
-
-    accessoryItems.forEach((accessory) => {
-      parts.push({
-        ...(accessory.accessoryId ? { id: accessory.accessoryId } : {}),
-        type: "accessory",
-        name: accessory.content || "Accessory",
-        quantity: 1,
-        unitPrice: accessory.price || 0,
-        totalPrice: accessory.price || 0,
-        ...(accessory.imageUrl ? { imageUrl: accessory.imageUrl } : {}),
-      });
-    });
-
-    return parts;
-  };
-
-  const buildCartItem = () => ({
-    productId: null,
-    productName: `Khung LEGO tùy chỉnh${printText.title ? ` - ${printText.title}` : ""}`,
-    quantity: 1,
-    unitPrice: totalPrice,
-    frameOptionId: frameSize,
-    frameSizeId: frameSize,
-    frameSizeLabel: frameObj?.label ?? frameSize,
-    frameColorName: frameObj?.colorName ?? "",
-    accessories: accessorySnapshot,
-    parts: buildCartParts(),
-    templateId: activeTemplate,
-    designData: buildDesignData(),
-    previewUrl,
-  });
-
-  const persistCartItem = () => {
-    const cartItem = buildCartItem();
-    if (isEditMode && editCartItemId) {
-      updateItem(editCartItemId, cartItem);
-      return;
-    }
-
-    addItem(cartItem);
-  };
-
-  const openCartDrawer = () => {
-    openCart();
-    openModal(UI_MODAL_IDS.CART_DRAWER);
-    window.dispatchEvent(new CustomEvent("legoshop:open-cart"));
-  };
-
-  const handleAddToCart = () => {
-    if (!canCheckout) return;
-    persistCartItem();
-    openCartDrawer();
-  };
-  const handleBuyNow = () => {
-    if (!canCheckout) return;
-    persistCartItem();
-    openCartDrawer();
-  };
-
-  return (
-    <div className="space-y-5 pb-6">
-      {seconds > 0 && (
-        <div className="flex animate-fade-in items-center justify-between rounded-[24px] bg-gradient-to-r from-[#2f91d0] to-[#5aaee3] px-5 py-4 text-white">
-          <div>
-            <div className="flex items-center gap-1.5 text-[13px] font-semibold tracking-wide">
-              <Zap className="h-4 w-4 fill-white" /> ƯU ĐÃI PHÚT CHÓT!
-            </div>
-            <div className="mt-1 text-[11px] font-medium text-white/90">
-              Hoàn tất thiết kế ngay để nhận 1 sticker quà tặng
-            </div>
-          </div>
-          <div className="rounded-2xl bg-white/16 px-2.5 py-1.5 font-mono text-lg font-bold tracking-widest backdrop-blur-sm">
-            {timerMins}:{timerSecs}
-          </div>
-        </div>
-      )}
-
-      <div className="rounded-[24px] border border-[#e4edf5] bg-[linear-gradient(180deg,#ffffff_0%,#fbfdff_100%)]">
-        <div className="flex items-center justify-between border-b border-[#e4edf5] bg-transparent px-[18px] py-4">
-          <h3 className="text-xs font-semibold tracking-wide text-slate-950 uppercase">
-            Chi tiết thiết kế
-          </h3>
-          <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-600">
-            {characterCount} NV
-          </span>
-        </div>
-
-        <div className="divide-y divide-[#e4edf5]">
-          {frameObj && (
-            <div className="flex items-start justify-between px-[18px] py-4 transition-colors duration-200 hover:bg-slate-50/60">
-              <div>
-                <p className="text-sm font-bold text-slate-950">
-                  {frameObj.label}
-                </p>
-                {frameObj.colorName ? (
-                  <p className="mt-0.5 text-xs font-medium text-slate-500">
-                    Màu: {frameObj.colorName}
-                  </p>
-                ) : null}
-              </div>
-              <span className="text-sm font-bold text-slate-950">
-                {formatPrice(frameObj.price)}
-              </span>
-            </div>
-          )}
-
-          {characterCount > 0 && (
-            <div className="flex items-start justify-between px-[18px] py-4 transition-colors duration-200 hover:bg-slate-50/60">
-              <div>
-                <p className="text-sm font-bold text-slate-950">
-                  Nhân vật LEGO
-                </p>
-                <p className="mt-0.5 text-xs font-medium text-slate-500">
-                  {characterCount} × {formatPrice(characterPrice)}
-                </p>
-              </div>
-              <span className="text-sm font-bold text-slate-950">
-                {formatPrice(charactersTotalPrice)}
-              </span>
-            </div>
-          )}
-
-          {accessoryItems.map((el) => (
-            <div
-              key={el.id}
-              className="flex items-start justify-between px-[18px] py-4 transition-colors duration-200 hover:bg-slate-50/60"
-            >
-              <div>
-                <p className="text-sm font-bold text-slate-950">{el.content}</p>
-                <p className="mt-0.5 text-xs font-medium text-slate-500">
-                  Số lượng: 1
-                </p>
-              </div>
-              <span className="text-sm font-bold text-slate-950">
-                {formatPrice(el.price || 0)}
-              </span>
-            </div>
-          ))}
-        </div>
-
-        <div className="mx-5 mb-5 rounded-[22px] border border-[#dbe7f1] bg-[#f8fbff] px-5 py-5">
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-semibold uppercase tracking-widest text-slate-600">
-              Tổng cộng
-            </span>
-            <span className="text-2xl font-bold text-[#2f91d0]">
-              {formatPrice(totalPrice)}
-            </span>
-          </div>
-          <p className="mt-2 text-right text-xs font-medium text-slate-500">
-            Chưa bao gồm phí ship. Shop báo phí trước khi giao.
-          </p>
-        </div>
-      </div>
-
-      <div className="flex items-start gap-3 rounded-[24px] border border-[#cfe4f4] bg-[#f4faff] p-5">
-        <span className="text-xl leading-none">💡</span>
-        <div>
-          <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-blue-700">
-            Mẹo: Đặt sớm (Early Bird)
-          </p>
-          <p className="text-xs font-medium leading-relaxed text-[#437ea8]">
-            Sản phẩm cần <strong>1-2 ngày</strong> hoàn thiện. Chọn ngày nhận{" "}
-            <strong>sau 20 ngày</strong> để được giảm ngay{" "}
-            <span className="font-bold text-blue-800">5%</span>!
-          </p>
-        </div>
-      </div>
-
-      <div className="flex flex-col gap-3 pt-2">
-        {checkoutBlockMessage ? (
-          <div
-            role="alert"
-            className="rounded-[22px] border border-amber-200/80 bg-amber-50/90 px-4 py-4 text-sm font-medium leading-relaxed text-amber-800"
-          >
-            <div className="flex items-start gap-2">
-              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-              <span>{checkoutBlockMessage}</span>
-            </div>
-            {missingRequiredContent ? (
-              <button
-                type="button"
-                onClick={() => setStep(2)}
-                className="mt-3 inline-flex h-9 items-center justify-center rounded-full border border-amber-300 bg-white px-3 text-xs font-semibold text-amber-900 appearance-none outline-none transition-colors duration-200 hover:bg-amber-100 focus:outline-none focus-visible:outline-none"
-              >
-                Điền nội dung
-              </button>
-            ) : null}
-          </div>
-        ) : null}
-
-        <button
-          type="button"
-          data-flat-button="true"
-          onClick={handleBuyNow}
-          disabled={!canCheckout}
-          className="group relative flex h-12 w-full items-center justify-center gap-2 overflow-hidden rounded-[18px] border-0 bg-[#2f91d0] px-4 text-sm font-semibold text-white appearance-none outline-none transition-colors duration-200 hover:bg-[#257fb7] disabled:cursor-not-allowed disabled:border-0 disabled:bg-slate-200 disabled:text-slate-500 focus:outline-none focus-visible:outline-none"
-        >
-          <div className="absolute inset-0 flex h-full w-full justify-center [transform:skew(-12deg)_translateX(-150%)] group-hover:duration-1000 group-hover:[transform:skew(-12deg)_translateX(150%)]">
-            <div className="relative h-full w-8 bg-white/20" />
-          </div>
-          <span>Thanh toán ngay</span>{" "}
-          <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-        </button>
-
-        <div className="grid gap-3">
-          <button
-            type="button"
-            onClick={handleAddToCart}
-            disabled={!canCheckout}
-            className="flex h-12 items-center justify-center gap-2 rounded-[18px] border border-[#e4edf5] bg-white px-4 text-sm font-semibold text-slate-950 appearance-none outline-none transition-all duration-200 hover:border-[#bfdcf0] hover:bg-[#fbfdff] hover:text-[#2f91d0] disabled:cursor-not-allowed disabled:border-transparent disabled:bg-slate-100 disabled:text-slate-400 focus:outline-none focus-visible:outline-none"
-          >
-            <ShoppingCart className="h-4 w-4" />{" "}
-            {isEditMode ? "Cập nhật thiết kế" : "Thêm vào giỏ"}
-          </button>
-        </div>
-      </div>
     </div>
   );
 }

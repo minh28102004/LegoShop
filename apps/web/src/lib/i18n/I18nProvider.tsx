@@ -54,13 +54,16 @@ export function I18nProvider({ children }: { children: ReactNode }) {
 
     const storedLocale = window.localStorage.getItem(LOCALE_STORAGE_KEY);
 
-    if (!isLocale(storedLocale)) {
-      document.documentElement.lang = DEFAULT_LOCALE;
-      return;
-    }
+    if (!isLocale(storedLocale)) return;
 
-    setLocaleState(storedLocale);
-    document.documentElement.lang = storedLocale;
+    let cancelled = false;
+    window.queueMicrotask(() => {
+      if (!cancelled) setLocaleState(storedLocale);
+    });
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {

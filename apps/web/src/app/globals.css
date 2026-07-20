@@ -5,15 +5,15 @@
   :root {
     color-scheme: light;
 
-    --color-primary: 201 67% 58%;
-    --color-primary-dark: 203 86% 31%;
-    --color-primary-light: 203 100% 94%;
+    --color-primary: 202 71% 48%;
+    --color-primary-dark: 204 81% 38%;
+    --color-primary-light: 202 76% 95%;
     --color-primary-hover: var(--color-primary-dark);
     --color-primary-foreground: 0 0% 100%;
 
-    --color-accent: 48 100% 71%;
-    --color-accent-dark: 48 100% 45%;
-    --color-accent-soft: 50 100% 89%;
+    --color-accent: 46 86% 62%;
+    --color-accent-dark: 42 69% 52%;
+    --color-accent-soft: 46 100% 92%;
     --color-accent-hover: var(--color-accent-dark);
     --color-accent-foreground: 213 52% 13%;
 
@@ -30,11 +30,12 @@
     --color-border-soft: 210 42% 95%;
     --color-border-strong: 209 39% 84%;
 
-    --color-navy: 213 52% 13%;
-    --color-text: 213 52% 13%;
-    --color-muted: 216 16% 47%;
+    --color-navy: 213 59% 15%;
+    --color-text: 213 59% 15%;
+    --color-body: 213 21% 40%;
+    --color-muted: 213 17% 56%;
     --color-text-primary: var(--color-text);
-    --color-text-secondary: var(--color-muted);
+    --color-text-secondary: var(--color-body);
     --color-text-muted: var(--color-muted);
     --color-text-inverse: 0 0% 100%;
 
@@ -48,25 +49,8 @@
     --color-lego-yellow: 46 97% 58%;
     --color-lego-blue: 205 91% 52%;
 
-    --admin-surface: #ffffff;
-    --admin-surface-muted: #f1f5f9;
-    --admin-border: #cbd5e1;
-    --admin-text: #0f172a;
-    --admin-text-muted: #64748b;
-    --admin-primary: #63afe3;
-    --admin-primary-strong: #2f91d0;
-    --admin-primary-soft: #edf8ff;
-    --admin-primary-ring: rgba(99, 175, 227, 0.24);
-    --admin-radius-control-sm: 10px;
-    --admin-radius-control: 12px;
-    --admin-radius-control-lg: 14px;
-    --admin-shadow-floating:
-      0 0 0 1px rgba(226, 232, 240, 0.62),
-      0 22px 44px -30px rgba(15, 23, 42, 0.28);
-    --admin-focus-ring: inset 0 0 0 1px rgba(99, 175, 227, 0.82);
-
-    --font-display: "Manrope", system-ui, sans-serif;
-    --font-body: "Plus Jakarta Sans", system-ui, sans-serif;
+    --font-display: var(--font-be-vietnam-pro), system-ui, sans-serif;
+    --font-body: var(--font-be-vietnam-pro), system-ui, sans-serif;
     --font-mono: "Space Mono", "Courier New", monospace;
 
     --radius-xs: 4px;
@@ -76,8 +60,11 @@
     --radius-xl: 20px;
     --radius-2xl: 24px;
     --radius-3xl: 32px;
+    --radius-input: 14px;
+    --radius-button: 14px;
+    --radius-pill: 999px;
     --radius-card: 24px;
-    --radius-button: 999px;
+    --radius-card-large: 28px;
 
     --shadow-xs: 0 1px 2px 0 rgb(18 45 78 / 0.04);
     --shadow-sm: 0 6px 18px -14px rgb(18 45 78 / 0.12);
@@ -87,10 +74,15 @@
     --shadow-2xl: 0 36px 80px -34px rgb(18 45 78 / 0.28);
     --shadow-inner: inset 0 1px 0 rgb(255 255 255 / 0.9);
     --shadow-soft: 0 12px 30px rgb(16 32 51 / 0.08);
+    --shadow-control: 0 1px 2px rgb(18 45 78 / 0.05);
+    --shadow-card: 0 18px 40px -30px rgb(18 45 78 / 0.18);
+    --shadow-elevated: 0 24px 54px -32px rgb(18 45 78 / 0.24);
+    --shadow-sticky: 0 -14px 32px -28px rgb(18 45 78 / 0.3);
 
-    --duration-fast: 150ms;
-    --duration-normal: 250ms;
+    --duration-fast: 180ms;
+    --duration-normal: 260ms;
     --duration-slow: 400ms;
+    --duration-reveal: 520ms;
 
     --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
     --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
@@ -180,13 +172,6 @@
     -webkit-tap-highlight-color: transparent;
   }
 
-  .studio-workbench button:focus,
-  .studio-workbench button:focus-visible,
-  .studio-workbench [role="button"]:focus,
-  .studio-workbench [role="button"]:focus-visible {
-    outline: none;
-  }
-
   html {
     scroll-behavior: smooth;
     -webkit-font-smoothing: antialiased;
@@ -221,15 +206,26 @@
   h5,
   h6 {
     margin: 0;
+  }
+
+  h1:not([class]),
+  h2:not([class]),
+  h3:not([class]),
+  h4:not([class]),
+  h5:not([class]),
+  h6:not([class]) {
     font-family: var(--font-display);
-    font-weight: 800;
-    letter-spacing: -0.03em;
+    font-weight: 700;
+    letter-spacing: -0.018em;
     color: hsl(var(--color-text-primary));
   }
 
   p {
     margin: 0;
-    color: hsl(var(--color-text-secondary));
+  }
+
+  p:not([class]) {
+    color: hsl(var(--color-body));
     line-height: 1.7;
   }
 
@@ -273,59 +269,6 @@
 
   ::-webkit-scrollbar-thumb:hover {
     background: hsl(var(--color-text-muted));
-  }
-
-  .admin-control {
-    width: 100%;
-    border: 1px solid var(--admin-border);
-    background: #ffffff;
-    color: var(--admin-text);
-    font-size: 0.875rem;
-    font-weight: 500;
-    line-height: 1.5;
-    outline: none;
-    transition:
-      border-color 90ms ease,
-      background-color 90ms ease,
-      box-shadow 90ms ease,
-      transform 90ms ease;
-    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
-  }
-
-  .admin-control::placeholder {
-    color: var(--admin-text-muted);
-  }
-
-  .admin-control:focus,
-  .admin-control:focus-visible {
-    border-color: var(--admin-primary);
-    box-shadow: var(--admin-focus-ring);
-    outline: none;
-  }
-
-  .admin-control:disabled {
-    cursor: not-allowed;
-    border-color: var(--admin-border);
-    background: var(--admin-surface-muted);
-    color: rgba(100, 116, 139, 0.88);
-  }
-
-  .admin-control-sm {
-    min-height: 40px;
-    border-radius: var(--admin-radius-control-sm);
-    padding: 0.625rem 0.875rem;
-  }
-
-  .admin-control-md {
-    min-height: 42px;
-    border-radius: var(--admin-radius-control);
-    padding: 0.6875rem 0.875rem;
-  }
-
-  .admin-control-lg {
-    min-height: 44px;
-    border-radius: var(--admin-radius-control-lg);
-    padding: 0.75rem 1rem;
   }
 }
 
@@ -676,11 +619,29 @@
   }
 }
 
+@keyframes home-hero-fade {
+  from {
+    opacity: 0.25;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+.animate-home-hero-fade {
+  animation: home-hero-fade 700ms ease-out both;
+}
+
 .animate-zoom-in {
   animation: zoom-in 220ms ease-out forwards;
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .animate-home-hero-fade {
+    animation: none;
+  }
+
   .brick-stack-loader__brick,
   .brick-stack-loader__shadow,
   .brick-cube-loader span,
@@ -706,4 +667,17 @@ body:has(.studio-workbench) main {
 
 body:has(.studio-workbench) footer {
   display: none;
+}
+
+:where(
+  a,
+  button,
+  input,
+  select,
+  textarea,
+  [role="button"],
+  [tabindex]:not([tabindex="-1"])
+):focus-visible {
+  outline: 3px solid hsl(var(--color-primary) / 0.42);
+  outline-offset: 3px;
 }

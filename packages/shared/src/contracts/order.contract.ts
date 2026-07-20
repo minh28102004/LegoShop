@@ -1,6 +1,17 @@
-import type { OrderStatus, PaymentMethod, PaymentStatus, ShippingStatus } from '../constants/status';
-import type { ID, ISODateString, JsonObject, PriceInVND, URLString } from '../types/common';
-import type { Order } from '../types/order';
+import type {
+  OrderStatus,
+  PaymentMethod,
+  PaymentStatus,
+  ShippingStatus,
+} from "../constants/status";
+import type {
+  ID,
+  ISODateString,
+  JsonObject,
+  PriceInVND,
+  URLString,
+} from "../types/common";
+import type { Order } from "../types/order";
 
 export type CreateOrderItemRequest = {
   productId?: ID;
@@ -12,7 +23,12 @@ export type CreateOrderItemRequest = {
   frameSizeId?: ID;
   frameSizeLabel?: string;
   frameColorName?: string;
-  accessories?: Array<{ id: ID; name?: string; price?: PriceInVND; quantity?: number }>;
+  accessories?: Array<{
+    id: ID;
+    name?: string;
+    price?: PriceInVND;
+    quantity?: number;
+  }>;
   note?: string;
   designData?: JsonObject;
   previewUrl?: URLString;
@@ -33,10 +49,10 @@ export type CreateOrderRequest = {
   ward?: string;
   receiveDate?: ISODateString;
   note?: string;
-  shippingMethod?: 'shop_support' | 'self' | 'standard' | 'fast';
+  shippingMethod?: "shop_support" | "self" | "standard" | "fast";
   voucherCode?: string;
   giftPackage?: boolean;
-  polaroidOption?: 'none' | '2' | '4';
+  polaroidOption?: "none" | "2" | "4";
   paymentMethod: PaymentMethod;
   items: CreateOrderItemRequest[];
 };
@@ -86,8 +102,17 @@ export type TrackOrderItemSummaryContract = {
   previewUrl?: URLString | null;
 };
 
+export type TrackOrderStatusHistoryContract = {
+  type: string;
+  fromValue?: string | null;
+  toValue?: string | null;
+  note?: string | null;
+  createdAt: ISODateString;
+};
+
 export type TrackOrderResponseContract = {
   orderCode: string;
+  customerName?: string | null;
   orderStatus: OrderStatus;
   paymentStatus: PaymentStatus | string;
   shippingStatus: ShippingStatus;
@@ -107,6 +132,11 @@ export type TrackOrderResponseContract = {
   updatedAt?: ISODateString;
   expiresAt?: ISODateString | null;
   receiveDate?: ISODateString | null;
+  estimatedDelivery?: ISODateString | null;
+  trackingCode?: string | null;
+  shippingProvider?: string | null;
+  notes?: string | null;
+  statusHistory?: TrackOrderStatusHistoryContract[];
   maskedPhone?: string | null;
   maskedEmail?: string | null;
   maskedAddress?: string | null;
@@ -116,7 +146,7 @@ export type TrackOrderResponseContract = {
 export type CreateOrderItemRequestContract = CreateOrderItemRequest;
 export type CreateOrderRequestContract = CreateOrderRequest;
 export type CreateOrderResponseContract = CreateOrderResponse;
-export type TrackOrderLegacyResponseContract = Omit<Order, 'id'>;
+export type TrackOrderLegacyResponseContract = Omit<Order, "id">;
 
 export type UpdateOrderStatusRequestContract = {
   status: OrderStatus;

@@ -1,0 +1,78 @@
+{
+  "reportVersion": 1,
+  "completedAt": "2026-07-17T14:07:05.0844239+07:00",
+  "database": "postgres",
+  "schema": "public",
+  "authorizedScope": {
+    "entity": "Product",
+    "prefixRule": "name LIKE 'test-paging-%' OR slug LIKE 'test-paging-%'",
+    "databaseLocalDate": "2026-07-17",
+    "expectedCount": 35
+  },
+  "dryRun": {
+    "candidateCount": 35,
+    "prefixValid": true,
+    "outboundCollectionRelations": 0,
+    "orderItemReferences": 0,
+    "totalReferences": 0,
+    "safeToDelete": true,
+    "recordList": "../backups/public-test-paging-products-20260717.json"
+  },
+  "backup": {
+    "path": "data/import/backups/public-test-paging-products-20260717.json",
+    "recordCount": 35,
+    "uniqueIdCount": 35,
+    "sha256": "b40e77385bbe899dee39b11d7067d4de41aa40a75a24ce16abd669031f03f597"
+  },
+  "transaction": {
+    "isolationLevel": "serializable",
+    "committed": true,
+    "deleted": 35,
+    "deletedIdsExactlyMatchedBackup": true,
+    "referencesBefore": 0,
+    "referencesAfter": 0
+  },
+  "postVerification": {
+    "deletedIdsStillPresent": 0,
+    "remainingAuthorizedScope": 0,
+    "remainingAllDates": 13,
+    "olderOutOfScopeFixturesPreserved": 13,
+    "orphanReferenceErrors": 0,
+    "passed": true
+  },
+  "protectedCounts": {
+    "before": {
+      "Product": 50,
+      "Collection": 2,
+      "Banner": 2,
+      "FrameBackground": 4,
+      "Accessory": 2,
+      "AccessoryCategory": 2
+    },
+    "after": {
+      "Product": 15,
+      "Collection": 2,
+      "Banner": 2,
+      "FrameBackground": 4,
+      "Accessory": 2,
+      "AccessoryCategory": 2
+    },
+    "nonTargetEntitiesUnchanged": true,
+    "figureLabImportDataTouched": false
+  },
+  "verification": {
+    "publicProductsApi": {
+      "url": "http://127.0.0.1:3003/public/products",
+      "httpStatus": 200,
+      "returnedProductCount": 15,
+      "passed": true,
+      "qaServerStopped": true
+    },
+    "backendTypecheck": "pass",
+    "backendBuild": "pass"
+  },
+  "notes": [
+    "The Product.createdAt column is timestamp without time zone; the authorized date was evaluated using the database wall-clock date range [2026-07-17, 2026-07-18).",
+    "The remaining=0 assertion applies to the explicitly authorized 2026-07-17 scope. Thirteen older test-paging-* fixtures dated before 2026-07-17 remain because deleting them was not authorized."
+  ]
+}

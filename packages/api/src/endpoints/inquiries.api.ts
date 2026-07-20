@@ -1,13 +1,16 @@
 import type {
   BusinessInquiryContract,
   CreateBusinessInquiryRequestContract,
+  CreateBusinessInquiryResponseContract,
   UpdateBusinessInquiryStatusRequestContract,
 } from '@lego-shop/shared';
 import type { ApiRequester } from '../client';
 
 export function createInquiriesApi(request: ApiRequester) {
   return {
-    createBusinessInquiry(payload: CreateBusinessInquiryRequestContract): Promise<BusinessInquiryContract> {
+    createBusinessInquiry(
+      payload: CreateBusinessInquiryRequestContract,
+    ): Promise<CreateBusinessInquiryResponseContract> {
       return request('business-inquiries', {
         method: 'POST',
         body: payload,

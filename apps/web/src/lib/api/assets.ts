@@ -2,6 +2,7 @@ import { getApiBaseUrl } from './base-url'
 
 const API_ASSET_PATH_PREFIXES = ['/uploads/', '/shared/images/']
 const LOOPBACK_HOSTS = new Set(['localhost', '127.0.0.1'])
+const PLACEHOLDER_HOSTS = new Set(['example.com', 'www.example.com'])
 
 export function resolveApiAssetUrl(url?: string | null): string {
   const trimmedUrl = url?.trim()
@@ -17,6 +18,10 @@ export function resolveApiAssetUrl(url?: string | null): string {
   const apiBaseUrl = getApiBaseUrl()
 
   if (/^https?:\/\//i.test(trimmedUrl)) {
+    if (isPlaceholderAssetUrl(trimmedUrl)) {
+      return ''
+    }
+
     return normalizeLoopbackApiAssetUrl(trimmedUrl, apiBaseUrl)
   }
 
@@ -29,6 +34,14 @@ export function resolveApiAssetUrl(url?: string | null): string {
   }
 
   return trimmedUrl
+}
+
+function isPlaceholderAssetUrl(url: string) {
+  try {
+    return PLACEHOLDER_HOSTS.has(new URL(url).hostname)
+  } catch {
+    return false
+  }
 }
 
 function normalizeLoopbackApiAssetUrl(url: string, apiBaseUrl: string) {

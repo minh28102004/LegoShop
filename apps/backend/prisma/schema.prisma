@@ -93,16 +93,16 @@ model Admin {
 }
 
 model Product {
-  id          String        @id @default(uuid())
-  name        String
-  slug        String        @unique
-  description String?
-  basePrice   Int
-  images      String[]      @default([])
-  productType String        @default("finished")
+  id              String        @id @default(uuid())
+  name            String
+  slug            String        @unique
+  description     String?
+  basePrice       Int
+  images          String[]      @default([])
+  productType     String        @default("finished")
   componentConfig Json?
-  status      ProductStatus @default(active)
-  featured    Boolean       @default(false)
+  status          ProductStatus @default(active)
+  featured        Boolean       @default(false)
 
   collectionId String?
   collection   Collection? @relation(fields: [collectionId], references: [id], onDelete: SetNull)
@@ -144,68 +144,141 @@ model AccessoryCategory {
   id          String      @id @default(uuid())
   name        String
   slug        String      @unique
+  seedTag     String?
   accessories Accessory[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([seedTag])
 }
 
 model Accessory {
-  id       String        @id @default(uuid())
-  name     String
-  price    Int           @default(0)
-  imageUrl String?
-  iconUrl  String?
-  status   ProductStatus @default(active)
+  id            String        @id @default(uuid())
+  name          String
+  slug          String?       @unique
+  price         Int           @default(0)
+  imageUrl      String?
+  iconUrl       String?
+  sortOrder     Int           @default(0)
+  naturalWidth  Int?
+  naturalHeight Int?
+  sourceKey     String?       @unique
+  sourceHash    String?
+  seedTag       String?
+  metadata      Json?
+  status        ProductStatus @default(active)
 
   categoryId String?
   category   AccessoryCategory? @relation(fields: [categoryId], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([categoryId, status, sortOrder])
+  @@index([seedTag])
+  @@index([status, sortOrder])
 }
 
 model Banner {
-  id        String        @id @default(uuid())
-  title     String?
-  imageUrl  String
-  linkUrl   String?
-  sortOrder Int           @default(0)
-  status    ProductStatus @default(active)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model FrameBackground {
   id            String        @id @default(uuid())
-  title         String
-  description   String?
-  instructions  String?
+  title         String?
   imageUrl      String
-  contentFields Json?
-  frameOptionIds String[]      @default([])
+  linkUrl       String?
   sortOrder     Int           @default(0)
+  naturalWidth  Int?
+  naturalHeight Int?
+  sourceKey     String?       @unique
+  sourceHash    String?
+  seedTag       String?
+  metadata      Json?
   status        ProductStatus @default(active)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  @@index([seedTag])
   @@index([status, sortOrder])
 }
 
+model FrameBackground {
+  id             String        @id @default(uuid())
+  title          String
+  slug           String?       @unique
+  category       String?
+  description    String?
+  instructions   String?
+  imageUrl       String
+  thumbnailUrl   String?
+  naturalWidth   Int?
+  naturalHeight  Int?
+  sourceKey      String?       @unique
+  sourceHash     String?
+  seedTag        String?
+  metadata       Json?
+  contentFields  Json?
+  frameOptionIds String[]      @default([])
+  sortOrder      Int           @default(0)
+  status         ProductStatus @default(active)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status, sortOrder])
+  @@index([category, status, sortOrder])
+  @@index([seedTag])
+}
+
 model Collection {
-  id          String        @id @default(uuid())
-  name        String
-  slug        String        @unique
-  description String?
-  imageUrl    String?
-  status      ProductStatus @default(active)
+  id            String        @id @default(uuid())
+  name          String
+  slug          String        @unique
+  description   String?
+  imageUrl      String?
+  sortOrder     Int           @default(0)
+  naturalWidth  Int?
+  naturalHeight Int?
+  sourceKey     String?       @unique
+  sourceHash    String?
+  seedTag       String?
+  metadata      Json?
+  status        ProductStatus @default(active)
 
   products Product[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([status, sortOrder])
+  @@index([seedTag])
+}
+
+model SampleMediaImport {
+  id                   String   @id @default(uuid())
+  seedTag              String
+  sourceKey            String
+  sourceHash           String
+  kind                 String
+  destinationUrl       String
+  storagePath          String
+  thumbnailUrl         String?
+  thumbnailStoragePath String?
+  mimeType             String
+  byteSize             Int
+  naturalWidth         Int
+  naturalHeight        Int
+  targetEntity         String?
+  targetRecordId       String?
+  operation            String?
+  previousData         Json?
+  metadata             Json?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  @@unique([seedTag, sourceKey])
+  @@index([seedTag])
+  @@index([sourceHash])
+  @@index([targetEntity, targetRecordId])
 }
 
 model Character {
@@ -321,16 +394,16 @@ model Order {
   receiveDate  DateTime?
   note         String?
 
-  shippingMethod String?
-  shippingFee    Int     @default(0)
-  voucherCode    String?
+  shippingMethod       String?
+  shippingFee          Int     @default(0)
+  voucherCode          String?
   voucherDiscountType  String?
   voucherDiscountValue Int?
-  discountAmount Int     @default(0)
-  giftPackage    Boolean @default(false)
-  giftFee        Int     @default(0)
-  polaroidOption String  @default("none")
-  polaroidFee    Int     @default(0)
+  discountAmount       Int     @default(0)
+  giftPackage          Boolean @default(false)
+  giftFee              Int     @default(0)
+  polaroidOption       String  @default("none")
+  polaroidFee          Int     @default(0)
 
   paymentMethod  PaymentMethod
   paymentStatus  PaymentStatus  @default(unpaid)
@@ -351,9 +424,9 @@ model Order {
   payosPaymentLinkId String?
   payosCheckoutUrl   String?
 
-  paidAt      DateTime?
-  cancelledAt DateTime?
-  expiresAt   DateTime?
+  paidAt       DateTime?
+  cancelledAt  DateTime?
+  expiresAt    DateTime?
   cancelReason String?
 
   items           OrderItem[]

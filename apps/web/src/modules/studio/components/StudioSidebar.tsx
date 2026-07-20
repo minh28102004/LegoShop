@@ -1,66 +1,56 @@
 "use client";
 
+import Image from "next/image";
 import { useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import {
+  AlertCircle,
   Check,
-  Layers,
   LayoutTemplate,
   Plus,
   Puzzle,
   Search,
-  Settings2,
   Trash2,
   Type,
   UploadCloud,
   UserRound,
-  type LucideIcon,
 } from "lucide-react";
 import { formatCurrency as formatPrice } from "@lego-shop/shared";
 
+import { DECORATIVE_ICON_PATHS } from "@/config/icons";
 import { uploadCustomerImage } from "@/lib/api/uploads";
-import { useStudio } from "./StudioContext";
+import { useStudioI18n } from "../hooks/useStudioI18n";
+import { useStudio, type StudioElement } from "./StudioContext";
+import { StudioSearchableMultiSelect } from "./StudioSearchableMultiSelect";
 
 type StudioTab = "templates" | "uploads" | "text" | "assets" | "layers";
 
-const TABS: Array<{ id: StudioTab; icon: LucideIcon; label: string }> = [
-  { id: "templates", icon: LayoutTemplate, label: "Mẫu thiết kế" },
-  { id: "uploads", icon: UploadCloud, label: "Tải ảnh lên" },
-  { id: "text", icon: Type, label: "Văn bản" },
-  { id: "assets", icon: Puzzle, label: "Phụ kiện" },
-  { id: "layers", icon: Layers, label: "Lớp thiết kế" },
-];
-
-const TAB_TITLES: Record<StudioTab, string> = {
-  templates: "Mẫu thiết kế",
-  uploads: "Tải ảnh lên",
-  text: "Văn bản",
-  assets: "Phụ kiện",
-  layers: "Lớp thiết kế",
-};
-
-const QUICK_STICKERS = ["🧸", "🎀", "💖", "✨", "🎈", "🎁", "🎉", "👑", "🌺"];
-
-function SidebarTooltip({
-  label,
-  children,
-}: {
-  label: string;
-  children: ReactNode;
-}) {
-  return (
-    <div className="group/tooltip relative flex">
-      {children}
-
-      <span
-        role="tooltip"
-        className="pointer-events-none absolute left-full top-1/2 z-50 ml-2 -translate-y-1/2 whitespace-nowrap rounded-lg bg-slate-900 px-2.5 py-1.5 text-xs font-medium text-white opacity-0 shadow-sm transition-all delay-150 duration-150 group-hover/tooltip:opacity-100"
-      >
-        {label}
-      </span>
-    </div>
-  );
-}
+const QUICK_STICKERS = [
+  {
+    id: "sparkles",
+    imageUrl: DECORATIVE_ICON_PATHS.sparkles,
+  },
+  {
+    id: "gift",
+    imageUrl: DECORATIVE_ICON_PATHS.wrappedGift,
+  },
+  {
+    id: "camera",
+    imageUrl: DECORATIVE_ICON_PATHS.camera,
+  },
+  {
+    id: "palette",
+    imageUrl: DECORATIVE_ICON_PATHS.artistPalette,
+  },
+  {
+    id: "graduation",
+    imageUrl: DECORATIVE_ICON_PATHS.graduationCap,
+  },
+  {
+    id: "package",
+    imageUrl: DECORATIVE_ICON_PATHS.package,
+  },
+] as const;
 
 function EmptyState({
   title,
@@ -81,20 +71,72 @@ function EmptyState({
   );
 }
 
+type StudioMediaThumbnailProps = {
+  alt: string;
+  fallback: ReactNode;
+  imageClassName: string;
+  priority?: boolean;
+  src?: string | null | undefined;
+};
+
+function StudioMediaThumbnail(props: StudioMediaThumbnailProps) {
+  return (
+    <StudioMediaThumbnailContent key={props.src || "empty-media"} {...props} />
+  );
+}
+
+function StudioMediaThumbnailContent({
+  alt,
+  fallback,
+  imageClassName,
+  priority = false,
+  src,
+}: StudioMediaThumbnailProps) {
+  const [failed, setFailed] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+
+  if (!src || failed) {
+    return (
+      <div className="grid h-full w-full place-items-center">{fallback}</div>
+    );
+  }
+
+  return (
+    <div className="relative h-full w-full">
+      {!loaded ? (
+        <span className="absolute inset-2 animate-pulse rounded-xl bg-slate-200/65" />
+      ) : null}
+      <Image
+        key={src}
+        src={src}
+        alt={alt}
+        fill
+        priority={priority}
+        sizes="(max-width: 767px) 42vw, 148px"
+        onLoad={() => setLoaded(true)}
+        onError={() => {
+          setLoaded(false);
+          setFailed(true);
+        }}
+        className={`${imageClassName} ${loaded ? "opacity-100" : "opacity-0"}`}
+      />
+    </div>
+  );
+}
+
 function TemplateCard({
   active,
   imageUrl,
   name,
   onClick,
+  priority = false,
 }: {
   active: boolean;
   imageUrl?: string | null;
   name: string;
   onClick: () => void;
+  priority?: boolean;
 }) {
-  const [broken, setBroken] = useState(false);
-  const showImage = Boolean(imageUrl) && !broken;
-
   return (
     <button
       type="button"
@@ -107,24 +149,20 @@ function TemplateCard({
       ].join(" ")}
     >
       <div className="relative min-h-0 flex-1 overflow-hidden rounded-t-[19px] bg-[#f8fbff]">
-        {showImage ? (
-          <img
-            src={imageUrl ?? undefined}
-            alt={name}
-            loading="lazy"
-            onError={() => setBroken(true)}
-            className="h-full w-full object-contain p-2.5 transition-transform duration-300 ease-out group-hover:scale-[1.03]"
-          />
-        ) : (
-          <div className="grid h-full place-items-center px-3 text-center">
-            <div className="grid place-items-center gap-1.5">
+        <StudioMediaThumbnail
+          src={imageUrl}
+          alt={name}
+          priority={priority}
+          imageClassName="object-contain p-2.5 transition-[opacity,transform] duration-300 ease-out group-hover:scale-[1.03]"
+          fallback={
+            <div className="grid place-items-center gap-1.5 px-3 text-center">
               <LayoutTemplate className="h-6 w-6 text-slate-300" />
               <span className="max-w-[100px] text-[11px] font-semibold leading-4 text-slate-400">
                 {name}
               </span>
             </div>
-          </div>
-        )}
+          }
+        />
 
         {active ? (
           <span className="absolute right-2 top-2 grid h-6 w-6 place-items-center rounded-full bg-[#2f91d0] text-white shadow-sm">
@@ -189,6 +227,7 @@ function LayerItemRow({
   imageUrl,
   onSelect,
   onRemove,
+  removeLabel,
 }: {
   active: boolean;
   label: string;
@@ -198,6 +237,7 @@ function LayerItemRow({
   imageUrl?: string | null;
   onSelect: () => void;
   onRemove: () => void;
+  removeLabel: string;
 }) {
   const showPreview = type === "accessory" && Boolean(imageUrl);
 
@@ -233,17 +273,19 @@ function LayerItemRow({
       >
         <div
           className={[
-            "grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-[14px] border transition-all duration-200",
+            "relative grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-[14px] border transition-all duration-200",
             active
               ? "border-[#d6eafa] bg-white text-[#2f91d0]"
               : "border-[#edf3f8] bg-white text-slate-500 group-hover:border-[#d6eafa] group-hover:text-[#2f91d0]",
           ].join(" ")}
         >
           {showPreview ? (
-            <img
+            <Image
               src={imageUrl ?? ""}
               alt={content || label}
-              className="h-full w-full object-cover"
+              fill
+              sizes="40px"
+              className="object-contain p-1"
             />
           ) : (
             icon
@@ -282,7 +324,7 @@ function LayerItemRow({
       <button
         type="button"
         onClick={onRemove}
-        aria-label="Xóa lớp"
+        aria-label={removeLabel}
         className="grid h-8 w-8 shrink-0 place-items-center rounded-full border-0 bg-transparent text-slate-400 outline-none ring-0 transition-all duration-200 hover:bg-red-50 hover:text-red-500 focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0"
       >
         <Trash2 className="h-4 w-4" />
@@ -291,12 +333,42 @@ function LayerItemRow({
   );
 }
 
-export function StudioSidebar() {
-  const [activeTab, setActiveTab] = useState<StudioTab>("templates");
+type StudioSidebarProps = {
+  embedded?: boolean;
+};
+
+const TEMPLATE_PAGE_SIZE = 12;
+const ACCESSORY_PAGE_SIZE = 24;
+
+export function StudioSidebar({ embedded = false }: StudioSidebarProps) {
+  const { text } = useStudioI18n();
   const [query, setQuery] = useState("");
+  const [activeTemplateCategoryIds, setActiveTemplateCategoryIds] = useState<
+    string[]
+  >([]);
+  const [activeAccessoryCategoryIds, setActiveAccessoryCategoryIds] = useState<
+    string[]
+  >([]);
+  const [templatePagination, setTemplatePagination] = useState({
+    key: "",
+    count: TEMPLATE_PAGE_SIZE,
+  });
+  const [accessoryPagination, setAccessoryPagination] = useState({
+    key: "",
+    count: ACCESSORY_PAGE_SIZE,
+  });
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const uploadInputRef = useRef<HTMLInputElement | null>(null);
+
+  const quickStickers = useMemo(
+    () =>
+      QUICK_STICKERS.map((sticker) => ({
+        ...sticker,
+        label: text.sidebar.quickStickers[sticker.id],
+      })),
+    [text.sidebar.quickStickers],
+  );
 
   const {
     activeTemplate,
@@ -310,29 +382,112 @@ export function StudioSidebar() {
     selectedId,
     setSelectedId,
     templates,
+    templateCategories,
     accessories,
+    accessoryCategories,
     elements,
-    isLoadingData,
+    isBackgroundsLoading,
+    backgroundsError,
+    isAccessoriesLoading,
+    accessoriesError,
+    isAccessoryCategoriesLoading,
+    accessoryCategoriesError,
+    activePanelTab,
   } = useStudio();
+
+  const activeTab: StudioTab =
+    activePanelTab === "uploads"
+      ? "uploads"
+      : activePanelTab === "information" ||
+          activePanelTab === "add-text" ||
+          activePanelTab === "formatting"
+        ? "text"
+        : activePanelTab === "accessories"
+          ? "assets"
+          : activePanelTab === "layers"
+            ? "layers"
+            : "templates";
 
   const normalizedQuery = query.trim().toLowerCase();
   const showSearch = activeTab === "templates" || activeTab === "assets";
+  const effectiveTemplateCategoryIds = activeTemplateCategoryIds.filter((id) =>
+    templateCategories.some((category) => category.id === id),
+  );
+  const effectiveAccessoryCategoryIds = activeAccessoryCategoryIds.filter(
+    (id) => accessoryCategories.some((category) => category.id === id),
+  );
 
   const filteredTemplates = useMemo(() => {
-    if (!normalizedQuery) return templates;
+    let items = effectiveTemplateCategoryIds.length > 0
+      ? templates.filter(
+          (template) =>
+            Boolean(
+              template.categoryId &&
+                effectiveTemplateCategoryIds.includes(template.categoryId),
+            ),
+        )
+      : templates;
 
-    return templates.filter((template) =>
+    if (!normalizedQuery) return items;
+
+    items = items.filter((template) =>
       template.name.toLowerCase().includes(normalizedQuery),
     );
-  }, [normalizedQuery, templates]);
+
+    return items;
+  }, [effectiveTemplateCategoryIds, normalizedQuery, templates]);
 
   const filteredAccessories = useMemo(() => {
-    if (!normalizedQuery) return accessories;
+    let items = effectiveAccessoryCategoryIds.length > 0
+      ? accessories.filter(
+          (accessory) =>
+            Boolean(
+              accessory.categoryId &&
+                effectiveAccessoryCategoryIds.includes(accessory.categoryId),
+            ),
+        )
+      : accessories;
 
-    return accessories.filter((accessory) =>
+    if (!normalizedQuery) return items;
+
+    items = items.filter((accessory) =>
       accessory.name.toLowerCase().includes(normalizedQuery),
     );
-  }, [accessories, normalizedQuery]);
+
+    return items;
+  }, [accessories, effectiveAccessoryCategoryIds, normalizedQuery]);
+
+  const templatePaginationKey = `${normalizedQuery}:${activeTemplateCategoryIds.join(",")}`;
+  const accessoryPaginationKey = `${normalizedQuery}:${activeAccessoryCategoryIds.join(",")}`;
+  const visibleTemplateCount =
+    templatePagination.key === templatePaginationKey
+      ? templatePagination.count
+      : TEMPLATE_PAGE_SIZE;
+  const visibleAccessoryCount =
+    accessoryPagination.key === accessoryPaginationKey
+      ? accessoryPagination.count
+      : ACCESSORY_PAGE_SIZE;
+  const visibleTemplates = filteredTemplates.slice(0, visibleTemplateCount);
+  const visibleAccessories = filteredAccessories.slice(0, visibleAccessoryCount);
+
+  const selectedAccessoryElements = useMemo(
+    () =>
+      elements.filter(
+        (element) => element.type === "accessory" && element.accessoryId,
+      ),
+    [elements],
+  );
+  const selectedAccessoryByCatalogId = useMemo(() => {
+    const selected = new Map<string, StudioElement>();
+    selectedAccessoryElements.forEach((element) => {
+      if (element.accessoryId) selected.set(element.accessoryId, element);
+    });
+    return selected;
+  }, [selectedAccessoryElements]);
+  const selectedAccessoriesTotal = selectedAccessoryElements.reduce(
+    (total, element) => total + (element.price ?? 0),
+    0,
+  );
 
   const handleUpload = async (file?: File) => {
     if (!file) return;
@@ -349,7 +504,7 @@ export function StudioSidebar() {
       clearContentValues();
     } catch (error) {
       setUploadError(
-        error instanceof Error ? error.message : "Không tải được ảnh lên",
+        error instanceof Error ? error.message : text.sidebar.uploadError,
       );
     } finally {
       setUploading(false);
@@ -364,7 +519,7 @@ export function StudioSidebar() {
           ? "BRICKSTUDIO"
           : variant === "caption"
             ? "Custom Edition #001"
-            : "Thêm nội dung văn bản",
+            : text.sidebar.defaultBodyText,
       x: variant === "title" ? 110 : 120,
       y: variant === "title" ? 285 : 320,
       fontSize: variant === "title" ? 22 : variant === "caption" ? 13 : 16,
@@ -372,60 +527,34 @@ export function StudioSidebar() {
     });
   };
 
-  const addSticker = (sticker: string) => {
+  const addSticker = (sticker: (typeof quickStickers)[number]) => {
     addElement({
       type: "accessory",
-      content: sticker,
+      content: sticker.label,
+      imageUrl: sticker.imageUrl,
       x: 150,
       y: 150,
-      fontSize: 58,
+      width: 64,
+      height: 64,
     });
   };
 
   return (
-    <div className="flex h-full min-h-0 bg-white">
-      <nav className="flex w-[68px] shrink-0 flex-col items-center gap-3.5 border-r border-[#edf3f8] bg-[#fbfdff] px-2 py-4">
-        {TABS.map((tab) => {
-          const Icon = tab.icon;
-          const active = activeTab === tab.id;
-
-          return (
-            <SidebarTooltip key={tab.id} label={tab.label}>
-              <button
-                type="button"
-                onClick={() => {
-                  setActiveTab(tab.id);
-                  setQuery("");
-                }}
-                aria-label={tab.label}
-                aria-pressed={active}
-                className={[
-                  "grid h-11 w-11 place-items-center rounded-2xl border transition-all duration-200 ease-out",
-                  active
-                    ? "border-[#2f91d0] bg-[#2f91d0] text-white shadow-[0_8px_16px_-13px_rgba(47,145,208,0.52)] ring-1 ring-inset ring-white/30"
-                    : "border-transparent bg-[#f8fbff] text-slate-500 hover:border-[#cfe4f4] hover:bg-white hover:text-[#2f91d0]",
-                ].join(" ")}
-              >
-                <Icon className="h-5 w-5" />
-                <span className="sr-only">{tab.label}</span>
-              </button>
-            </SidebarTooltip>
-          );
-        })}
-
-        <div className="mt-auto grid h-10 w-10 place-items-center rounded-xl text-slate-400">
-          <Settings2 className="h-5 w-5" />
-        </div>
-      </nav>
-
-      <aside className="flex w-[300px] shrink-0 flex-col bg-white xl:w-[320px] 2xl:w-[336px]">
-        <div className="border-b border-[#edf3f8] px-5 py-4">
-          <p className="text-[24px] font-bold leading-none tracking-[-0.03em] text-slate-950">
-            {TAB_TITLES[activeTab]}
-          </p>
+    <div className="flex min-h-0 w-full flex-col bg-white">
+        <div
+          className={[
+            "border-b border-[#edf3f8] px-4 py-3.5",
+            embedded ? "bg-[#fbfdff]" : "bg-white",
+          ].join(" ")}
+        >
+          {!embedded ? (
+            <p className="text-lg font-bold leading-none tracking-[-0.025em] text-slate-950">
+              {text.sidebar.tabs[activeTab]}
+            </p>
+          ) : null}
 
           {showSearch ? (
-            <div className="mt-4 flex h-10 items-center gap-2.5 rounded-full border border-[#dbe7f1] bg-[#fbfdff] px-3.5 transition-all duration-200 focus-within:border-[#9ed0ef] focus-within:bg-white focus-within:ring-2 focus-within:ring-[#dceeff]/70">
+            <div className={`${embedded ? "" : "mt-3.5"} flex h-11 items-center gap-2.5 rounded-2xl border border-[#dbe7f1] bg-white px-3.5 transition-colors duration-200 focus-within:border-[#9ed0ef] focus-within:ring-2 focus-within:ring-[#dceeff]/70`}>
               <Search className="h-4 w-4 shrink-0 text-slate-400" />
 
               <input
@@ -433,8 +562,8 @@ export function StudioSidebar() {
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder={
                   activeTab === "templates"
-                    ? "Tìm mẫu thiết kế..."
-                    : "Tìm phụ kiện..."
+                    ? text.sidebar.searchTemplates
+                    : text.sidebar.searchAccessories
                 }
                 className="min-w-0 flex-1 appearance-none border-0 bg-transparent p-0 text-sm font-medium text-slate-700 shadow-none outline-none ring-0 placeholder:text-slate-400 focus:border-0 focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0"
                 style={{
@@ -446,10 +575,32 @@ export function StudioSidebar() {
           ) : null}
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 scrollbar-hide">
+        <div className="px-4 py-4">
           {activeTab === "templates" && (
-            <>
-              {isLoadingData ? (
+            <div className="space-y-3">
+              {templateCategories.length > 0 ? (
+                <StudioSearchableMultiSelect
+                  label={text.common.all}
+                  options={templateCategories.map((category) => ({
+                    value: category.id,
+                    label: category.name,
+                  }))}
+                  value={effectiveTemplateCategoryIds}
+                  onChange={setActiveTemplateCategoryIds}
+                  searchPlaceholder={text.sidebar.searchTemplates}
+                  emptyLabel={text.sidebar.noTemplateMatches}
+                  clearLabel={text.common.remove}
+                />
+              ) : null}
+
+              {backgroundsError ? (
+                <div className="flex items-start gap-2 rounded-[16px] border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs font-semibold leading-relaxed text-amber-800">
+                  <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                  <span>{backgroundsError}</span>
+                </div>
+              ) : null}
+
+              {isBackgroundsLoading ? (
                 <div className="grid grid-cols-2 gap-3">
                   {Array.from({ length: 6 }).map((_, index) => (
                     <div
@@ -462,13 +613,13 @@ export function StudioSidebar() {
                 <EmptyState
                   title={
                     normalizedQuery
-                      ? "Không tìm thấy mẫu phù hợp"
-                      : "Chưa có mẫu thiết kế nào"
+                      ? text.sidebar.noTemplateMatches
+                      : text.sidebar.noTemplates
                   }
                   description={
                     normalizedQuery
-                      ? "Thử nhập từ khóa khác hoặc xóa nội dung tìm kiếm."
-                      : "Khi có mẫu mới, danh sách sẽ hiển thị tại đây."
+                      ? text.sidebar.noMatchesDescription
+                      : text.sidebar.noTemplatesDescription
                   }
                 />
               ) : (
@@ -477,7 +628,7 @@ export function StudioSidebar() {
                     <TemplateCard
                       active={!activeTemplate}
                       imageUrl={customBackgroundUrl}
-                      name="Ảnh của bạn"
+                      name={text.sidebar.yourPhoto}
                       onClick={() => {
                         setActiveTemplate(null);
                         clearContentValues();
@@ -485,12 +636,13 @@ export function StudioSidebar() {
                     />
                   ) : null}
 
-                  {filteredTemplates.map((template) => (
+                  {visibleTemplates.map((template, index) => (
                     <TemplateCard
                       key={template.id}
                       active={activeTemplate === template.id}
-                      imageUrl={template.imageUrl}
+                      imageUrl={template.thumbnailUrl ?? template.imageUrl}
                       name={template.name}
+                      priority={index === 0 && !customBackgroundUrl}
                       onClick={() => {
                         setCustomBackgroundUrl(null);
                         setCustomBackgroundOriginalName(null);
@@ -500,7 +652,25 @@ export function StudioSidebar() {
                   ))}
                 </div>
               )}
-            </>
+
+              {visibleTemplates.length < filteredTemplates.length ? (
+                <button
+                  type="button"
+                  onClick={() =>
+                    setTemplatePagination({
+                      key: templatePaginationKey,
+                      count: visibleTemplateCount + TEMPLATE_PAGE_SIZE,
+                    })
+                  }
+                  className="mt-3 w-full rounded-2xl border border-[#dbe7f1] bg-white px-4 py-2.5 text-sm font-semibold text-[#247fb9] transition-colors duration-200 hover:border-[#b9d8ed] hover:bg-[#f8fbff] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8fc6e6] focus-visible:ring-offset-2"
+                >
+                  {text.sidebar.loadMore(
+                    visibleTemplates.length,
+                    filteredTemplates.length,
+                  )}
+                </button>
+              ) : null}
+            </div>
           )}
 
           {activeTab === "uploads" && (
@@ -514,11 +684,13 @@ export function StudioSidebar() {
                 <UploadCloud className="mb-1.5 h-7 w-7 transition-transform duration-200 ease-out group-hover:-translate-y-0.5" />
 
                 <span className="text-sm font-semibold">
-                  {uploading ? "Đang tải ảnh..." : "Tải ảnh nền lên"}
+                  {uploading
+                    ? text.sidebar.uploading
+                    : text.sidebar.uploadBackground}
                 </span>
 
                 <span className="text-xs font-medium text-slate-500">
-                  Hỗ trợ JPG, PNG, WEBP
+                  {text.sidebar.uploadFormats}
                 </span>
               </button>
 
@@ -541,22 +713,22 @@ export function StudioSidebar() {
           {activeTab === "text" && (
             <div className="space-y-3">
               <AddContentRow
-                title="Tiêu đề lớn"
-                subtitle="Thêm dòng chữ nổi bật"
+                title={text.sidebar.titleText}
+                subtitle={text.sidebar.titleTextHint}
                 emphasis="title"
                 onClick={() => addText("title")}
               />
 
               <AddContentRow
-                title="Đoạn văn bản"
-                subtitle="Thêm đoạn mô tả ngắn"
+                title={text.sidebar.bodyText}
+                subtitle={text.sidebar.bodyTextHint}
                 emphasis="body"
                 onClick={() => addText("body")}
               />
 
               <AddContentRow
-                title="Chú thích"
-                subtitle="Thêm dòng phụ nhỏ"
+                title={text.sidebar.captionText}
+                subtitle={text.sidebar.captionTextHint}
                 emphasis="caption"
                 onClick={() => addText("caption")}
               />
@@ -565,36 +737,89 @@ export function StudioSidebar() {
 
           {activeTab === "assets" && (
             <div className="space-y-5">
-              <div>
+              <div className="space-y-3">
                 <p className="mb-2.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
-                  Phụ kiện
+                  {text.sidebar.accessoriesLabel}
                 </p>
 
-                {filteredAccessories.length === 0 ? (
+                {isAccessoryCategoriesLoading ? (
+                  <div
+                    className="h-11 animate-pulse rounded-2xl bg-slate-100"
+                    aria-hidden="true"
+                  />
+                ) : accessoryCategories.length > 0 ? (
+                  <StudioSearchableMultiSelect
+                    label={text.common.all}
+                    options={accessoryCategories.map((category) => ({
+                      value: category.id,
+                      label: category.name,
+                    }))}
+                    value={effectiveAccessoryCategoryIds}
+                    onChange={setActiveAccessoryCategoryIds}
+                    searchPlaceholder={text.sidebar.searchAccessories}
+                    emptyLabel={text.sidebar.noAccessoryMatches}
+                    clearLabel={text.common.remove}
+                  />
+                ) : null}
+
+                {accessoryCategoriesError ? (
+                  <p className="flex items-start gap-2 text-xs font-semibold leading-relaxed text-amber-700">
+                    <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                    <span>{accessoryCategoriesError}</span>
+                  </p>
+                ) : null}
+
+                {isAccessoriesLoading ? (
+                  <div className="grid grid-cols-2 gap-3">
+                    {Array.from({ length: 6 }).map((_, index) => (
+                      <div
+                        key={index}
+                        className="h-[144px] animate-pulse rounded-[20px] bg-[#eef3f8]"
+                      />
+                    ))}
+                  </div>
+                ) : accessoriesError ? (
+                  <div className="flex items-start gap-2 rounded-[16px] border border-rose-200 bg-rose-50 px-3 py-2.5 text-xs font-semibold leading-relaxed text-rose-700">
+                    <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                    <span>{accessoriesError}</span>
+                  </div>
+                ) : filteredAccessories.length === 0 ? (
                   <>
                     <EmptyState
                       title={
-                        normalizedQuery
-                          ? "Không tìm thấy phụ kiện phù hợp"
-                          : "Chưa có phụ kiện nào"
+                        normalizedQuery ||
+                        effectiveAccessoryCategoryIds.length > 0
+                          ? text.sidebar.noAccessoryMatches
+                          : text.sidebar.noAccessories
                       }
                       description={
-                        normalizedQuery
-                          ? "Thử nhập từ khóa khác hoặc xóa nội dung tìm kiếm."
-                          : "Bạn có thể dùng sticker nhanh bên dưới trong lúc chờ thêm phụ kiện."
+                        normalizedQuery ||
+                        effectiveAccessoryCategoryIds.length > 0
+                          ? text.sidebar.noMatchesDescription
+                          : text.sidebar.noAccessoriesDescription
                       }
                     />
 
                     {!normalizedQuery ? (
                       <div className="mt-4 grid grid-cols-3 gap-3">
-                        {QUICK_STICKERS.map((sticker) => (
+                        {quickStickers.map((sticker) => (
                           <button
-                            key={sticker}
+                            key={sticker.id}
                             type="button"
                             onClick={() => addSticker(sticker)}
-                            className="grid aspect-square place-items-center rounded-[18px] border border-slate-200/70 bg-white text-2xl transition-all duration-200 ease-out hover:-translate-y-0.5 hover:border-[#bddaf0] hover:bg-[#fbfdff] hover:shadow-sm"
+                            aria-label={text.sidebar.addNamedItem(
+                              sticker.label,
+                            )}
+                            className="grid aspect-square place-items-center rounded-[18px] border border-slate-200/70 bg-white transition-all duration-200 ease-out hover:-translate-y-0.5 hover:border-[#bddaf0] hover:bg-[#fbfdff] hover:shadow-sm"
                           >
-                            {sticker}
+                            <Image
+                              src={sticker.imageUrl}
+                              alt=""
+                              width={48}
+                              height={48}
+                              aria-hidden="true"
+                              className="h-10 w-10 object-contain"
+                            />
                           </button>
                         ))}
                       </div>
@@ -602,55 +827,109 @@ export function StudioSidebar() {
                   </>
                 ) : (
                   <div className="grid grid-cols-2 gap-3">
-                    {filteredAccessories.map((accessory) => (
-                      <button
-                        key={accessory.id}
-                        type="button"
-                        onClick={() => {
-                          const imageUrl =
-                            accessory.imageUrl ?? accessory.iconUrl;
+                    {visibleAccessories.map((accessory) => {
+                      const selectedElement = selectedAccessoryByCatalogId.get(
+                        accessory.id,
+                      );
 
-                          addElement({
-                            type: "accessory",
-                            content: accessory.name,
-                            ...(imageUrl ? { imageUrl } : {}),
-                            x: 140,
-                            y: 150,
-                            width: 54,
-                            height: 54,
-                            price: accessory.price,
-                            accessoryId: accessory.id,
-                          });
-                        }}
-                        className="group overflow-hidden rounded-[20px] border border-slate-200/70 bg-white text-left transition-all duration-200 ease-out hover:-translate-y-0.5 hover:border-[#bddaf0] hover:shadow-sm"
-                      >
-                        <div className="grid aspect-square place-items-center bg-[#f8fbff]">
-                          {accessory.imageUrl || accessory.iconUrl ? (
-                            <img
+                      return (
+                        <button
+                          key={accessory.id}
+                          type="button"
+                          aria-pressed={Boolean(selectedElement)}
+                          onClick={() => {
+                            if (selectedElement) {
+                              removeElement(selectedElement.id);
+                              return;
+                            }
+
+                            const imageUrl =
+                              accessory.imageUrl ?? accessory.iconUrl;
+
+                            addElement({
+                              type: "accessory",
+                              content: accessory.name,
+                              ...(imageUrl ? { imageUrl } : {}),
+                              x: 140,
+                              y: 150,
+                              width: 54,
+                              height: 54,
+                              price: accessory.price,
+                              accessoryId: accessory.id,
+                            });
+                          }}
+                          className={`group relative overflow-hidden rounded-[20px] border bg-white text-left transition-all duration-200 ease-out hover:-translate-y-0.5 hover:shadow-sm ${
+                            selectedElement
+                              ? "border-[#8fc6e6] ring-2 ring-[#dceeff]"
+                              : "border-slate-200/70 hover:border-[#bddaf0]"
+                          }`}
+                        >
+                          <div className="grid aspect-square place-items-center bg-[#f8fbff]">
+                            <StudioMediaThumbnail
                               src={
-                                accessory.imageUrl ?? accessory.iconUrl ?? ""
+                                accessory.thumbnailUrl ??
+                                accessory.imageUrl ??
+                                accessory.iconUrl
                               }
                               alt={accessory.name}
-                              className="h-full w-full object-contain p-2.5 transition-transform duration-200 ease-out group-hover:scale-[1.04]"
+                              imageClassName="object-contain p-3 transition-[opacity,transform] duration-200 ease-out group-hover:scale-[1.04]"
+                              fallback={
+                                <Puzzle className="h-6 w-6 text-slate-300" />
+                              }
                             />
-                          ) : (
-                            <Puzzle className="h-6 w-6 text-slate-300" />
-                          )}
-                        </div>
+                          </div>
 
-                        <div className="p-2.5">
-                          <p className="truncate text-[11px] font-semibold text-slate-800">
-                            {accessory.name}
-                          </p>
+                          <div className="p-2.5">
+                            <p className="truncate text-[11px] font-semibold text-slate-800">
+                              {accessory.name}
+                            </p>
 
-                          <p className="mt-0.5 text-[10px] font-semibold text-[#2f91d0]">
-                            {formatPrice(accessory.price)}
-                          </p>
-                        </div>
-                      </button>
-                    ))}
+                            <p className="mt-0.5 text-[10px] font-semibold text-[#2f91d0]">
+                              {formatPrice(accessory.price)}
+                            </p>
+                          </div>
+
+                          {selectedElement ? (
+                            <span className="absolute right-2 top-2 grid h-5 w-5 place-items-center rounded-full bg-[#2f91d0] text-white">
+                              <Check className="h-3.5 w-3.5" />
+                            </span>
+                          ) : null}
+                        </button>
+                      );
+                    })}
                   </div>
                 )}
+
+                {visibleAccessories.length < filteredAccessories.length ? (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setAccessoryPagination({
+                        key: accessoryPaginationKey,
+                        count: visibleAccessoryCount + ACCESSORY_PAGE_SIZE,
+                      })
+                    }
+                    className="w-full rounded-2xl border border-[#dbe7f1] bg-white px-4 py-2.5 text-sm font-semibold text-[#247fb9] transition-colors duration-200 hover:border-[#b9d8ed] hover:bg-[#f8fbff] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8fc6e6] focus-visible:ring-offset-2"
+                  >
+                    {text.sidebar.loadMore(
+                      visibleAccessories.length,
+                      filteredAccessories.length,
+                    )}
+                  </button>
+                ) : null}
+
+                {!isAccessoriesLoading ? (
+                  <div className="flex items-center justify-between rounded-[16px] bg-[#f4faff] px-3 py-2.5 text-xs">
+                    <span className="font-semibold text-slate-600">
+                      {text.sidebar.selectedCharms(
+                        selectedAccessoryElements.length,
+                      )}
+                    </span>
+                    <span className="font-bold text-[#2f91d0]">
+                      {formatPrice(selectedAccessoriesTotal)}
+                    </span>
+                  </div>
+                ) : null}
               </div>
             </div>
           )}
@@ -659,8 +938,8 @@ export function StudioSidebar() {
             <div className="space-y-3">
               {elements.length === 0 ? (
                 <EmptyState
-                  title="Chưa có lớp thiết kế nào"
-                  description="Khi bạn thêm chữ, nhân vật hoặc phụ kiện, các lớp sẽ xuất hiện tại đây."
+                  title={text.sidebar.noLayers}
+                  description={text.sidebar.noLayersDescription}
                 />
               ) : (
                 elements.map((element, index) => {
@@ -674,10 +953,10 @@ export function StudioSidebar() {
 
                   const label =
                     type === "text"
-                      ? "Văn bản"
+                      ? text.sidebar.layerTypes.text
                       : type === "character"
-                        ? "Nhân vật"
-                        : "Phụ kiện";
+                        ? text.sidebar.layerTypes.character
+                        : text.sidebar.layerTypes.accessory;
 
                   const previewImage =
                     typeof element === "object" &&
@@ -699,6 +978,7 @@ export function StudioSidebar() {
                         : {})}
                       onSelect={() => setSelectedId(element.id)}
                       onRemove={() => removeElement(element.id)}
+                      removeLabel={text.sidebar.removeLayer}
                     />
                   );
                 })
@@ -706,7 +986,6 @@ export function StudioSidebar() {
             </div>
           )}
         </div>
-      </aside>
     </div>
   );
 }

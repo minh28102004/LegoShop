@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { ChevronDown } from "lucide-react";
 import { useState } from "react";
 import toast from "react-hot-toast";
 
@@ -41,20 +42,6 @@ type LanguageSwitcherProps = {
   side?: "top" | "bottom";
 };
 
-function ChevronDownIcon() {
-  return (
-    <svg viewBox="0 0 20 20" fill="none" className="h-[18px] w-[18px]" aria-hidden="true">
-      <path
-        d="M5 7.5L10 12.5L15 7.5"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
 export function LanguageSwitcher({
   className,
   compact = false,
@@ -68,11 +55,13 @@ export function LanguageSwitcher({
     LOCALE_OPTIONS.find((option) => option.value === DEFAULT_LOCALE) ??
     LOCALE_OPTIONS[0];
 
-  if (!selected) {
-    return null;
-  }
+  if (!selected) return null;
 
-  function handleLocaleChange(nextLocale: Locale, label: string, close: () => void) {
+  function handleLocaleChange(
+    nextLocale: Locale,
+    label: string,
+    close: () => void,
+  ) {
     close();
 
     if (nextLocale === locale) return;
@@ -80,19 +69,23 @@ export function LanguageSwitcher({
     setLocale(nextLocale);
     const localeLabel = LOCALE_TOAST_LABEL[nextLocale] ?? label;
     toast.success(
-      nextLocale === "vi" ? `Đã chuyển sang ${localeLabel}` : `Language changed to ${localeLabel}`,
+      nextLocale === "vi"
+        ? `Đã chuyển sang ${localeLabel}`
+        : `Language changed to ${localeLabel}`,
     );
   }
 
   return (
     <div
       className={cn(
-        "flex items-center gap-2 text-xs font-medium text-slate-500",
+        "flex items-center gap-2 text-[14px] font-medium text-text-muted",
         compact && "gap-0 xl:gap-2",
         className,
       )}
     >
-      <span className={compact ? "hidden xl:inline" : ""}>{t("common.language")}</span>
+      <span className={compact ? "hidden xl:inline" : ""}>
+        {t("common.language")}
+      </span>
 
       <Dropdown
         align="right"
@@ -102,12 +95,15 @@ export function LanguageSwitcher({
         offset={6}
         panelRole="listbox"
         onOpenChange={setOpen}
-        className={cn("w-[84px] min-w-[84px]", compact && "w-[80px] min-w-[80px]")}
+        className={cn(
+          "w-[92px] min-w-[92px]",
+          compact && "w-[88px] min-w-[88px]",
+        )}
         panelClassName="p-1.5"
         trigger={
           <button
             type="button"
-            className="admin-control admin-control-md inline-flex h-9 min-h-9 items-center gap-1.5 rounded-[12px] px-2 text-left text-[13px] font-semibold shadow-[0_1px_2px_rgba(15,23,42,0.04)]"
+            className="inline-flex h-11 w-full items-center gap-1.5 rounded-button border border-border bg-white px-2.5 text-left text-[14px] font-semibold text-text-primary shadow-control transition-all duration-fast ease-smooth hover:border-primary/40 hover:bg-surface-soft"
             aria-label={t("common.language")}
           >
             <Image
@@ -118,14 +114,14 @@ export function LanguageSwitcher({
               className="h-5 w-5 shrink-0 rounded-full object-cover"
             />
             <span className="min-w-0 flex-1 truncate">{selected.label}</span>
-            <span
+            <ChevronDown
+              aria-hidden="true"
               className={cn(
-                "ml-auto inline-flex h-[18px] w-[18px] shrink-0 items-center justify-center text-slate-400 transition-transform duration-150",
-                open && "rotate-180 text-[#2f91d0]",
+                "ml-auto size-[18px] shrink-0 text-text-muted transition-transform duration-fast",
+                open && "rotate-180 text-primary",
               )}
-            >
-              <ChevronDownIcon />
-            </span>
+              strokeWidth={1.8}
+            />
           </button>
         }
       >
@@ -141,10 +137,10 @@ export function LanguageSwitcher({
                   role="option"
                   aria-selected={active}
                   className={cn(
-                    "m-0 flex min-h-10 w-full appearance-none items-center gap-2 rounded-[10px] border-0 bg-transparent px-2.5 py-2 text-left text-[13px] font-semibold shadow-none outline-none ring-0 transition-colors duration-150 focus:outline-none focus-visible:outline-none focus-visible:ring-0",
+                    "flex min-h-10 w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-[14px] font-semibold transition-colors duration-fast",
                     active
-                      ? "bg-(--admin-primary-soft) text-(--admin-primary-strong)"
-                      : "text-slate-700 hover:bg-(--admin-primary-soft) hover:text-(--admin-primary-strong)",
+                      ? "bg-primary-light text-primary-dark"
+                      : "text-text-primary hover:bg-primary-light hover:text-primary-dark",
                   )}
                   onClick={() => {
                     handleLocaleChange(option.value, option.label, close);
@@ -157,7 +153,9 @@ export function LanguageSwitcher({
                     height={20}
                     className="h-5 w-5 shrink-0 rounded-full object-cover"
                   />
-                  <span className="min-w-0 flex-1 truncate">{option.label}</span>
+                  <span className="min-w-0 flex-1 truncate">
+                    {option.label}
+                  </span>
                 </button>
               );
             })}

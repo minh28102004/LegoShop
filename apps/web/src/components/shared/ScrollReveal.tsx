@@ -1,7 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import { motion, type HTMLMotionProps } from 'framer-motion'
+import { motion, type HTMLMotionProps, useReducedMotion } from 'framer-motion'
 import { useIntersectionObserver } from '@lego-shop/hooks'
 
 import { cn } from '@lego-shop/ui'
@@ -38,11 +38,13 @@ export const ScrollReveal = React.forwardRef<HTMLDivElement, ScrollRevealProps>(
     { children, className, delay = 0, once = true, variant = 'up', ...props },
     forwardedRef,
   ) => {
+    const prefersReducedMotion = useReducedMotion()
     const localRef = React.useRef<HTMLDivElement | null>(null)
-    const { isIntersecting } = useIntersectionObserver(localRef, {
+    const { entry, isIntersecting } = useIntersectionObserver(localRef, {
       freezeOnceVisible: once,
       threshold: 0.16,
     })
+    const shouldReveal = prefersReducedMotion || entry === null || isIntersecting
     const setRefs = React.useCallback(
       (node: HTMLDivElement | null): void => {
         localRef.current = node
@@ -59,10 +61,14 @@ export const ScrollReveal = React.forwardRef<HTMLDivElement, ScrollRevealProps>(
     return (
       <motion.div
         ref={setRefs}
-        initial="hidden"
-        animate={isIntersecting ? 'visible' : 'hidden'}
+        initial={false}
+        animate={shouldReveal ? 'visible' : 'hidden'}
         variants={revealVariants[variant as keyof typeof revealVariants]}
-        transition={{ delay }}
+        transition={
+          prefersReducedMotion
+            ? { duration: 0 }
+            : { delay, duration: 0.56, ease: [0.22, 1, 0.36, 1] }
+        }
         className={cn(className)}
         {...props}
       >

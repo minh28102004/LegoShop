@@ -13,6 +13,10 @@ import {
 } from '../common/admin-query/admin-query.util';
 import { AdminListQueryDto } from '../common/dto/admin-list-query.dto';
 import { PrismaService } from '../prisma/prisma.service';
+import {
+  stagedSampleMediaPublicStatus,
+  stagedSampleMediaSeedTag,
+} from '../common/sample-media-preview';
 import { CreateFrameBackgroundDto } from './dto/create-frame-background.dto';
 import { UpdateFrameBackgroundDto } from './dto/update-frame-background.dto';
 
@@ -20,21 +24,61 @@ import { UpdateFrameBackgroundDto } from './dto/update-frame-background.dto';
 export class FrameBackgroundsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  findPublicBackgrounds(frameOptionId?: string) {
-    return this.prisma.frameBackground.findMany({
+  async findPublicBackgrounds(frameOptionId?: string, category?: string) {
+    const previewSeedTag = stagedSampleMediaSeedTag();
+    const visibility = previewSeedTag
+      ? {
+          OR: [
+            { status: ProductStatus.active },
+            { status: ProductStatus.inactive, seedTag: previewSeedTag },
+          ],
+        }
+      : { status: ProductStatus.active };
+    const backgrounds = await this.prisma.frameBackground.findMany({
       where: {
-        status: ProductStatus.active,
-        ...(frameOptionId
-          ? {
-              OR: [
-                { frameOptionIds: { isEmpty: true } },
-                { frameOptionIds: { has: frameOptionId } },
-              ],
-            }
-          : {}),
+        AND: [
+          visibility,
+          ...(frameOptionId
+            ? [
+                {
+                  OR: [
+                    { frameOptionIds: { isEmpty: true } },
+                    { frameOptionIds: { has: frameOptionId } },
+                  ],
+                },
+              ]
+            : []),
+        ],
+        ...(category ? { category } : {}),
+      },
+      select: {
+        id: true,
+        title: true,
+        slug: true,
+        category: true,
+        description: true,
+        instructions: true,
+        imageUrl: true,
+        thumbnailUrl: true,
+        naturalWidth: true,
+        naturalHeight: true,
+        contentFields: true,
+        frameOptionIds: true,
+        sortOrder: true,
+        seedTag: true,
+        status: true,
+        createdAt: true,
+        updatedAt: true,
       },
       orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }],
     });
+    return backgrounds.map(({ seedTag, ...background }) => ({
+      ...background,
+      status: stagedSampleMediaPublicStatus(
+        background.status,
+        Boolean(previewSeedTag && seedTag === previewSeedTag),
+      ),
+    }));
   }
 
   async findAdminBackgrounds(query?: AdminListQueryDto) {
@@ -150,13 +194,19 @@ export class FrameBackgroundsService {
       where: { id },
       data: {
         ...(dto.title !== undefined ? { title: dto.title } : {}),
-        ...(dto.description !== undefined ? { description: dto.description } : {}),
-        ...(dto.instructions !== undefined ? { instructions: dto.instructions } : {}),
+        ...(dto.description !== undefined
+          ? { description: dto.description }
+          : {}),
+        ...(dto.instructions !== undefined
+          ? { instructions: dto.instructions }
+          : {}),
         ...(dto.imageUrl !== undefined ? { imageUrl: dto.imageUrl } : {}),
         ...(dto.contentFields !== undefined
           ? { contentFields: dto.contentFields as Prisma.InputJsonValue }
           : {}),
-        ...(dto.frameOptionIds !== undefined ? { frameOptionIds: dto.frameOptionIds } : {}),
+        ...(dto.frameOptionIds !== undefined
+          ? { frameOptionIds: dto.frameOptionIds }
+          : {}),
         ...(dto.sortOrder !== undefined ? { sortOrder: dto.sortOrder } : {}),
         ...(dto.status !== undefined ? { status: dto.status } : {}),
       },

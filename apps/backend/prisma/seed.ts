@@ -33,9 +33,14 @@ function loadLocalEnv() {
 
 loadLocalEnv();
 
-const adapter = new PrismaPg({
-  connectionString: process.env.DATABASE_URL,
-});
+const adapter = new PrismaPg(
+  {
+    connectionString: process.env.DATABASE_URL,
+  },
+  process.env.DATABASE_SCHEMA?.trim()
+    ? { schema: process.env.DATABASE_SCHEMA.trim() }
+    : undefined,
+);
 
 const prisma = new PrismaClient({ adapter });
 
@@ -132,7 +137,9 @@ async function main() {
   const adminName = (process.env.ADMIN_NAME ?? 'Lego Shop Admin').trim();
 
   if (!adminEmail || !adminPassword) {
-    console.warn('Skipping admin seed because ADMIN_EMAIL or ADMIN_PASSWORD is not configured.');
+    console.warn(
+      'Skipping admin seed because ADMIN_EMAIL or ADMIN_PASSWORD is not configured.',
+    );
   } else {
     const existingAdmin = await prisma.admin.findUnique({
       where: { email: adminEmail },

@@ -22,7 +22,9 @@ export class CharacterPresetsService {
 
   constructor(private readonly prisma: PrismaService) {}
 
-  async findPublicCharacterPresets(_query?: CharacterPresetsQueryDto) {
+  async findPublicCharacterPresets(query?: CharacterPresetsQueryDto) {
+    void query;
+
     try {
       return await this.prisma.characterPreset.findMany({
         where: { status: ProductStatus.active },
@@ -51,7 +53,11 @@ export class CharacterPresetsService {
       const orderBy = sortCriteria.map(({ field, direction }) => ({
         [field]: direction,
       })) as Prisma.CharacterPresetOrderByWithRelationInput[];
-      const dateRange = resolveDateRange(query, ['createdAt', 'updatedAt'], 'createdAt');
+      const dateRange = resolveDateRange(
+        query,
+        ['createdAt', 'updatedAt'],
+        'createdAt',
+      );
       const where: Prisma.CharacterPresetWhereInput = {
         ...buildDateFilter(dateRange),
       };
@@ -137,15 +143,23 @@ export class CharacterPresetsService {
   private isMissingTableError(
     error: unknown,
   ): error is Prisma.PrismaClientKnownRequestError {
+    const modelName =
+      error instanceof Prisma.PrismaClientKnownRequestError
+        ? error.meta?.modelName
+        : undefined;
+
     return (
       error instanceof Prisma.PrismaClientKnownRequestError &&
       error.code === 'P2021' &&
-      String(error.meta?.modelName ?? '').includes('CharacterPreset')
+      typeof modelName === 'string' &&
+      modelName.includes('CharacterPreset')
     );
   }
 
   async findAdminCharacterPresetById(id: string) {
-    const preset = await this.prisma.characterPreset.findUnique({ where: { id } });
+    const preset = await this.prisma.characterPreset.findUnique({
+      where: { id },
+    });
     if (!preset) throw new NotFoundException('Character preset not found');
     return preset;
   }

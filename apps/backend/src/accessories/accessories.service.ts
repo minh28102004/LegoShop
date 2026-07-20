@@ -14,6 +14,10 @@ import {
 } from '../common/admin-query/admin-query.util';
 import { AdminListQueryDto } from '../common/dto/admin-list-query.dto';
 import { PrismaService } from '../prisma/prisma.service';
+import {
+  stagedSampleMediaPublicStatus,
+  stagedSampleMediaSeedTag,
+} from '../common/sample-media-preview';
 import { CreateAccessoryDto } from './dto/create-accessory.dto';
 import { UpdateAccessoryDto } from './dto/update-accessory.dto';
 
@@ -21,22 +25,94 @@ import { UpdateAccessoryDto } from './dto/update-accessory.dto';
 export class AccessoriesService {
   constructor(private readonly prisma: PrismaService) {}
 
-  findPublicAccessories() {
-    return this.prisma.accessory.findMany({
+  async findPublicAccessories(categoryId?: string) {
+    const previewSeedTag = stagedSampleMediaSeedTag();
+    const accessories = await this.prisma.accessory.findMany({
       where: {
-        status: ProductStatus.active,
+        ...(previewSeedTag
+          ? {
+              OR: [
+                { status: ProductStatus.active },
+                { status: ProductStatus.inactive, seedTag: previewSeedTag },
+              ],
+            }
+          : { status: ProductStatus.active }),
+        ...(categoryId ? { categoryId } : {}),
       },
-      orderBy: {
-        createdAt: 'desc',
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        price: true,
+        imageUrl: true,
+        iconUrl: true,
+        sortOrder: true,
+        naturalWidth: true,
+        naturalHeight: true,
+        seedTag: true,
+        status: true,
+        categoryId: true,
+        category: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        },
+        createdAt: true,
+        updatedAt: true,
       },
+      orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }],
     });
+    return accessories.map(({ seedTag, ...accessory }) => ({
+      ...accessory,
+      status: stagedSampleMediaPublicStatus(
+        accessory.status,
+        Boolean(previewSeedTag && seedTag === previewSeedTag),
+      ),
+    }));
   }
 
   async findPublicAccessoryById(id: string) {
+    const previewSeedTag = stagedSampleMediaSeedTag();
     const accessory = await this.prisma.accessory.findFirst({
       where: {
         id,
-        status: ProductStatus.active,
+        ...(previewSeedTag
+          ? {
+              OR: [
+                { status: ProductStatus.active },
+                { status: ProductStatus.inactive, seedTag: previewSeedTag },
+              ],
+            }
+          : { status: ProductStatus.active }),
+      },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        price: true,
+        imageUrl: true,
+        iconUrl: true,
+        sortOrder: true,
+        naturalWidth: true,
+        naturalHeight: true,
+        seedTag: true,
+        status: true,
+        categoryId: true,
+        category: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        },
+        createdAt: true,
+        updatedAt: true,
       },
     });
 
@@ -44,7 +120,14 @@ export class AccessoriesService {
       throw new NotFoundException('Accessory not found');
     }
 
-    return accessory;
+    const { seedTag, ...publicAccessory } = accessory;
+    return {
+      ...publicAccessory,
+      status: stagedSampleMediaPublicStatus(
+        publicAccessory.status,
+        Boolean(previewSeedTag && seedTag === previewSeedTag),
+      ),
+    };
   }
 
   async findAdminAccessories(query?: AdminListQueryDto) {

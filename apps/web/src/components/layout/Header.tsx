@@ -212,14 +212,7 @@ export function Header() {
             type="button"
             aria-label={t("header.closeMenu")}
             onClick={closeMobileMenu}
-            className="inline-flex h-11 w-11 shrink-0 appearance-none items-center justify-center rounded-none border-0! bg-transparent! p-0! text-navy! shadow-none! outline-none! ring-0! transition-colors duration-200 hover:bg-transparent! hover:text-[#2f91d0]! focus:border-0! focus:shadow-none! focus:outline-none! focus:ring-0! focus-visible:border-0! focus-visible:shadow-none! focus-visible:outline-none! focus-visible:ring-0! active:scale-100"
-            style={{
-              border: "none",
-              outline: "none",
-              boxShadow: "none",
-              background: "transparent",
-              WebkitTapHighlightColor: "transparent",
-            }}
+            className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-button text-navy transition-colors duration-fast hover:bg-primary-light hover:text-primary-dark"
           >
             <X className="h-6 w-6" strokeWidth={2.1} />
           </button>
@@ -237,7 +230,7 @@ export function Header() {
                     href={item.href}
                     onClick={closeMobileMenu}
                     className={cn(
-                      "group flex items-center justify-between gap-4 rounded-[16px] px-5 py-[18px] text-[16px] font-semibold tracking-[-0.01em] transition-all duration-200",
+                      "group flex items-center justify-between gap-4 rounded-lg px-4 py-3.5 text-[16px] font-medium tracking-[-0.01em] transition-all duration-fast",
                       isActive
                         ? "bg-[#eef7ff] text-[#2f91d0] shadow-[inset_0_0_0_1px_rgba(126,191,233,0.34)]"
                         : "text-navy hover:bg-[#f8fbff] hover:text-[#2f91d0]",
@@ -287,16 +280,14 @@ export function Header() {
     <>
       <header
         className={cn(
-          "fixed inset-x-0 top-0 z-60 w-full border-b bg-white transition-all duration-300 ease-out",
-          "before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-[3px] before:bg-linear-to-r before:from-[#7bc7f0] before:via-[#2f91d0] before:to-[#f6d76b]",
-          "after:pointer-events-none after:absolute after:inset-x-0 after:bottom-0 after:h-px after:bg-linear-to-r after:from-transparent after:via-[#b7def3] after:to-transparent",
+          "fixed inset-x-0 top-0 z-60 w-full bg-white transition-shadow duration-300 ease-out",
           isScrolled
-            ? "border-[#cfe4f1] shadow-[0_16px_42px_-30px_rgba(18,45,78,0.5)]"
-            : "border-[#e1edf5] shadow-[0_8px_28px_-26px_rgba(18,45,78,0.35)]",
+            ? "shadow-[0_10px_28px_-24px_rgba(18,45,78,0.22)]"
+            : "shadow-none",
         )}
       >
         <div className="w-full px-4 sm:px-6 lg:px-8 xl:px-10 2xl:px-12">
-          <div className="grid min-h-[50px] grid-cols-[minmax(0,auto)_1fr_auto] items-center gap-3 transition-[min-height] duration-300 ease-out lg:min-h-[46px] lg:gap-7">
+          <div className="grid min-h-[50px] grid-cols-[minmax(0,auto)_1fr_auto] items-center gap-3 transition-[min-height] duration-300 ease-out lg:min-h-[46px] xl:gap-7">
             <BrandLogo className="min-w-0 shrink-0" />
 
             <nav className="hidden min-w-0 items-center justify-center lg:flex">
@@ -309,8 +300,8 @@ export function Header() {
                       key={item.href}
                       href={item.href}
                       className={cn(
-                        "group relative inline-flex items-center justify-center px-3 py-1.5 text-[15px] font-semibold tracking-[-0.01em] text-slate-800 transition-colors duration-200 hover:text-[#2f91d0] xl:px-4 xl:text-[15.5px]",
-                        isActive && "text-[#2f91d0]",
+                        "group relative inline-flex items-center justify-center rounded-md px-2 py-2 text-[15px] font-[550] tracking-normal text-slate-800 transition-colors duration-fast hover:text-primary xl:px-3.5 xl:text-[15.5px]",
+                        isActive && "font-semibold text-[#2f91d0]",
                       )}
                     >
                       <span>{t(`header.nav.${item.key}`)}</span>
@@ -334,18 +325,18 @@ export function Header() {
                 type="button"
                 aria-label={t("header.openCart")}
                 onClick={openCartDrawer}
-                className="relative inline-flex h-9 w-9 items-center justify-center rounded-[12px] border border-transparent bg-transparent text-slate-700 transition-all duration-200 hover:bg-[#edf8ff] hover:text-[#2f91d0]"
+                className="relative inline-flex h-11 w-11 items-center justify-center rounded-button border border-transparent bg-transparent text-slate-700 transition-all duration-fast hover:bg-primary-light hover:text-primary-dark"
               >
                 <ShoppingCart className="h-6 w-6" strokeWidth={1.8} />
 
                 {hasMounted && itemCount > 0 ? (
-                  <span className="absolute -right-1 -top-1 inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-[#f6d76b] px-1 text-[10px] font-extrabold text-navy">
+                  <span className="absolute -right-1 -top-1 inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-[#f6d76b] px-1 text-[12.5px] font-bold text-navy">
                     {itemCount}
                   </span>
                 ) : null}
               </button>
 
-              <LanguageSwitcher className="hidden lg:flex" />
+              <LanguageSwitcher compact className="hidden lg:flex" />
 
               <button
                 ref={menuButtonRef}
@@ -358,14 +349,7 @@ export function Header() {
                 aria-controls="mobile-navigation-drawer"
                 aria-expanded={isMobileMenuOpen}
                 onClick={isMobileMenuOpen ? closeMobileMenu : openMobileMenu}
-                className="inline-flex h-11 w-11 appearance-none items-center justify-center rounded-none border-0! bg-transparent! p-0! text-navy! shadow-none! outline-none! ring-0! transition-colors duration-200 hover:bg-transparent! hover:text-[#2f91d0]! focus:border-0! focus:shadow-none! focus:outline-none! focus:ring-0! focus-visible:border-0! focus-visible:shadow-none! focus-visible:outline-none! focus-visible:ring-0! active:scale-100 lg:hidden"
-                style={{
-                  border: "none",
-                  outline: "none",
-                  boxShadow: "none",
-                  background: "transparent",
-                  WebkitTapHighlightColor: "transparent",
-                }}
+                className="inline-flex h-11 w-11 items-center justify-center rounded-button text-navy transition-colors duration-fast hover:bg-primary-light hover:text-primary-dark lg:hidden"
               >
                 {isMobileMenuOpen ? (
                   <X className="h-6 w-6" strokeWidth={2.1} />

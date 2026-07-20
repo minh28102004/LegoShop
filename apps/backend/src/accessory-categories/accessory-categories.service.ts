@@ -4,7 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { Prisma, ProductStatus } from '@prisma/client';
 import {
   buildAdminListMeta,
   buildDateFilter,
@@ -17,6 +17,7 @@ import {
 } from '../common/admin-query/admin-query.util';
 import { AdminListQueryDto } from '../common/dto/admin-list-query.dto';
 import { PrismaService } from '../prisma/prisma.service';
+import { stagedSampleMediaSeedTag } from '../common/sample-media-preview';
 import { CreateAccessoryCategoryDto } from './dto/create-accessory-category.dto';
 import { UpdateAccessoryCategoryDto } from './dto/update-accessory-category.dto';
 
@@ -25,14 +26,33 @@ export class AccessoryCategoriesService {
   constructor(private readonly prisma: PrismaService) {}
 
   findPublicAccessoryCategories() {
+    const previewSeedTag = stagedSampleMediaSeedTag();
+    const accessoryVisibility = previewSeedTag
+      ? {
+          OR: [
+            { status: ProductStatus.active },
+            { status: ProductStatus.inactive, seedTag: previewSeedTag },
+          ],
+        }
+      : { status: ProductStatus.active };
     return this.prisma.accessoryCategory.findMany({
+      where: {
+        accessories: { some: accessoryVisibility },
+      },
       orderBy: {
         createdAt: 'desc',
       },
-      include: {
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        createdAt: true,
+        updatedAt: true,
         _count: {
           select: {
-            accessories: true,
+            accessories: {
+              where: accessoryVisibility,
+            },
           },
         },
       },

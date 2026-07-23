@@ -1,9 +1,17 @@
-import type { Banner, Collection, Product } from "@lego-shop/shared";
+import type {
+  Banner,
+  Collection,
+  HomepageMedia,
+  Product,
+} from "@lego-shop/shared";
 
 import { ROUTES } from "@/config/routes";
+import { FIGURE_LAB_TEAM_GIFT_IMAGE } from "@/config/marketing-media";
 import { resolveApiAssetUrl } from "@/lib/api/assets";
 import { getApiBaseUrl } from "@/lib/api/base-url";
 import { publicApiClient } from "@/lib/api/public-client";
+import { withProductImageFallback } from "@/lib/product-image-fallback";
+import { vi } from "@/lib/i18n/dictionaries/vi";
 import type {
   HomeCategory,
   HomeFeaturedProduct,
@@ -16,7 +24,10 @@ import type {
 
 const MAX_FEATURED_PRODUCTS = 4;
 const MAX_HOME_CATEGORIES = 6;
-const MAX_HERO_SLIDES = 5;
+const MAX_HERO_SLIDES = 24;
+const EXCLUDED_HERO_MEDIA_SOURCE_KEYS = new Set([
+  "home-c4c80ef0a8d8",
+]);
 
 const BANNER_TITLES: Record<HomeMediaSlot, string> = {
   hero: "homepage:hero",
@@ -26,20 +37,14 @@ const BANNER_TITLES: Record<HomeMediaSlot, string> = {
   "final-cta": "homepage:final-cta",
 };
 
-const MEDIA_ALT: Record<HomeMediaSlot, string> = {
-  hero: "Thiết kế minifigure cá nhân hóa nổi bật của Figure Lab",
-  story: "Một câu chuyện kỷ niệm được Figure Lab đóng khung",
-  friendship: "Khung minifigure được thiết kế riêng cho bạn thân",
-  transformation: "Thành phẩm minifigure được tạo từ câu chuyện thật",
-  "final-cta": "Mẫu quà minifigure cá nhân hóa của Figure Lab",
-};
+const MEDIA_ALT: Record<HomeMediaSlot, string> = vi.home.media.alt;
 
 const DEVELOPMENT_MEDIA: Record<HomeMediaSlot, string> = {
-  hero: "/home/graduation-frame.png",
+  hero: FIGURE_LAB_TEAM_GIFT_IMAGE,
   story: "/home/graduation-celebration.png",
   friendship: "/home/love-frame.png",
   transformation: "/home/birthday-frame.png",
-  "final-cta": "/home/graduation-frame.png",
+  "final-cta": FIGURE_LAB_TEAM_GIFT_IMAGE,
 };
 
 type LoadedList<T> = {
@@ -121,7 +126,7 @@ function getSafeApiMediaUrl(value?: string | null): string | null {
 function mapProducts(products: Product[]): HomeFeaturedProduct[] {
   return [...products]
     .sort((left, right) => Number(right.featured) - Number(left.featured))
-    .flatMap((product) => {
+    .flatMap((product, productIndex) => {
       const id = toNonEmptyString(product.id);
       const slug = toNonEmptyString(product.slug);
       const title = toNonEmptyString(product.name);
@@ -137,6 +142,8 @@ function mapProducts(products: Product[]): HomeFeaturedProduct[] {
       const basePrice = toNonNegativeNumber(product.basePrice);
       const originalPrice = toOptionalPrice(product.originalPrice);
       const images = Array.isArray(product.images) ? product.images : [];
+      const apiImageUrl =
+        images.map(getSafeApiMediaUrl).find((url) => url !== null) ?? null;
       const includedItemLabels = Array.isArray(product.includedItemLabels)
         ? product.includedItemLabels.filter(
             (label): label is string =>
@@ -165,8 +172,7 @@ function mapProducts(products: Product[]): HomeFeaturedProduct[] {
           badge: product.collection?.name ?? null,
           featured: product.featured,
           href: ROUTES.studio,
-          imageUrl:
-            images.map(getSafeApiMediaUrl).find((url) => url !== null) ?? null,
+          imageUrl: withProductImageFallback(apiImageUrl, slug, productIndex),
         },
       ];
     })
@@ -207,7 +213,7 @@ function mapBanners(banners: Banner[]): HomeMediaMap {
       } else if (isDevelopment) {
         media[slot] = {
           src: DEVELOPMENT_MEDIA[slot],
-          alt: `${MEDIA_ALT[slot]} (ảnh mẫu phát triển)`,
+          alt: `${MEDIA_ALT[slot]} (${vi.home.media.developmentBadge})`,
           slot,
           source: "development-fallback",
         };
@@ -228,10 +234,26 @@ function mapBanners(banners: Banner[]): HomeMediaMap {
 }
 
 function mapHeroSlides(
+  homepageMedia: HomepageMedia[],
   banners: Banner[],
-  heroFallback: HomeMediaAsset | null,
 ): HomeMediaAsset[] {
-  const slides = [...banners]
+  const importedSlides = [...homepageMedia]
+    .filter((item) => !EXCLUDED_HERO_MEDIA_SOURCE_KEYS.has(item.sourceKey))
+    .sort((left, right) => left.sortOrder - right.sortOrder)
+    .flatMap((item) => {
+      const src = getSafeApiMediaUrl(item.imageUrl);
+      if (!src) return [];
+
+      return [
+        {
+          src,
+          alt: MEDIA_ALT.hero,
+          slot: "hero" as const,
+          source: "api" as const,
+        },
+      ];
+    });
+  const bannerSlides = [...banners]
     .filter((banner) =>
       banner.title?.trim().toLowerCase().startsWith("homepage:"),
     )
@@ -253,7 +275,17 @@ function mapHeroSlides(
           source: "api" as const,
         },
       ];
-    })
+    });
+  const slides = [
+    {
+      src: FIGURE_LAB_TEAM_GIFT_IMAGE,
+      alt: MEDIA_ALT.hero,
+      slot: "hero" as const,
+      source: "static" as const,
+    },
+    ...importedSlides,
+    ...bannerSlides,
+  ]
     .filter(
       (slide, index, allSlides) =>
         allSlides.findIndex((candidate) => candidate.src === slide.src) ===
@@ -261,16 +293,19 @@ function mapHeroSlides(
     )
     .slice(0, MAX_HERO_SLIDES);
 
-  if (slides.length > 0) return slides;
-  return heroFallback ? [heroFallback] : [];
+  return slides;
 }
 
 export async function loadHomePageData(): Promise<HomePageData> {
-  const [productResult, categoryResult, bannerResult] = await Promise.all([
-    loadList("products", () => publicApiClient.products.listProducts()),
-    loadList("collections", () => publicApiClient.products.listCollections()),
-    loadList("banners", () => publicApiClient.public.listBanners()),
-  ]);
+  const [productResult, categoryResult, bannerResult, homepageMediaResult] =
+    await Promise.all([
+      loadList("products", () => publicApiClient.products.listProducts()),
+      loadList("collections", () => publicApiClient.products.listCollections()),
+      loadList("banners", () => publicApiClient.public.listBanners()),
+      loadList("homepage media gallery", () =>
+        publicApiClient.public.listHomepageMedia(),
+      ),
+    ]);
 
   const media = mapBanners(bannerResult.items);
 
@@ -280,7 +315,8 @@ export async function loadHomePageData(): Promise<HomePageData> {
     categories: mapCategories(categoryResult.items),
     categoryState: categoryResult.state,
     media,
-    heroSlides: mapHeroSlides(bannerResult.items, media.hero),
-    bannerState: bannerResult.state,
+    heroSlides: mapHeroSlides(homepageMediaResult.items, bannerResult.items),
+    bannerState:
+      homepageMediaResult.state === "api" ? "api" : bannerResult.state,
   };
 }

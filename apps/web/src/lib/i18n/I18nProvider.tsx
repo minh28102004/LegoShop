@@ -1,14 +1,27 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { createContext, useContext, useEffect, useState } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 
-import { DEFAULT_LOCALE, LOCALES, LOCALE_STORAGE_KEY, type Locale } from "./config";
-import { messages } from "./messages";
+import {
+  DEFAULT_LOCALE,
+  LOCALES,
+  LOCALE_STORAGE_KEY,
+  type Locale,
+} from "./config";
+import { getDictionary, type Dictionary } from "@/lib/i18n/dictionaries";
 
 type I18nContextValue = {
   locale: Locale;
   setLocale: (locale: Locale) => void;
+  dictionary: Dictionary;
   t: (key: string, replacements?: Record<string, string>) => string;
 };
 
@@ -18,9 +31,9 @@ function isLocale(value: string | null): value is Locale {
   return LOCALES.includes(value as Locale);
 }
 
-function resolveMessage(locale: Locale, key: string) {
+function resolveMessage(dictionary: Dictionary, key: string) {
   const parts = key.split(".");
-  let current: unknown = messages[locale];
+  let current: unknown = dictionary;
 
   for (const part of parts) {
     if (!current || typeof current !== "object" || !(part in current)) {
@@ -33,7 +46,10 @@ function resolveMessage(locale: Locale, key: string) {
   return typeof current === "string" ? current : undefined;
 }
 
-function applyReplacements(template: string, replacements?: Record<string, string>) {
+function applyReplacements(
+  template: string,
+  replacements?: Record<string, string>,
+) {
   if (!replacements) {
     return template;
   }
@@ -70,32 +86,34 @@ export function I18nProvider({ children }: { children: ReactNode }) {
     document.documentElement.lang = locale;
   }, [locale]);
 
-  function setLocale(nextLocale: Locale) {
+  const setLocale = useCallback((nextLocale: Locale) => {
     setLocaleState(nextLocale);
 
     if (typeof window !== "undefined") {
       window.localStorage.setItem(LOCALE_STORAGE_KEY, nextLocale);
     }
-  }
+  }, []);
 
-  function t(key: string, replacements?: Record<string, string>) {
-    const activeMessage =
-      resolveMessage(locale, key) ?? resolveMessage(DEFAULT_LOCALE, key) ?? key;
+  const dictionary = useMemo(() => getDictionary(locale), [locale]);
 
-    return applyReplacements(activeMessage, replacements);
-  }
+  const t = useCallback(
+    (key: string, replacements?: Record<string, string>) => {
+      const activeMessage =
+        resolveMessage(dictionary, key) ??
+        resolveMessage(getDictionary(DEFAULT_LOCALE), key) ??
+        key;
 
-  return (
-    <I18nContext.Provider
-      value={{
-        locale,
-        setLocale,
-        t,
-      }}
-    >
-      {children}
-    </I18nContext.Provider>
+      return applyReplacements(activeMessage, replacements);
+    },
+    [dictionary],
   );
+
+  const value = useMemo(
+    () => ({ locale, setLocale, dictionary, t }),
+    [dictionary, locale, setLocale, t],
+  );
+
+  return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>;
 }
 
 export function useI18n() {

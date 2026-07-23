@@ -1,7 +1,6 @@
 "use client";
 
 import { useI18n } from "@/lib/i18n/useI18n";
-import { HOME_TRANSLATIONS } from "@/modules/home/data/home.translations";
 import type {
   HomeMediaAsset,
   HomePageData,
@@ -46,8 +45,8 @@ function uniqueMedia(
 }
 
 export function HomePageContent({ data }: HomePageContentProps) {
-  const { locale } = useI18n();
-  const content = HOME_TRANSLATIONS[locale];
+  const { dictionary } = useI18n();
+  const content = dictionary.home;
   const media = (Object.keys(data.media) as HomeMediaSlot[]).reduce(
     (localized, slot) => {
       localized[slot] = localizeMedia(data.media[slot], content.media.alt[slot]);
@@ -90,8 +89,6 @@ export function HomePageContent({ data }: HomePageContentProps) {
       />
       <TransformationSection
         content={content.transformation}
-        media={media.transformation}
-        mediaLabels={content.media}
       />
       <FeaturedProducts
         content={content.products}

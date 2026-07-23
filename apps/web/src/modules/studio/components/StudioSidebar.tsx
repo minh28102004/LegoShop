@@ -418,15 +418,15 @@ export function StudioSidebar({ embedded = false }: StudioSidebarProps) {
   );
 
   const filteredTemplates = useMemo(() => {
-    let items = effectiveTemplateCategoryIds.length > 0
-      ? templates.filter(
-          (template) =>
+    let items =
+      effectiveTemplateCategoryIds.length > 0
+        ? templates.filter((template) =>
             Boolean(
               template.categoryId &&
-                effectiveTemplateCategoryIds.includes(template.categoryId),
+              effectiveTemplateCategoryIds.includes(template.categoryId),
             ),
-        )
-      : templates;
+          )
+        : templates;
 
     if (!normalizedQuery) return items;
 
@@ -438,15 +438,15 @@ export function StudioSidebar({ embedded = false }: StudioSidebarProps) {
   }, [effectiveTemplateCategoryIds, normalizedQuery, templates]);
 
   const filteredAccessories = useMemo(() => {
-    let items = effectiveAccessoryCategoryIds.length > 0
-      ? accessories.filter(
-          (accessory) =>
+    let items =
+      effectiveAccessoryCategoryIds.length > 0
+        ? accessories.filter((accessory) =>
             Boolean(
               accessory.categoryId &&
-                effectiveAccessoryCategoryIds.includes(accessory.categoryId),
+              effectiveAccessoryCategoryIds.includes(accessory.categoryId),
             ),
-        )
-      : accessories;
+          )
+        : accessories;
 
     if (!normalizedQuery) return items;
 
@@ -468,7 +468,10 @@ export function StudioSidebar({ embedded = false }: StudioSidebarProps) {
       ? accessoryPagination.count
       : ACCESSORY_PAGE_SIZE;
   const visibleTemplates = filteredTemplates.slice(0, visibleTemplateCount);
-  const visibleAccessories = filteredAccessories.slice(0, visibleAccessoryCount);
+  const visibleAccessories = filteredAccessories.slice(
+    0,
+    visibleAccessoryCount,
+  );
 
   const selectedAccessoryElements = useMemo(
     () =>
@@ -516,9 +519,9 @@ export function StudioSidebar({ embedded = false }: StudioSidebarProps) {
       type: "text",
       content:
         variant === "title"
-          ? "BRICKSTUDIO"
+          ? text.sidebar.defaultTitleText
           : variant === "caption"
-            ? "Custom Edition #001"
+            ? text.sidebar.defaultCaptionText
             : text.sidebar.defaultBodyText,
       x: variant === "title" ? 110 : 120,
       y: variant === "title" ? 285 : 320,
@@ -541,66 +544,237 @@ export function StudioSidebar({ embedded = false }: StudioSidebarProps) {
 
   return (
     <div className="flex min-h-0 w-full flex-col bg-white">
-        <div
-          className={[
-            "border-b border-[#edf3f8] px-4 py-3.5",
-            embedded ? "bg-[#fbfdff]" : "bg-white",
-          ].join(" ")}
-        >
-          {!embedded ? (
-            <p className="text-lg font-bold leading-none tracking-[-0.025em] text-slate-950">
-              {text.sidebar.tabs[activeTab]}
-            </p>
-          ) : null}
+      <div
+        className={[
+          "border-b border-[#edf3f8] px-4 py-3.5",
+          embedded ? "bg-[#fbfdff]" : "bg-white",
+        ].join(" ")}
+      >
+        {!embedded ? (
+          <p className="text-lg font-bold leading-none tracking-[-0.025em] text-slate-950">
+            {text.sidebar.tabs[activeTab]}
+          </p>
+        ) : null}
 
-          {showSearch ? (
-            <div className={`${embedded ? "" : "mt-3.5"} flex h-11 items-center gap-2.5 rounded-2xl border border-[#dbe7f1] bg-white px-3.5 transition-colors duration-200 focus-within:border-[#9ed0ef] focus-within:ring-2 focus-within:ring-[#dceeff]/70`}>
-              <Search className="h-4 w-4 shrink-0 text-slate-400" />
+        {showSearch ? (
+          <div
+            className={`${embedded ? "" : "mt-3.5"} form-control form-control--compact flex items-center gap-2.5 px-3.5 focus-within:border-primary focus-within:ring-[3px] focus-within:ring-primary/15`}
+          >
+            <Search className="h-4 w-4 shrink-0 text-slate-400" />
 
-              <input
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder={
-                  activeTab === "templates"
-                    ? text.sidebar.searchTemplates
-                    : text.sidebar.searchAccessories
-                }
-                className="min-w-0 flex-1 appearance-none border-0 bg-transparent p-0 text-sm font-medium text-slate-700 shadow-none outline-none ring-0 placeholder:text-slate-400 focus:border-0 focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0"
-                style={{
-                  boxShadow: "none",
-                  WebkitBoxShadow: "none",
-                }}
+            <input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder={
+                activeTab === "templates"
+                  ? text.sidebar.searchTemplates
+                  : text.sidebar.searchAccessories
+              }
+              className="min-w-0 flex-1 appearance-none border-0 bg-transparent p-0 text-sm font-medium text-slate-700 shadow-none outline-none ring-0 placeholder:text-text-muted focus:border-0 focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0"
+              style={{
+                boxShadow: "none",
+                WebkitBoxShadow: "none",
+              }}
+            />
+          </div>
+        ) : null}
+      </div>
+
+      <div className="px-4 py-4">
+        {activeTab === "templates" && (
+          <div className="space-y-3">
+            {templateCategories.length > 0 ? (
+              <StudioSearchableMultiSelect
+                label={text.common.all}
+                options={templateCategories.map((category) => ({
+                  value: category.id,
+                  label: category.name,
+                }))}
+                value={effectiveTemplateCategoryIds}
+                onChange={setActiveTemplateCategoryIds}
+                searchPlaceholder={text.sidebar.searchTemplates}
+                emptyLabel={text.sidebar.noTemplateMatches}
+                clearLabel={text.common.remove}
               />
-            </div>
-          ) : null}
-        </div>
+            ) : null}
 
-        <div className="px-4 py-4">
-          {activeTab === "templates" && (
+            {backgroundsError ? (
+              <div className="flex items-start gap-2 rounded-[16px] border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs font-semibold leading-relaxed text-amber-800">
+                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                <span>{backgroundsError}</span>
+              </div>
+            ) : null}
+
+            {isBackgroundsLoading ? (
+              <div className="grid grid-cols-2 gap-3">
+                {Array.from({ length: 6 }).map((_, index) => (
+                  <div
+                    key={index}
+                    className="h-[144px] animate-pulse rounded-[20px] bg-[#eef3f8]"
+                  />
+                ))}
+              </div>
+            ) : filteredTemplates.length === 0 && !customBackgroundUrl ? (
+              <EmptyState
+                title={
+                  normalizedQuery
+                    ? text.sidebar.noTemplateMatches
+                    : text.sidebar.noTemplates
+                }
+                description={
+                  normalizedQuery
+                    ? text.sidebar.noMatchesDescription
+                    : text.sidebar.noTemplatesDescription
+                }
+              />
+            ) : (
+              <div className="grid grid-cols-2 gap-3">
+                {customBackgroundUrl ? (
+                  <TemplateCard
+                    active={!activeTemplate}
+                    imageUrl={customBackgroundUrl}
+                    name={text.sidebar.yourPhoto}
+                    onClick={() => {
+                      setActiveTemplate(null);
+                      clearContentValues();
+                    }}
+                  />
+                ) : null}
+
+                {visibleTemplates.map((template, index) => (
+                  <TemplateCard
+                    key={template.id}
+                    active={activeTemplate === template.id}
+                    imageUrl={template.thumbnailUrl ?? template.imageUrl}
+                    name={template.name}
+                    priority={index === 0 && !customBackgroundUrl}
+                    onClick={() => {
+                      setCustomBackgroundUrl(null);
+                      setCustomBackgroundOriginalName(null);
+                      setActiveTemplate(template.id);
+                    }}
+                  />
+                ))}
+              </div>
+            )}
+
+            {visibleTemplates.length < filteredTemplates.length ? (
+              <button
+                type="button"
+                onClick={() =>
+                  setTemplatePagination({
+                    key: templatePaginationKey,
+                    count: visibleTemplateCount + TEMPLATE_PAGE_SIZE,
+                  })
+                }
+                className="mt-3 w-full rounded-2xl border border-[#dbe7f1] bg-white px-4 py-2.5 text-sm font-semibold text-[#247fb9] transition-colors duration-200 hover:border-[#b9d8ed] hover:bg-[#f8fbff] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8fc6e6] focus-visible:ring-offset-2"
+              >
+                {text.sidebar.loadMore(
+                  visibleTemplates.length,
+                  filteredTemplates.length,
+                )}
+              </button>
+            ) : null}
+          </div>
+        )}
+
+        {activeTab === "uploads" && (
+          <div className="space-y-4">
+            <button
+              type="button"
+              onClick={() => uploadInputRef.current?.click()}
+              disabled={uploading}
+              className="group flex min-h-[150px] w-full flex-col items-center justify-center gap-1 rounded-[22px] border border-dashed border-[#cfe4f4] bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(244,250,255,0.92))] px-5 text-center text-[#2f91d0] transition-all duration-200 ease-out hover:border-[#8fc6e6] hover:bg-white hover:shadow-sm disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <UploadCloud className="mb-1.5 h-7 w-7 transition-transform duration-200 ease-out group-hover:-translate-y-0.5" />
+
+              <span className="text-sm font-semibold">
+                {uploading
+                  ? text.sidebar.uploading
+                  : text.sidebar.uploadBackground}
+              </span>
+
+              <span className="text-xs font-medium text-slate-500">
+                {text.sidebar.uploadFormats}
+              </span>
+            </button>
+
+            <input
+              ref={uploadInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              className="hidden"
+              onChange={(event) => handleUpload(event.target.files?.[0])}
+            />
+
+            {uploadError ? (
+              <p className="rounded-2xl border border-rose-200/80 bg-rose-50/90 px-3 py-2 text-xs font-semibold text-rose-700">
+                {uploadError}
+              </p>
+            ) : null}
+          </div>
+        )}
+
+        {activeTab === "text" && (
+          <div className="space-y-3">
+            <AddContentRow
+              title={text.sidebar.titleText}
+              subtitle={text.sidebar.titleTextHint}
+              emphasis="title"
+              onClick={() => addText("title")}
+            />
+
+            <AddContentRow
+              title={text.sidebar.bodyText}
+              subtitle={text.sidebar.bodyTextHint}
+              emphasis="body"
+              onClick={() => addText("body")}
+            />
+
+            <AddContentRow
+              title={text.sidebar.captionText}
+              subtitle={text.sidebar.captionTextHint}
+              emphasis="caption"
+              onClick={() => addText("caption")}
+            />
+          </div>
+        )}
+
+        {activeTab === "assets" && (
+          <div className="space-y-5">
             <div className="space-y-3">
-              {templateCategories.length > 0 ? (
+              <p className="mb-2.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
+                {text.sidebar.accessoriesLabel}
+              </p>
+
+              {isAccessoryCategoriesLoading ? (
+                <div
+                  className="h-11 animate-pulse rounded-2xl bg-slate-100"
+                  aria-hidden="true"
+                />
+              ) : accessoryCategories.length > 0 ? (
                 <StudioSearchableMultiSelect
                   label={text.common.all}
-                  options={templateCategories.map((category) => ({
+                  options={accessoryCategories.map((category) => ({
                     value: category.id,
                     label: category.name,
                   }))}
-                  value={effectiveTemplateCategoryIds}
-                  onChange={setActiveTemplateCategoryIds}
-                  searchPlaceholder={text.sidebar.searchTemplates}
-                  emptyLabel={text.sidebar.noTemplateMatches}
+                  value={effectiveAccessoryCategoryIds}
+                  onChange={setActiveAccessoryCategoryIds}
+                  searchPlaceholder={text.sidebar.searchAccessories}
+                  emptyLabel={text.sidebar.noAccessoryMatches}
                   clearLabel={text.common.remove}
                 />
               ) : null}
 
-              {backgroundsError ? (
-                <div className="flex items-start gap-2 rounded-[16px] border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs font-semibold leading-relaxed text-amber-800">
-                  <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-                  <span>{backgroundsError}</span>
-                </div>
+              {accessoryCategoriesError ? (
+                <p className="flex items-start gap-2 text-xs font-semibold leading-relaxed text-amber-700">
+                  <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                  <span>{accessoryCategoriesError}</span>
+                </p>
               ) : null}
 
-              {isBackgroundsLoading ? (
+              {isAccessoriesLoading ? (
                 <div className="grid grid-cols-2 gap-3">
                   {Array.from({ length: 6 }).map((_, index) => (
                     <div
@@ -609,383 +783,212 @@ export function StudioSidebar({ embedded = false }: StudioSidebarProps) {
                     />
                   ))}
                 </div>
-              ) : filteredTemplates.length === 0 && !customBackgroundUrl ? (
-                <EmptyState
-                  title={
-                    normalizedQuery
-                      ? text.sidebar.noTemplateMatches
-                      : text.sidebar.noTemplates
-                  }
-                  description={
-                    normalizedQuery
-                      ? text.sidebar.noMatchesDescription
-                      : text.sidebar.noTemplatesDescription
-                  }
-                />
+              ) : accessoriesError ? (
+                <div className="flex items-start gap-2 rounded-[16px] border border-rose-200 bg-rose-50 px-3 py-2.5 text-xs font-semibold leading-relaxed text-rose-700">
+                  <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                  <span>{accessoriesError}</span>
+                </div>
+              ) : filteredAccessories.length === 0 ? (
+                <>
+                  <EmptyState
+                    title={
+                      normalizedQuery ||
+                      effectiveAccessoryCategoryIds.length > 0
+                        ? text.sidebar.noAccessoryMatches
+                        : text.sidebar.noAccessories
+                    }
+                    description={
+                      normalizedQuery ||
+                      effectiveAccessoryCategoryIds.length > 0
+                        ? text.sidebar.noMatchesDescription
+                        : text.sidebar.noAccessoriesDescription
+                    }
+                  />
+
+                  {!normalizedQuery ? (
+                    <div className="mt-4 grid grid-cols-3 gap-3">
+                      {quickStickers.map((sticker) => (
+                        <button
+                          key={sticker.id}
+                          type="button"
+                          onClick={() => addSticker(sticker)}
+                          aria-label={text.sidebar.addNamedItem(sticker.label)}
+                          className="grid aspect-square place-items-center rounded-[18px] border border-slate-200/70 bg-white transition-all duration-200 ease-out hover:-translate-y-0.5 hover:border-[#bddaf0] hover:bg-[#fbfdff] hover:shadow-sm"
+                        >
+                          <Image
+                            src={sticker.imageUrl}
+                            alt=""
+                            width={48}
+                            height={48}
+                            aria-hidden="true"
+                            className="h-10 w-10 object-contain"
+                          />
+                        </button>
+                      ))}
+                    </div>
+                  ) : null}
+                </>
               ) : (
                 <div className="grid grid-cols-2 gap-3">
-                  {customBackgroundUrl ? (
-                    <TemplateCard
-                      active={!activeTemplate}
-                      imageUrl={customBackgroundUrl}
-                      name={text.sidebar.yourPhoto}
-                      onClick={() => {
-                        setActiveTemplate(null);
-                        clearContentValues();
-                      }}
-                    />
-                  ) : null}
+                  {visibleAccessories.map((accessory) => {
+                    const selectedElement = selectedAccessoryByCatalogId.get(
+                      accessory.id,
+                    );
 
-                  {visibleTemplates.map((template, index) => (
-                    <TemplateCard
-                      key={template.id}
-                      active={activeTemplate === template.id}
-                      imageUrl={template.thumbnailUrl ?? template.imageUrl}
-                      name={template.name}
-                      priority={index === 0 && !customBackgroundUrl}
-                      onClick={() => {
-                        setCustomBackgroundUrl(null);
-                        setCustomBackgroundOriginalName(null);
-                        setActiveTemplate(template.id);
-                      }}
-                    />
-                  ))}
+                    return (
+                      <button
+                        key={accessory.id}
+                        type="button"
+                        aria-pressed={Boolean(selectedElement)}
+                        onClick={() => {
+                          if (selectedElement) {
+                            removeElement(selectedElement.id);
+                            return;
+                          }
+
+                          const imageUrl =
+                            accessory.imageUrl ?? accessory.iconUrl;
+
+                          addElement({
+                            type: "accessory",
+                            content: accessory.name,
+                            ...(imageUrl ? { imageUrl } : {}),
+                            x: 140,
+                            y: 150,
+                            width: 54,
+                            height: 54,
+                            price: accessory.price,
+                            accessoryId: accessory.id,
+                          });
+                        }}
+                        className={`group relative overflow-hidden rounded-[20px] border bg-white text-left transition-all duration-200 ease-out hover:-translate-y-0.5 hover:shadow-sm ${
+                          selectedElement
+                            ? "border-[#8fc6e6] ring-2 ring-[#dceeff]"
+                            : "border-slate-200/70 hover:border-[#bddaf0]"
+                        }`}
+                      >
+                        <div className="grid aspect-square place-items-center bg-[#f8fbff]">
+                          <StudioMediaThumbnail
+                            src={
+                              accessory.thumbnailUrl ??
+                              accessory.imageUrl ??
+                              accessory.iconUrl
+                            }
+                            alt={accessory.name}
+                            imageClassName="object-contain p-3 transition-[opacity,transform] duration-200 ease-out group-hover:scale-[1.04]"
+                            fallback={
+                              <Puzzle className="h-6 w-6 text-slate-300" />
+                            }
+                          />
+                        </div>
+
+                        <div className="p-2.5">
+                          <p className="truncate text-[11px] font-semibold text-slate-800">
+                            {accessory.name}
+                          </p>
+
+                          <p className="mt-0.5 text-[10px] font-semibold text-[#2f91d0]">
+                            {formatPrice(accessory.price)}
+                          </p>
+                        </div>
+
+                        {selectedElement ? (
+                          <span className="absolute right-2 top-2 grid h-5 w-5 place-items-center rounded-full bg-[#2f91d0] text-white">
+                            <Check className="h-3.5 w-3.5" />
+                          </span>
+                        ) : null}
+                      </button>
+                    );
+                  })}
                 </div>
               )}
 
-              {visibleTemplates.length < filteredTemplates.length ? (
+              {visibleAccessories.length < filteredAccessories.length ? (
                 <button
                   type="button"
                   onClick={() =>
-                    setTemplatePagination({
-                      key: templatePaginationKey,
-                      count: visibleTemplateCount + TEMPLATE_PAGE_SIZE,
+                    setAccessoryPagination({
+                      key: accessoryPaginationKey,
+                      count: visibleAccessoryCount + ACCESSORY_PAGE_SIZE,
                     })
                   }
-                  className="mt-3 w-full rounded-2xl border border-[#dbe7f1] bg-white px-4 py-2.5 text-sm font-semibold text-[#247fb9] transition-colors duration-200 hover:border-[#b9d8ed] hover:bg-[#f8fbff] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8fc6e6] focus-visible:ring-offset-2"
+                  className="w-full rounded-2xl border border-[#dbe7f1] bg-white px-4 py-2.5 text-sm font-semibold text-[#247fb9] transition-colors duration-200 hover:border-[#b9d8ed] hover:bg-[#f8fbff] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8fc6e6] focus-visible:ring-offset-2"
                 >
                   {text.sidebar.loadMore(
-                    visibleTemplates.length,
-                    filteredTemplates.length,
+                    visibleAccessories.length,
+                    filteredAccessories.length,
                   )}
                 </button>
               ) : null}
-            </div>
-          )}
 
-          {activeTab === "uploads" && (
-            <div className="space-y-4">
-              <button
-                type="button"
-                onClick={() => uploadInputRef.current?.click()}
-                disabled={uploading}
-                className="group flex min-h-[150px] w-full flex-col items-center justify-center gap-1 rounded-[22px] border border-dashed border-[#cfe4f4] bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(244,250,255,0.92))] px-5 text-center text-[#2f91d0] transition-all duration-200 ease-out hover:border-[#8fc6e6] hover:bg-white hover:shadow-sm disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                <UploadCloud className="mb-1.5 h-7 w-7 transition-transform duration-200 ease-out group-hover:-translate-y-0.5" />
-
-                <span className="text-sm font-semibold">
-                  {uploading
-                    ? text.sidebar.uploading
-                    : text.sidebar.uploadBackground}
-                </span>
-
-                <span className="text-xs font-medium text-slate-500">
-                  {text.sidebar.uploadFormats}
-                </span>
-              </button>
-
-              <input
-                ref={uploadInputRef}
-                type="file"
-                accept="image/jpeg,image/png,image/webp"
-                className="hidden"
-                onChange={(event) => handleUpload(event.target.files?.[0])}
-              />
-
-              {uploadError ? (
-                <p className="rounded-2xl border border-rose-200/80 bg-rose-50/90 px-3 py-2 text-xs font-semibold text-rose-700">
-                  {uploadError}
-                </p>
+              {!isAccessoriesLoading ? (
+                <div className="flex items-center justify-between rounded-[16px] bg-[#f4faff] px-3 py-2.5 text-xs">
+                  <span className="font-semibold text-slate-600">
+                    {text.sidebar.selectedCharms(
+                      selectedAccessoryElements.length,
+                    )}
+                  </span>
+                  <span className="font-bold text-[#2f91d0]">
+                    {formatPrice(selectedAccessoriesTotal)}
+                  </span>
+                </div>
               ) : null}
             </div>
-          )}
+          </div>
+        )}
 
-          {activeTab === "text" && (
-            <div className="space-y-3">
-              <AddContentRow
-                title={text.sidebar.titleText}
-                subtitle={text.sidebar.titleTextHint}
-                emphasis="title"
-                onClick={() => addText("title")}
+        {activeTab === "layers" && (
+          <div className="space-y-3">
+            {elements.length === 0 ? (
+              <EmptyState
+                title={text.sidebar.noLayers}
+                description={text.sidebar.noLayersDescription}
               />
+            ) : (
+              elements.map((element, index) => {
+                const active = selectedId === element.id;
+                const type =
+                  element.type === "text"
+                    ? "text"
+                    : element.type === "character"
+                      ? "character"
+                      : "accessory";
 
-              <AddContentRow
-                title={text.sidebar.bodyText}
-                subtitle={text.sidebar.bodyTextHint}
-                emphasis="body"
-                onClick={() => addText("body")}
-              />
+                const label =
+                  type === "text"
+                    ? text.sidebar.layerTypes.text
+                    : type === "character"
+                      ? text.sidebar.layerTypes.character
+                      : text.sidebar.layerTypes.accessory;
 
-              <AddContentRow
-                title={text.sidebar.captionText}
-                subtitle={text.sidebar.captionTextHint}
-                emphasis="caption"
-                onClick={() => addText("caption")}
-              />
-            </div>
-          )}
+                const previewImage =
+                  typeof element === "object" &&
+                  element !== null &&
+                  "imageUrl" in element
+                    ? (element.imageUrl as string | undefined | null)
+                    : undefined;
 
-          {activeTab === "assets" && (
-            <div className="space-y-5">
-              <div className="space-y-3">
-                <p className="mb-2.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
-                  {text.sidebar.accessoriesLabel}
-                </p>
-
-                {isAccessoryCategoriesLoading ? (
-                  <div
-                    className="h-11 animate-pulse rounded-2xl bg-slate-100"
-                    aria-hidden="true"
+                return (
+                  <LayerItemRow
+                    key={element.id}
+                    active={active}
+                    type={type}
+                    label={label}
+                    content={element.content || ""}
+                    index={index}
+                    {...(previewImage !== undefined
+                      ? { imageUrl: previewImage }
+                      : {})}
+                    onSelect={() => setSelectedId(element.id)}
+                    onRemove={() => removeElement(element.id)}
+                    removeLabel={text.sidebar.removeLayer}
                   />
-                ) : accessoryCategories.length > 0 ? (
-                  <StudioSearchableMultiSelect
-                    label={text.common.all}
-                    options={accessoryCategories.map((category) => ({
-                      value: category.id,
-                      label: category.name,
-                    }))}
-                    value={effectiveAccessoryCategoryIds}
-                    onChange={setActiveAccessoryCategoryIds}
-                    searchPlaceholder={text.sidebar.searchAccessories}
-                    emptyLabel={text.sidebar.noAccessoryMatches}
-                    clearLabel={text.common.remove}
-                  />
-                ) : null}
-
-                {accessoryCategoriesError ? (
-                  <p className="flex items-start gap-2 text-xs font-semibold leading-relaxed text-amber-700">
-                    <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                    <span>{accessoryCategoriesError}</span>
-                  </p>
-                ) : null}
-
-                {isAccessoriesLoading ? (
-                  <div className="grid grid-cols-2 gap-3">
-                    {Array.from({ length: 6 }).map((_, index) => (
-                      <div
-                        key={index}
-                        className="h-[144px] animate-pulse rounded-[20px] bg-[#eef3f8]"
-                      />
-                    ))}
-                  </div>
-                ) : accessoriesError ? (
-                  <div className="flex items-start gap-2 rounded-[16px] border border-rose-200 bg-rose-50 px-3 py-2.5 text-xs font-semibold leading-relaxed text-rose-700">
-                    <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-                    <span>{accessoriesError}</span>
-                  </div>
-                ) : filteredAccessories.length === 0 ? (
-                  <>
-                    <EmptyState
-                      title={
-                        normalizedQuery ||
-                        effectiveAccessoryCategoryIds.length > 0
-                          ? text.sidebar.noAccessoryMatches
-                          : text.sidebar.noAccessories
-                      }
-                      description={
-                        normalizedQuery ||
-                        effectiveAccessoryCategoryIds.length > 0
-                          ? text.sidebar.noMatchesDescription
-                          : text.sidebar.noAccessoriesDescription
-                      }
-                    />
-
-                    {!normalizedQuery ? (
-                      <div className="mt-4 grid grid-cols-3 gap-3">
-                        {quickStickers.map((sticker) => (
-                          <button
-                            key={sticker.id}
-                            type="button"
-                            onClick={() => addSticker(sticker)}
-                            aria-label={text.sidebar.addNamedItem(
-                              sticker.label,
-                            )}
-                            className="grid aspect-square place-items-center rounded-[18px] border border-slate-200/70 bg-white transition-all duration-200 ease-out hover:-translate-y-0.5 hover:border-[#bddaf0] hover:bg-[#fbfdff] hover:shadow-sm"
-                          >
-                            <Image
-                              src={sticker.imageUrl}
-                              alt=""
-                              width={48}
-                              height={48}
-                              aria-hidden="true"
-                              className="h-10 w-10 object-contain"
-                            />
-                          </button>
-                        ))}
-                      </div>
-                    ) : null}
-                  </>
-                ) : (
-                  <div className="grid grid-cols-2 gap-3">
-                    {visibleAccessories.map((accessory) => {
-                      const selectedElement = selectedAccessoryByCatalogId.get(
-                        accessory.id,
-                      );
-
-                      return (
-                        <button
-                          key={accessory.id}
-                          type="button"
-                          aria-pressed={Boolean(selectedElement)}
-                          onClick={() => {
-                            if (selectedElement) {
-                              removeElement(selectedElement.id);
-                              return;
-                            }
-
-                            const imageUrl =
-                              accessory.imageUrl ?? accessory.iconUrl;
-
-                            addElement({
-                              type: "accessory",
-                              content: accessory.name,
-                              ...(imageUrl ? { imageUrl } : {}),
-                              x: 140,
-                              y: 150,
-                              width: 54,
-                              height: 54,
-                              price: accessory.price,
-                              accessoryId: accessory.id,
-                            });
-                          }}
-                          className={`group relative overflow-hidden rounded-[20px] border bg-white text-left transition-all duration-200 ease-out hover:-translate-y-0.5 hover:shadow-sm ${
-                            selectedElement
-                              ? "border-[#8fc6e6] ring-2 ring-[#dceeff]"
-                              : "border-slate-200/70 hover:border-[#bddaf0]"
-                          }`}
-                        >
-                          <div className="grid aspect-square place-items-center bg-[#f8fbff]">
-                            <StudioMediaThumbnail
-                              src={
-                                accessory.thumbnailUrl ??
-                                accessory.imageUrl ??
-                                accessory.iconUrl
-                              }
-                              alt={accessory.name}
-                              imageClassName="object-contain p-3 transition-[opacity,transform] duration-200 ease-out group-hover:scale-[1.04]"
-                              fallback={
-                                <Puzzle className="h-6 w-6 text-slate-300" />
-                              }
-                            />
-                          </div>
-
-                          <div className="p-2.5">
-                            <p className="truncate text-[11px] font-semibold text-slate-800">
-                              {accessory.name}
-                            </p>
-
-                            <p className="mt-0.5 text-[10px] font-semibold text-[#2f91d0]">
-                              {formatPrice(accessory.price)}
-                            </p>
-                          </div>
-
-                          {selectedElement ? (
-                            <span className="absolute right-2 top-2 grid h-5 w-5 place-items-center rounded-full bg-[#2f91d0] text-white">
-                              <Check className="h-3.5 w-3.5" />
-                            </span>
-                          ) : null}
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-
-                {visibleAccessories.length < filteredAccessories.length ? (
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setAccessoryPagination({
-                        key: accessoryPaginationKey,
-                        count: visibleAccessoryCount + ACCESSORY_PAGE_SIZE,
-                      })
-                    }
-                    className="w-full rounded-2xl border border-[#dbe7f1] bg-white px-4 py-2.5 text-sm font-semibold text-[#247fb9] transition-colors duration-200 hover:border-[#b9d8ed] hover:bg-[#f8fbff] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8fc6e6] focus-visible:ring-offset-2"
-                  >
-                    {text.sidebar.loadMore(
-                      visibleAccessories.length,
-                      filteredAccessories.length,
-                    )}
-                  </button>
-                ) : null}
-
-                {!isAccessoriesLoading ? (
-                  <div className="flex items-center justify-between rounded-[16px] bg-[#f4faff] px-3 py-2.5 text-xs">
-                    <span className="font-semibold text-slate-600">
-                      {text.sidebar.selectedCharms(
-                        selectedAccessoryElements.length,
-                      )}
-                    </span>
-                    <span className="font-bold text-[#2f91d0]">
-                      {formatPrice(selectedAccessoriesTotal)}
-                    </span>
-                  </div>
-                ) : null}
-              </div>
-            </div>
-          )}
-
-          {activeTab === "layers" && (
-            <div className="space-y-3">
-              {elements.length === 0 ? (
-                <EmptyState
-                  title={text.sidebar.noLayers}
-                  description={text.sidebar.noLayersDescription}
-                />
-              ) : (
-                elements.map((element, index) => {
-                  const active = selectedId === element.id;
-                  const type =
-                    element.type === "text"
-                      ? "text"
-                      : element.type === "character"
-                        ? "character"
-                        : "accessory";
-
-                  const label =
-                    type === "text"
-                      ? text.sidebar.layerTypes.text
-                      : type === "character"
-                        ? text.sidebar.layerTypes.character
-                        : text.sidebar.layerTypes.accessory;
-
-                  const previewImage =
-                    typeof element === "object" &&
-                    element !== null &&
-                    "imageUrl" in element
-                      ? (element.imageUrl as string | undefined | null)
-                      : undefined;
-
-                  return (
-                    <LayerItemRow
-                      key={element.id}
-                      active={active}
-                      type={type}
-                      label={label}
-                      content={element.content || ""}
-                      index={index}
-                      {...(previewImage !== undefined
-                        ? { imageUrl: previewImage }
-                        : {})}
-                      onSelect={() => setSelectedId(element.id)}
-                      onRemove={() => removeElement(element.id)}
-                      removeLabel={text.sidebar.removeLayer}
-                    />
-                  );
-                })
-              )}
-            </div>
-          )}
-        </div>
+                );
+              })
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

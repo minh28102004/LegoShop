@@ -8,6 +8,7 @@ import { createPortal } from "react-dom";
 import { cn } from "@lego-shop/ui";
 import { BrandLogo } from "@/components/layout/BrandLogo";
 import { LanguageSwitcher } from "@/components/layout/LanguageSwitcher";
+import { Badge } from "@/components/ui/Badge";
 import { HEADER_NAV_ITEMS, ROUTES, UI_MODAL_IDS } from "@/config/routes";
 import { useCart } from "@/features/cart/hooks/useCart";
 import { selectIsMobileMenuOpen, useUIStore } from "@/features/ui/store";
@@ -161,12 +162,13 @@ export function Header() {
 
   const mobileDrawer = (
     <div
-      className="fixed inset-0 lg:hidden"
+      className="fixed inset-0 overflow-hidden lg:hidden"
       style={{
         zIndex: 1300,
         pointerEvents: isMobileMenuOpen ? "auto" : "none",
       }}
       aria-hidden={!isMobileMenuOpen}
+      inert={!isMobileMenuOpen}
     >
       <div
         aria-hidden="true"
@@ -280,14 +282,14 @@ export function Header() {
     <>
       <header
         className={cn(
-          "fixed inset-x-0 top-0 z-60 w-full bg-white transition-shadow duration-300 ease-out",
+          "fixed inset-x-0 top-0 z-60 w-full border-b border-[#e3edf4] bg-white transition-[border-color,box-shadow] duration-300 ease-out",
           isScrolled
-            ? "shadow-[0_10px_28px_-24px_rgba(18,45,78,0.22)]"
-            : "shadow-none",
+            ? "border-[#d7e5ee] shadow-[0_8px_24px_-22px_rgba(18,45,78,0.28)]"
+            : "shadow-[0_2px_10px_-8px_rgba(18,45,78,0.16)]",
         )}
       >
         <div className="w-full px-4 sm:px-6 lg:px-8 xl:px-10 2xl:px-12">
-          <div className="grid min-h-[50px] grid-cols-[minmax(0,auto)_1fr_auto] items-center gap-3 transition-[min-height] duration-300 ease-out lg:min-h-[46px] xl:gap-7">
+          <div className="grid min-h-[62px] grid-cols-[minmax(0,auto)_1fr_auto] items-center gap-3 transition-[min-height] duration-300 ease-out lg:min-h-[46px] xl:gap-7">
             <BrandLogo className="min-w-0 shrink-0" />
 
             <nav className="hidden min-w-0 items-center justify-center lg:flex">
@@ -330,13 +332,20 @@ export function Header() {
                 <ShoppingCart className="h-6 w-6" strokeWidth={1.8} />
 
                 {hasMounted && itemCount > 0 ? (
-                  <span className="absolute -right-1 -top-1 inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-[#f6d76b] px-1 text-[12.5px] font-bold text-navy">
+                  <Badge
+                    variant="highlight"
+                    size="sm"
+                    className="absolute -right-1 -top-1 h-6 min-w-6 justify-center px-1 text-[12.5px] font-bold"
+                  >
                     {itemCount}
-                  </span>
+                  </Badge>
                 ) : null}
               </button>
 
-              <LanguageSwitcher compact className="hidden lg:flex" />
+              <LanguageSwitcher
+                compact
+                className="hidden lg:ml-3 lg:flex xl:ml-4"
+              />
 
               <button
                 ref={menuButtonRef}

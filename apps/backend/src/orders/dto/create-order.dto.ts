@@ -12,6 +12,7 @@ import {
   IsBoolean,
   IsOptional,
   IsString,
+  IsUUID,
   ValidateNested,
 } from 'class-validator';
 import { CreateOrderItemDto } from './create-order-item.dto';
@@ -20,6 +21,10 @@ const SHIPPING_METHODS = ['shop_support', 'self', 'standard', 'fast'] as const;
 const POLAROID_OPTIONS = ['none', '2', '4'] as const;
 
 export class CreateOrderDto {
+  @ApiProperty({ example: '74d10f97-e146-4b23-a3a4-b0bd11d6801f' })
+  @IsUUID()
+  checkoutAttemptId: string;
+
   @ApiProperty({
     example: 'Nguyen Van A',
   })

@@ -8,7 +8,6 @@ import { Container } from "@/components/layout/Container";
 import { ScrollReveal } from "@/components/shared/ScrollReveal";
 import { ROUTES } from "@/config/routes";
 import { useI18n } from "@/lib/i18n/useI18n";
-import { PRODUCT_DETAIL_TRANSLATIONS } from "@/modules/home/data/product-detail.translations";
 import type {
   HomeFeaturedProduct,
   HomeProductsContent,
@@ -33,10 +32,10 @@ export function FeaturedProducts({
   state,
 }: FeaturedProductsProps) {
   const router = useRouter();
-  const { locale } = useI18n();
+  const { dictionary } = useI18n();
   const [selectedProduct, setSelectedProduct] =
     useState<SelectedProduct | null>(null);
-  const detailLabels = PRODUCT_DETAIL_TRANSLATIONS[locale];
+  const detailLabels = dictionary.productDetail;
   const visibleProducts = products.slice(0, 4);
   const closeProductModal = useCallback(() => setSelectedProduct(null), []);
   const openProductModal = useCallback(
@@ -62,9 +61,12 @@ export function FeaturedProducts({
     <>
       <section
         data-home-section="products"
-        className="bg-white py-12 md:py-16 lg:py-20"
+        className="bg-gradient-to-b from-amber-50/40 via-slate-100 to-white py-12 md:py-16 lg:py-20"
       >
-        <Container size="wide" className="px-[clamp(1.25rem,4.5vw,5.5rem)]">
+        <Container
+          size="full"
+          className="max-w-[1520px] px-4 sm:px-6 lg:px-8"
+        >
           <ScrollReveal>
             <SectionHeader
               eyebrow={content.eyebrow}
@@ -76,7 +78,7 @@ export function FeaturedProducts({
           </ScrollReveal>
 
           {visibleProducts.length > 0 ? (
-            <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-4 lg:gap-6">
+            <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3 min-[1200px]:grid-cols-4 xl:grid-cols-4 xl:gap-6">
               {visibleProducts.map((product, index) => (
                 <ScrollReveal
                   key={product.id}

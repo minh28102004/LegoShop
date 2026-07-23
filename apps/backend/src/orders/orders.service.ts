@@ -9,6 +9,7 @@ import {
 import {
   CharacterPartType,
   FrameOptionType,
+  type Order,
   OrderStatusHistoryType,
   OrderStatus,
   PaymentMethod,
@@ -28,6 +29,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { VouchersService } from '../vouchers/vouchers.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { CreateOrderItemDto } from './dto/create-order-item.dto';
+import { CartQuoteDto } from './dto/cart-quote.dto';
 
 const GIFT_PACKAGE_FEE_PER_ITEM = 30_000;
 const CHARACTER_PRICE = 10_000;
@@ -63,6 +65,8 @@ type ResolvedFrameOption = {
   label: string;
   price: number;
   stock: number | null;
+  minQuantity: number;
+  maxQuantity: number;
 };
 type ResolvedCharacterPart = {
   id: string;
@@ -70,6 +74,16 @@ type ResolvedCharacterPart = {
   type: CharacterPartType;
   imageUrl: string;
   priceAdjustment: number;
+};
+
+type ResolvedProductFrameSize = {
+  id: string;
+  price: number;
+};
+
+type ResolvedProductCharacter = {
+  id: string;
+  price: number;
 };
 
 type NormalizedCustomerInfo = {
@@ -99,6 +113,13 @@ type OrderPricingSummary = {
   polaroidOption: string;
   polaroidFee: number;
   totalAmount: number;
+};
+
+type CheckoutPricingSelection = {
+  shippingMethod?: string;
+  voucherCode?: string;
+  giftPackage?: boolean;
+  polaroidOption?: string;
 };
 
 type OrderPaymentPlan = {
@@ -151,6 +172,14 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
       throw new BadRequestException('Order items are required');
     }
 
+    const orderCode = this.getCheckoutAttemptOrderCode(dto.checkoutAttemptId);
+    const existingOrder = await this.prisma.order.findUnique({
+      where: { orderCode },
+    });
+    if (existingOrder) {
+      return this.toCreateOrderResponse(existingOrder);
+    }
+
     const customer = this.normalizeCustomerInfo(dto);
     const resolvedItems = await this.resolveOrderItems(dto.items);
     const pricing = await this.createPricingSummary(dto, resolvedItems);
@@ -158,7 +187,8 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
 
     if (
       dto.paymentMethod === PaymentMethod.COD &&
-      !paymentSettings.codEnabled
+      !paymentSettings.codEnabled &&
+      !paymentSettings.codDepositEnabled
     ) {
       throw new BadRequestException('COD payment is disabled');
     }
@@ -170,7 +200,6 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
       throw new BadRequestException('PAYOS payment is disabled');
     }
 
-    const orderCode = await this.generateUniqueOrderCode();
     const paymentPlan = this.createPaymentPlan(
       dto.paymentMethod,
       pricing.totalAmount,
@@ -207,8 +236,27 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
         );
       }
 
+      if (this.isCheckoutAttemptConflict(error)) {
+        const duplicateOrder = await this.prisma.order.findUnique({
+          where: { orderCode },
+        });
+        if (duplicateOrder) {
+          return this.toCreateOrderResponse(duplicateOrder);
+        }
+      }
+
       throw error;
     }
+
+    return this.toCreateOrderResponse(order);
+  }
+
+  private toCreateOrderResponse(order: Order) {
+    const amountToPay = order.depositRequired
+      ? order.depositAmount
+      : order.paymentMethod === PaymentMethod.PAYOS
+        ? order.totalAmount
+        : 0;
 
     return {
       orderId: order.id,
@@ -232,13 +280,155 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
       depositAmount: order.depositAmount,
       remainingAmount: order.remainingAmount,
       depositStatus: order.depositStatus,
-      amountToPay: paymentPlan.paymentAmount,
+      amountToPay,
       paymentUrl: order.payosCheckoutUrl ?? undefined,
       checkoutUrl: order.payosCheckoutUrl ?? undefined,
       tracking: this.toPublicTrackingSummary({
         ...order,
         items: [],
       }),
+    };
+  }
+
+  private isCheckoutAttemptConflict(error: unknown) {
+    if (!(error instanceof Prisma.PrismaClientKnownRequestError)) return false;
+    if (error.code !== 'P2002') return false;
+    const target = error.meta?.target;
+    return Array.isArray(target)
+      ? target.includes('orderCode')
+      : typeof target === 'string' && target.includes('orderCode');
+  }
+
+  async quoteCart(dto: CartQuoteDto) {
+    const paymentSettings = await this.paymentSettingsService.getSettings();
+    if (
+      dto.paymentMethod === PaymentMethod.COD &&
+      !paymentSettings.codEnabled &&
+      !paymentSettings.codDepositEnabled
+    ) {
+      throw new BadRequestException('COD payment is disabled');
+    }
+    if (
+      dto.paymentMethod === PaymentMethod.PAYOS &&
+      !paymentSettings.payosEnabled
+    ) {
+      throw new BadRequestException('PAYOS payment is disabled');
+    }
+
+    const itemResults = await Promise.all(
+      dto.items.map(async (item) => {
+        try {
+          const [resolved] = await this.resolveOrderItems([
+            {
+              productId: item.productId,
+              productName: item.productName,
+              quantity: item.quantity,
+              price: item.priceSnapshot,
+              frameOptionId: item.frameOptionId,
+              backgroundId: item.backgroundId,
+              frameSizeId: item.frameSizeId,
+              frameSizeLabel: item.frameSizeLabel,
+              frameColorName: item.frameColorName,
+              accessories: item.accessories?.map((accessory) => ({
+                id: accessory.id,
+                name: accessory.name ?? '',
+                price: accessory.price ?? 0,
+                quantity: accessory.quantity,
+              })),
+              designData: item.designData,
+              previewUrl: item.previewUrl,
+            },
+          ]);
+
+          if (!resolved) {
+            throw new BadRequestException('Cart item could not be resolved');
+          }
+
+          const priceChanged = resolved.price !== item.priceSnapshot;
+          return {
+            resolved,
+            response: {
+              cartItemId: item.cartItemId,
+              valid: true,
+              unitPrice: resolved.price,
+              previousUnitPrice: item.priceSnapshot,
+              quantity: resolved.quantity,
+              lineTotal: resolved.price * resolved.quantity,
+              productName: resolved.productName,
+              warnings: priceChanged
+                ? [
+                    {
+                      code: 'PRICE_CHANGED' as const,
+                      message: 'Product price has changed since it was added.',
+                    },
+                  ]
+                : [],
+            },
+          };
+        } catch (error) {
+          const message =
+            error instanceof Error ? error.message : 'Cart item is invalid';
+          return {
+            resolved: null,
+            response: {
+              cartItemId: item.cartItemId,
+              valid: false,
+              unitPrice: item.priceSnapshot,
+              previousUnitPrice: item.priceSnapshot,
+              quantity: item.quantity,
+              lineTotal: item.priceSnapshot * item.quantity,
+              warnings: [
+                {
+                  code: 'INVALID_CONFIGURATION' as const,
+                  message,
+                },
+              ],
+            },
+          };
+        }
+      }),
+    );
+    const items = itemResults.map((result) => result.response);
+    const resolvedItems = itemResults.flatMap((result) =>
+      result.resolved ? [result.resolved] : [],
+    );
+    const pricing = await this.createPricingSummary(dto, resolvedItems);
+
+    return {
+      items,
+      subtotal: pricing.itemsAmount,
+      giftFee: pricing.giftFee,
+      polaroidFee: pricing.polaroidFee,
+      addOnTotal: pricing.giftFee + pricing.polaroidFee,
+      discount: pricing.discountAmount,
+      shipping: null,
+      total: pricing.totalAmount,
+      valid: items.every((item) => item.valid),
+      quotedAt: new Date().toISOString(),
+    };
+  }
+
+  async getCheckoutSettings() {
+    const payment = await this.paymentSettingsService.getSettings();
+    return {
+      payment: {
+        codEnabled: payment.codEnabled,
+        payosEnabled: payment.payosEnabled,
+        codDepositEnabled: payment.codDepositEnabled,
+        codDepositPercent: payment.codDepositPercent,
+      },
+      shippingMethods: ['shop_support', 'self'] as const,
+      giftPackage: {
+        enabled: true,
+        pricePerItem: GIFT_PACKAGE_FEE_PER_ITEM,
+      },
+      polaroidOptions: (['none', '2', '4'] as const).map((id) => ({
+        id,
+        enabled: true,
+        price: POLAROID_PRICES[id] ?? 0,
+      })),
+      minimumReceiveDateDays: 0,
+      orderNoteMaxLength: 500,
     };
   }
 
@@ -583,78 +773,96 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
     const accessoryIds = Array.from(
       new Set(items.flatMap((item) => this.extractAccessoryIds(item))),
     );
-    const [products, frameOptions, backgrounds, accessories, characterParts] =
-      await this.prisma.$transaction([
-        this.prisma.product.findMany({
-          where: {
-            id: {
-              in: uniqueProductIds,
-            },
-            status: ProductStatus.active,
+    const [
+      products,
+      frameOptions,
+      backgrounds,
+      accessories,
+      characterParts,
+      productFrameSizes,
+      productCharacters,
+    ] = await this.prisma.$transaction([
+      this.prisma.product.findMany({
+        where: {
+          id: {
+            in: uniqueProductIds,
           },
-          select: {
-            id: true,
-            name: true,
-            basePrice: true,
+          status: ProductStatus.active,
+        },
+        select: {
+          id: true,
+          name: true,
+          basePrice: true,
+          componentConfig: true,
+        },
+      }),
+      this.prisma.frameOption.findMany({
+        where: {
+          id: {
+            in: frameOptionIds,
           },
-        }),
-        this.prisma.frameOption.findMany({
-          where: {
-            id: {
-              in: frameOptionIds,
-            },
-            type: FrameOptionType.size,
-            status: ProductStatus.active,
+          type: FrameOptionType.size,
+          status: ProductStatus.active,
+        },
+        select: {
+          id: true,
+          name: true,
+          label: true,
+          widthCm: true,
+          heightCm: true,
+          price: true,
+          stock: true,
+          minQuantity: true,
+          maxQuantity: true,
+        },
+      }),
+      this.prisma.frameBackground.findMany({
+        where: {
+          id: {
+            in: backgroundIds,
           },
-          select: {
-            id: true,
-            name: true,
-            label: true,
-            widthCm: true,
-            heightCm: true,
-            price: true,
-            stock: true,
+          status: ProductStatus.active,
+        },
+        select: {
+          id: true,
+          title: true,
+          frameOptionIds: true,
+        },
+      }),
+      this.prisma.accessory.findMany({
+        where: {
+          id: {
+            in: accessoryIds,
           },
-        }),
-        this.prisma.frameBackground.findMany({
-          where: {
-            id: {
-              in: backgroundIds,
-            },
-            status: ProductStatus.active,
-          },
-          select: {
-            id: true,
-            title: true,
-            frameOptionIds: true,
-          },
-        }),
-        this.prisma.accessory.findMany({
-          where: {
-            id: {
-              in: accessoryIds,
-            },
-            status: ProductStatus.active,
-          },
-          select: {
-            id: true,
-            name: true,
-            price: true,
-          },
-        }),
-        this.prisma.characterPart.findMany({
-          where: {
-            status: ProductStatus.active,
-          },
-          select: {
-            id: true,
-            name: true,
-            type: true,
-            imageUrl: true,
-            priceAdjustment: true,
-          },
-        }),
-      ]);
+          status: ProductStatus.active,
+        },
+        select: {
+          id: true,
+          name: true,
+          price: true,
+        },
+      }),
+      this.prisma.characterPart.findMany({
+        where: {
+          status: ProductStatus.active,
+        },
+        select: {
+          id: true,
+          name: true,
+          type: true,
+          imageUrl: true,
+          priceAdjustment: true,
+        },
+      }),
+      this.prisma.frameSize.findMany({
+        where: { status: ProductStatus.active },
+        select: { id: true, price: true },
+      }),
+      this.prisma.character.findMany({
+        where: { status: ProductStatus.active },
+        select: { id: true, price: true },
+      }),
+    ]);
     const productsById = new Map(
       products.map((product) => [product.id, product]),
     );
@@ -666,6 +874,8 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
           label: this.getFrameOptionSizeLabel(frameOption),
           price: frameOption.price,
           stock: frameOption.stock,
+          minQuantity: frameOption.minQuantity,
+          maxQuantity: frameOption.maxQuantity,
         },
       ]),
     );
@@ -678,6 +888,12 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
 
     const characterPartsById = new Map<string, ResolvedCharacterPart>(
       characterParts.map((part) => [part.id, part]),
+    );
+    const productFrameSizesById = new Map<string, ResolvedProductFrameSize>(
+      productFrameSizes.map((frameSize) => [frameSize.id, frameSize]),
+    );
+    const productCharactersById = new Map<string, ResolvedProductCharacter>(
+      productCharacters.map((character) => [character.id, character]),
     );
 
     return items.map((item) => {
@@ -703,18 +919,32 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
           );
         }
 
+        const resolvedAccessories = this.resolveAccessorySnapshot(
+          item,
+          accessoriesById,
+        );
+        const price = this.isProductTemplateItem(item)
+          ? this.resolveProductTemplatePrice(
+              product,
+              item,
+              productFrameSizesById,
+              productCharactersById,
+              resolvedAccessories,
+            )
+          : product.basePrice;
+
         return {
           productId: product.id,
           productName: product.name,
           quantity: item.quantity,
-          price: product.basePrice,
+          price,
           frameOptionId: item.frameOptionId,
           backgroundId: this.getBackgroundId(item),
           frameSizeId: item.frameSizeId,
           frameSizeLabel: item.frameSizeLabel,
           frameColorName: item.frameColorName,
           note: item.note,
-          accessories: this.resolveAccessorySnapshot(item, accessoriesById),
+          accessories: resolvedAccessories,
           designData: item.designData,
           previewUrl: item.previewUrl,
         };
@@ -733,6 +963,8 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
           `Frame option ${frameOptionId} is not available`,
         );
       }
+
+      this.assertFrameQuantity(frameOption, item.quantity);
 
       const backgroundId = this.getBackgroundId(item);
       if (backgroundId) {
@@ -812,6 +1044,8 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
           `Frame option ${frameOptionId} is not available`,
         );
       }
+
+      this.assertFrameQuantity(frameOption, item.quantity);
 
       return {
         productName: item.productName || frameOption.label,
@@ -985,6 +1219,24 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
     return frameOption.name;
   }
 
+  private assertFrameQuantity(
+    frameOption: ResolvedFrameOption,
+    quantity: number,
+  ) {
+    if (
+      quantity < frameOption.minQuantity ||
+      quantity > frameOption.maxQuantity
+    ) {
+      throw new BadRequestException(
+        `Frame quantity must be between ${frameOption.minQuantity} and ${frameOption.maxQuantity}`,
+      );
+    }
+
+    if (frameOption.stock !== null && frameOption.stock < quantity) {
+      throw new BadRequestException('Frame option does not have enough stock');
+    }
+  }
+
   private formatDimension(value: number): string {
     return Number.isInteger(value)
       ? String(value)
@@ -992,7 +1244,7 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
   }
 
   private async createPricingSummary(
-    dto: CreateOrderDto,
+    dto: CheckoutPricingSelection,
     items: ResolvedOrderItem[],
   ): Promise<OrderPricingSummary> {
     const itemsAmount = items.reduce(
@@ -1227,8 +1479,9 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
   private normalizeDesignAccessories(
     designData: Record<string, unknown>,
   ): Array<Record<string, unknown>> {
-    if (Array.isArray(designData.accessories)) {
-      return designData.accessories
+    const accessories = this.readRecordArray(designData.accessories);
+    if (accessories.length > 0) {
+      return accessories
         .filter(
           (accessory) =>
             this.isRecord(accessory) && typeof accessory.id === 'string',
@@ -1247,55 +1500,51 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
   private normalizeDesignCharacters(
     designData: Record<string, unknown>,
   ): Array<Record<string, unknown>> {
-    if (Array.isArray(designData.characters)) {
-      return designData.characters
-        .filter((character) => this.isRecord(character))
-        .map((character, index) => ({
-          id: this.readString(character.id) ?? `character-${index + 1}`,
-          name: this.readString(character.name) ?? `NV ${index + 1}`,
-          x:
-            this.readNumber(character.x) ??
-            this.readNumber(
-              (character.position as Record<string, unknown> | undefined)?.x,
-            ) ??
-            0,
-          y:
-            this.readNumber(character.y) ??
-            this.readNumber(
-              (character.position as Record<string, unknown> | undefined)?.y,
-            ) ??
-            0,
-          scale:
-            this.readNumber(character.scale) ??
-            this.readNumber(
-              (character.position as Record<string, unknown> | undefined)
-                ?.scale,
-            ) ??
-            1,
-          rotation:
-            this.readNumber(character.rotation) ??
-            this.readNumber(character.rotate) ??
-            this.readNumber(
-              (character.position as Record<string, unknown> | undefined)
-                ?.rotation,
-            ) ??
-            this.readNumber(
-              (character.position as Record<string, unknown> | undefined)
-                ?.rotate,
-            ) ??
-            0,
-          faceId: this.readString(character.faceId) ?? null,
-          hairId: this.readString(character.hairId) ?? null,
-          torsoId: this.readString(character.torsoId) ?? null,
-          legsId: this.readString(character.legsId) ?? null,
-          accessoryIds: Array.isArray(character.accessoryIds)
-            ? character.accessoryIds.filter((id) => typeof id === 'string')
-            : [],
-        }));
+    const characters = this.readRecordArray(designData.characters);
+    if (characters.length > 0) {
+      return characters.map((character, index) => ({
+        id: this.readString(character.id) ?? `character-${index + 1}`,
+        name: this.readString(character.name) ?? `NV ${index + 1}`,
+        x:
+          this.readNumber(character.x) ??
+          this.readNumber(
+            (character.position as Record<string, unknown> | undefined)?.x,
+          ) ??
+          0,
+        y:
+          this.readNumber(character.y) ??
+          this.readNumber(
+            (character.position as Record<string, unknown> | undefined)?.y,
+          ) ??
+          0,
+        scale:
+          this.readNumber(character.scale) ??
+          this.readNumber(
+            (character.position as Record<string, unknown> | undefined)?.scale,
+          ) ??
+          1,
+        rotation:
+          this.readNumber(character.rotation) ??
+          this.readNumber(character.rotate) ??
+          this.readNumber(
+            (character.position as Record<string, unknown> | undefined)
+              ?.rotation,
+          ) ??
+          this.readNumber(
+            (character.position as Record<string, unknown> | undefined)?.rotate,
+          ) ??
+          0,
+        faceId: this.readString(character.faceId) ?? null,
+        hairId: this.readString(character.hairId) ?? null,
+        torsoId: this.readString(character.torsoId) ?? null,
+        legsId: this.readString(character.legsId) ?? null,
+        accessoryIds: this.readStringArray(character.accessoryIds),
+      }));
     }
 
-    if (Array.isArray(designData.elements)) {
-      return designData.elements
+    const elements = this.readRecordArray(designData.elements);
+    if (elements.length > 0) {
+      return elements
         .filter(
           (element) => this.isRecord(element) && element.type === 'character',
         )
@@ -1313,9 +1562,7 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
           hairId: this.readString(element.hairId) ?? null,
           torsoId: this.readString(element.torsoId) ?? null,
           legsId: this.readString(element.legsId) ?? null,
-          accessoryIds: Array.isArray(element.accessoryIds)
-            ? element.accessoryIds.filter((id) => typeof id === 'string')
-            : [],
+          accessoryIds: this.readStringArray(element.accessoryIds),
         }));
     }
 
@@ -1413,6 +1660,122 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
     );
   }
 
+  private isProductTemplateItem(item: CreateOrderItemDto) {
+    return item.designData?.source === 'product-template';
+  }
+
+  private resolveProductTemplatePrice(
+    product: {
+      id: string;
+      basePrice: number;
+      componentConfig: Prisma.JsonValue;
+    },
+    item: CreateOrderItemDto,
+    frameSizesById: Map<string, ResolvedProductFrameSize>,
+    charactersById: Map<string, ResolvedProductCharacter>,
+    accessories: Array<{
+      id: string;
+      name: string;
+      price: number;
+      quantity: number;
+    }>,
+  ) {
+    const config = this.isRecord(product.componentConfig)
+      ? product.componentConfig
+      : undefined;
+    const configuredFrameSizeIds = this.readStringArray(config?.frameSizeIds);
+    const availableFrameSizes =
+      configuredFrameSizeIds.length > 0
+        ? configuredFrameSizeIds
+            .map((id) => frameSizesById.get(id))
+            .filter((frameSize): frameSize is ResolvedProductFrameSize =>
+              Boolean(frameSize),
+            )
+        : Array.from(frameSizesById.values());
+    const selectedFrameSizeId =
+      item.frameOptionId ||
+      item.frameSizeId ||
+      this.readString(item.designData?.frameSizeId);
+    let framePrice = product.basePrice;
+
+    if (availableFrameSizes.length > 0) {
+      const selectedFrameSize = selectedFrameSizeId
+        ? frameSizesById.get(selectedFrameSizeId)
+        : undefined;
+      const isAllowed =
+        selectedFrameSize &&
+        (configuredFrameSizeIds.length === 0 ||
+          configuredFrameSizeIds.includes(selectedFrameSize.id));
+
+      if (!selectedFrameSize || !isAllowed) {
+        throw new BadRequestException(
+          `Frame size ${selectedFrameSizeId ?? ''} is not available for product ${product.id}`,
+        );
+      }
+
+      const minimumFramePrice = Math.min(
+        ...availableFrameSizes.map((frameSize) => frameSize.price),
+      );
+      framePrice += Math.max(0, selectedFrameSize.price - minimumFramePrice);
+    } else if (
+      selectedFrameSizeId &&
+      selectedFrameSizeId !== 'product-template'
+    ) {
+      throw new BadRequestException(
+        `Frame size ${selectedFrameSizeId} is not available for product ${product.id}`,
+      );
+    }
+
+    const configuredCharacters = this.readRecordArray(config?.characters);
+    const charactersTotal = configuredCharacters.reduce((total, configured) => {
+      const characterId = this.readString(configured.id);
+      const character = characterId
+        ? charactersById.get(characterId)
+        : undefined;
+
+      if (!characterId || !character) {
+        throw new BadRequestException(
+          `A configured character is not available for product ${product.id}`,
+        );
+      }
+
+      const quantity = Math.min(
+        10,
+        this.readPositiveInt(configured.quantity) ?? 1,
+      );
+      const configuredPrice = this.readNumber(configured.price);
+      return total + (configuredPrice ?? character.price) * quantity;
+    }, 0);
+
+    const configuredAccessoryLimits = new Map(
+      this.readRecordArray(config?.accessories).flatMap((configured) => {
+        const id = this.readString(configured.id);
+        return id
+          ? [
+              [
+                id,
+                Math.min(
+                  10,
+                  this.readPositiveInt(configured.maxQuantity) ?? 10,
+                ),
+              ] as const,
+            ]
+          : [];
+      }),
+    );
+    const accessoriesTotal = accessories.reduce((total, accessory) => {
+      const maxQuantity = configuredAccessoryLimits.get(accessory.id) ?? 10;
+      if (accessory.quantity > maxQuantity) {
+        throw new BadRequestException(
+          `Accessory ${accessory.id} exceeds the allowed quantity`,
+        );
+      }
+      return total + accessory.price * accessory.quantity;
+    }, 0);
+
+    return framePrice + charactersTotal + accessoriesTotal;
+  }
+
   private getCharacterCount(designData?: Record<string, unknown>) {
     if (!designData) {
       return 0;
@@ -1460,6 +1823,22 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
 
   private isRecord(value: unknown): value is Record<string, unknown> {
     return typeof value === 'object' && value !== null && !Array.isArray(value);
+  }
+
+  private readRecordArray(value: unknown): Array<Record<string, unknown>> {
+    return Array.isArray(value)
+      ? (value as unknown[]).filter((item): item is Record<string, unknown> =>
+          this.isRecord(item),
+        )
+      : [];
+  }
+
+  private readStringArray(value: unknown): string[] {
+    return Array.isArray(value)
+      ? (value as unknown[]).filter(
+          (item): item is string => typeof item === 'string',
+        )
+      : [];
   }
 
   private createPaymentPlan(
@@ -1952,9 +2331,7 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
       frameSizeLabel: item.frameSizeLabel,
       frameColorName: item.frameColorName,
       accessories:
-        item.accessories !== undefined
-          ? (item.accessories as Prisma.InputJsonValue)
-          : undefined,
+        item.accessories !== undefined ? item.accessories : undefined,
       designData:
         item.designData !== undefined
           ? (item.designData as Prisma.InputJsonValue)
@@ -1996,6 +2373,14 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
     throw new InternalServerErrorException(
       'Unable to generate unique order code',
     );
+  }
+
+  private getCheckoutAttemptOrderCode(checkoutAttemptId: string) {
+    const hex = checkoutAttemptId.replaceAll('-', '');
+    const numericFingerprint = (BigInt(`0x${hex}`) % 100_000_000_000_000n)
+      .toString()
+      .padStart(14, '0');
+    return `LS${numericFingerprint}`;
   }
 
   private generateOrderCode() {

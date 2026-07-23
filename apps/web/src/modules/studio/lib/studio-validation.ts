@@ -11,12 +11,6 @@ export type StudioValidationMessages = {
   previewRequired: string;
 };
 
-const DEFAULT_VALIDATION_MESSAGES: StudioValidationMessages = {
-  frameRequired: "Vui lòng chọn kích thước khung.",
-  fieldRequired: (label) => `Vui lòng nhập ${label.toLowerCase()}.`,
-  previewRequired: "Vui lòng chọn mẫu nền hoặc tải ảnh thiết kế.",
-};
-
 function invalid(
   fieldErrors: Record<string, string>,
   summaryErrors: string[],
@@ -33,7 +27,7 @@ function invalid(
 export function validateStudioStep(
   step: StudioStep,
   design: StudioDesignState,
-  messages: StudioValidationMessages = DEFAULT_VALIDATION_MESSAGES,
+  messages: StudioValidationMessages,
 ): StudioValidationResult {
   const fieldErrors: Record<string, string> = {};
   const summaryErrors: string[] = [];
@@ -72,7 +66,7 @@ export function validateStudioStep(
 export function validateStudioThroughStep(
   targetStep: StudioStep,
   design: StudioDesignState,
-  messages: StudioValidationMessages = DEFAULT_VALIDATION_MESSAGES,
+  messages: StudioValidationMessages,
 ): StudioValidationResult {
   const targetIndex = STUDIO_STEPS.indexOf(targetStep);
   const stepsToValidate = STUDIO_STEPS.slice(0, targetIndex + 1).filter(

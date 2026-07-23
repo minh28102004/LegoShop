@@ -3,19 +3,27 @@
 import * as React from "react";
 
 import { cn, type FieldState } from "@lego-shop/ui";
+import {
+  FORM_ERROR_CLASS,
+  FORM_HINT_CLASS,
+  FORM_LABEL_CLASS,
+  formControlClassName,
+} from "./form-control";
 
 export interface TextareaProps extends React.ComponentPropsWithoutRef<"textarea"> {
-  label?: string;
-  error?: string;
-  hint?: string;
+  label?: string | undefined;
+  error?: string | undefined;
+  hint?: string | undefined;
   showCount?: boolean;
-  fieldState?: FieldState;
+  fieldState?: FieldState | undefined;
+  containerClassName?: string | undefined;
 }
 
 export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
   (
     {
       className,
+      containerClassName,
       error,
       fieldState,
       hint,
@@ -45,12 +53,9 @@ export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
           : 0;
 
     return (
-      <div className="w-full space-y-2">
+      <div className={cn("w-full space-y-2", containerClassName)}>
         {label ? (
-          <label
-            htmlFor={textareaId}
-            className="block text-body-sm font-semibold text-text-primary"
-          >
+          <label htmlFor={textareaId} className={FORM_LABEL_CLASS}>
             {label}
             {required ? <span className="text-error"> *</span> : null}
           </label>
@@ -63,33 +68,34 @@ export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
           maxLength={maxLength}
           value={value}
           defaultValue={defaultValue}
-          aria-invalid={hasError}
+          aria-invalid={hasError || undefined}
           aria-describedby={describedBy}
-          className={cn(
-            "min-h-32 w-full resize-y rounded-input border border-input bg-surface px-3 py-3 text-body-md text-text-primary shadow-control transition-base placeholder:text-text-muted focus-visible:border-primary disabled:cursor-not-allowed disabled:bg-surface-soft disabled:opacity-60",
-            hasError && "border-error focus-visible:border-error",
-            className,
-          )}
+          className={formControlClassName({
+            className: cn("resize-y px-4 py-3 text-sm leading-6", className),
+            fieldState: hasError ? "error" : fieldState,
+          })}
           {...props}
         />
-        <div className="flex items-start justify-between gap-4">
-          {error ? (
-            <p id={errorId} className="text-body-sm text-error">
-              {error}
-            </p>
-          ) : hint ? (
-            <p id={hintId} className="text-body-sm text-text-muted">
-              {hint}
-            </p>
-          ) : (
-            <span />
-          )}
-          {showCount && maxLength !== undefined ? (
-            <span className="shrink-0 text-body-sm text-text-muted">
-              {currentLength}/{maxLength}
-            </span>
-          ) : null}
-        </div>
+        {error || hint || (showCount && maxLength !== undefined) ? (
+          <div className="flex items-start justify-between gap-4">
+            {error ? (
+              <p id={errorId} className={FORM_ERROR_CLASS} role="alert">
+                {error}
+              </p>
+            ) : hint ? (
+              <p id={hintId} className={FORM_HINT_CLASS}>
+                {hint}
+              </p>
+            ) : (
+              <span />
+            )}
+            {showCount && maxLength !== undefined ? (
+              <span className="shrink-0 text-body-sm text-text-muted">
+                {currentLength}/{maxLength}
+              </span>
+            ) : null}
+          </div>
+        ) : null}
       </div>
     );
   },

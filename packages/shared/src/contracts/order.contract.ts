@@ -35,6 +35,7 @@ export type CreateOrderItemRequest = {
 };
 
 export type CreateOrderRequest = {
+  checkoutAttemptId: ID;
   customerName: string;
   customerPhone?: string;
   customerEmail?: string;

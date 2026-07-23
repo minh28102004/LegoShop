@@ -1,5 +1,7 @@
 import { resolveApiAssetUrl } from "@/lib/api/assets";
 import { getApiBaseUrl } from "@/lib/api/base-url";
+import { getDictionary } from "@/lib/i18n/dictionaries";
+import type { Locale } from "@/lib/i18n/config";
 import type { FrameBackground, FrameOption } from "@lego-shop/shared";
 import type {
   ApiAccessory,
@@ -14,60 +16,64 @@ const FIGURE_LAB_STORAGE_PREFIX = "/storage/v1/object/public/figure-lab-media/";
 
 const KNOWN_FRAME_COLORS = [
   {
-    label: "Trắng",
+    key: "white",
     hex: "#ffffff",
     names: ["trang", "white"],
     hexes: ["#ffffff"],
   },
   {
-    label: "Đen",
+    key: "black",
     hex: "#1f1f21",
     names: ["den", "black"],
     hexes: ["#000000", "#111111", "#1a1a1a", "#1f1f21"],
   },
-  { label: "Gỗ", hex: "#d7a15c", names: ["go", "wood"], hexes: ["#d7a15c"] },
+  { key: "wood", hex: "#d7a15c", names: ["go", "wood"], hexes: ["#d7a15c"] },
   {
-    label: "Xám",
+    key: "gray",
     hex: "#808080",
     names: ["xam", "gray", "grey"],
     hexes: ["#808080", "#6b7280", "#9ca3af"],
   },
-  { label: "Nâu", hex: "#8b4513", names: ["nau", "brown"], hexes: ["#8b4513"] },
+  { key: "brown", hex: "#8b4513", names: ["nau", "brown"], hexes: ["#8b4513"] },
   {
-    label: "Đỏ",
+    key: "red",
     hex: "#ef4444",
     names: ["do", "red"],
     hexes: ["#ff0000", "#ef4444", "#dc2626"],
   },
   {
-    label: "Vàng",
+    key: "yellow",
     hex: "#facc15",
     names: ["vang", "yellow"],
     hexes: ["#facc15", "#fbbf24", "#ffd700"],
   },
   {
-    label: "Xanh",
+    key: "blue",
     hex: "#3b82f6",
     names: ["xanh", "blue"],
     hexes: ["#3b82f6", "#2563eb"],
   },
 ] as const;
 
-const BACKGROUND_CATEGORY_LABELS: Record<string, { vi: string; en: string }> = {
-  graduation: { vi: "Tốt nghiệp", en: "Graduation" },
-  birthday: { vi: "Sinh nhật", en: "Birthday" },
-  anniversary: { vi: "Kỷ niệm", en: "Anniversary" },
-  wedding: { vi: "Đám cưới", en: "Wedding" },
-  love: { vi: "Tình yêu", en: "Love" },
-  sports: { vi: "Thể thao", en: "Sports" },
-  family: { vi: "Gia đình", en: "Family" },
-  career: { vi: "Sự nghiệp", en: "Career" },
-  travel: { vi: "Du lịch", en: "Travel" },
-  christmas: { vi: "Giáng sinh", en: "Christmas" },
-  other: { vi: "Khác", en: "Other" },
-};
+type KnownFrameColorKey = (typeof KNOWN_FRAME_COLORS)[number]["key"];
 
-const BACKGROUND_CATEGORY_ORDER = Object.keys(BACKGROUND_CATEGORY_LABELS);
+function getFrameColorLabel(locale: Locale, key: KnownFrameColorKey): string {
+  return getDictionary(locale).studio.frameColors[key];
+}
+
+const BACKGROUND_CATEGORY_ORDER: readonly string[] = [
+  "graduation",
+  "birthday",
+  "anniversary",
+  "wedding",
+  "love",
+  "sports",
+  "family",
+  "career",
+  "travel",
+  "christmas",
+  "other",
+];
 
 export type StudioFrameBackground = FrameBackground & {
   category?: string | null;
@@ -176,6 +182,7 @@ function readFrameOptionMetadataString(
 function getFrameOptionColorName(
   option: FrameOption,
   sizeLabel: string,
+  locale: Locale,
 ): string {
   const metadataColorName = readFrameOptionMetadataString(option, [
     "colorName",
@@ -183,18 +190,26 @@ function getFrameOptionColorName(
     "color",
     "mauKhung",
   ]);
-  if (metadataColorName) return normalizeFrameColorName(metadataColorName);
+  if (metadataColorName) {
+    const normalizedMetadataName = normalizeFrameColorName(metadataColorName);
+    const knownMetadataColor = getKnownFrameColorByName(normalizedMetadataName);
+    return knownMetadataColor
+      ? getFrameColorLabel(locale, knownMetadataColor.key)
+      : normalizedMetadataName;
+  }
 
   const knownByHex = getKnownFrameColorByHex(option.colorHex);
-  if (knownByHex) return knownByHex.label;
+  if (knownByHex) return getFrameColorLabel(locale, knownByHex.key);
 
   const normalizedOptionHex = normalizeHex(option.colorHex);
   if (normalizedOptionHex) return normalizedOptionHex.toUpperCase();
 
   const optionName = normalizeFrameColorName(option.name);
   const knownByName = getKnownFrameColorByName(optionName);
-  if (knownByName && optionName !== sizeLabel) return knownByName.label;
-  return "Trắng";
+  if (knownByName && optionName !== sizeLabel) {
+    return getFrameColorLabel(locale, knownByName.key);
+  }
+  return getFrameColorLabel(locale, "white");
 }
 
 function getFrameOptionColorHex(
@@ -220,9 +235,12 @@ function getFrameSizeLabel(option: FrameOption): string {
   return normalizeFrameColorName(option.name);
 }
 
-export function mapFrameOptionSize(option: FrameOption): ApiFrameSize {
+export function mapFrameOptionSize(
+  option: FrameOption,
+  locale: Locale,
+): ApiFrameSize {
   const label = getFrameSizeLabel(option);
-  const colorName = getFrameOptionColorName(option, label);
+  const colorName = getFrameOptionColorName(option, label, locale);
 
   return {
     id: option.id,
@@ -239,14 +257,14 @@ export function mapFrameOptionSize(option: FrameOption): ApiFrameSize {
 
 export function mapLegacyFrameSize(
   size: Omit<ApiFrameSize, "widthCm" | "heightCm" | "colorHex" | "colorName">,
-  locale: "vi" | "en",
+  locale: Locale,
 ): ApiFrameSize {
   return {
     ...size,
     widthCm: null,
     heightCm: null,
     colorHex: "#ffffff",
-    colorName: locale === "vi" ? "Trắng" : "White",
+    colorName: getDictionary(locale).studio.panels.white,
   };
 }
 
@@ -261,8 +279,10 @@ function normalizeBackgroundCategory(value?: string | null): string {
 
 export function getBackgroundCategories(
   backgrounds: Array<{ category?: string | null }>,
-  locale: "vi" | "en",
+  locale: Locale,
 ): ApiCategory[] {
+  const labels: Record<string, string> =
+    getDictionary(locale).studio.backgroundCategories;
   const categoryIds = Array.from(
     new Set(
       backgrounds.map((background) =>
@@ -282,7 +302,7 @@ export function getBackgroundCategories(
     })
     .map((id) => ({
       id,
-      name: BACKGROUND_CATEGORY_LABELS[id]?.[locale] ?? id.replace(/-/g, " "),
+      name: labels[id] ?? id.replace(/-/g, " "),
       slug: id,
     }));
 }

@@ -592,7 +592,11 @@ async function upsertPreviewProduct(options: {
     throw new Error(`Product slug ${slug} is owned by non-preview data`);
   }
 
+  const existingComponentConfig = isRecord(existing?.componentConfig)
+    ? existing.componentConfig
+    : {};
   const componentConfig = jsonInput({
+    ...existingComponentConfig,
     sampleMedia: {
       seedTag: options.seedTag,
       sourceKey: record.sourceKey,
@@ -1244,6 +1248,7 @@ function createJournalMetadata(
 ): Prisma.InputJsonValue {
   return jsonInput({
     sourceFileName: item.record.sourceFileName,
+    sourceSortOrder: item.record.sortOrder,
     targetStorageFolder: item.record.targetStorageFolder,
     sourceWidth: asset.sourceWidth,
     sourceHeight: asset.sourceHeight,

@@ -26,6 +26,10 @@ import {
   PanelRightClose,
 } from "lucide-react";
 import { uploadCustomerImage } from "@/lib/api/uploads";
+import {
+  LOCALE_FORMATS,
+} from "@/lib/i18n/config";
+import { Badge } from "@/components/ui/Badge";
 import { Modal } from "@/components/ui/Modal";
 import { useStudioI18n } from "../hooks/useStudioI18n";
 import { StudioReviewPanel } from "./StudioReviewPanel";
@@ -143,7 +147,7 @@ export function StudioRightPanel() {
         />
         <div className="min-w-0">
           <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#2f91d0]">
-            Studio
+            {text.common.studioLabel}
           </p>
           <h2 className="truncate text-base font-bold text-slate-950">
             {panelTitle}
@@ -171,44 +175,44 @@ export function StudioRightPanel() {
       </div>
 
       {activeStep !== "review" ? (
-      <div className="shrink-0 border-t border-[#dbe7f1] bg-white/96 px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-4 backdrop-blur-md lg:pb-4">
-        {validationMessage && (
-          <div className="mb-3 rounded-2xl border border-amber-200/80 bg-amber-50/90 px-3.5 py-3 text-xs font-semibold leading-relaxed text-amber-800">
-            {validationMessage}
+        <div className="shrink-0 border-t border-[#dbe7f1] bg-white/96 px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-4 backdrop-blur-md lg:pb-4">
+          {validationMessage && (
+            <div className="mb-3 rounded-2xl border border-amber-200/80 bg-amber-50/90 px-3.5 py-3 text-xs font-semibold leading-relaxed text-amber-800">
+              {validationMessage}
+            </div>
+          )}
+          <div className="mb-3 flex items-center justify-between px-1">
+            <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+              {text.panels.estimatedPrice}
+            </span>
+            <span className="text-xl font-bold text-[#2f91d0]">
+              {formatPrice(totalPrice)}
+            </span>
           </div>
-        )}
-        <div className="mb-3 flex items-center justify-between px-1">
-          <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-            {text.panels.estimatedPrice}
-          </span>
-          <span className="text-xl font-bold text-[#2f91d0]">
-            {formatPrice(totalPrice)}
-          </span>
-        </div>
 
-        <div className="flex items-center gap-3">
-          {currentStepIndex > 0 && (
-            <button
-              type="button"
-              onClick={handleBack}
-              className="flex h-11 min-w-[108px] items-center justify-center gap-1.5 rounded-2xl border border-[#e4edf5] bg-white px-4 text-sm font-semibold text-slate-600 outline-none transition-colors duration-200 hover:border-[#c4dbed] hover:bg-[#f8fbff] hover:text-slate-950 focus-visible:ring-2 focus-visible:ring-[#9ed0ef]/60"
-            >
-              <ChevronLeft className="h-4 w-4" /> {text.common.back}
-            </button>
-          )}
+          <div className="flex items-center gap-3">
+            {currentStepIndex > 0 && (
+              <button
+                type="button"
+                onClick={handleBack}
+                className="flex h-11 min-w-[108px] items-center justify-center gap-1.5 rounded-2xl border border-[#e4edf5] bg-white px-4 text-sm font-semibold text-slate-600 outline-none transition-colors duration-200 hover:border-[#c4dbed] hover:bg-[#f8fbff] hover:text-slate-950 focus-visible:ring-2 focus-visible:ring-[#9ed0ef]/60"
+              >
+                <ChevronLeft className="h-4 w-4" /> {text.common.back}
+              </button>
+            )}
 
-          {currentStepIndex < STUDIO_STEPS.length - 1 && (
-            <button
-              type="button"
-              onClick={handleNext}
-              disabled={!canContinue}
-              className="flex h-11 flex-1 items-center justify-center gap-2 rounded-2xl bg-[#2f91d0] px-5 text-sm font-bold text-white outline-none transition-colors duration-200 hover:bg-[#257fb7] active:bg-[#1f6d9f] disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500 focus-visible:ring-2 focus-visible:ring-[#80c4e9]/70"
-            >
-              {text.common.next} <ChevronRight className="h-4 w-4" />
-            </button>
-          )}
+            {currentStepIndex < STUDIO_STEPS.length - 1 && (
+              <button
+                type="button"
+                onClick={handleNext}
+                disabled={!canContinue}
+                className="flex h-11 flex-1 items-center justify-center gap-2 rounded-2xl bg-[#2f91d0] px-5 text-sm font-bold text-white outline-none transition-colors duration-200 hover:bg-[#257fb7] active:bg-[#1f6d9f] disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500 focus-visible:ring-2 focus-visible:ring-[#80c4e9]/70"
+              >
+                {text.common.next} <ChevronRight className="h-4 w-4" />
+              </button>
+            )}
+          </div>
         </div>
-      </div>
       ) : null}
     </div>
   );
@@ -347,9 +351,13 @@ function Step1Frame() {
               }`}
             >
               {group.popular && (
-                <span className="absolute right-2 top-[-7px] max-w-[88px] truncate rounded-full bg-amber-200 px-2 py-0.5 text-[9px] font-extrabold leading-none text-amber-900">
+                <Badge
+                  variant="highlight"
+                  size="sm"
+                  className="absolute right-2 top-[-7px] max-w-[88px] truncate px-2 py-0.5 text-[9px] font-extrabold leading-none"
+                >
                   {text.panels.popular}
-                </span>
+                </Badge>
               )}
               <span className="max-w-full truncate text-[13px] font-bold leading-tight">
                 {group.label}
@@ -441,7 +449,8 @@ function Step2Content({
     if (effectiveCategoryIds.length === 0) return templates;
     return templates.filter(
       (template) =>
-        template.categoryId && effectiveCategoryIds.includes(template.categoryId),
+        template.categoryId &&
+        effectiveCategoryIds.includes(template.categoryId),
     );
   }, [templates, effectiveCategoryIds]);
   const selectedTemplate = useMemo(
@@ -471,210 +480,211 @@ function Step2Content({
   return (
     <div className="space-y-5">
       {mode === "background" ? (
-      <div className="rounded-[24px] border border-[#e4edf5] bg-white p-5">
-        <div className="mb-4 flex items-center justify-between">
-          <h3 className="text-xs font-semibold tracking-wide text-slate-950 uppercase">
-            {text.panels.chooseBackground}
-          </h3>
-          <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-500">
-            {text.panels.backgroundCount(
-              filteredTemplates.length + (customBackgroundUrl ? 1 : 0),
-            )}
-          </span>
-        </div>
-
-        {templateCategories.length > 0 ? (
-          <div className="mb-4">
-            <StudioSearchableMultiSelect
-              label={text.common.all}
-              options={templateCategories.map((category) => ({
-                value: category.id,
-                label: category.name,
-              }))}
-              value={effectiveCategoryIds}
-              onChange={setActiveCategoryIds}
-              searchPlaceholder={text.sidebar.searchTemplates}
-              emptyLabel={text.sidebar.noTemplateMatches}
-              clearLabel={text.panels.clearAll}
-            />
-          </div>
-        ) : null}
-
-        {backgroundsError ? (
-          <div
-            role="status"
-            className="mb-4 flex items-start gap-2 rounded-[16px] border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs font-semibold leading-relaxed text-amber-800"
-          >
-            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-            <span>{backgroundsError}</span>
-          </div>
-        ) : null}
-
-        <div className="grid max-h-[350px] grid-cols-4 gap-3 overflow-y-auto pr-1">
-          {customBackgroundUrl && (
-            <button
-              type="button"
-              onClick={() => {
-                setActiveTemplate(null);
-                setCustomBackgroundOriginalName(null);
-                clearContentValues();
-              }}
-              className={`group relative aspect-square overflow-hidden rounded-[16px] border appearance-none outline-none transition-all duration-200 focus:outline-none focus-visible:outline-none ${
-                !activeTemplate
-                  ? "border-[#79b9e8]"
-                  : "border-[#e8eff6] bg-white hover:border-[#bfdcf0]"
-              }`}
-            >
-              <Image
-                src={customBackgroundUrl}
-                alt={text.panels.yourBackground}
-                fill
-                unoptimized
-                sizes="96px"
-                className="object-contain bg-white p-2 transition-transform duration-500"
-              />
-              {!activeTemplate && (
-                <div className="absolute inset-0 flex items-center justify-center bg-[#2f91d0]/12 backdrop-blur-[1px]">
-                  <div className="rounded-full bg-[#2f91d0] p-1">
-                    <Check className="h-3 w-3 text-white" />
-                  </div>
-                </div>
+        <div className="rounded-[24px] border border-[#e4edf5] bg-white p-5">
+          <div className="mb-4 flex items-center justify-between">
+            <h3 className="text-xs font-semibold tracking-wide text-slate-950 uppercase">
+              {text.panels.chooseBackground}
+            </h3>
+            <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-500">
+              {text.panels.backgroundCount(
+                filteredTemplates.length + (customBackgroundUrl ? 1 : 0),
               )}
-              <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-2 pt-6 text-center">
-                <span className="block truncate text-[9px] font-semibold uppercase tracking-wider text-white">
-                  {text.panels.yourBackground}
-                </span>
-              </div>
-            </button>
-          )}
-          {isBackgroundsLoading ? (
-            Array.from({ length: 12 }).map((_, i) => (
-              <div
-                key={i}
-                className="aspect-square rounded-[16px] bg-[#eef3f8] animate-pulse"
+            </span>
+          </div>
+
+          {templateCategories.length > 0 ? (
+            <div className="mb-4">
+              <StudioSearchableMultiSelect
+                label={text.common.all}
+                options={templateCategories.map((category) => ({
+                  value: category.id,
+                  label: category.name,
+                }))}
+                value={effectiveCategoryIds}
+                onChange={setActiveCategoryIds}
+                searchPlaceholder={text.sidebar.searchTemplates}
+                emptyLabel={text.sidebar.noTemplateMatches}
+                clearLabel={text.panels.clearAll}
               />
-            ))
-          ) : filteredTemplates.length === 0 && !customBackgroundUrl ? (
-            <div className="col-span-4 py-10 text-center text-sm font-medium text-slate-500">
-              {text.panels.noBackgrounds}
             </div>
-          ) : (
-            filteredTemplates.map((tpl) => (
+          ) : null}
+
+          {backgroundsError ? (
+            <div
+              role="status"
+              className="mb-4 flex items-start gap-2 rounded-[16px] border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs font-semibold leading-relaxed text-amber-800"
+            >
+              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+              <span>{backgroundsError}</span>
+            </div>
+          ) : null}
+
+          <div className="grid max-h-[350px] grid-cols-4 gap-3 overflow-y-auto pr-1">
+            {customBackgroundUrl && (
               <button
-                key={tpl.id}
                 type="button"
                 onClick={() => {
-                  setCustomBackgroundUrl(null);
+                  setActiveTemplate(null);
                   setCustomBackgroundOriginalName(null);
-                  setActiveTemplate(tpl.id);
+                  clearContentValues();
                 }}
                 className={`group relative aspect-square overflow-hidden rounded-[16px] border appearance-none outline-none transition-all duration-200 focus:outline-none focus-visible:outline-none ${
-                  activeTemplate === tpl.id
+                  !activeTemplate
                     ? "border-[#79b9e8]"
                     : "border-[#e8eff6] bg-white hover:border-[#bfdcf0]"
                 }`}
               >
-                {tpl.thumbnailUrl || tpl.imageUrl ? (
-                  <Image
-                    src={tpl.thumbnailUrl ?? tpl.imageUrl ?? ""}
-                    alt={tpl.name}
-                    fill
-                    unoptimized
-                    sizes="96px"
-                    className="object-contain bg-white p-2 transition-transform duration-500"
-                  />
-                ) : (
-                  <div className="flex h-full w-full items-center justify-center bg-[#f8fbff] p-2">
-                    <span className="text-center text-[10px] font-medium leading-tight text-slate-500">
-                      {tpl.name}
-                    </span>
-                  </div>
-                )}
-
-                {activeTemplate === tpl.id && (
+                <Image
+                  src={customBackgroundUrl}
+                  alt={text.panels.yourBackground}
+                  fill
+                  unoptimized
+                  sizes="96px"
+                  className="object-contain bg-white p-2 transition-transform duration-500"
+                />
+                {!activeTemplate && (
                   <div className="absolute inset-0 flex items-center justify-center bg-[#2f91d0]/12 backdrop-blur-[1px]">
                     <div className="rounded-full bg-[#2f91d0] p-1">
                       <Check className="h-3 w-3 text-white" />
                     </div>
                   </div>
                 )}
-
                 <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-2 pt-6 text-center">
                   <span className="block truncate text-[9px] font-semibold uppercase tracking-wider text-white">
-                    {tpl.name}
+                    {text.panels.yourBackground}
                   </span>
                 </div>
               </button>
-            ))
-          )}
-        </div>
+            )}
+            {isBackgroundsLoading ? (
+              Array.from({ length: 12 }).map((_, i) => (
+                <div
+                  key={i}
+                  className="aspect-square rounded-[16px] bg-[#eef3f8] animate-pulse"
+                />
+              ))
+            ) : filteredTemplates.length === 0 && !customBackgroundUrl ? (
+              <div className="col-span-4 py-10 text-center text-sm font-medium text-slate-500">
+                {text.panels.noBackgrounds}
+              </div>
+            ) : (
+              filteredTemplates.map((tpl) => (
+                <button
+                  key={tpl.id}
+                  type="button"
+                  onClick={() => {
+                    setCustomBackgroundUrl(null);
+                    setCustomBackgroundOriginalName(null);
+                    setActiveTemplate(tpl.id);
+                  }}
+                  className={`group relative aspect-square overflow-hidden rounded-[16px] border appearance-none outline-none transition-all duration-200 focus:outline-none focus-visible:outline-none ${
+                    activeTemplate === tpl.id
+                      ? "border-[#79b9e8]"
+                      : "border-[#e8eff6] bg-white hover:border-[#bfdcf0]"
+                  }`}
+                >
+                  {tpl.thumbnailUrl || tpl.imageUrl ? (
+                    <Image
+                      src={tpl.thumbnailUrl ?? tpl.imageUrl ?? ""}
+                      alt={tpl.name}
+                      fill
+                      unoptimized
+                      sizes="96px"
+                      className="object-contain bg-white p-2 transition-transform duration-500"
+                    />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center bg-[#f8fbff] p-2">
+                      <span className="text-center text-[10px] font-medium leading-tight text-slate-500">
+                        {tpl.name}
+                      </span>
+                    </div>
+                  )}
 
-        <div className="mt-4 border-t border-[#e4edf5] pt-4">
-          <button
-            type="button"
-            onClick={() => backgroundInputRef.current?.click()}
-            disabled={isUploadingBackground}
-            className="group flex w-full items-center justify-center gap-2 rounded-[16px] border border-dashed border-[#d3e3f0] bg-[#fbfdff] py-3 text-xs font-semibold text-slate-600 appearance-none outline-none transition-all duration-200 hover:border-[#aed2eb] hover:bg-white hover:text-[#2f91d0] focus:outline-none focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-70"
-          >
-            <UploadCloud className="h-4 w-4 transition-transform" />
-            {isUploadingBackground
-              ? text.panels.uploadingBackground.toUpperCase()
-              : text.panels.uploadBackground.toUpperCase()}
-          </button>
-          <input
-            ref={backgroundInputRef}
-            type="file"
-            accept="image/jpeg,image/png,image/webp"
-            className="hidden"
-            onChange={(event) =>
-              handleBackgroundUpload(event.target.files?.[0])
-            }
-          />
-          {uploadError ? (
-            <p className="mt-2 text-xs font-semibold text-red-600">
-              {uploadError}
-            </p>
-          ) : null}
+                  {activeTemplate === tpl.id && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-[#2f91d0]/12 backdrop-blur-[1px]">
+                      <div className="rounded-full bg-[#2f91d0] p-1">
+                        <Check className="h-3 w-3 text-white" />
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-2 pt-6 text-center">
+                    <span className="block truncate text-[9px] font-semibold uppercase tracking-wider text-white">
+                      {tpl.name}
+                    </span>
+                  </div>
+                </button>
+              ))
+            )}
+          </div>
+
+          <div className="mt-4 border-t border-[#e4edf5] pt-4">
+            <button
+              type="button"
+              onClick={() => backgroundInputRef.current?.click()}
+              disabled={isUploadingBackground}
+              className="group flex w-full items-center justify-center gap-2 rounded-[16px] border border-dashed border-[#d3e3f0] bg-[#fbfdff] py-3 text-xs font-semibold text-slate-600 appearance-none outline-none transition-all duration-200 hover:border-[#aed2eb] hover:bg-white hover:text-[#2f91d0] focus:outline-none focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-70"
+            >
+              <UploadCloud className="h-4 w-4 transition-transform" />
+              {isUploadingBackground
+                ? text.panels.uploadingBackground.toUpperCase()
+                : text.panels.uploadBackground.toUpperCase()}
+            </button>
+            <input
+              ref={backgroundInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              className="hidden"
+              onChange={(event) =>
+                handleBackgroundUpload(event.target.files?.[0])
+              }
+            />
+            {uploadError ? (
+              <p className="mt-2 text-xs font-semibold text-red-600">
+                {uploadError}
+              </p>
+            ) : null}
+          </div>
         </div>
-      </div>
       ) : null}
 
       {mode === "content" ? (
-      <div className="rounded-[24px] border border-[#e4edf5] bg-[linear-gradient(180deg,#ffffff_0%,#fbfdff_100%)] p-5">
-        <div className="mb-4 flex justify-end">
-          <button
-            type="button"
-            onClick={clearContentValues}
-            className="rounded-full border-0 bg-transparent px-3 py-1.5 text-xs font-semibold text-slate-500 appearance-none outline-none transition-colors duration-200 hover:bg-rose-50 hover:text-rose-600 focus:outline-none focus-visible:outline-none"
-          >
-            {text.panels.clearAll.toUpperCase()}
-          </button>
-        </div>
-        {(selectedTemplate?.description || selectedTemplate?.instructions) && (
-          <div className="mb-4 rounded-[20px] border border-[#cfe4f4] bg-[#f4faff] px-4 py-3.5 text-xs leading-relaxed text-slate-700">
-            {selectedTemplate.description && (
-              <p className="font-bold text-slate-900">
-                {selectedTemplate.description}
-              </p>
-            )}
-            {selectedTemplate.instructions && (
-              <p className={selectedTemplate.description ? "mt-1" : ""}>
-                {selectedTemplate.instructions}
-              </p>
-            )}
+        <div className="rounded-[24px] border border-[#e4edf5] bg-[linear-gradient(180deg,#ffffff_0%,#fbfdff_100%)] p-5">
+          <div className="mb-4 flex justify-end">
+            <button
+              type="button"
+              onClick={clearContentValues}
+              className="rounded-full border-0 bg-transparent px-3 py-1.5 text-xs font-semibold text-slate-500 appearance-none outline-none transition-colors duration-200 hover:bg-rose-50 hover:text-rose-600 focus:outline-none focus-visible:outline-none"
+            >
+              {text.panels.clearAll.toUpperCase()}
+            </button>
           </div>
-        )}
-        <div className="space-y-4">
-          {contentFields.map((field) => (
-            <ContentFieldInput
-              key={field.key}
-              field={field}
-              value={contentValues[field.key] ?? ""}
-              onChange={(value) => setContentValue(field.key, value)}
-            />
-          ))}
+          {(selectedTemplate?.description ||
+            selectedTemplate?.instructions) && (
+            <div className="mb-4 rounded-[20px] border border-[#cfe4f4] bg-[#f4faff] px-4 py-3.5 text-xs leading-relaxed text-slate-700">
+              {selectedTemplate.description && (
+                <p className="font-bold text-slate-900">
+                  {selectedTemplate.description}
+                </p>
+              )}
+              {selectedTemplate.instructions && (
+                <p className={selectedTemplate.description ? "mt-1" : ""}>
+                  {selectedTemplate.instructions}
+                </p>
+              )}
+            </div>
+          )}
+          <div className="space-y-4">
+            {contentFields.map((field) => (
+              <ContentFieldInput
+                key={field.key}
+                field={field}
+                value={contentValues[field.key] ?? ""}
+                onChange={(value) => setContentValue(field.key, value)}
+              />
+            ))}
+          </div>
         </div>
-      </div>
       ) : null}
     </div>
   );
@@ -758,12 +768,9 @@ function DateFieldInput({
 
   const days = getCalendarDays(viewDate);
   const today = new Date();
-  const weekdays =
-    locale === "vi"
-      ? ["T2", "T3", "T4", "T5", "T6", "T7", "CN"]
-      : ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+  const weekdays = text.common.weekdays;
   const monthLabel = new Intl.DateTimeFormat(
-    locale === "vi" ? "vi-VN" : "en-US",
+    LOCALE_FORMATS[locale],
     { month: "long", year: "numeric" },
   ).format(viewDate);
 
@@ -792,6 +799,8 @@ function DateFieldInput({
         type="button"
         onClick={toggleCalendar}
         className={`${inputClass} flex items-center justify-between text-left`}
+        aria-haspopup="dialog"
+        aria-expanded={open}
       >
         <span className={value ? "text-slate-900" : "text-slate-400"}>
           {formatDisplayDate(value) || placeholder || "dd / mm / yyyy"}
@@ -800,7 +809,7 @@ function DateFieldInput({
       </button>
 
       {open ? (
-        <div className="absolute bottom-full left-0 z-[80] mb-2 w-[320px] max-w-[calc(100vw-40px)] rounded-[20px] border border-[#dbe7f1] bg-white p-3">
+        <div className="form-popover absolute bottom-full left-0 z-[80] mb-2 w-[320px] max-w-[calc(100vw-40px)] p-3">
           <div className="mb-3 flex items-center justify-between gap-2">
             <button
               type="button"
@@ -896,7 +905,7 @@ function ContentFieldInput({
 }) {
   const { text } = useStudioI18n();
   const inputClass =
-    "h-11 w-full rounded-2xl border border-[#dbe7f1] bg-white px-4 text-sm font-medium text-slate-900 outline-none transition-all duration-200 placeholder:text-slate-400 hover:border-[#b9d8ed] focus:border-[#2f91d0] focus:bg-white focus:ring-4 focus:ring-[#d9eefb]/70 focus-visible:outline-none";
+    "form-control form-control--compact px-4 text-sm font-medium";
 
   return (
     <div>
@@ -1231,7 +1240,7 @@ function Step3Characters() {
               placeholder={text.panels.searchAccessories}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="h-11 w-full rounded-2xl border border-[#dbe7f1] bg-white pl-10 pr-4 text-sm font-medium text-slate-900 appearance-none outline-none transition-all duration-200 placeholder:text-slate-400 hover:border-[#b9d8ed] focus:border-[#2f91d0] focus:bg-white focus:ring-4 focus:ring-[#d9eefb]/70 focus-visible:outline-none"
+              className="form-control form-control--compact pl-10 pr-4 text-sm font-medium"
             />
           </div>
 
@@ -1536,20 +1545,6 @@ const COLOR_FILTER_TABS: ReadonlyArray<CharacterPartTab> = [
   "HAT",
 ];
 
-const PART_COLOR_KEYWORDS = [
-  { key: "đen", labelVi: "Đen", labelEn: "Black", hex: "#1f1f21" },
-  { key: "trắng", labelVi: "Trắng", labelEn: "White", hex: "#e5e7eb" },
-  { key: "đỏ", labelVi: "Đỏ", labelEn: "Red", hex: "#ef4444" },
-  { key: "xanh", labelVi: "Xanh", labelEn: "Blue", hex: "#3b82f6" },
-  { key: "vàng", labelVi: "Vàng", labelEn: "Yellow", hex: "#facc15" },
-  { key: "hồng", labelVi: "Hồng", labelEn: "Pink", hex: "#f472b6" },
-  { key: "xám", labelVi: "Xám", labelEn: "Gray", hex: "#9ca3af" },
-  { key: "nâu", labelVi: "Nâu", labelEn: "Brown", hex: "#92400e" },
-  { key: "tím", labelVi: "Tím", labelEn: "Purple", hex: "#a855f7" },
-  { key: "cam", labelVi: "Cam", labelEn: "Orange", hex: "#f97316" },
-  { key: "xanh lá", labelVi: "Xanh lá", labelEn: "Green", hex: "#22c55e" },
-] as const;
-
 function getCharacterPartImage(part?: ApiCharacterPart | null) {
   return part?.imageUrl || "";
 }
@@ -1588,7 +1583,7 @@ function CharacterBuilderModal({
   onClose: () => void;
   onSave: (input: StudioCharacterInput) => void;
 }) {
-  const { locale, text } = useStudioI18n();
+  const { text } = useStudioI18n();
   const [activeTab, setActiveTab] = useState<CharacterPartTab>("PRESET");
   const [selection, setSelection] = useState<CharacterBuilderSelection>(() =>
     getCharacterBuilderInitialSelection(editingCharacter, characterIndex),
@@ -1773,10 +1768,10 @@ function CharacterBuilderModal({
 
   const availableColors = useMemo(() => {
     if (!COLOR_FILTER_TABS.includes(activeTab)) return [];
-    return PART_COLOR_KEYWORDS.filter((color) =>
+    return text.partColors.filter((color) =>
       activeParts.some((part) => part.name.toLowerCase().includes(color.key)),
     );
-  }, [activeTab, activeParts]);
+  }, [activeTab, activeParts, text.partColors]);
 
   const filteredParts = useMemo(() => {
     if (!colorFilter) return activeParts;
@@ -1860,7 +1855,7 @@ function CharacterBuilderModal({
                     name: event.target.value,
                   }))
                 }
-                className="h-11 w-full rounded-2xl border border-[#dbe7f1] bg-white px-3 text-sm font-semibold text-slate-950 appearance-none outline-none transition-all duration-200 hover:border-[#b9d8ed] focus:border-[#2f91d0] focus:bg-white focus:ring-4 focus:ring-[#d9eefb]/70 focus-visible:outline-none"
+                className="form-control form-control--compact px-3 text-sm font-semibold"
               />
             </label>
 
@@ -1965,9 +1960,7 @@ function CharacterBuilderModal({
                               colorFilter === color.key ? null : color.key,
                             )
                           }
-                          title={
-                            locale === "vi" ? color.labelVi : color.labelEn
-                          }
+                          title={color.label}
                           className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-bold appearance-none outline-none transition-colors duration-200 focus:outline-none focus-visible:outline-none ${
                             colorFilter === color.key
                               ? "border-[#b9d8ed] bg-[#f4faff] text-[#2f91d0]"
@@ -1978,7 +1971,7 @@ function CharacterBuilderModal({
                             className="h-3 w-3 shrink-0 rounded-full border border-slate-300"
                             style={{ backgroundColor: color.hex }}
                           />
-                          {locale === "vi" ? color.labelVi : color.labelEn}
+                          {color.label}
                         </button>
                       ))}
                     </div>
@@ -2137,6 +2130,7 @@ function CharacterBuilderPreview({
   accessories: ApiCharacterPart[];
   name: string;
 }) {
+  const { text } = useStudioI18n();
   const layers = [legs, torso, face, hair, hat, ...accessories].filter(
     Boolean,
   ) as ApiCharacterPart[];
@@ -2161,7 +2155,7 @@ function CharacterBuilderPreview({
           ))
         ) : (
           <div className="grid h-full place-items-center text-xs font-bold text-slate-400">
-            NV
+            {text.panels.characterShort}
           </div>
         )}
       </div>

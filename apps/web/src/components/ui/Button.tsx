@@ -5,6 +5,7 @@ import { Slot, Slottable } from "@radix-ui/react-slot";
 import { cva, type VariantProps } from "class-variance-authority";
 
 import { cn, type Size } from "@lego-shop/ui";
+import { useI18n } from "@/lib/i18n/useI18n";
 import { Spinner } from "./Spinner";
 
 const buttonVariants = cva(
@@ -79,6 +80,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     },
     ref,
   ) => {
+    const { dictionary } = useI18n();
     const Comp = asChild ? Slot : "button";
     const isDisabled = disabled || isLoading;
     const resolvedLeftIcon = iconLeft ?? leftIcon;
@@ -106,7 +108,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
           </span>
         ) : null}
         <Slottable>
-          {isLoading ? <span>Đang xử lý...</span> : children}
+          {isLoading ? <span>{dictionary.common.processing}</span> : children}
         </Slottable>
         {!isLoading && resolvedRightIcon ? (
           <span aria-hidden="true" className="inline-flex shrink-0">

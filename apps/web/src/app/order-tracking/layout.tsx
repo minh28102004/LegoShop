@@ -1,6 +1,8 @@
+import { vi } from "@/lib/i18n/dictionaries/vi";
+
 export const metadata = {
-  title: "Tra cứu đơn hàng | Figure Lab",
-  description: "Theo dõi trạng thái và hành trình món quà Figure Lab của bạn.",
+  title: vi.metadata.orderTracking.title,
+  description: vi.metadata.orderTracking.description,
 };
 
 export default function RootLayout({

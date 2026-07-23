@@ -13,69 +13,24 @@ import { useI18n } from "@/lib/i18n/useI18n";
 
 const BASE_CHARACTER_PRICE = 10000;
 const REQUIRED_TYPES = ["FACE", "HAIR", "TORSO", "LEGS"] as const;
-const PART_TABS = ["FACE", "HAIR", "TORSO", "LEGS", "HAT", "ACCESSORY"] as const;
-const LAYER_ORDER = ["LEGS", "TORSO", "FACE", "HAIR", "HAT", "ACCESSORY"] as const;
+const PART_TABS = [
+  "FACE",
+  "HAIR",
+  "TORSO",
+  "LEGS",
+  "HAT",
+  "ACCESSORY",
+] as const;
+const LAYER_ORDER = [
+  "LEGS",
+  "TORSO",
+  "FACE",
+  "HAIR",
+  "HAT",
+  "ACCESSORY",
+] as const;
 
 type BuilderPartType = (typeof PART_TABS)[number];
-
-const BUILDER_TRANSLATIONS = {
-  vi: {
-    tabs: {
-      FACE: "Khuôn mặt",
-      HAIR: "Tóc",
-      TORSO: "Áo",
-      LEGS: "Chân",
-      HAT: "Mũ",
-      ACCESSORY: "Phụ kiện",
-    },
-    previewEmpty: "Chọn các bộ phận để xem nhân vật",
-    emptyTitle: "Chưa có bộ phận nhân vật để ráp",
-    emptyDescription:
-      "Figure Lab đang cập nhật khuôn mặt, tóc, áo và chân cho bộ tạo nhân vật.",
-    price: "Giá nhân vật",
-    reset: "Ráp lại từ đầu",
-    eyebrow: "Tạo nhân vật",
-    title: "Ráp một nhân vật LEGO của riêng bạn",
-    description:
-      "Chọn từng lớp của nhân vật. Bạn cũng có thể mua riêng từng thành phần trong tab Thành phần lẻ.",
-    name: "Tên nhân vật",
-    defaultName: "Nhân vật của tôi",
-    included: "Đã gồm trong giá",
-    noParts: "Chưa có thành phần trong nhóm này.",
-    addToCart: "Thêm nhân vật vào giỏ",
-    customCharacter: "Nhân vật LEGO tự ráp",
-    characterBody: "Thân nhân vật LEGO",
-    customFrameLabel: "Nhân vật LEGO ráp riêng",
-  },
-  en: {
-    tabs: {
-      FACE: "Face",
-      HAIR: "Hair",
-      TORSO: "Torso",
-      LEGS: "Legs",
-      HAT: "Hat",
-      ACCESSORY: "Accessories",
-    },
-    previewEmpty: "Choose parts to preview your character",
-    emptyTitle: "No character parts are available yet",
-    emptyDescription:
-      "Figure Lab is updating faces, hair, torsos, and legs for the character builder.",
-    price: "Character price",
-    reset: "Start over",
-    eyebrow: "Character builder",
-    title: "Build a LEGO character of your own",
-    description:
-      "Choose each character layer. Individual pieces are also available in the Individual parts tab.",
-    name: "Character name",
-    defaultName: "My character",
-    included: "Included in price",
-    noParts: "No parts are available in this group yet.",
-    addToCart: "Add character to cart",
-    customCharacter: "Custom LEGO character",
-    characterBody: "LEGO character body",
-    customFrameLabel: "Custom-built LEGO character",
-  },
-};
 
 function getPartPrice(part: CharacterPart) {
   return Math.max(0, Math.round(part.priceAdjustment ?? 0));
@@ -104,7 +59,9 @@ function CharacterLayerPreview({
   emptyLabel: string;
   parts: CharacterPart[];
 }) {
-  const orderedParts = LAYER_ORDER.flatMap((type) => parts.filter((part) => part.type === type));
+  const orderedParts = LAYER_ORDER.flatMap((type) =>
+    parts.filter((part) => part.type === type),
+  );
 
   return (
     <div className="relative mx-auto aspect-square w-full max-w-[460px] overflow-hidden bg-[linear-gradient(145deg,#ffffff,#f1f5f9)] ring-1 ring-slate-200">
@@ -134,10 +91,19 @@ function CharacterLayerPreview({
   );
 }
 
-export function CharacterBuilderShop({ parts, loading }: { parts: CharacterPart[]; loading: boolean }) {
-  const { locale } = useI18n();
-  const copy = BUILDER_TRANSLATIONS[locale];
-  const activeParts = useMemo(() => parts.filter((part) => part.status === "active"), [parts]);
+export function CharacterBuilderShop({
+  parts,
+  loading,
+}: {
+  parts: CharacterPart[];
+  loading: boolean;
+}) {
+  const { dictionary } = useI18n();
+  const copy = dictionary.characterBuilder;
+  const activeParts = useMemo(
+    () => parts.filter((part) => part.status === "active"),
+    [parts],
+  );
   const groupedParts = useMemo(() => {
     const groups = new Map<BuilderPartType, CharacterPart[]>();
     PART_TABS.forEach((type) => groups.set(type, []));
@@ -146,17 +112,24 @@ export function CharacterBuilderShop({ parts, loading }: { parts: CharacterPart[
     });
     return groups;
   }, [activeParts]);
-  const partById = useMemo(() => new Map(activeParts.map((part) => [part.id, part])), [activeParts]);
+  const partById = useMemo(
+    () => new Map(activeParts.map((part) => [part.id, part])),
+    [activeParts],
+  );
 
   const [activeTab, setActiveTab] = useState<BuilderPartType>("FACE");
   const [name, setName] = useState("");
-  const [selectedByType, setSelectedByType] = useState<Partial<Record<CharacterPartType, string>>>({});
+  const [selectedByType, setSelectedByType] = useState<
+    Partial<Record<CharacterPartType, string>>
+  >({});
   const [accessoryIds, setAccessoryIds] = useState<string[]>([]);
 
   const resolvedSelectedByType = useMemo(() => {
     const next = { ...selectedByType };
     REQUIRED_TYPES.forEach((type) => {
-      const currentPart = next[type] ? partById.get(next[type] as string) : null;
+      const currentPart = next[type]
+        ? partById.get(next[type] as string)
+        : null;
       if (!currentPart || currentPart.type !== type) {
         const first = groupedParts.get(type)?.[0];
         if (first) next[type] = first.id;
@@ -190,7 +163,9 @@ export function CharacterBuilderShop({ parts, loading }: { parts: CharacterPart[
     const id = resolvedSelectedByType[type];
     return Boolean(id && partById.has(id));
   });
-  const totalPrice = BASE_CHARACTER_PRICE + selectedParts.reduce((sum, part) => sum + getPartPrice(part), 0);
+  const totalPrice =
+    BASE_CHARACTER_PRICE +
+    selectedParts.reduce((sum, part) => sum + getPartPrice(part), 0);
 
   const resetBuilder = () => {
     const defaults: Partial<Record<CharacterPartType, string>> = {};
@@ -217,7 +192,9 @@ export function CharacterBuilderShop({ parts, loading }: { parts: CharacterPart[
     setSelectedByType((current) => {
       const next = { ...current };
       REQUIRED_TYPES.forEach((type) => {
-        const currentPart = next[type] ? partById.get(next[type] as string) : null;
+        const currentPart = next[type]
+          ? partById.get(next[type] as string)
+          : null;
         if (!currentPart || currentPart.type !== type) {
           const first = groupedParts.get(type)?.[0];
           if (first) next[type] = first.id;
@@ -248,7 +225,9 @@ export function CharacterBuilderShop({ parts, loading }: { parts: CharacterPart[
     const legs = partById.get(resolvedSelectedByType.LEGS as string);
     if (!face || !hair || !torso || !legs) return;
 
-    const hat = resolvedSelectedByType.HAT ? partById.get(resolvedSelectedByType.HAT) : undefined;
+    const hat = resolvedSelectedByType.HAT
+      ? partById.get(resolvedSelectedByType.HAT)
+      : undefined;
     const accessories = resolvedAccessoryIds
       .map((id) => partById.get(id))
       .filter((part): part is CharacterPart => Boolean(part));
@@ -334,7 +313,10 @@ export function CharacterBuilderShop({ parts, loading }: { parts: CharacterPart[
           <div className="h-12 animate-pulse rounded bg-slate-200" />
           <div className="grid grid-cols-3 gap-3">
             {Array.from({ length: 6 }).map((_, index) => (
-              <div key={index} className="aspect-square animate-pulse bg-slate-200" />
+              <div
+                key={index}
+                className="aspect-square animate-pulse bg-slate-200"
+              />
             ))}
           </div>
         </div>
@@ -357,11 +339,18 @@ export function CharacterBuilderShop({ parts, loading }: { parts: CharacterPart[
   return (
     <div className="grid items-start gap-8 lg:grid-cols-[minmax(340px,0.92fr)_1.08fr] lg:gap-12">
       <div className="lg:sticky lg:top-24">
-        <CharacterLayerPreview emptyLabel={copy.previewEmpty} parts={selectedParts} />
+        <CharacterLayerPreview
+          emptyLabel={copy.previewEmpty}
+          parts={selectedParts}
+        />
         <div className="mt-5 flex items-end justify-between gap-4 border-b border-slate-200 pb-5">
           <div>
-            <p className="text-xs font-bold uppercase text-slate-400">{copy.price}</p>
-            <p className="mt-1 text-2xl font-extrabold text-slate-950">{formatPrice(totalPrice)}</p>
+            <p className="text-xs font-bold uppercase text-slate-400">
+              {copy.price}
+            </p>
+            <p className="mt-1 text-2xl font-extrabold text-slate-950">
+              {formatPrice(totalPrice)}
+            </p>
           </div>
           <button
             type="button"
@@ -376,7 +365,9 @@ export function CharacterBuilderShop({ parts, loading }: { parts: CharacterPart[
 
       <div className="min-w-0">
         <div className="mb-6">
-          <p className="text-xs font-bold uppercase text-primary">{copy.eyebrow}</p>
+          <p className="text-xs font-bold uppercase text-primary">
+            {copy.eyebrow}
+          </p>
           <h2 className="mt-2 text-2xl font-extrabold text-slate-950 sm:text-3xl">
             {copy.title}
           </h2>
@@ -386,13 +377,15 @@ export function CharacterBuilderShop({ parts, loading }: { parts: CharacterPart[
         </div>
 
         <label className="mb-6 block">
-          <span className="mb-2 block text-xs font-bold uppercase text-slate-500">{copy.name}</span>
+          <span className="mb-2 block text-xs font-bold uppercase text-slate-500">
+            {copy.name}
+          </span>
           <input
             value={name}
             placeholder={copy.defaultName}
             onChange={(event) => setName(event.target.value)}
             maxLength={60}
-            className="h-11 w-full border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-900 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10"
+            className="form-control form-control--compact px-3 text-sm font-semibold"
           />
         </label>
 
@@ -409,7 +402,9 @@ export function CharacterBuilderShop({ parts, loading }: { parts: CharacterPart[
               }`}
             >
               {copy.tabs[type]}
-              {type === "ACCESSORY" && resolvedAccessoryIds.length ? ` (${resolvedAccessoryIds.length})` : null}
+              {type === "ACCESSORY" && resolvedAccessoryIds.length
+                ? ` (${resolvedAccessoryIds.length})`
+                : null}
             </button>
           ))}
         </div>
@@ -425,7 +420,9 @@ export function CharacterBuilderShop({ parts, loading }: { parts: CharacterPart[
                 type="button"
                 onClick={() => togglePart(part)}
                 className={`group relative min-w-0 border bg-white p-3 text-left transition ${
-                  selected ? "border-primary ring-2 ring-primary/10" : "border-slate-200 hover:border-slate-400"
+                  selected
+                    ? "border-primary ring-2 ring-primary/10"
+                    : "border-slate-200 hover:border-slate-400"
                 }`}
               >
                 <div className="relative aspect-square overflow-hidden bg-slate-50">
@@ -437,7 +434,9 @@ export function CharacterBuilderShop({ parts, loading }: { parts: CharacterPart[
                     />
                   ) : null}
                 </div>
-                <p className="mt-2 truncate text-xs font-bold text-slate-900">{part.name}</p>
+                <p className="mt-2 truncate text-xs font-bold text-slate-900">
+                  {part.name}
+                </p>
                 <p className="mt-1 text-[11px] font-semibold text-slate-500">
                   {getPartPrice(part) > 0
                     ? `+${formatPrice(getPartPrice(part))}`

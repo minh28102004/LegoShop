@@ -26,6 +26,11 @@ export class BannersController {
     return this.bannersService.findPublicBanners();
   }
 
+  @Get('public/homepage-media')
+  findPublicHomepageMedia() {
+    return this.bannersService.findPublicHomepageMedia();
+  }
+
   @Get('admin/banners')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()

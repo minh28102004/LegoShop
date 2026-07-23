@@ -31,16 +31,17 @@ import toast from "react-hot-toast";
 import { FeatureIcon } from "@/components/shared/FeatureIcon";
 import { ProductImage } from "@/components/shared/ProductImage";
 import { Modal } from "@/components/ui/Modal";
+import { Textarea } from "@/components/ui/Textarea";
 import { DECORATIVE_ICON_PATHS } from "@/config/icons";
 import { ROUTES } from "@/config/routes";
 import { useCartStore, type CartItemPart } from "@/features/cart/store";
 import { resolveApiAssetUrl } from "@/lib/api/assets";
 import { publicApiClient } from "@/lib/api/public-client";
-import type { ProductDetailLabels } from "@/modules/home/data/product-detail.translations";
+import type { ProductDetailDictionary } from "@/lib/i18n/dictionaries";
 
 type ProductTemplateDetailModalProps = {
   isOpen: boolean;
-  labels: ProductDetailLabels;
+  labels: ProductDetailDictionary;
   onClose: () => void;
   slug: string | null;
 };
@@ -850,12 +851,13 @@ export function ProductTemplateDetailModal({
                     <span className="ml-1 text-red-500">*</span>
                   ) : null}
                 </label>
-                <textarea
+                <Textarea
                   id="product-template-note"
                   value={note}
                   rows={4}
                   placeholder={labels.notePlaceholder}
-                  className="mt-2 w-full resize-none rounded-[16px] border border-border bg-white px-4 py-3 text-sm text-navy outline-none transition placeholder:text-text-muted focus:border-primary/50 focus:ring-2 focus:ring-primary/10"
+                  className="min-h-28 resize-none"
+                  containerClassName="mt-2 space-y-0"
                   onChange={(event) => setNote(event.target.value)}
                 />
               </section>
@@ -926,7 +928,7 @@ function AccessoryRow({
   quantity,
 }: {
   accessory: ProductTemplateAccessory;
-  labels: ProductDetailLabels;
+  labels: ProductDetailDictionary;
   onChange: (quantity: number) => void;
   quantity: number;
 }) {

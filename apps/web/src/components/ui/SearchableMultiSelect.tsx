@@ -2,7 +2,12 @@
 
 import { cn, Dropdown } from "@lego-shop/ui";
 import { Check, ChevronDown, Minus, Search, X } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
+import {
+  FORM_OPTION_CLASS,
+  FORM_POPOVER_CLASS,
+  formControlClassName,
+} from "./form-control";
 
 export type SearchableMultiSelectOption = {
   label: string;
@@ -39,6 +44,7 @@ export function SearchableMultiSelect({
 }: SearchableMultiSelectProps) {
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
+  const listboxId = useId();
   const searchRef = useRef<HTMLInputElement | null>(null);
   const selected = useMemo(
     () => options.filter((option) => values.includes(option.value)),
@@ -77,14 +83,26 @@ export function SearchableMultiSelect({
       matchTriggerWidth
       offset={6}
       panelRole="listbox"
+      panelId={listboxId}
       onOpenChange={handleOpenChange}
       className={cn("min-w-0", className)}
-      panelClassName="min-w-[300px] max-w-[340px] bg-white p-2.5"
+      panelClassName={cn(
+        FORM_POPOVER_CLASS,
+        "min-w-[300px] max-w-[340px] p-2.5",
+      )}
       trigger={
         <button
           type="button"
           aria-label={ariaLabel}
-          className="flex h-11 w-full min-w-0 items-center gap-2 rounded-xl border border-border/80 bg-white px-3 text-left text-sm font-semibold text-navy transition-colors hover:border-primary/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20"
+          role="combobox"
+          aria-controls={listboxId}
+          aria-expanded={open}
+          aria-haspopup="listbox"
+          className={formControlClassName({
+            className:
+              "flex min-w-0 items-center gap-2 px-4 text-left text-sm font-semibold",
+            size: "compact",
+          })}
         >
           <span className="min-w-0 flex-1 truncate">
             {visibleLabels.length > 0
@@ -114,7 +132,10 @@ export function SearchableMultiSelect({
               type="search"
               value={query}
               placeholder={searchPlaceholder}
-              className="h-10 w-full rounded-lg border border-slate-200/80 bg-white pl-9 pr-3 text-sm text-navy outline-none transition-colors placeholder:text-slate-400 hover:border-primary/25 focus:border-primary/35 focus:ring-2 focus:ring-primary/10"
+              className={formControlClassName({
+                className: "pl-10 pr-3 text-sm",
+                size: "compact",
+              })}
               onChange={(event) => setQuery(event.target.value)}
               onKeyDown={(event) => {
                 if (event.key === "ArrowDown") {
@@ -130,7 +151,10 @@ export function SearchableMultiSelect({
           {selectAllLabel && options.length > 0 ? (
             <button
               type="button"
-              className="mt-2 flex min-h-10 w-full items-center gap-2 rounded-lg border border-slate-200/80 bg-white px-2.5 py-2 text-left text-sm font-semibold text-navy transition-colors hover:border-primary/25 hover:bg-primary-light/35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20"
+              className={cn(
+                FORM_OPTION_CLASS,
+                "mt-2 w-full gap-2 border border-border px-2.5 py-2 text-left text-sm font-semibold focus-visible:ring-2 focus-visible:ring-primary/20",
+              )}
               onClick={() =>
                 onChange(
                   allSelected ? [] : options.map((option) => option.value),
@@ -167,7 +191,8 @@ export function SearchableMultiSelect({
                     aria-selected={active}
                     data-multiselect-option
                     className={cn(
-                      "flex min-h-10 w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20",
+                      FORM_OPTION_CLASS,
+                      "w-full gap-2 px-2.5 py-2 text-left text-sm font-medium focus-visible:ring-2 focus-visible:ring-primary/20",
                       active
                         ? "bg-primary-light/70 text-primary-dark"
                         : "bg-white text-slate-700 hover:bg-primary-light/35 hover:text-primary-dark",
@@ -221,7 +246,7 @@ export function SearchableMultiSelect({
           {values.length > 0 ? (
             <button
               type="button"
-              className="mt-2 inline-flex h-9 w-full items-center justify-center gap-2 rounded-lg border border-slate-200/80 bg-white text-xs font-semibold text-slate-600 transition-colors hover:border-primary/25 hover:bg-primary-light/35 hover:text-primary-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20"
+              className="mt-2 inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-[11px] border border-border bg-white text-xs font-semibold text-slate-600 transition-colors hover:border-primary/25 hover:bg-primary-light/35 hover:text-primary-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20"
               onClick={() => onChange([])}
             >
               <X className="h-3.5 w-3.5" />

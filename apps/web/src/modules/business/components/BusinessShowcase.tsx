@@ -63,14 +63,14 @@ export function BusinessShowcase({ copy }: BusinessShowcaseProps) {
   }, []);
 
   return (
-    <section id="business-showcase" className="bg-white py-14 sm:py-16 lg:py-20">
+    <section id="business-showcase" className="bg-white py-14 sm:py-16 lg:py-18">
       <Container size="wide">
         <ScrollReveal className="mb-9 flex flex-col gap-5 sm:mb-11 lg:flex-row lg:items-end lg:justify-between">
           <div className="max-w-3xl">
             <p className="text-xs font-bold tracking-[0.2em] text-[#1989c9] sm:text-sm">
               {copy.eyebrow}
             </p>
-            <h2 className="mt-3 text-balance text-3xl font-bold tracking-[-0.035em] text-[#071d3a] sm:text-4xl lg:text-5xl">
+            <h2 className="mt-3 text-balance text-3xl font-bold tracking-[-0.04em] text-[#071d3a] sm:text-4xl lg:text-[44px]">
               {copy.title}
             </h2>
             <p className="mt-4 max-w-2xl text-base leading-7 text-slate-600 sm:text-lg">
@@ -88,7 +88,7 @@ export function BusinessShowcase({ copy }: BusinessShowcaseProps) {
         {loading ? (
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
             {Array.from({ length: 4 }, (_, index) => (
-              <div key={index} className="h-[430px] animate-pulse rounded-[24px] bg-[#eef5ff]" />
+              <div key={index} className="h-[390px] animate-pulse rounded-[24px] bg-[#eef5ff]" />
             ))}
           </div>
         ) : (
@@ -125,9 +125,9 @@ export function BusinessShowcase({ copy }: BusinessShowcaseProps) {
 
                     <div className="flex flex-1 flex-col p-5">
                       <h3 className="text-xl font-bold leading-tight text-[#071d3a]">{title}</h3>
-                      <p className="mt-3 line-clamp-3 text-sm leading-6 text-slate-600">{description}</p>
+                      <p className="mt-2.5 line-clamp-2 text-sm leading-6 text-slate-600">{description}</p>
 
-                      <div className="mt-auto pt-6">
+                      <div className="mt-auto pt-5">
                         {product ? (
                           <p className="text-sm font-semibold text-slate-500">
                             {copy.priceFrom}{" "}

@@ -8,12 +8,12 @@ import { ProductImage } from "@/components/shared/ProductImage";
 import { UI_MODAL_IDS } from "@/config/routes";
 import { useCartStore, type CartItemPartType } from "@/features/cart/store";
 import { useUIStore } from "@/features/ui/store";
-import type { CollectionTranslations } from "@/modules/collection/data/collection.translations";
+import type { CollectionDictionary } from "@/lib/i18n/dictionaries";
 import type { CollectionRetailItem } from "@/modules/collection/types/collection.types";
 
 type CollectionRetailGridProps = {
   items: CollectionRetailItem[];
-  labels: CollectionTranslations;
+  labels: CollectionDictionary;
 };
 
 function cartPartType(type: CollectionRetailItem["type"]): CartItemPartType {
@@ -49,7 +49,7 @@ export function CollectionRetailGrid({
       {items.map((item) => (
         <article
           key={`${item.type}:${item.id}`}
-          className="group flex min-w-0 flex-col overflow-hidden rounded-[22px] border border-border/80 bg-white shadow-sm transition-all duration-300 ease-out hover:-translate-y-1 hover:border-primary/25 hover:shadow-[0_20px_45px_-32px_rgba(16,35,63,0.38)] motion-reduce:transform-none"
+          className="group flex min-w-0 flex-col overflow-hidden rounded-[22px] border border-border/80 bg-white shadow-[0_8px_24px_-16px_rgba(16,35,63,0.28)] transition-all duration-300 ease-out hover:-translate-y-1 hover:border-primary/25 hover:shadow-[0_20px_45px_-32px_rgba(16,35,63,0.38)] motion-reduce:transform-none"
         >
           <ProductImage
             src={item.imageUrl}

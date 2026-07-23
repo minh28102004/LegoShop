@@ -5,11 +5,14 @@ import Link from "next/link";
 import { XCircle, RefreshCcw, Search } from "lucide-react";
 import { Suspense, useState } from "react";
 import { publicApiClient } from "@/lib/api/public-client";
+import { useI18n } from "@/lib/i18n/useI18n";
 
 function PaymentCancelContent() {
   const searchParams = useSearchParams();
   const orderCode = searchParams.get("orderCode");
   const [loading, setLoading] = useState(false);
+  const { dictionary } = useI18n();
+  const copy = dictionary.payment;
 
   const handleRetryPayment = async () => {
     if (!orderCode) return;
@@ -17,13 +20,13 @@ function PaymentCancelContent() {
     try {
       const data = await publicApiClient.orders.createPaymentLink(orderCode);
       if (data.checkoutUrl) {
-        window.location.href = data.checkoutUrl;
+        window.location.assign(data.checkoutUrl);
       } else {
-        alert("Không thể tạo lại link thanh toán lúc này.");
+        alert(copy.cancel.retryUnavailable);
       }
     } catch (err) {
       console.error(err);
-      alert("Có lỗi xảy ra khi tạo link thanh toán.");
+      alert(copy.cancel.retryError);
     } finally {
       setLoading(false);
     }
@@ -35,9 +38,9 @@ function PaymentCancelContent() {
         <XCircle className="w-12 h-12 text-red-500" />
       </div>
       
-      <h1 className="text-3xl font-black mb-4">Thanh Toán Đã Hủy</h1>
+      <h1 className="text-3xl font-black mb-4">{copy.cancel.title}</h1>
       <p className="text-zinc-600 mb-8 max-w-md">
-        Quá trình thanh toán cho đơn hàng <strong>{orderCode}</strong> đã bị hủy hoặc chưa hoàn tất. Đơn hàng của bạn vẫn được lưu lại.
+        {copy.cancel.description.replace("{orderCode}", orderCode ?? "")}
       </p>
 
       <div className="flex flex-col sm:flex-row gap-4">
@@ -47,14 +50,14 @@ function PaymentCancelContent() {
           className="px-8 py-3 bg-red-400 hover:bg-red-500 text-white font-medium rounded-full transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
         >
           <RefreshCcw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} /> 
-          {loading ? "Đang tạo lại..." : "Thanh toán lại"}
+          {loading ? copy.cancel.retrying : copy.cancel.retry}
         </button>
         
         <Link 
           href={`/order-tracking${orderCode ? `?code=${orderCode}` : ""}`}
           className="px-8 py-3 border border-zinc-200 hover:border-zinc-300 text-zinc-700 font-medium rounded-full transition-colors flex items-center justify-center gap-2"
         >
-          <Search className="w-4 h-4" /> Tra cứu đơn hàng
+          <Search className="w-4 h-4" /> {copy.cancel.trackOrder}
         </Link>
       </div>
     </div>
@@ -62,9 +65,11 @@ function PaymentCancelContent() {
 }
 
 export default function PaymentCancelPage() {
+  const { dictionary } = useI18n();
+
   return (
     <div className="container mx-auto flex-1 flex flex-col bg-zinc-50">
-      <Suspense fallback={<div className="p-20 text-center">Đang tải...</div>}>
+      <Suspense fallback={<div className="p-20 text-center">{dictionary.payment.loading}</div>}>
         <PaymentCancelContent />
       </Suspense>
     </div>

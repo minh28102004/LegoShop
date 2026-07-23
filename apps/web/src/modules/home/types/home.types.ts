@@ -14,7 +14,7 @@ export type HomeMediaAsset = {
   src: string;
   alt: string;
   slot: HomeMediaSlot;
-  source: "api" | "development-fallback";
+  source: "api" | "static" | "development-fallback";
 };
 
 export type HomeFeatureItem = {

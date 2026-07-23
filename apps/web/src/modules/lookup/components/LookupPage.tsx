@@ -17,13 +17,14 @@ import {
   Check,
   ChevronDown,
   CircleAlert,
-  Clock3,
   ExternalLink,
   LoaderCircle,
   MapPin,
   Search,
   ShieldCheck,
+  X,
 } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
 import { ApiClientError } from "@lego-shop/api";
 import {
   formatCurrency,
@@ -32,38 +33,41 @@ import {
 
 import { Container } from "@/components/layout/Container";
 import { ScrollReveal } from "@/components/shared/ScrollReveal";
+import { formControlClassName } from "@/components/ui/form-control";
+import { DECORATIVE_ICON_PATHS } from "@/config/icons";
 import { ROUTES } from "@/config/routes";
+import { LOCALE_FORMATS } from "@/lib/i18n/config";
+import type { OrderTrackingDictionary } from "@/lib/i18n/dictionaries";
 import { useI18n } from "@/lib/i18n/useI18n";
 import { publicApiClient } from "@/lib/api/public-client";
-import { ORDER_TRACKING_COPY } from "@/modules/lookup/data/order-tracking.translations";
 
 const FLUENT_ICONS = {
-  package: "/assets/icons/fluent-emoji/package-3d.png",
-  receipt: "/assets/icons/fluent-emoji/receipt-3d.png",
-  search: "/assets/icons/fluent-emoji/receipt-3d.png",
-  truck: "/assets/icons/fluent-emoji/delivery-truck-3d.png",
-  check: "/assets/icons/fluent-emoji/check-mark-3d.png",
-  envelope: "/assets/icons/fluent-emoji/envelope-3d.png",
-  phone: "/assets/icons/fluent-emoji/telephone-receiver-3d.png",
-  gift: "/assets/icons/fluent-emoji/wrapped-gift-3d.png",
-  calendar: "/assets/icons/fluent-emoji/calendar-3d.png",
-  shield: "/assets/icons/fluent-emoji/shield-3d.png",
+  artistPalette: DECORATIVE_ICON_PATHS.artistPalette,
+  chartIncreasing: DECORATIVE_ICON_PATHS.chartIncreasing,
+  check: DECORATIVE_ICON_PATHS.checkMark,
+  envelope: DECORATIVE_ICON_PATHS.envelope,
+  framedPicture: DECORATIVE_ICON_PATHS.framedPicture,
+  identificationCard: DECORATIVE_ICON_PATHS.identificationCard,
+  package: DECORATIVE_ICON_PATHS.package,
+  phone: DECORATIVE_ICON_PATHS.telephoneReceiver,
+  receipt: DECORATIVE_ICON_PATHS.receipt,
+  shield: DECORATIVE_ICON_PATHS.shield,
+  truck: DECORATIVE_ICON_PATHS.deliveryTruck,
 } as const;
 
 type Feedback = { tone: "error" | "success"; message: string };
-type TrackingCopy =
-  (typeof ORDER_TRACKING_COPY)[keyof typeof ORDER_TRACKING_COPY];
+type TrackingCopy = OrderTrackingDictionary;
 
 const GUIDE_ICONS = [
-  FLUENT_ICONS.search,
-  FLUENT_ICONS.receipt,
+  FLUENT_ICONS.identificationCard,
+  FLUENT_ICONS.chartIncreasing,
   FLUENT_ICONS.truck,
 ];
 const STATUS_ICONS = [
   FLUENT_ICONS.receipt,
   FLUENT_ICONS.shield,
-  FLUENT_ICONS.search,
-  FLUENT_ICONS.gift,
+  FLUENT_ICONS.artistPalette,
+  FLUENT_ICONS.framedPicture,
   FLUENT_ICONS.package,
   FLUENT_ICONS.truck,
   FLUENT_ICONS.check,
@@ -83,7 +87,7 @@ function formatDate(
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "—";
 
-  return new Intl.DateTimeFormat(locale === "vi" ? "vi-VN" : "en-US", {
+  return new Intl.DateTimeFormat(LOCALE_FORMATS[locale], {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
@@ -165,8 +169,8 @@ function Eyebrow({
 }
 
 function TrackingPageContent() {
-  const { locale } = useI18n();
-  const copy = ORDER_TRACKING_COPY[locale];
+  const { dictionary, locale } = useI18n();
+  const copy = dictionary.orderTracking;
   const searchParams = useSearchParams();
   const router = useRouter();
   const resultRef = useRef<HTMLElement | null>(null);
@@ -177,6 +181,10 @@ function TrackingPageContent() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<TrackOrderResponseContract | null>(null);
   const [feedback, setFeedback] = useState<Feedback | null>(null);
+  const [isGuideOpen, setIsGuideOpen] = useState(false);
+  const [pendingGuideTarget, setPendingGuideTarget] = useState<string | null>(
+    null,
+  );
 
   useEffect(() => {
     if (!result) return;
@@ -187,6 +195,25 @@ function TrackingPageContent() {
 
     return () => window.cancelAnimationFrame(frame);
   }, [result]);
+
+  useEffect(() => {
+    if (!isGuideOpen || !pendingGuideTarget) return;
+
+    const timer = window.setTimeout(() => {
+      document.getElementById(pendingGuideTarget)?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+      setPendingGuideTarget(null);
+    }, 440);
+
+    return () => window.clearTimeout(timer);
+  }, [isGuideOpen, pendingGuideTarget]);
+
+  function openGuideAt(targetId: "where-code" | "support") {
+    setPendingGuideTarget(targetId);
+    setIsGuideOpen(true);
+  }
 
   async function handleLookup(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -206,6 +233,8 @@ function TrackingPageContent() {
     setLoading(true);
     setFeedback(null);
     setResult(null);
+    setPendingGuideTarget(null);
+    setIsGuideOpen(false);
 
     try {
       const response = await publicApiClient.orders.trackOrder({
@@ -233,412 +262,421 @@ function TrackingPageContent() {
 
   return (
     <main className="overflow-x-clip bg-[#f7faff] text-[#10233f]">
-      <section className="relative overflow-hidden pb-14 pt-10 lg:pb-16 lg:pt-14">
-        <div className="pointer-events-none absolute -left-28 top-8 h-80 w-80 rounded-full bg-[#dceeff]/70 blur-2xl" />
-        <div className="pointer-events-none absolute -right-24 top-20 h-72 w-72 rounded-full bg-[#fff0b8]/70 blur-2xl" />
-        <Container
-          size="wide"
-          className="relative grid items-center gap-10 lg:grid-cols-[0.92fr_1.08fr] lg:gap-14"
-        >
-          <ScrollReveal variant="slideLeft" className="max-w-2xl">
-            <Eyebrow>{copy.hero.eyebrow}</Eyebrow>
-            <h1 className="mt-5 max-w-[13ch] text-balance text-[clamp(2.75rem,5.4vw,5.3rem)] font-bold leading-[0.98] tracking-[-0.055em] text-[#0c213d]">
-              {copy.hero.title}
-            </h1>
-            <p className="mt-6 max-w-xl text-[1.02rem] leading-8 text-slate-600 sm:text-lg">
-              {copy.hero.description}
-            </p>
-            <div className="mt-7 flex flex-wrap gap-x-5 gap-y-3">
-              {copy.hero.trust.map((item) => (
-                <span
-                  key={item}
-                  className="inline-flex items-center gap-2 text-sm font-semibold text-slate-700"
-                >
-                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#fff2bd] text-[#9f7100]">
-                    <Check className="h-3.5 w-3.5" strokeWidth={2.4} />
-                  </span>
-                  {item}
-                </span>
-              ))}
+      <section
+        id="lookup-form"
+        className="relative overflow-hidden pb-10 pt-8 sm:pt-10 lg:pb-12 lg:pt-12"
+      >
+        <div className="pointer-events-none absolute -left-28 top-4 h-72 w-72 rounded-full bg-[#dceeff]/70 blur-3xl" />
+        <div className="pointer-events-none absolute -right-24 top-12 h-64 w-64 rounded-full bg-[#fff0b8]/70 blur-3xl" />
+
+        <Container size="default" className="relative">
+          <ScrollReveal className="overflow-hidden rounded-[1.75rem] border border-[#d8e9f7] bg-white shadow-[0_20px_55px_-42px_rgba(16,35,63,0.38)]">
+            <div className="border-b border-[#e5edf4] px-5 py-5 text-center sm:px-7 sm:py-6 lg:px-9">
+              <Eyebrow>
+                {copy.hero.eyebrow}
+              </Eyebrow>
+
+              <h1 className="mx-auto mt-2 max-w-2xl text-balance text-[clamp(1.5rem,3vw,2.25rem)] font-bold leading-[1.12] tracking-[-0.03em] text-[#10233f]">
+                {copy.hero.title}
+              </h1>
+
+              <p className="mx-auto mt-2 max-w-lg text-sm leading-6 text-slate-500">
+                {copy.lookup.description}
+              </p>
             </div>
-            <a
-              href="#lookup-form"
-              className="group mt-8 inline-flex h-12 items-center gap-3 rounded-full bg-[#168fce] px-6 text-sm font-bold text-white shadow-[0_12px_28px_-18px_rgba(0,119,182,0.85)] transition-all duration-300 hover:-translate-y-0.5 hover:bg-[#087ab7] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-200 motion-reduce:transform-none"
-            >
-              {copy.lookup.submit}
-              <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1 motion-reduce:transform-none" />
-            </a>
+
+            <div className="relative px-5 pb-5 pt-6 sm:px-7 lg:px-9 lg:pb-6 lg:pt-8">
+              <form
+                onSubmit={handleLookup}
+                noValidate
+                className="relative grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] lg:items-start"
+              >
+                <div className="block">
+                  <label
+                    htmlFor="tracking-order-code"
+                    className="mb-2 block text-sm font-semibold text-slate-900"
+                  >
+                    {copy.lookup.orderCodeLabel}
+                  </label>
+
+                  <div className="group/field relative">
+                    <Search
+                      className="pointer-events-none absolute left-4 top-1/2 z-10 h-[22px] w-[22px] -translate-y-1/2 text-slate-400 transition-colors duration-[90ms] ease-out group-focus-within/field:text-[#63afe3]"
+                      aria-hidden="true"
+                    />
+                    <input
+                      id="tracking-order-code"
+                      value={orderCode}
+                      onChange={(event) =>
+                        setOrderCode(event.target.value.toUpperCase())
+                      }
+                      placeholder={copy.lookup.orderCodePlaceholder}
+                      autoComplete="off"
+                      className={formControlClassName({
+                        className: "pl-[52px] pr-12 text-[15px] font-medium",
+                      })}
+                    />
+
+                    {orderCode ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setOrderCode("");
+                          setFeedback(null);
+                        }}
+                        aria-label={copy.lookup.clearOrderCode}
+                        className="absolute right-2.5 top-1/2 z-10 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-lg text-slate-400 transition-colors duration-150 hover:bg-slate-100 hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9bd2f0]"
+                      >
+                        <X className="h-4 w-4" aria-hidden="true" />
+                      </button>
+                    ) : null}
+                  </div>
+
+                  <span className="mt-2 block text-xs leading-5 text-slate-400">
+                    {copy.lookup.codeHint}
+                  </span>
+                </div>
+
+                <div className="block">
+                  <label
+                    htmlFor="tracking-phone"
+                    className="mb-2 block text-sm font-semibold text-slate-900"
+                  >
+                    {copy.lookup.phoneLabel}
+                  </label>
+
+                  <div className="group/field relative">
+                    <ShieldCheck
+                      className="pointer-events-none absolute left-4 top-1/2 z-10 h-[22px] w-[22px] -translate-y-1/2 text-slate-400 transition-colors duration-[90ms] ease-out group-focus-within/field:text-[#63afe3]"
+                      aria-hidden="true"
+                    />
+                    <input
+                      id="tracking-phone"
+                      type="tel"
+                      inputMode="tel"
+                      value={phone}
+                      onChange={(event) => setPhone(event.target.value)}
+                      placeholder={copy.lookup.phonePlaceholder}
+                      autoComplete="tel"
+                      className={formControlClassName({
+                        className: "pl-[52px] pr-12 text-[15px] font-medium",
+                      })}
+                    />
+
+                    {phone ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPhone("");
+                          setFeedback(null);
+                        }}
+                        aria-label={copy.lookup.clearPhone}
+                        className="absolute right-2.5 top-1/2 z-10 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-lg text-slate-400 transition-colors duration-150 hover:bg-slate-100 hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9bd2f0]"
+                      >
+                        <X className="h-4 w-4" aria-hidden="true" />
+                      </button>
+                    ) : null}
+                  </div>
+
+                  <span className="mt-2 block text-xs leading-5 text-slate-400">
+                    {copy.lookup.phoneHint}
+                  </span>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="group relative inline-flex h-12 min-w-[140px] items-center justify-center gap-1.5 overflow-hidden rounded-[14px] bg-[#168fce] px-6 text-base font-bold text-white transition-all duration-300 hover:-translate-y-0.5 hover:bg-[#087ab7] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-200 disabled:cursor-wait disabled:opacity-70 lg:mt-[29px] motion-reduce:transform-none"
+                >
+                  {loading ? (
+                    <LoaderCircle className="h-5 w-5 animate-spin" />
+                  ) : (
+                    <Search className="h-5 w-5" />
+                  )}
+
+                  {loading ? copy.lookup.submitting : copy.lookup.submit}
+
+                  <span className="pointer-events-none absolute inset-y-0 -left-1/2 w-1/3 -skew-x-12 bg-gradient-to-r from-transparent via-white/35 to-transparent transition-transform duration-700 group-hover:translate-x-[500%] motion-reduce:hidden" />
+                </button>
+              </form>
+
+              <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-4 text-sm">
+                <a
+                  href="#where-code"
+                  onClick={(event) => {
+                    event.preventDefault();
+                    openGuideAt("where-code");
+                  }}
+                  className="font-semibold text-[#087ab7] transition-colors hover:text-[#075f91] hover:underline"
+                >
+                  {copy.lookup.forgotCode}
+                </a>
+
+                <a
+                  href="#support"
+                  onClick={(event) => {
+                    event.preventDefault();
+                    openGuideAt("support");
+                  }}
+                  className="font-semibold text-slate-500 transition-colors hover:text-[#087ab7]"
+                >
+                  {copy.lookup.needSupport}
+                </a>
+              </div>
+
+              <div aria-live="polite" className="mt-3 empty:mt-0">
+                {feedback ? (
+                  <div
+                    className={`flex items-start gap-2 rounded-xl px-4 py-3 text-sm font-medium ${
+                      feedback.tone === "error"
+                        ? "bg-red-50 text-red-700"
+                        : "bg-emerald-50 text-emerald-700"
+                    }`}
+                  >
+                    {feedback.tone === "error" ? (
+                      <CircleAlert className="mt-0.5 h-4 w-4 shrink-0" />
+                    ) : (
+                      <Check className="mt-0.5 h-4 w-4 shrink-0" />
+                    )}
+                    {feedback.message}
+                  </div>
+                ) : null}
+              </div>
+            </div>
           </ScrollReveal>
 
-          <ScrollReveal variant="slideRight" delay={0.08}>
-            <div className="relative mx-auto max-w-[650px] rounded-[2.2rem] border border-white/80 bg-white/72 p-4 shadow-[0_28px_70px_-42px_rgba(16,35,63,0.42)] backdrop-blur sm:p-6">
-              <div className="relative min-h-[390px] overflow-hidden rounded-[1.75rem] bg-[linear-gradient(145deg,#eaf6ff_0%,#f8fbff_54%,#fff7d8_100%)] p-5 sm:min-h-[430px] sm:p-8">
-                <div className="absolute right-5 top-5 rotate-6 rounded-2xl border border-white bg-white/90 p-3 shadow-sm motion-safe:animate-[float_5s_ease-in-out_infinite]">
-                  <FluentIcon
-                    src={FLUENT_ICONS.package}
-                    className="h-14 w-14"
-                  />
-                </div>
-                <div className="absolute bottom-8 left-6 -rotate-6 rounded-2xl border border-white bg-white/90 p-3 shadow-sm motion-safe:animate-[float_6s_ease-in-out_infinite_reverse]">
-                  <FluentIcon src={FLUENT_ICONS.truck} className="h-12 w-12" />
-                </div>
+          <div className="mt-4">
+            <button
+              type="button"
+              onClick={() => {
+                setPendingGuideTarget(null);
+                setIsGuideOpen((current) => !current);
+              }}
+              aria-expanded={isGuideOpen}
+              aria-controls="tracking-guide"
+              className="group flex w-full items-center justify-between gap-4 rounded-2xl border border-[#cfe2ef] bg-white px-5 py-4 text-left transition-[transform,border-color,background-color] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:-translate-y-0.5 hover:border-[#9dcce7] hover:bg-[#f8fcff] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8fcbed] focus-visible:ring-offset-2 motion-reduce:transform-none motion-reduce:transition-none"
+            >
+              <span className="min-w-0">
+                <span className="block text-sm font-bold text-[#10233f]">
+                  {isGuideOpen ? copy.guide.collapse : copy.guide.expand}
+                </span>
+                <span className="mt-0.5 block text-xs leading-5 text-slate-500">
+                  {copy.guide.summary}
+                </span>
+              </span>
 
-                <div className="relative mx-auto mt-10 max-w-[410px] rounded-[1.75rem] border border-[#d8e9f7] bg-white p-5 shadow-[0_22px_55px_-38px_rgba(16,35,63,0.5)] sm:p-7">
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <span className="text-[0.68rem] font-bold uppercase tracking-[0.18em] text-slate-400">
-                        {copy.result.orderCode}
-                      </span>
-                      <p className="mt-1 font-mono text-sm font-bold tracking-[0.12em] text-[#10233f] sm:text-base">
-                        {copy.hero.visualCode}
-                      </p>
-                    </div>
-                    <span className="rounded-full bg-[#e8f7ef] px-3 py-1.5 text-xs font-bold text-emerald-700">
-                      04 / 07
-                    </span>
-                  </div>
-                  <div className="mt-8 flex justify-between">
-                    {[
-                      FLUENT_ICONS.receipt,
-                      FLUENT_ICONS.search,
-                      FLUENT_ICONS.gift,
-                      FLUENT_ICONS.truck,
-                    ].map((icon, index) => (
-                      <div
-                        key={icon}
-                        className="relative z-10 flex flex-col items-center"
-                      >
-                        <span
-                          className={`flex h-12 w-12 items-center justify-center rounded-2xl border ${index <= 2 ? "border-[#b9dcf2] bg-[#eef8ff]" : "border-slate-200 bg-white"}`}
-                        >
-                          <FluentIcon src={icon} className="h-7 w-7" />
+              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-[#d7eaf6] bg-white text-[#168fce] transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-105 motion-reduce:transform-none">
+                <ChevronDown
+                  className={`h-4 w-4 transition-transform duration-[400ms] ease-[cubic-bezier(0.22,1,0.36,1)] ${
+                    isGuideOpen ? "rotate-180" : "rotate-0"
+                  }`}
+                  aria-hidden="true"
+                />
+              </span>
+            </button>
+          </div>
+        </Container>
+      </section>
+
+      <AnimatePresence initial={false}>
+        {isGuideOpen ? (
+          <motion.div
+            id="tracking-guide"
+            key="tracking-guide"
+            initial={{ height: 0, opacity: 0, y: -10 }}
+            animate={{ height: "auto", opacity: 1, y: 0 }}
+            exit={{ height: 0, opacity: 0, y: -10 }}
+            transition={{
+              height: {
+                duration: 0.42,
+                ease: [0.22, 1, 0.36, 1],
+              },
+              opacity: { duration: 0.28, ease: "easeOut" },
+              y: { duration: 0.36, ease: [0.22, 1, 0.36, 1] },
+            }}
+            className="overflow-hidden"
+          >
+            <section className="pb-20">
+              <Container size="default">
+                <SectionHeading
+                  eyebrow={copy.guide.eyebrow}
+                  title={copy.guide.title}
+                  description={copy.guide.description}
+                />
+                <div className="mt-9 grid gap-5 md:grid-cols-3">
+                  {copy.guide.items.map((item, index) => (
+                    <ScrollReveal key={item.title} delay={index * 0.06}>
+                      <article className="group relative h-full overflow-hidden rounded-3xl border border-[#dbe8f3] bg-white p-6 shadow-[0_12px_35px_-30px_rgba(16,35,63,0.45)] transition-all duration-300 hover:-translate-y-1 hover:border-[#add5ed] hover:shadow-[0_18px_42px_-28px_rgba(16,35,63,0.32)] motion-reduce:transform-none">
+                        <span className="pointer-events-none absolute inset-y-0 -left-1/2 w-1/3 -skew-x-12 bg-gradient-to-r from-transparent via-white/70 to-transparent transition-transform duration-700 group-hover:translate-x-[500%] motion-reduce:hidden" />
+                        <div className="flex items-start justify-between gap-4">
+                          <span className="flex h-16 w-16 items-center justify-center rounded-2xl bg-[#eef7ff] transition-transform duration-300 group-hover:scale-105 motion-reduce:transform-none">
+                            <FluentIcon
+                              src={GUIDE_ICONS[index] ?? FLUENT_ICONS.receipt}
+                              className="h-10 w-10"
+                            />
+                          </span>
+                          <span className="font-mono text-xs font-bold text-[#168fce]">
+                            0{index + 1}
+                          </span>
+                        </div>
+                        <h3 className="mt-6 text-lg font-bold text-[#10233f]">
+                          {item.title}
+                        </h3>
+                        <p className="mt-2 text-sm leading-6 text-slate-500">
+                          {item.description}
+                        </p>
+                      </article>
+                    </ScrollReveal>
+                  ))}
+                </div>
+              </Container>
+            </section>
+
+            <section className="border-y border-[#dfeaf4] bg-[#edf6fd] py-20">
+              <Container size="wide">
+                <SectionHeading
+                  eyebrow={copy.statuses.eyebrow}
+                  title={copy.statuses.title}
+                  description={copy.statuses.description}
+                  centered
+                />
+                <div className="relative mt-12 grid gap-4 md:grid-cols-2 lg:grid-cols-7 lg:gap-3">
+                  <div className="absolute left-[7%] right-[7%] top-10 hidden h-px bg-[#a9d5ee] lg:block" />
+                  {copy.statuses.items.map((item, index) => (
+                    <ScrollReveal
+                      key={item.key}
+                      delay={index * 0.045}
+                      className="relative"
+                    >
+                      <article className="group relative flex h-full gap-4 overflow-hidden rounded-3xl border border-white/90 bg-white/80 p-5 backdrop-blur transition-all duration-300 hover:-translate-y-1 hover:border-[#b5d9ee] hover:shadow-sm lg:block lg:bg-transparent lg:p-2 lg:text-center lg:hover:shadow-none motion-reduce:transform-none">
+                        <span className="relative z-10 flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl border border-[#d6e9f6] bg-white shadow-sm transition-transform duration-300 group-hover:scale-105 motion-reduce:transform-none lg:mx-auto">
+                          <FluentIcon
+                            src={STATUS_ICONS[index] ?? FLUENT_ICONS.package}
+                            className="h-9 w-9"
+                          />
+                          <span className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-[#f6cf4b] text-[0.65rem] font-bold text-[#10233f]">
+                            {index + 1}
+                          </span>
                         </span>
+                        <div className="lg:mt-5">
+                          <h3 className="text-sm font-bold text-[#10233f]">
+                            {item.title}
+                          </h3>
+                          <p className="mt-1 text-xs leading-5 text-slate-500">
+                            {item.description}
+                          </p>
+                        </div>
+                      </article>
+                    </ScrollReveal>
+                  ))}
+                </div>
+              </Container>
+            </section>
+
+            <section id="where-code" className="scroll-mt-28 py-20">
+              <Container
+                size="default"
+                className="grid items-center gap-10 lg:grid-cols-[1fr_0.85fr]"
+              >
+                <ScrollReveal variant="slideLeft">
+                  <SectionHeading
+                    eyebrow={copy.where.eyebrow}
+                    title={copy.where.title}
+                    description={copy.where.description}
+                  />
+                  <div className="mt-8 space-y-3">
+                    {copy.where.items.map((item, index) => (
+                      <div
+                        key={item.title}
+                        className="flex items-center gap-4 rounded-2xl border border-[#dce8f2] bg-white p-4 transition hover:border-[#b9d9ed] hover:shadow-sm"
+                      >
+                        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#f0f8ff]">
+                          <FluentIcon
+                            src={WHERE_ICONS[index] ?? FLUENT_ICONS.receipt}
+                            className="h-8 w-8"
+                          />
+                        </span>
+                        <div>
+                          <h3 className="text-sm font-bold text-[#10233f]">
+                            {item.title}
+                          </h3>
+                          <p className="mt-1 text-sm leading-5 text-slate-500">
+                            {item.description}
+                          </p>
+                        </div>
                       </div>
                     ))}
                   </div>
-                  <div className="relative -mt-6 h-px bg-slate-200">
-                    <div className="h-full w-[68%] bg-[#2f9bd4]" />
-                  </div>
-                  <div className="mt-9 rounded-2xl bg-[#f5f9fd] p-4">
-                    <div className="flex items-center gap-3">
-                      <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-white shadow-sm">
-                        <Clock3 className="h-5 w-5 text-[#168fce]" />
-                      </span>
-                      <div>
-                        <p className="text-sm font-bold text-[#10233f]">
-                          {copy.hero.visualStatus}
-                        </p>
-                        <p className="mt-1 text-xs text-slate-500">
-                          {copy.hero.visualHint}
-                        </p>
+                </ScrollReveal>
+                <ScrollReveal variant="slideRight" delay={0.08}>
+                  <div className="relative mx-auto max-w-md rounded-[2rem] border border-[#d8e8f4] bg-white p-6 shadow-[0_24px_60px_-44px_rgba(16,35,63,0.45)]">
+                    <div className="rounded-3xl bg-[#f2f8fd] p-6">
+                      <div className="flex items-center justify-between">
+                        <FluentIcon
+                          src={FLUENT_ICONS.receipt}
+                          className="h-14 w-14"
+                        />
+                        <span className="rounded-full bg-white px-3 py-1 text-[0.65rem] font-bold uppercase tracking-wider text-[#168fce]">
+                          {dictionary.common.brandName}
+                        </span>
+                      </div>
+                      <p className="mt-8 text-xs font-bold uppercase tracking-[0.18em] text-slate-400">
+                        {copy.where.sampleLabel}
+                      </p>
+                      <p className="mt-2 font-mono text-xl font-bold tracking-[0.13em] text-[#10233f]">
+                        {copy.where.sampleCode}
+                      </p>
+                      <div className="mt-6 space-y-2">
+                        <span className="block h-2 w-full rounded-full bg-white" />
+                        <span className="block h-2 w-4/5 rounded-full bg-white" />
+                        <span className="block h-2 w-2/3 rounded-full bg-white" />
                       </div>
                     </div>
+                    <div className="absolute -bottom-4 -right-4 flex h-16 w-16 items-center justify-center rounded-2xl border-4 border-[#f7faff] bg-[#fff1b6] shadow-sm">
+                      <Search className="h-6 w-6 text-[#9e7400]" />
+                    </div>
                   </div>
-                </div>
-              </div>
-            </div>
-          </ScrollReveal>
-        </Container>
-      </section>
+                </ScrollReveal>
+              </Container>
+            </section>
 
-      <section id="lookup-form" className="scroll-mt-28 pb-20">
-        <Container size="default">
-          <ScrollReveal className="relative overflow-hidden rounded-[2rem] border border-[#d8e9f7] bg-white p-6 shadow-[0_24px_60px_-42px_rgba(16,35,63,0.42)] sm:p-8 lg:p-10">
-            <div className="pointer-events-none absolute right-0 top-0 h-32 w-32 rounded-bl-full bg-[#fff4c7]/70" />
-            <div className="relative flex flex-col justify-between gap-4 lg:flex-row lg:items-end">
-              <div>
-                <Eyebrow>{copy.lookup.eyebrow}</Eyebrow>
-                <h2 className="mt-3 text-2xl font-bold tracking-[-0.035em] text-[#10233f] sm:text-3xl">
-                  {copy.lookup.title}
-                </h2>
-                <p className="mt-2 text-sm leading-6 text-slate-500 sm:text-base">
-                  {copy.lookup.description}
-                </p>
-              </div>
-              <ShieldCheck className="hidden h-9 w-9 text-[#168fce] lg:block" />
-            </div>
-
-            <form
-              onSubmit={handleLookup}
-              noValidate
-              className="relative mt-7 grid gap-4 lg:grid-cols-[1fr_1fr_auto] lg:items-end"
+            <section
+              id="support"
+              className="scroll-mt-28 overflow-hidden border-y border-[#173d67] bg-[#102c4d]"
             >
-              <label className="block">
-                <span className="mb-2 block text-sm font-bold text-slate-700">
-                  {copy.lookup.orderCodeLabel}
-                </span>
-                <span className="flex h-[52px] items-center rounded-2xl border border-[#d8e5f0] bg-[#fbfdff] px-4 transition focus-within:border-[#5fb5e4] focus-within:ring-4 focus-within:ring-[#dff2ff]">
-                  <Search className="mr-3 h-4 w-4 shrink-0 text-slate-400" />
-                  <input
-                    value={orderCode}
-                    onChange={(event) =>
-                      setOrderCode(event.target.value.toUpperCase())
-                    }
-                    placeholder={copy.lookup.orderCodePlaceholder}
-                    autoComplete="off"
-                    className="h-[52px] min-w-0 flex-1 bg-transparent font-mono text-sm font-semibold uppercase tracking-wide text-[#10233f] outline-none placeholder:font-sans placeholder:font-normal placeholder:normal-case placeholder:tracking-normal placeholder:text-slate-400"
-                  />
-                </span>
-                <span className="mt-2 block text-xs leading-5 text-slate-400">
-                  {copy.lookup.codeHint}
-                </span>
-              </label>
+              <div className="relative">
+                <div className="pointer-events-none absolute -left-24 top-1/2 h-64 w-64 -translate-y-1/2 rounded-full bg-[#1a416c]/60 blur-3xl" />
+                <div className="pointer-events-none absolute -right-20 top-1/2 h-64 w-64 -translate-y-1/2 rounded-full bg-[#f6d76b]/10 blur-3xl" />
 
-              <label className="block">
-                <span className="mb-2 block text-sm font-bold text-slate-700">
-                  {copy.lookup.phoneLabel}
-                </span>
-                <span className="flex h-[52px] items-center rounded-2xl border border-[#d8e5f0] bg-[#fbfdff] px-4 transition focus-within:border-[#5fb5e4] focus-within:ring-4 focus-within:ring-[#dff2ff]">
-                  <ShieldCheck className="mr-3 h-4 w-4 shrink-0 text-slate-400" />
-                  <input
-                    type="tel"
-                    inputMode="tel"
-                    value={phone}
-                    onChange={(event) => setPhone(event.target.value)}
-                    placeholder={copy.lookup.phonePlaceholder}
-                    autoComplete="tel"
-                    className="h-[52px] min-w-0 flex-1 bg-transparent text-sm font-semibold text-[#10233f] outline-none placeholder:font-normal placeholder:text-slate-400"
-                  />
-                </span>
-                <span className="mt-2 block text-xs leading-5 text-slate-400">
-                  {copy.lookup.phoneHint}
-                </span>
-              </label>
+                <Container size="wide" className="relative">
+                  <ScrollReveal className="py-10 text-white sm:py-12 lg:flex lg:items-center lg:justify-between lg:gap-12">
+                    <div className="max-w-3xl">
+                      <Eyebrow inverse>{copy.support.eyebrow}</Eyebrow>
+                      <h2 className="mt-3 text-balance text-[clamp(1.5rem,3vw,2.25rem)] font-bold leading-[1.12] tracking-[-0.03em]">
+                        {copy.support.title}
+                      </h2>
+                      <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-300 sm:text-base">
+                        {copy.support.description}
+                      </p>
+                    </div>
 
-              <button
-                type="submit"
-                disabled={loading}
-                className="group relative mb-7 inline-flex h-[52px] min-w-[180px] items-center justify-center gap-2 overflow-hidden rounded-2xl bg-[#168fce] px-6 text-sm font-bold text-white shadow-[0_14px_28px_-20px_rgba(0,119,182,0.9)] transition-all duration-300 hover:-translate-y-0.5 hover:bg-[#087ab7] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-200 disabled:cursor-wait disabled:opacity-70 motion-reduce:transform-none"
-              >
-                {loading ? (
-                  <LoaderCircle className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Search className="h-4 w-4" />
-                )}
-                {loading ? copy.lookup.submitting : copy.lookup.submit}
-                <span className="pointer-events-none absolute inset-y-0 -left-1/2 w-1/3 -skew-x-12 bg-gradient-to-r from-transparent via-white/35 to-transparent transition-transform duration-700 group-hover:translate-x-[500%] motion-reduce:hidden" />
-              </button>
-            </form>
-
-            <div className="mt-2 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-5 text-sm">
-              <a
-                href="#where-code"
-                className="font-semibold text-[#087ab7] hover:underline"
-              >
-                {copy.lookup.forgotCode}
-              </a>
-              <a
-                href="#support"
-                className="font-semibold text-slate-500 hover:text-[#087ab7]"
-              >
-                {copy.lookup.needSupport}
-              </a>
-            </div>
-            <div aria-live="polite" className="mt-4 min-h-6">
-              {feedback ? (
-                <div
-                  className={`flex items-start gap-2 rounded-xl px-4 py-3 text-sm font-medium ${feedback.tone === "error" ? "bg-red-50 text-red-700" : "bg-emerald-50 text-emerald-700"}`}
-                >
-                  {feedback.tone === "error" ? (
-                    <CircleAlert className="mt-0.5 h-4 w-4 shrink-0" />
-                  ) : (
-                    <Check className="mt-0.5 h-4 w-4 shrink-0" />
-                  )}
-                  {feedback.message}
-                </div>
-              ) : null}
-            </div>
-          </ScrollReveal>
-        </Container>
-      </section>
-
-      <section className="pb-20">
-        <Container size="default">
-          <SectionHeading
-            eyebrow={copy.guide.eyebrow}
-            title={copy.guide.title}
-            description={copy.guide.description}
-          />
-          <div className="mt-9 grid gap-5 md:grid-cols-3">
-            {copy.guide.items.map((item, index) => (
-              <ScrollReveal key={item.title} delay={index * 0.06}>
-                <article className="group relative h-full overflow-hidden rounded-3xl border border-[#dbe8f3] bg-white p-6 shadow-[0_12px_35px_-30px_rgba(16,35,63,0.45)] transition-all duration-300 hover:-translate-y-1 hover:border-[#add5ed] hover:shadow-[0_18px_42px_-28px_rgba(16,35,63,0.32)] motion-reduce:transform-none">
-                  <span className="pointer-events-none absolute inset-y-0 -left-1/2 w-1/3 -skew-x-12 bg-gradient-to-r from-transparent via-white/70 to-transparent transition-transform duration-700 group-hover:translate-x-[500%] motion-reduce:hidden" />
-                  <div className="flex items-start justify-between gap-4">
-                    <span className="flex h-16 w-16 items-center justify-center rounded-2xl bg-[#eef7ff] transition-transform duration-300 group-hover:scale-105 motion-reduce:transform-none">
-                      <FluentIcon
-                        src={GUIDE_ICONS[index] ?? FLUENT_ICONS.receipt}
-                        className="h-10 w-10"
-                      />
-                    </span>
-                    <span className="font-mono text-xs font-bold text-[#168fce]">
-                      0{index + 1}
-                    </span>
-                  </div>
-                  <h3 className="mt-6 text-lg font-bold text-[#10233f]">
-                    {item.title}
-                  </h3>
-                  <p className="mt-2 text-sm leading-6 text-slate-500">
-                    {item.description}
-                  </p>
-                </article>
-              </ScrollReveal>
-            ))}
-          </div>
-        </Container>
-      </section>
-
-      <section className="border-y border-[#dfeaf4] bg-[#edf6fd] py-20">
-        <Container size="wide">
-          <SectionHeading
-            eyebrow={copy.statuses.eyebrow}
-            title={copy.statuses.title}
-            description={copy.statuses.description}
-            centered
-          />
-          <div className="relative mt-12 grid gap-4 md:grid-cols-2 lg:grid-cols-7 lg:gap-3">
-            <div className="absolute left-[7%] right-[7%] top-10 hidden h-px bg-[#a9d5ee] lg:block" />
-            {copy.statuses.items.map((item, index) => (
-              <ScrollReveal
-                key={item.key}
-                delay={index * 0.045}
-                className="relative"
-              >
-                <article className="group relative flex h-full gap-4 overflow-hidden rounded-3xl border border-white/90 bg-white/80 p-5 backdrop-blur transition-all duration-300 hover:-translate-y-1 hover:border-[#b5d9ee] hover:shadow-sm lg:block lg:bg-transparent lg:p-2 lg:text-center lg:hover:shadow-none motion-reduce:transform-none">
-                  <span className="relative z-10 flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl border border-[#d6e9f6] bg-white shadow-sm transition-transform duration-300 group-hover:scale-105 motion-reduce:transform-none lg:mx-auto">
-                    <FluentIcon
-                      src={STATUS_ICONS[index] ?? FLUENT_ICONS.package}
-                      className="h-9 w-9"
-                    />
-                    <span className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-[#f6cf4b] text-[0.65rem] font-bold text-[#10233f]">
-                      {index + 1}
-                    </span>
-                  </span>
-                  <div className="lg:mt-5">
-                    <h3 className="text-sm font-bold text-[#10233f]">
-                      {item.title}
-                    </h3>
-                    <p className="mt-1 text-xs leading-5 text-slate-500">
-                      {item.description}
-                    </p>
-                  </div>
-                </article>
-              </ScrollReveal>
-            ))}
-          </div>
-        </Container>
-      </section>
-
-      <section id="where-code" className="scroll-mt-28 py-20">
-        <Container
-          size="default"
-          className="grid items-center gap-10 lg:grid-cols-[1fr_0.85fr]"
-        >
-          <ScrollReveal variant="slideLeft">
-            <SectionHeading
-              eyebrow={copy.where.eyebrow}
-              title={copy.where.title}
-              description={copy.where.description}
-            />
-            <div className="mt-8 space-y-3">
-              {copy.where.items.map((item, index) => (
-                <div
-                  key={item.title}
-                  className="flex items-center gap-4 rounded-2xl border border-[#dce8f2] bg-white p-4 transition hover:border-[#b9d9ed] hover:shadow-sm"
-                >
-                  <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#f0f8ff]">
-                    <FluentIcon
-                      src={WHERE_ICONS[index] ?? FLUENT_ICONS.receipt}
-                      className="h-8 w-8"
-                    />
-                  </span>
-                  <div>
-                    <h3 className="text-sm font-bold text-[#10233f]">
-                      {item.title}
-                    </h3>
-                    <p className="mt-1 text-sm leading-5 text-slate-500">
-                      {item.description}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </ScrollReveal>
-          <ScrollReveal variant="slideRight" delay={0.08}>
-            <div className="relative mx-auto max-w-md rounded-[2rem] border border-[#d8e8f4] bg-white p-6 shadow-[0_24px_60px_-44px_rgba(16,35,63,0.45)]">
-              <div className="rounded-3xl bg-[#f2f8fd] p-6">
-                <div className="flex items-center justify-between">
-                  <FluentIcon
-                    src={FLUENT_ICONS.receipt}
-                    className="h-14 w-14"
-                  />
-                  <span className="rounded-full bg-white px-3 py-1 text-[0.65rem] font-bold uppercase tracking-wider text-[#168fce]">
-                    Figure Lab
-                  </span>
-                </div>
-                <p className="mt-8 text-xs font-bold uppercase tracking-[0.18em] text-slate-400">
-                  {copy.where.sampleLabel}
-                </p>
-                <p className="mt-2 font-mono text-xl font-bold tracking-[0.13em] text-[#10233f]">
-                  {copy.where.sampleCode}
-                </p>
-                <div className="mt-6 space-y-2">
-                  <span className="block h-2 w-full rounded-full bg-white" />
-                  <span className="block h-2 w-4/5 rounded-full bg-white" />
-                  <span className="block h-2 w-2/3 rounded-full bg-white" />
-                </div>
+                    <Link
+                      href={ROUTES.contact}
+                      className="group relative mt-7 inline-flex h-[52px] shrink-0 items-center justify-center gap-2 overflow-hidden rounded-full bg-[#f6d76b] px-7 text-sm font-bold text-[#10233f] shadow-[0_14px_32px_-22px_rgba(246,215,107,0.9)] transition-[transform,background-color,box-shadow] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] hover:translate-x-1 hover:bg-[#ffe38a] hover:shadow-[0_18px_36px_-20px_rgba(246,215,107,0.95)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-white/30 lg:mt-0 motion-reduce:transform-none motion-reduce:transition-none"
+                    >
+                      <span className="relative z-10">
+                        {copy.support.button}
+                      </span>
+                      <ExternalLink className="relative z-10 h-4 w-4 transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:-translate-y-0.5 group-hover:translate-x-1 motion-reduce:transform-none motion-reduce:transition-none" />
+                      <span className="pointer-events-none absolute inset-y-0 -left-1/2 w-1/3 -skew-x-12 bg-gradient-to-r from-transparent via-white/45 to-transparent transition-transform duration-700 ease-out group-hover:translate-x-[520%] motion-reduce:hidden" />
+                    </Link>
+                  </ScrollReveal>
+                </Container>
               </div>
-              <div className="absolute -bottom-4 -right-4 flex h-16 w-16 items-center justify-center rounded-2xl border-4 border-[#f7faff] bg-[#fff1b6] shadow-sm">
-                <Search className="h-6 w-6 text-[#9e7400]" />
-              </div>
-            </div>
-          </ScrollReveal>
-        </Container>
-      </section>
-
-      <section className="pb-20">
-        <Container size="default">
-          <SectionHeading eyebrow={copy.faq.eyebrow} title={copy.faq.title} />
-          <div className="mt-8 grid gap-4 lg:grid-cols-2">
-            {copy.faq.items.map((item) => (
-              <details
-                key={item.question}
-                className="group rounded-2xl border border-[#dce8f2] bg-white p-5 open:border-[#a9d3eb] open:shadow-sm"
-              >
-                <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-sm font-bold text-[#10233f] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300">
-                  {item.question}
-                  <ChevronDown className="h-4 w-4 shrink-0 text-[#168fce] transition-transform duration-300 group-open:rotate-180" />
-                </summary>
-                <p className="mt-3 border-t border-slate-100 pt-3 text-sm leading-6 text-slate-500">
-                  {item.answer}
-                </p>
-              </details>
-            ))}
-          </div>
-
-          <ScrollReveal
-            id="support"
-            className="mt-10 scroll-mt-28 overflow-hidden rounded-[2rem] bg-[#102c4d] px-6 py-9 text-white sm:px-10 lg:flex lg:items-center lg:justify-between lg:px-12"
-          >
-            <div className="max-w-2xl">
-              <Eyebrow inverse>{copy.support.eyebrow}</Eyebrow>
-              <h2 className="mt-3 text-2xl font-bold tracking-[-0.03em] sm:text-3xl">
-                {copy.support.title}
-              </h2>
-              <p className="mt-3 text-sm leading-6 text-slate-300 sm:text-base">
-                {copy.support.description}
-              </p>
-            </div>
-            <Link
-              href={ROUTES.contact}
-              className="group mt-6 inline-flex h-12 items-center gap-2 rounded-full bg-[#f6d76b] px-6 text-sm font-bold text-[#10233f] transition hover:-translate-y-0.5 hover:bg-[#ffe38a] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-white/30 lg:mt-0 motion-reduce:transform-none"
-            >
-              {copy.support.button}
-              <ExternalLink className="h-4 w-4 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5 motion-reduce:transform-none" />
-            </Link>
-          </ScrollReveal>
-        </Container>
-      </section>
+            </section>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
 
       {result ? (
         <TrackingResultSection
@@ -711,7 +749,7 @@ const TrackingResultSection = ({
                 <ResultDatum
                   label={copy.result.total}
                   value={formatCurrency(result.totalAmount, {
-                    locale: locale === "vi" ? "vi-VN" : "en-US",
+                    locale: LOCALE_FORMATS[locale],
                   })}
                   strong
                 />
@@ -900,7 +938,7 @@ function SectionHeading({
   return (
     <div className={centered ? "mx-auto max-w-3xl text-center" : "max-w-2xl"}>
       <Eyebrow>{eyebrow}</Eyebrow>
-      <h2 className="mt-3 text-balance text-[clamp(1.8rem,3.4vw,3.1rem)] font-bold leading-[1.08] tracking-[-0.04em] text-[#10233f]">
+      <h2 className="mt-3 text-balance text-[clamp(1.5rem,3vw,2.25rem)] font-bold leading-[1.12] tracking-[-0.03em] text-[#10233f]">
         {title}
       </h2>
       {description ? (
@@ -946,11 +984,13 @@ function ResultDatum({
 }
 
 function TrackingFallback() {
+  const { dictionary } = useI18n();
+
   return (
     <main className="flex min-h-[70vh] items-center justify-center bg-[#f7faff]">
       <LoaderCircle
         className="h-7 w-7 animate-spin text-[#168fce]"
-        aria-label="Loading"
+        aria-label={dictionary.common.loading}
       />
     </main>
   );

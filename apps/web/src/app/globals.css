@@ -95,6 +95,34 @@
     --z-modal: 1300;
     --z-popover: 1400;
     --z-tooltip: 1600;
+
+    /* Fixed site header height, shared by sticky page-side content. */
+    --site-header-height: 62px;
+
+    /* Figure Lab form controls — shared by inputs, selects and popovers. */
+    --control-height: 48px;
+    --control-height-compact: 44px;
+    --control-radius: 15px;
+    --control-border: var(--color-border-strong);
+    --control-border-hover: 207 42% 70%;
+    --control-border-focus: var(--color-primary);
+    --control-ring: var(--color-primary);
+    --control-placeholder: var(--color-text-muted);
+    --control-disabled-bg: var(--color-surface-soft);
+    --popover-border: var(--color-border);
+    --popover-shadow: 0 22px 55px -28px rgb(18 45 78 / 0.32);
+  }
+
+  @media (min-width: 1024px) {
+    :root {
+      --site-header-height: 58px;
+    }
+  }
+
+  @media (min-width: 1280px) {
+    :root {
+      --site-header-height: 62px;
+    }
   }
 
   .dark {
@@ -127,6 +155,14 @@
     --color-text-inverse: 213 52% 13%;
     --color-success-soft: 142 35% 20%;
     --color-warning-soft: 41 35% 20%;
+    --control-border: var(--color-border-strong);
+    --control-border-hover: 207 24% 48%;
+    --control-border-focus: var(--color-primary);
+    --control-ring: var(--color-primary);
+    --control-placeholder: var(--color-text-muted);
+    --control-disabled-bg: var(--color-surface-soft);
+    --popover-border: var(--color-border);
+    --popover-shadow: 0 22px 55px -28px rgb(0 0 0 / 0.62);
   }
 
   *,
@@ -136,6 +172,8 @@
     border-width: 0;
     border-style: solid;
     border-color: hsl(var(--color-border));
+    scrollbar-width: thin;
+    scrollbar-color: rgb(128 128 128 / 0.2) transparent;
   }
 
   button,
@@ -154,6 +192,7 @@
   [type="submit"] {
     appearance: none;
     -webkit-appearance: none;
+    background-color: transparent;
     background-image: none;
     border-style: solid;
   }
@@ -192,6 +231,7 @@
   body {
     max-width: 100%;
     overflow-x: hidden;
+    overflow-y: hidden;
   }
 
   #site-scroll-root {
@@ -254,8 +294,8 @@
   }
 
   ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+    width: 6px;
+    height: 6px;
   }
 
   ::-webkit-scrollbar-track {
@@ -263,12 +303,17 @@
   }
 
   ::-webkit-scrollbar-thumb {
-    background: hsl(var(--color-border-strong));
-    border-radius: 9999px;
+    background-color: rgb(128 128 128 / 0.18);
+    border-radius: 4px;
+    transition: background-color 0.3s ease;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background: hsl(var(--color-text-muted));
+    background-color: rgb(128 128 128 / 0.5);
+  }
+
+  ::-webkit-scrollbar-thumb:active {
+    background-color: rgb(128 128 128 / 0.72);
   }
 }
 
@@ -303,6 +348,127 @@
 }
 
 @layer components {
+  .business-hover-lift {
+    transition-property: transform, border-color, background-color, box-shadow,
+      color;
+    transition-duration: 500ms;
+    transition-timing-function: cubic-bezier(0.34, 1.42, 0.64, 1);
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .business-hover-lift:hover {
+      transform: translateY(-2px);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .business-hover-lift {
+      transform: none !important;
+      transition-duration: 0.01ms;
+    }
+  }
+
+  .form-control {
+    width: 100%;
+    height: var(--control-height);
+    border: 1px solid hsl(var(--control-border));
+    border-radius: var(--control-radius);
+    outline: none;
+    background: hsl(var(--color-surface));
+    color: hsl(var(--color-text-primary));
+    box-shadow: var(--shadow-control);
+    transition:
+      border-color var(--duration-fast) var(--ease-smooth),
+      background-color var(--duration-fast) var(--ease-smooth),
+      box-shadow var(--duration-fast) var(--ease-smooth),
+      color var(--duration-fast) var(--ease-smooth);
+  }
+
+  .form-control--compact {
+    height: var(--control-height-compact);
+  }
+
+  .form-control::placeholder {
+    color: hsl(var(--control-placeholder));
+    opacity: 1;
+  }
+
+  .form-control:hover:not(:disabled):not([aria-disabled="true"]):not(
+      [aria-invalid="true"]
+    ) {
+    border-color: hsl(var(--control-border-hover));
+  }
+
+  .form-control:focus,
+  .form-control:focus-visible,
+  .form-control[data-state="open"],
+  .form-control[aria-expanded="true"] {
+    border-color: hsl(var(--control-border-focus));
+    outline: none;
+    box-shadow: inset 0 0 0 1px hsl(var(--control-ring) / 0.82);
+  }
+
+  .form-control[aria-invalid="true"],
+  .form-control.is-invalid {
+    border-color: hsl(var(--color-error));
+  }
+
+  .form-control[aria-invalid="true"]:focus,
+  .form-control[aria-invalid="true"]:focus-visible,
+  .form-control.is-invalid:focus,
+  .form-control.is-invalid:focus-visible {
+    box-shadow: inset 0 0 0 1px hsl(var(--color-error) / 0.82);
+  }
+
+  .form-control.is-success {
+    border-color: hsl(var(--color-success));
+  }
+
+  .form-control:disabled,
+  .form-control[aria-disabled="true"] {
+    cursor: not-allowed;
+    background: hsl(var(--control-disabled-bg));
+    color: hsl(var(--color-text-muted));
+    opacity: 0.76;
+  }
+
+  textarea.form-control {
+    height: auto;
+    min-height: 112px;
+  }
+
+  .form-popover {
+    min-width: var(--radix-select-trigger-width, 220px);
+    max-height: min(320px, var(--radix-select-content-available-height, 320px));
+    overflow: hidden;
+    border: 1px solid hsl(var(--popover-border));
+    border-radius: var(--control-radius);
+    background: hsl(var(--color-surface));
+    box-shadow: var(--popover-shadow);
+    color: hsl(var(--color-text-primary));
+  }
+
+  .form-option {
+    display: flex;
+    min-height: 40px;
+    align-items: center;
+    border-radius: 11px;
+    background: hsl(var(--color-surface));
+    color: hsl(var(--color-text-secondary));
+    transition:
+      background-color var(--duration-fast) var(--ease-smooth),
+      color var(--duration-fast) var(--ease-smooth);
+  }
+
+  .form-option:hover,
+  .form-option:focus-visible,
+  .form-option[data-highlighted],
+  .form-option[aria-selected="true"] {
+    outline: none;
+    background: hsl(var(--color-primary-light));
+    color: hsl(var(--color-primary-dark));
+  }
+
   .brick-stack-loader {
     position: relative;
     display: grid;
@@ -517,6 +683,12 @@
     background: hsl(var(--color-lego-blue));
     animation-delay: 320ms;
   }
+
+  .figure-page-loader__progress {
+    animation: figure-page-progress 1.8s var(--ease-out-expo) infinite;
+    transform-origin: left center;
+    will-change: transform, opacity;
+  }
 }
 
 @keyframes brick-stack {
@@ -597,6 +769,28 @@
   }
 }
 
+@keyframes figure-page-progress {
+  0% {
+    opacity: 0.55;
+    transform: scaleX(0.08);
+  }
+
+  58% {
+    opacity: 1;
+    transform: scaleX(0.72);
+  }
+
+  88% {
+    opacity: 1;
+    transform: scaleX(0.96);
+  }
+
+  100% {
+    opacity: 0;
+    transform: scaleX(1);
+  }
+}
+
 @keyframes shimmer {
   from {
     background-position: -200% 0;
@@ -605,6 +799,131 @@
   to {
     background-position: 200% 0;
   }
+}
+
+@keyframes business-data-digit-roll {
+  0%,
+  8% {
+    transform: translateY(0);
+  }
+
+  20% {
+    transform: translateY(-1em);
+  }
+
+  36% {
+    transform: translateY(-2em);
+  }
+
+  52% {
+    transform: translateY(-3em);
+  }
+
+  68% {
+    transform: translateY(-4em);
+  }
+
+  84%,
+  100% {
+    transform: translateY(-5em);
+  }
+}
+
+@keyframes business-data-scan {
+  0% {
+    opacity: 0;
+    transform: translateX(-160%) skewX(-18deg);
+  }
+
+  20%,
+  70% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateX(430%) skewX(-18deg);
+  }
+}
+
+@keyframes business-data-step {
+  0%,
+  100% {
+    opacity: 0.42;
+    transform: translateY(0);
+  }
+
+  45% {
+    opacity: 1;
+    transform: translateY(-2px);
+  }
+}
+
+@keyframes business-data-soft-pulse {
+  0%,
+  100% {
+    opacity: 0.45;
+  }
+
+  50% {
+    opacity: 1;
+  }
+}
+
+.business-data-loader__digit {
+  display: inline-block;
+  height: 1em;
+  width: 0.58em;
+  overflow: hidden;
+  line-height: 1;
+  text-align: center;
+  vertical-align: -0.08em;
+}
+
+.business-data-loader__digit-track {
+  display: flex;
+  flex-direction: column;
+  animation: business-data-digit-roll 1.35s cubic-bezier(0.4, 0, 0.2, 1)
+    infinite;
+}
+
+.business-data-loader__digit-track > span {
+  display: block;
+  height: 1em;
+  flex: 0 0 1em;
+  line-height: 1;
+}
+
+.business-data-loader__scan {
+  position: absolute;
+  inset-block: 0;
+  left: -35%;
+  width: 34%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgb(255 255 255 / 0.82),
+    transparent
+  );
+  animation: business-data-scan 1.9s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.business-data-loader__scan--dark {
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgb(125 211 252 / 0.13),
+    transparent
+  );
+}
+
+.business-data-loader__soft-value {
+  animation: business-data-soft-pulse 1.5s ease-in-out infinite;
+}
+
+.business-data-loader__step {
+  animation: business-data-step 1.25s ease-in-out infinite;
 }
 
 @keyframes zoom-in {
@@ -638,6 +957,14 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .form-control,
+  .form-option,
+  .form-popover {
+    scroll-behavior: auto;
+    transition-duration: 0.01ms;
+    animation-duration: 0.01ms;
+  }
+
   .animate-home-hero-fade {
     animation: none;
   }
@@ -654,6 +981,28 @@
   .loading-checkout-rail__brick {
     opacity: 1;
   }
+
+  .brick-stack-loader__brick {
+    transform: translate3d(var(--stack-x), var(--stack-y), 0);
+  }
+
+  .figure-page-loader__progress {
+    animation: none;
+    opacity: 1;
+    transform: scaleX(0.72);
+  }
+
+  .business-data-loader__digit-track,
+  .business-data-loader__scan,
+  .business-data-loader__soft-value,
+  .business-data-loader__step {
+    animation: none;
+  }
+
+  .business-data-loader__step {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 body:has(.studio-workbench) {
@@ -665,7 +1014,7 @@ body:has(.studio-workbench) main {
   overflow: hidden;
 }
 
-body:has(.studio-workbench) footer {
+body:has(.studio-workbench) #site-scroll-root > footer {
   display: none;
 }
 
@@ -677,7 +1026,7 @@ body:has(.studio-workbench) footer {
   textarea,
   [role="button"],
   [tabindex]:not([tabindex="-1"])
-):focus-visible {
+):not(.form-control):focus-visible {
   outline: 3px solid hsl(var(--color-primary) / 0.42);
   outline-offset: 3px;
 }

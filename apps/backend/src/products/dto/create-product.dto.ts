@@ -31,7 +31,7 @@ const parseJsonObject = ({ value }: { value: unknown }) => {
   if (!trimmed) return undefined;
 
   try {
-    return JSON.parse(trimmed);
+    return JSON.parse(trimmed) as unknown;
   } catch {
     return value;
   }
@@ -99,9 +99,32 @@ export class CreateProductDto implements CreateProductRequestContract {
     type: Object,
     example: {
       frame: { id: 'frame-option-id', name: 'Khung 30x30 den', price: 30000 },
+      frameColor: {
+        id: 'frame-color-id',
+        name: 'Den',
+        price: 0,
+      },
       background: { id: 'background-id', name: 'Nen trai tim', price: 0 },
-      characters: [{ name: 'Nhan vat', quantity: 2, price: 10000 }],
-      accessories: [{ id: 'accessory-id', name: 'Charm trai tim', quantity: 1, price: 10000 }],
+      characters: [
+        {
+          id: 'character-id',
+          name: 'Nhan vat',
+          quantity: 2,
+          price: 10000,
+        },
+      ],
+      accessories: [
+        {
+          id: 'accessory-id',
+          name: 'Charm trai tim',
+          quantity: 1,
+          price: 10000,
+        },
+      ],
+      includedItems: [
+        { id: 'gift-box', name: 'Hop qua', quantity: 1, icon: 'gift' },
+      ],
+      originalPrice: 350000,
     },
   })
   @Transform(parseJsonObject)

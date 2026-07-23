@@ -2,10 +2,10 @@
 
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
-import type { CollectionTranslations } from "@/modules/collection/data/collection.translations";
+import type { CollectionDictionary } from "@/lib/i18n/dictionaries";
 
 type CollectionPaginationProps = {
-  labels: CollectionTranslations;
+  labels: CollectionDictionary;
   page: number;
   totalPages: number;
   onChange: (page: number) => void;

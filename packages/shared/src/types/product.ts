@@ -1,4 +1,9 @@
-import type { CharacterPartType, FrameOptionType, ProductStatus, ProductType } from '../constants/status';
+import type {
+  CharacterPartType,
+  FrameOptionType,
+  ProductStatus,
+  ProductType,
+} from "../constants/status";
 import type {
   ID,
   JsonObject,
@@ -7,12 +12,22 @@ import type {
   PriceInVND,
   Timestamped,
   URLString,
-} from './common';
-import type { AccessoryCategory, Collection, TemplateCategory } from './category';
+} from "./common";
+import type {
+  AccessoryCategory,
+  Collection,
+  TemplateCategory,
+} from "./category";
 
 export type ProductComponentPart = JsonObject & {
   id?: ID;
-  type: 'frame' | 'background' | 'character' | 'accessory' | 'product';
+  type:
+    | "frame"
+    | "frameColor"
+    | "background"
+    | "character"
+    | "accessory"
+    | "product";
   name: string;
   price?: PriceInVND;
   quantity?: number;
@@ -21,10 +36,28 @@ export type ProductComponentPart = JsonObject & {
 
 export type ProductComponentConfig = JsonObject & {
   frame?: ProductComponentPart;
+  frameColor?: ProductComponentPart;
   background?: ProductComponentPart;
   characters?: ProductComponentPart[];
   accessories?: ProductComponentPart[];
   parts?: ProductComponentPart[];
+  includedItems?: ProductIncludedItem[];
+  originalPrice?: PriceInVND;
+  frameSizeIds?: ID[];
+  recommendedFrameSizeId?: ID;
+  requiresNote?: boolean;
+  customizableFields?: ProductCustomizableField[];
+};
+
+export type ProductCompositionSummary = {
+  frame: Nullable<ProductComponentPart>;
+  frameColor: Nullable<ProductComponentPart>;
+  background: Nullable<ProductComponentPart>;
+  characters: ProductComponentPart[];
+  accessories: ProductComponentPart[];
+  includedItems: ProductIncludedItem[];
+  characterCount: number;
+  accessoryCount: number;
 };
 
 export type Product = Timestamped & {
@@ -46,15 +79,11 @@ export type Product = Timestamped & {
   accessoryCount?: number;
   charmCount?: number;
   includedItemLabels?: string[];
+  composition?: ProductCompositionSummary;
 };
 
 export type PublicProductsSort =
-  | 'featured'
-  | 'newest'
-  | 'popular'
-  | 'price_asc'
-  | 'price_desc'
-  | 'name_asc';
+  "featured" | "newest" | "popular" | "price_asc" | "price_desc" | "name_asc";
 
 export type PublicProductsQuery = {
   page?: number;
@@ -94,17 +123,17 @@ export type PublicProductsResponse = {
 
 export type ProductSummary = Pick<
   Product,
-  | 'id'
-  | 'name'
-  | 'slug'
-  | 'description'
-  | 'basePrice'
-  | 'images'
-  | 'productType'
-  | 'componentConfig'
-  | 'status'
-  | 'featured'
-  | 'collectionId'
+  | "id"
+  | "name"
+  | "slug"
+  | "description"
+  | "basePrice"
+  | "images"
+  | "productType"
+  | "componentConfig"
+  | "status"
+  | "featured"
+  | "collectionId"
 >;
 
 export type Template = Timestamped & {
@@ -161,6 +190,16 @@ export type Banner = Timestamped & {
   naturalWidth: Nullable<number>;
   naturalHeight: Nullable<number>;
   status: ProductStatus;
+};
+
+export type HomepageMedia = {
+  id: ID;
+  sourceKey: string;
+  imageUrl: URLString;
+  thumbnailUrl: Nullable<URLString>;
+  naturalWidth: number;
+  naturalHeight: number;
+  sortOrder: number;
 };
 
 export type FrameBackground = Timestamped & {
@@ -264,7 +303,7 @@ export type ProductIncludedItem = {
   id: string;
   name: string;
   quantity: number;
-  icon: 'gift' | 'package' | 'sparkles';
+  icon: "gift" | "package" | "sparkles";
 };
 
 export type ProductCustomizableField = {

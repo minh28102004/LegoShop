@@ -1,4 +1,6 @@
 import type { SimpleCartItem } from "@/features/cart/store";
+import { DEFAULT_LOCALE } from "@/lib/i18n/config";
+import { getDictionary } from "@/lib/i18n/dictionaries";
 import type {
   CharacterPartType,
   CustomFrameDesignData,
@@ -28,29 +30,9 @@ export type FrameRestoreOverride = {
   color: string | null;
 };
 
-const DEFAULT_CONTENT_FIELDS: StudioContentField[] = [
-  {
-    key: "title",
-    label: "Name / short title",
-    type: "text",
-    required: true,
-    placeholder: "Example: Alex & Jamie",
-  },
-  {
-    key: "date",
-    label: "Special date",
-    type: "date",
-    required: false,
-    placeholder: "Example: 06/01/2026",
-  },
-  {
-    key: "message",
-    label: "Message",
-    type: "textarea",
-    required: false,
-    placeholder: "Write your message...",
-  },
-];
+const DEFAULT_STUDIO_COPY = getDictionary(DEFAULT_LOCALE).studio.defaults;
+const DEFAULT_CONTENT_FIELDS: StudioContentField[] =
+  DEFAULT_STUDIO_COPY.contentFields.map((field) => ({ ...field }));
 
 export function getNextCharacterNumber(elements: StudioElement[]): number {
   return (
@@ -225,8 +207,7 @@ function readContentFieldList(value: JsonValue | null | undefined): unknown[] {
 export function normalizeContentFields(
   value: JsonValue | null | undefined,
   fallbackFields: StudioContentField[] = DEFAULT_CONTENT_FIELDS,
-  getFallbackLabel: (index: number) => string = (index) =>
-    `Information ${index}`,
+  getFallbackLabel: (index: number) => string = DEFAULT_STUDIO_COPY.fieldLabel,
 ): StudioContentField[] {
   const fields = readContentFieldList(value)
     .map((field, index): StudioContentField | null => {

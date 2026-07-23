@@ -59,6 +59,54 @@ export class BannersService {
     }));
   }
 
+  async findPublicHomepageMedia() {
+    const previewSeedTag = stagedSampleMediaSeedTag();
+    if (!previewSeedTag) return [];
+
+    const media = await this.prisma.sampleMediaImport.findMany({
+      where: {
+        seedTag: previewSeedTag,
+        kind: 'homepage',
+      },
+      select: {
+        id: true,
+        sourceKey: true,
+        destinationUrl: true,
+        thumbnailUrl: true,
+        naturalWidth: true,
+        naturalHeight: true,
+        metadata: true,
+        createdAt: true,
+      },
+      orderBy: [{ createdAt: 'asc' }, { sourceKey: 'asc' }],
+    });
+
+    return media.map(({ destinationUrl, metadata, ...item }, index) => {
+      const sourceSortOrder = this.readSourceSortOrder(metadata);
+
+      return {
+        id: item.id,
+        sourceKey: item.sourceKey,
+        imageUrl: destinationUrl,
+        thumbnailUrl: item.thumbnailUrl,
+        naturalWidth: item.naturalWidth,
+        naturalHeight: item.naturalHeight,
+        sortOrder: sourceSortOrder ?? index + 1,
+      };
+    });
+  }
+
+  private readSourceSortOrder(value: Prisma.JsonValue | null) {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+      return undefined;
+    }
+
+    const sortOrder = value.sourceSortOrder;
+    return typeof sortOrder === 'number' && Number.isInteger(sortOrder)
+      ? sortOrder
+      : undefined;
+  }
+
   async findAdminBanners(query?: AdminListQueryDto) {
     if (hasAdminListQuery(query)) {
       const pagination = getAdminPagination(query);

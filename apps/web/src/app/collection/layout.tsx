@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
+import { vi } from "@/lib/i18n/dictionaries/vi";
 
 export const metadata: Metadata = {
-  title: "Bộ sưu tập | Figure Lab",
-  description:
-    "Khám phá mẫu quà cá nhân hóa, tạo nhân vật và chọn thành phần tại Figure Lab.",
+  title: vi.metadata.collection.title,
+  description: vi.metadata.collection.description,
 };
 
 export default function CollectionLayout({

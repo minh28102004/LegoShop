@@ -1,7 +1,10 @@
-import type { CartItemPart, CartItemPartType, SimpleCartItem } from './store';
+import type { CartItemPart, CartItemPartType, SimpleCartItem } from "./store";
 import { isCustomFrameDesignData } from "@/modules/studio/lib/design-data";
+import { getDictionary } from "@/lib/i18n/dictionaries";
+import { DEFAULT_LOCALE } from "@/lib/i18n/config";
 
 const DEFAULT_CHARACTER_PRICE = 10000;
+const DEFAULT_CART_COPY = getDictionary(DEFAULT_LOCALE).cart;
 type CartAccessory = NonNullable<SimpleCartItem["accessories"]>[number];
 
 type PartInput = {
@@ -14,7 +17,9 @@ type PartInput = {
 };
 
 function toPositiveNumber(value: unknown, fallback = 0) {
-  return typeof value === "number" && Number.isFinite(value) && value > 0 ? value : fallback;
+  return typeof value === "number" && Number.isFinite(value) && value > 0
+    ? value
+    : fallback;
 }
 
 function makePart(input: PartInput): CartItemPart | null {
@@ -37,8 +42,12 @@ function makePart(input: PartInput): CartItemPart | null {
   return part;
 }
 
-function scaleStoredPart(part: CartItemPart, itemQuantity: number): CartItemPart | null {
-  const quantity = Math.max(1, Math.round(part.quantity || 1)) * Math.max(1, itemQuantity);
+function scaleStoredPart(
+  part: CartItemPart,
+  itemQuantity: number,
+): CartItemPart | null {
+  const quantity =
+    Math.max(1, Math.round(part.quantity || 1)) * Math.max(1, itemQuantity);
   const unitPrice = Math.max(0, Math.round(part.unitPrice || 0));
   return makePart({
     id: part.id,
@@ -68,7 +77,9 @@ function getRetailPart(item: SimpleCartItem): CartItemPart | null {
   const sourceId = readString(designData.sourceId);
   const imageUrl = readString(designData.imageUrl) ?? item.previewUrl;
   const partType: CartItemPartType =
-    retailType === "frame" || retailType === "background" || retailType === "accessory"
+    retailType === "frame" ||
+    retailType === "background" ||
+    retailType === "accessory"
       ? retailType
       : "retail";
 
@@ -91,7 +102,10 @@ function estimateLegacyFramePrice(item: SimpleCartItem) {
 
   const designData = item.designData;
   const characterTotal = isCustomFrameDesignData(designData)
-    ? designData.characters.reduce((sum, character) => sum + (character.price ?? DEFAULT_CHARACTER_PRICE), 0)
+    ? designData.characters.reduce(
+        (sum, character) => sum + (character.price ?? DEFAULT_CHARACTER_PRICE),
+        0,
+      )
     : toPositiveNumber(designData?.characterCount) * DEFAULT_CHARACTER_PRICE;
 
   return Math.max(0, item.unitPrice - accessoriesTotal - characterTotal);
@@ -106,7 +120,9 @@ function getLegacyCustomParts(item: SimpleCartItem): CartItemPart[] {
     const frame = makePart({
       id: item.frameOptionId ?? item.frameSizeId,
       type: "frame",
-      name: [item.frameSizeLabel, item.frameColorName].filter(Boolean).join(" - "),
+      name: [item.frameSizeLabel, item.frameColorName]
+        .filter(Boolean)
+        .join(" - "),
       quantity: item.quantity,
       unitPrice: framePrice,
     });
@@ -114,11 +130,13 @@ function getLegacyCustomParts(item: SimpleCartItem): CartItemPart[] {
   }
 
   if (isCustomFrameDesignData(designData)) {
-    const backgroundImage = designData.uploadedImages.find((image) => image.type === "background")?.url ?? item.previewUrl;
+    const backgroundImage =
+      designData.uploadedImages.find((image) => image.type === "background")
+        ?.url ?? item.previewUrl;
     const background = makePart({
       id: designData.backgroundId,
       type: "background",
-      name: designData.backgroundName ?? "Nền ảnh tùy chỉnh",
+      name: designData.backgroundName ?? DEFAULT_CART_COPY.customBackground,
       quantity: item.quantity,
       unitPrice: 0,
       imageUrl: backgroundImage,
@@ -129,7 +147,7 @@ function getLegacyCustomParts(item: SimpleCartItem): CartItemPart[] {
       const part = makePart({
         id: character.catalogId ?? character.id,
         type: "character",
-        name: character.name ?? `Nhân vật ${index + 1}`,
+        name: character.name ?? DEFAULT_CART_COPY.characterNumber(index + 1),
         quantity: item.quantity,
         unitPrice: character.price ?? DEFAULT_CHARACTER_PRICE,
         imageUrl: character.imageUrl,
@@ -138,7 +156,10 @@ function getLegacyCustomParts(item: SimpleCartItem): CartItemPart[] {
     });
 
     const accessoriesById = new Map<string, CartAccessory>(
-      (item.accessories ?? []).map((accessory: CartAccessory) => [accessory.id, accessory]),
+      (item.accessories ?? []).map((accessory: CartAccessory) => [
+        accessory.id,
+        accessory,
+      ]),
     );
     designData.accessories.forEach((accessory) => {
       const pricedAccessory = accessoriesById.get(accessory.id);
@@ -184,9 +205,10 @@ function getLegacyCustomParts(item: SimpleCartItem): CartItemPart[] {
 }
 
 export function getCartItemParts(item: SimpleCartItem): CartItemPart[] {
-  const storedParts = item.parts
-    ?.map((part: CartItemPart) => scaleStoredPart(part, item.quantity))
-    .filter((part): part is CartItemPart => Boolean(part)) ?? [];
+  const storedParts =
+    item.parts
+      ?.map((part: CartItemPart) => scaleStoredPart(part, item.quantity))
+      .filter((part): part is CartItemPart => Boolean(part)) ?? [];
 
   if (storedParts.length > 0) return storedParts;
 

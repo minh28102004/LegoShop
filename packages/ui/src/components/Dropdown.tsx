@@ -22,6 +22,7 @@ type DropdownProps = {
   className?: string;
   panelClassName?: string;
   panelRole?: "menu" | "listbox";
+  panelId?: string;
   onOpenChange?: (open: boolean) => void;
   portal?: boolean;
   matchTriggerWidth?: boolean;
@@ -36,6 +37,7 @@ export function Dropdown({
   className,
   panelClassName,
   panelRole = "menu",
+  panelId,
   onOpenChange,
   portal = false,
   matchTriggerWidth = false,
@@ -119,7 +121,16 @@ export function Dropdown({
     };
 
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setOpen(false);
+      if (event.key === "Escape") {
+        setOpen(false);
+        window.requestAnimationFrame(() => {
+          wrapperRef.current
+            ?.querySelector<HTMLElement>(
+              "button, [role='button'], [tabindex]:not([tabindex='-1'])",
+            )
+            ?.focus();
+        });
+      }
     };
 
     document.addEventListener("pointerdown", handlePointerDown, true);
@@ -135,7 +146,16 @@ export function Dropdown({
     };
   }, [open]);
 
-  const close = () => setOpen(false);
+  const close = () => {
+    setOpen(false);
+    window.requestAnimationFrame(() => {
+      wrapperRef.current
+        ?.querySelector<HTMLElement>(
+          "button, [role='button'], [tabindex]:not([tabindex='-1'])",
+        )
+        ?.focus();
+    });
+  };
   const toggle = () => setOpen((current) => !current);
 
   const triggerAriaHasPopup = (trigger.props as { "aria-haspopup"?: string })[
@@ -165,6 +185,7 @@ export function Dropdown({
           <div
             ref={panelRef}
             role={panelRole}
+            id={panelId}
             aria-hidden={false}
             style={portalStyle}
             className={cn(
@@ -181,6 +202,7 @@ export function Dropdown({
         <div
           ref={panelRef}
           role={panelRole}
+          id={panelId}
           aria-hidden={!open}
           className={cn(
             "absolute z-[90] overflow-hidden rounded-[16px] border border-slate-200 bg-white shadow-[0_18px_44px_-30px_rgba(15,23,42,0.28)] transition-all duration-150 ease-out",

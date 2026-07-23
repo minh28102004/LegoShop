@@ -2,6 +2,7 @@
 
 import { DECORATIVE_ICON_PATHS } from "@/config/icons";
 import { cn } from "@lego-shop/ui";
+import { useI18n } from "@/lib/i18n/useI18n";
 import { DecorativeIcon } from "./FeatureIcon";
 import { LazyImage, type LazyImageProps } from "./LazyImage";
 
@@ -20,10 +21,12 @@ function ProductImageFallback({
   compact: boolean;
   label: string;
 }) {
+  const { dictionary } = useI18n();
+
   return (
     <div
       role="img"
-      aria-label={`Ảnh ${label} đang được cập nhật`}
+      aria-label={dictionary.common.imageUpdatingLabel(label)}
       className="flex size-full flex-col items-center justify-center gap-2 bg-primary-light/55 px-3 text-center text-text-muted"
     >
       <DecorativeIcon
@@ -33,7 +36,7 @@ function ProductImageFallback({
       />
       {!compact ? (
         <span className="max-w-40 text-xs font-medium">
-          Hình ảnh đang được cập nhật
+          {dictionary.common.imageUpdating}
         </span>
       ) : null}
     </div>

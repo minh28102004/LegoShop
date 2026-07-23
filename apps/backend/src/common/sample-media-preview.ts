@@ -13,9 +13,9 @@ export function stagedSampleMediaSeedTag(): string | undefined {
 
   const seedTag = process.env.STAGED_SAMPLE_MEDIA_SEED_TAG?.trim();
   if (!seedTag) {
-    throw new Error(
-      'STAGED_SAMPLE_MEDIA_SEED_TAG is required when staged media is enabled',
-    );
+    // Fail closed: keep staged records hidden instead of taking public media
+    // endpoints down because of an incomplete local preview configuration.
+    return undefined;
   }
   return seedTag;
 }

@@ -6,23 +6,17 @@ import { CheckCircle, Search, ArrowRight, Clock } from "lucide-react";
 import { Suspense, useEffect, useState } from "react";
 import { publicApiClient } from "@/lib/api/public-client";
 import type { TrackOrderResponseContract } from "@lego-shop/shared";
-
-const PAYMENT_STATUS_LABELS: Record<string, string> = {
-  unpaid: "Chưa thanh toán",
-  pending: "Đang chờ thanh toán",
-  deposit_pending: "Đang chờ thanh toán cọc",
-  deposit_paid: "Đã thanh toán cọc",
-  paid: "Đã thanh toán",
-  failed: "Thanh toán thất bại",
-  cancelled: "Đã hủy thanh toán",
-  refunded: "Đã hoàn tiền",
-};
+import { LOCALE_FORMATS } from "@/lib/i18n/config";
+import { useI18n } from "@/lib/i18n/useI18n";
 
 function PaymentSuccessContent() {
   const searchParams = useSearchParams();
   const orderCode = searchParams.get("orderCode");
   const [loading, setLoading] = useState(() => Boolean(orderCode));
   const [order, setOrder] = useState<TrackOrderResponseContract | null>(null);
+  const { dictionary, locale } = useI18n();
+  const copy = dictionary.payment.success;
+  const statusLabels: Record<string, string> = copy.status;
 
   useEffect(() => {
     if (!orderCode) return;
@@ -47,40 +41,40 @@ function PaymentSuccessContent() {
         )}
       </div>
       
-      <h1 className="text-4xl font-black mb-4">{verifiedPaid ? "Đã ghi nhận thanh toán" : "Đang xác nhận thanh toán"}</h1>
+      <h1 className="text-4xl font-black mb-4">{verifiedPaid ? copy.paidTitle : copy.pendingTitle}</h1>
       <p className="text-zinc-600 mb-8 max-w-md">
-        Trạng thái thanh toán được cập nhật từ webhook PayOS. Nếu bạn vừa thanh toán xong, vui lòng tra cứu lại sau vài giây.
+        {copy.description}
       </p>
 
       {loading ? (
-        <div className="text-zinc-500 mb-8">Đang tải thông tin đơn hàng...</div>
+        <div className="text-zinc-500 mb-8">{copy.loadingOrder}</div>
       ) : order ? (
         <div className="bg-white border border-emerald-200 rounded-2xl p-6 mb-8 w-full max-w-md shadow-sm">
-          <p className="text-sm text-zinc-500 mb-2">Mã đơn hàng</p>
+          <p className="text-sm text-zinc-500 mb-2">{copy.orderCode}</p>
           <p className="text-2xl font-bold tracking-widest text-zinc-900 mb-4">{displayOrderCode}</p>
           
           <div className="border-t border-zinc-100 pt-4 space-y-2 text-sm text-left">
             <div className="flex justify-between">
-              <span className="text-zinc-500">Trạng thái thanh toán</span>
+              <span className="text-zinc-500">{copy.paymentStatus}</span>
               <span className={`font-bold ${verifiedPaid ? "text-emerald-600" : "text-amber-600"}`}>
-                {PAYMENT_STATUS_LABELS[paymentStatus ?? ""] ?? paymentStatus ?? "Đang kiểm tra"}
+                {statusLabels[paymentStatus ?? ""] ?? paymentStatus ?? copy.checking}
               </span>
             </div>
             {order.depositRequired && (
               <div className="flex justify-between">
-                <span className="text-zinc-500">Tiền cọc ({order.depositPercent}%)</span>
-                <span className="font-bold text-zinc-900">{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(order.depositAmount)}</span>
+                <span className="text-zinc-500">{copy.deposit} ({order.depositPercent}%)</span>
+                <span className="font-bold text-zinc-900">{new Intl.NumberFormat(LOCALE_FORMATS[locale], { style: 'currency', currency: 'VND' }).format(order.depositAmount)}</span>
               </div>
             )}
             <div className="flex justify-between border-t border-zinc-100 pt-2 mt-2">
-              <span className="text-zinc-500">Tổng đơn hàng</span>
-              <span className="font-bold text-red-500">{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(order.totalAmount)}</span>
+              <span className="text-zinc-500">{copy.orderTotal}</span>
+              <span className="font-bold text-red-500">{new Intl.NumberFormat(LOCALE_FORMATS[locale], { style: 'currency', currency: 'VND' }).format(order.totalAmount)}</span>
             </div>
           </div>
         </div>
       ) : (
         <div className="bg-zinc-50 border border-zinc-200 rounded-xl p-6 mb-8 w-full max-w-md">
-          <p className="text-sm text-zinc-500 mb-2">Mã đơn hàng của bạn</p>
+          <p className="text-sm text-zinc-500 mb-2">{copy.yourOrderCode}</p>
           <p className="text-2xl font-bold tracking-widest text-zinc-900">{displayOrderCode}</p>
         </div>
       )}
@@ -90,14 +84,14 @@ function PaymentSuccessContent() {
           href={`/order-tracking${displayOrderCode ? `?code=${displayOrderCode}` : ""}`}
           className="px-8 py-3 bg-red-400 hover:bg-red-500 text-white font-medium rounded-full transition-colors flex items-center justify-center gap-2"
         >
-          <Search className="w-4 h-4" /> Tra cứu tiến độ đơn
+          <Search className="w-4 h-4" /> {copy.trackProgress}
         </Link>
         
         <Link 
           href="/collection"
           className="px-8 py-3 border border-zinc-200 hover:border-zinc-300 text-zinc-700 font-medium rounded-full transition-colors flex items-center justify-center gap-2"
         >
-          Tiếp tục mua sắm <ArrowRight className="w-4 h-4" />
+          {copy.continueShopping} <ArrowRight className="w-4 h-4" />
         </Link>
       </div>
     </div>
@@ -105,9 +99,11 @@ function PaymentSuccessContent() {
 }
 
 export default function PaymentSuccessPage() {
+  const { dictionary } = useI18n();
+
   return (
     <div className="container mx-auto flex-1 flex flex-col bg-zinc-50">
-      <Suspense fallback={<div className="p-20 text-center">Đang tải...</div>}>
+      <Suspense fallback={<div className="p-20 text-center">{dictionary.payment.loading}</div>}>
         <PaymentSuccessContent />
       </Suspense>
     </div>

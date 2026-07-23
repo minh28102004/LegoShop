@@ -60,7 +60,6 @@ function FacebookGlyph(props: SVGProps<SVGSVGElement>) {
 const SOCIAL_ITEMS = [
   {
     key: "instagram",
-    label: "Instagram",
     href: SOCIAL_LINKS.instagram,
     Icon: InstagramGlyph,
     background:
@@ -69,7 +68,6 @@ const SOCIAL_ITEMS = [
   },
   {
     key: "facebook",
-    label: "Facebook",
     href: SOCIAL_LINKS.facebook,
     Icon: FacebookGlyph,
     background: "#1877F2",
@@ -77,7 +75,6 @@ const SOCIAL_ITEMS = [
   },
   {
     key: "tiktok",
-    label: "TikTok",
     href: SOCIAL_LINKS.tiktok,
     Icon: TikTokGlyph,
     background: "#000000",
@@ -177,11 +174,11 @@ function ContactLine({
 }
 
 export function Footer() {
-  const { t } = useI18n();
+  const { dictionary, t } = useI18n();
   const phoneHref = SITE.phone.replace(/[^\d+]/g, "");
 
   return (
-    <footer className="relative mt-10 w-full overflow-hidden border-t border-[#dbeaf4] bg-white text-navy">
+    <footer className="relative w-full overflow-hidden border-t border-[#dbeaf4] bg-white text-navy">
       <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-[#7bc7f0] via-[#2f91d0] to-[#f6d76b]" />
 
       <div className="w-full px-6 sm:px-8 lg:px-12 xl:px-16 2xl:px-24">
@@ -201,17 +198,20 @@ export function Footer() {
           </div>
 
           <div className="grid grid-cols-1 items-start gap-10 md:grid-cols-2 lg:grid-cols-[1.2fr_0.85fr_0.85fr_1.1fr] lg:gap-10 xl:gap-12">
-            <FooterColumn title="Figure Lab" icon={<Sparkles strokeWidth={2.2} />}>
+            <FooterColumn
+              title={dictionary.common.brandName}
+              icon={<Sparkles strokeWidth={2.2} />}
+            >
               <p className="max-w-[320px] text-left text-[15px] font-medium leading-7 text-slate-600">
                 {t("footer.brandDescription")}
               </p>
 
               <div className="flex items-center justify-start gap-3 pt-1">
-                {SOCIAL_ITEMS.map(({ key, label, href, Icon, background, glow }) => (
+                {SOCIAL_ITEMS.map(({ key, href, Icon, background, glow }) => (
                   <Link
                     key={key}
                     href={href}
-                    aria-label={label}
+                    aria-label={dictionary.common.socialLabels[key]}
                     target="_blank"
                     rel="noreferrer"
                     className="group inline-flex h-11 w-11 items-center justify-center rounded-full text-white transition-transform duration-200 hover:-translate-y-1"
@@ -226,7 +226,10 @@ export function Footer() {
               </div>
             </FooterColumn>
 
-            <FooterColumn title={t("footer.columns.explore")} icon={<Compass strokeWidth={2.2} />}>
+            <FooterColumn
+              title={t("footer.columns.explore")}
+              icon={<Compass strokeWidth={2.2} />}
+            >
               {FOOTER_LINK_GROUPS[0]?.links.map((link) => (
                 <FooterLink key={link.href} href={link.href}>
                   {t(`footer.links.${link.key}`)}
@@ -234,7 +237,10 @@ export function Footer() {
               ))}
             </FooterColumn>
 
-            <FooterColumn title={t("footer.columns.support")} icon={<LifeBuoy strokeWidth={2.2} />}>
+            <FooterColumn
+              title={t("footer.columns.support")}
+              icon={<LifeBuoy strokeWidth={2.2} />}
+            >
               {FOOTER_LINK_GROUPS[1]?.links.map((link) => (
                 <FooterLink key={link.href} href={link.href}>
                   {t(`footer.links.${link.key}`)}
@@ -260,7 +266,11 @@ export function Footer() {
                 {SITE.phone}
               </ContactLine>
 
-              <ContactLine icon={<MapPin className="h-[18px] w-[18px]" strokeWidth={1.9} />}>
+              <ContactLine
+                icon={
+                  <MapPin className="h-[18px] w-[18px]" strokeWidth={1.9} />
+                }
+              >
                 {SITE.address}
               </ContactLine>
             </FooterColumn>

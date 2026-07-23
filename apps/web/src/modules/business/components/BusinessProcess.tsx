@@ -2,6 +2,7 @@ import Image from "next/image";
 
 import { Container } from "@/components/layout/Container";
 import { ScrollReveal } from "@/components/shared/ScrollReveal";
+import { Badge } from "@/components/ui/Badge";
 import { BUSINESS_PROCESS_ICONS } from "@/modules/business/data/business-page.data";
 import type { BusinessPageCopy } from "@/modules/business/types/business-page.types";
 
@@ -20,7 +21,13 @@ export function BusinessProcess({ copy }: { copy: BusinessPageCopy["process"] })
           {copy.items.map((item, index) => (
             <ScrollReveal key={item.title} delay={index * 0.07}>
               <article className="group relative z-10 h-full rounded-[26px] border border-[#d6e7f4] bg-white p-6 text-center transition-all duration-300 hover:-translate-y-1 hover:border-[#9ed0ef] hover:shadow-[0_18px_42px_-34px_rgba(7,29,58,0.48)] motion-reduce:transform-none">
-                <span className="absolute right-5 top-5 rounded-full bg-[#fff1bd] px-2.5 py-1 text-xs font-bold text-[#755400]">0{index + 1}</span>
+                <Badge
+                  variant="highlight"
+                  size="sm"
+                  className="absolute right-5 top-5 px-2.5 py-1 text-xs font-bold"
+                >
+                  0{index + 1}
+                </Badge>
                 <span className="mx-auto flex size-[76px] items-center justify-center rounded-[24px] border border-[#dceaf5] bg-[#f8fbff] transition-transform duration-300 group-hover:scale-105">
                   <Image src={BUSINESS_PROCESS_ICONS[index] ?? BUSINESS_PROCESS_ICONS[0]} alt="" width={50} height={50} className="size-12 object-contain" />
                 </span>

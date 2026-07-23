@@ -27,23 +27,21 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
 
 import { Container } from "@/components/layout/Container";
+import { Input } from "@/components/ui/Input";
 import { SearchableMultiSelect } from "@/components/ui/SearchableMultiSelect";
 import { Select } from "@/components/ui/Select";
 import { useI18n } from "@/lib/i18n/useI18n";
 import { resolveApiAssetUrl } from "@/lib/api/assets";
 import { publicApiClient } from "@/lib/api/public-client";
+import { withProductImageFallback } from "@/lib/product-image-fallback";
 import { CharacterBuilderShop } from "@/modules/lego-frame/components/CharacterBuilderShop";
-import { PRODUCT_DETAIL_TRANSLATIONS } from "@/modules/home/data/product-detail.translations";
 import { ProductCard } from "@/modules/home/components/ProductCard";
 import { ProductTemplateDetailModal } from "@/modules/home/components/ProductTemplateDetailModal";
 import type { HomeFeaturedProduct } from "@/modules/home/types/home.types";
 import { CollectionFilterDrawer } from "@/modules/collection/components/CollectionFilterDrawer";
 import { CollectionPagination } from "@/modules/collection/components/CollectionPagination";
 import { CollectionRetailGrid } from "@/modules/collection/components/CollectionRetailGrid";
-import {
-  COLLECTION_TRANSLATIONS,
-  type CollectionTranslations,
-} from "@/modules/collection/data/collection.translations";
+import type { CollectionDictionary } from "@/lib/i18n/dictionaries";
 import type {
   CollectionFilters,
   CollectionRetailItem,
@@ -168,13 +166,13 @@ function nonEmptyImageUrl(value: unknown): string | null {
   );
 }
 
-function productImage(product: Product) {
+function productImage(product: Product, productIndex: number) {
   const source = product as ProductImageSource;
   const firstImage = Array.isArray(product.images)
     ? (product.images.map(nonEmptyImageUrl).find(Boolean) ?? null)
     : null;
 
-  return resolveApiAssetUrl(
+  const imageUrl = resolveApiAssetUrl(
     nonEmptyImageUrl(source.thumbnailUrl) ??
       nonEmptyImageUrl(source.thumbnail) ??
       nonEmptyImageUrl(source.primaryImageUrl) ??
@@ -183,9 +181,18 @@ function productImage(product: Product) {
       firstImage ??
       null,
   );
+
+  return withProductImageFallback(
+    imageUrl || null,
+    product.slug || "",
+    productIndex,
+  );
 }
 
-function toFeaturedProduct(product: Product): HomeFeaturedProduct {
+function toFeaturedProduct(
+  product: Product,
+  productIndex: number,
+): HomeFeaturedProduct {
   return {
     id: product.id || "",
     slug: product.slug || "",
@@ -208,7 +215,7 @@ function toFeaturedProduct(product: Product): HomeFeaturedProduct {
     badge: null,
     featured: product.featured === true,
     href: `/collection?product=${encodeURIComponent(product.slug || product.id)}`,
-    imageUrl: productImage(product),
+    imageUrl: productImage(product, productIndex),
   };
 }
 
@@ -308,40 +315,30 @@ function CollectionSearch({
   }, [debouncedValue, initialValue, onSearch]);
 
   return (
-    <div className="relative min-w-0 flex-1">
-      <label className="sr-only" htmlFor="collection-search">
-        {label}
-      </label>
-      <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-      <input
-        id="collection-search"
-        type="search"
-        value={value}
-        placeholder={placeholder}
-        className="h-11 w-full rounded-xl border border-slate-200/80 bg-white pl-11 pr-12 text-sm text-navy outline-none transition-colors placeholder:text-slate-400 hover:border-primary/25 focus:border-primary/35 focus:ring-2 focus:ring-primary/10"
-        onChange={(event) => setValue(event.target.value)}
-      />
-      {value ? (
-        <button
-          type="button"
-          aria-label={clearLabel}
-          className="absolute right-3 top-1/2 grid h-7 w-7 -translate-y-1/2 place-items-center rounded-full text-slate-400 transition-colors hover:bg-primary-light/50 hover:text-primary-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25"
-          onClick={() => {
-            setValue("");
-            onSearch("");
-          }}
-        >
-          <X className="h-4 w-4" />
-        </button>
-      ) : null}
-    </div>
+    <Input
+      id="collection-search"
+      type="search"
+      value={value}
+      aria-label={label}
+      placeholder={placeholder}
+      leftIcon={<Search className="size-4" aria-hidden="true" />}
+      clearable
+      clearLabel={clearLabel}
+      controlSize="compact"
+      containerClassName="min-w-0 flex-1 space-y-0"
+      onChange={(event) => setValue(event.target.value)}
+      onClear={() => {
+        setValue("");
+        onSearch("");
+      }}
+    />
   );
 }
 
 export function CollectionPage() {
-  const { locale } = useI18n();
-  const labels = COLLECTION_TRANSLATIONS[locale] as CollectionTranslations;
-  const detailLabels = PRODUCT_DETAIL_TRANSLATIONS[locale];
+  const { dictionary, locale } = useI18n();
+  const labels: CollectionDictionary = dictionary.collection;
+  const detailLabels = dictionary.productDetail;
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -500,7 +497,7 @@ export function CollectionPage() {
         ? scrollRoot.scrollTop > 0
         : window.scrollY > 0;
       setIsToolbarStuck(
-        hasScrolled && toolbar.getBoundingClientRect().top <= rootTop + 68,
+        hasScrolled && toolbar.getBoundingClientRect().top <= rootTop + 1,
       );
     };
 
@@ -591,8 +588,8 @@ export function CollectionPage() {
         });
       if (currentRequest !== requestId.current) return;
       if (Array.isArray(response)) {
-        const mapped = response.map((item) =>
-          toFeaturedProduct(item as Product),
+        const mapped = response.map((item, index) =>
+          toFeaturedProduct(item as Product, index),
         );
         setProducts(mapped);
         setMeta({
@@ -607,7 +604,9 @@ export function CollectionPage() {
           meta?: Partial<PublicProductsMeta>;
         };
         const items = Array.isArray(payload.items) ? payload.items : [];
-        setProducts(items.map((item) => toFeaturedProduct(item as Product)));
+        setProducts(
+          items.map((item, index) => toFeaturedProduct(item as Product, index)),
+        );
         setMeta({
           page: Math.max(1, Number(payload.meta?.page) || 1),
           pageSize: Math.max(1, Number(payload.meta?.pageSize) || pageSize),
@@ -894,119 +893,113 @@ export function CollectionPage() {
         </Container>
       </section>
 
-      <Container size="full" className="max-w-[1520px] px-4 sm:px-6 lg:px-8">
-        {tab !== "characters" ? (
-          <div
-            ref={toolbarRef}
-            className={`sticky top-[66px] z-30 -mx-4 border-y border-slate-200/80 bg-white/95 px-4 py-2.5 backdrop-blur-xl transition-shadow duration-200 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8 ${
-              isToolbarStuck
-                ? "shadow-[0_12px_30px_-24px_rgba(15,23,42,0.4)]"
-                : "shadow-none"
-            }`}
-          >
-            <div className="mx-auto grid min-w-0 max-w-[1520px] grid-cols-1 items-center gap-2 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-[minmax(260px,1fr)_230px_auto_168px_116px] xl:grid-cols-[minmax(320px,1fr)_250px_auto_190px_128px]">
-              <div
-                className={
-                  tab === "templates"
-                    ? "min-w-0 sm:col-span-2 md:col-span-4 lg:col-span-1"
-                    : "min-w-0 sm:col-span-2 md:col-span-4 lg:col-span-5"
-                }
-              >
-                <CollectionSearch
-                  key={urlSearch}
-                  clearLabel={labels.clearSearch}
-                  initialValue={urlSearch}
-                  label={labels.searchLabel}
-                  placeholder={labels.searchPlaceholder}
-                  onSearch={handleSearch}
-                />
-              </div>
-
-              {tab === "templates" ? (
-                <>
-                  {collections.length > 0 ? (
-                    <SearchableMultiSelect
-                      ariaLabel={labels.otherCollections}
-                      clearLabel={labels.clearAll}
-                      emptyLabel={labels.collectionEmpty}
-                      options={collections.map((item) => ({
-                        label: item.name,
-                        value: item.slug,
-                      }))}
-                      placeholder={labels.allCollections}
-                      searchPlaceholder={labels.collectionSearchPlaceholder}
-                      selectAllLabel={labels.allCollections}
-                      values={selectedCollections}
-                      className="min-w-0 w-full"
-                      onChange={(values) =>
-                        replaceQuery({
-                          categoryIds: values.length > 0 ? values : undefined,
-                          page: undefined,
-                        })
-                      }
-                    />
-                  ) : null}
-
-                  <button
-                    type="button"
-                    className="relative inline-flex h-11 min-w-0 w-full items-center justify-center gap-2 rounded-xl border border-border/80 bg-white px-4 text-sm font-bold text-navy transition-colors hover:border-primary/25 hover:bg-primary-light/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
-                    onClick={() => setFilterOpen(true)}
-                  >
-                    <SlidersHorizontal className="h-4 w-4" />
-                    {labels.filter}
-                    {appliedFilters > 0 ? (
-                      <span className="grid h-5 min-w-5 place-items-center rounded-full bg-primary px-1 text-[10px] text-white">
-                        {appliedFilters}
-                      </span>
-                    ) : null}
-                  </button>
-
-                  <div className="min-w-0">
-                    <Select
-                      aria-label={labels.sort}
-                      value={sort}
-                      options={SORT_OPTIONS.map((option) => ({
-                        label: labels.sorts[option],
-                        value: option,
-                      }))}
-                      className="h-11 min-w-0 overflow-hidden rounded-xl border-border/80 bg-white px-3 text-sm font-semibold text-navy shadow-none hover:border-primary/25 focus-visible:border-primary/35 focus-visible:ring-2 focus-visible:ring-primary/10 sm:px-4"
-                      contentClassName="rounded-xl border-slate-200/90 bg-white shadow-xl shadow-slate-900/10"
-                      itemClassName="data-[highlighted]:bg-primary-light/55 data-[highlighted]:text-primary-dark"
-                      onValueChange={(value) =>
-                        replaceQuery({ sort: value, page: undefined })
-                      }
-                    />
-                  </div>
-
-                  <div className="min-w-0">
-                    <Select
-                      aria-label={labels.pageSize}
-                      value={String(pageSize)}
-                      options={PAGE_SIZE_OPTIONS.map((option) => ({
-                        label: `${option} / ${labels.pageSizeShort}`,
-                        value: String(option),
-                      }))}
-                      className="h-11 min-w-0 overflow-hidden rounded-xl border-border/80 bg-white px-3 text-sm font-semibold text-navy shadow-none hover:border-primary/25 focus-visible:border-primary/35 focus-visible:ring-2 focus-visible:ring-primary/10 sm:px-4"
-                      contentClassName="rounded-xl border-slate-200/90 bg-white shadow-xl shadow-slate-900/10"
-                      itemClassName="data-[highlighted]:bg-primary-light/55 data-[highlighted]:text-primary-dark"
-                      onValueChange={(value) => {
-                        const nextPageSize = Number(value);
-                        replaceQuery({
-                          pageSize:
-                            nextPageSize === PAGE_SIZE
-                              ? undefined
-                              : nextPageSize,
-                          page: undefined,
-                        });
-                      }}
-                    />
-                  </div>
-                </>
-              ) : null}
+      {tab !== "characters" ? (
+        <div
+          ref={toolbarRef}
+          className={`sticky top-0 z-30 w-full border-y border-slate-200/80 bg-white/95 px-4 py-2.5 backdrop-blur-xl transition-shadow duration-200 sm:px-6 lg:px-8 ${
+            isToolbarStuck
+              ? "shadow-[0_12px_30px_-24px_rgba(15,23,42,0.4)]"
+              : "shadow-none"
+          }`}
+        >
+          <div className="mx-auto grid w-full min-w-0 max-w-[1520px] grid-cols-2 items-center gap-2 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-[minmax(260px,1fr)_230px_auto_168px_116px] xl:grid-cols-[minmax(320px,1fr)_250px_auto_190px_128px]">
+            <div
+              className={
+                tab === "templates"
+                  ? "col-span-2 min-w-0 sm:col-span-2 md:col-span-4 lg:col-span-1"
+                  : "col-span-2 min-w-0 sm:col-span-2 md:col-span-4 lg:col-span-5"
+              }
+            >
+              <CollectionSearch
+                key={urlSearch}
+                clearLabel={labels.clearSearch}
+                initialValue={urlSearch}
+                label={labels.searchLabel}
+                placeholder={labels.searchPlaceholder}
+                onSearch={handleSearch}
+              />
             </div>
-          </div>
-        ) : null}
 
+            {tab === "templates" ? (
+              <>
+                <SearchableMultiSelect
+                  ariaLabel={labels.otherCollections}
+                  clearLabel={labels.clearAll}
+                  emptyLabel={labels.collectionEmpty}
+                  options={collections.map((item) => ({
+                    label: item.name,
+                    value: item.slug,
+                  }))}
+                  placeholder={labels.allCollections}
+                  searchPlaceholder={labels.collectionSearchPlaceholder}
+                  selectAllLabel={labels.allCollections}
+                  values={selectedCollections}
+                  className="min-w-0 w-full"
+                  onChange={(values) =>
+                    replaceQuery({
+                      categoryIds: values.length > 0 ? values : undefined,
+                      page: undefined,
+                    })
+                  }
+                />
+
+                <button
+                  type="button"
+                  className="form-control form-control--compact relative inline-flex min-w-0 items-center justify-center gap-2 px-4 text-sm font-bold hover:bg-primary-light/30"
+                  onClick={() => setFilterOpen(true)}
+                >
+                  <SlidersHorizontal className="h-4 w-4" />
+                  {labels.filter}
+                  {appliedFilters > 0 ? (
+                    <span className="grid h-5 min-w-5 place-items-center rounded-full bg-primary px-1 text-[10px] text-white">
+                      {appliedFilters}
+                    </span>
+                  ) : null}
+                </button>
+
+                <div className="min-w-0">
+                  <Select
+                    aria-label={labels.sort}
+                    value={sort}
+                    options={SORT_OPTIONS.map((option) => ({
+                      label: labels.sorts[option],
+                      value: option,
+                    }))}
+                    className="min-w-0 overflow-hidden px-3 font-semibold shadow-none sm:px-4"
+                    controlSize="compact"
+                    onValueChange={(value) =>
+                      replaceQuery({ sort: value, page: undefined })
+                    }
+                  />
+                </div>
+
+                <div className="min-w-0">
+                  <Select
+                    aria-label={labels.pageSize}
+                    value={String(pageSize)}
+                    options={PAGE_SIZE_OPTIONS.map((option) => ({
+                      label: `${option} / ${labels.pageSizeShort}`,
+                      value: String(option),
+                    }))}
+                    className="min-w-0 overflow-hidden px-3 font-semibold shadow-none sm:px-4"
+                    controlSize="compact"
+                    onValueChange={(value) => {
+                      const nextPageSize = Number(value);
+                      replaceQuery({
+                        pageSize:
+                          nextPageSize === PAGE_SIZE ? undefined : nextPageSize,
+                        page: undefined,
+                      });
+                    }}
+                  />
+                </div>
+              </>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
+
+      <Container size="full" className="max-w-[1520px] px-4 sm:px-6 lg:px-8">
         {tab === "templates" && activeFilterLabels.length > 0 ? (
           <div className="mt-4 flex flex-wrap items-center gap-2">
             <span className="mr-1 text-xs font-bold uppercase tracking-[0.08em] text-text-muted">

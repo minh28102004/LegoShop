@@ -5,11 +5,11 @@ import { formatCurrency } from "@lego-shop/shared";
 
 import { ProductImage } from "@/components/shared/ProductImage";
 import { Tooltip } from "@/components/ui/Tooltip";
-import type { ProductDetailLabels } from "@/modules/home/data/product-detail.translations";
+import type { ProductDetailDictionary } from "@/lib/i18n/dictionaries";
 import type { HomeFeaturedProduct } from "@/modules/home/types/home.types";
 
 type ProductCardProps = HomeFeaturedProduct & {
-  detailLabels: ProductDetailLabels;
+  detailLabels: ProductDetailDictionary;
   onConsult: (product: HomeFeaturedProduct) => void;
   onSelect: (product: HomeFeaturedProduct) => void;
 };
@@ -42,12 +42,12 @@ export function ProductCard(props: ProductCardProps) {
   };
 
   return (
-    <article className="group relative isolate flex h-full w-full min-w-0 flex-col overflow-hidden rounded-[22px] border border-border/80 bg-white shadow-sm transition-all duration-300 ease-out hover:-translate-y-1 hover:border-primary/25 hover:shadow-[0_20px_45px_-32px_rgba(16,35,63,0.38)] motion-reduce:transform-none">
+    <article className="group relative isolate flex h-full w-full min-w-0 flex-col overflow-hidden rounded-[22px] border border-border/80 bg-white shadow-[0_8px_24px_-16px_rgba(16,35,63,0.28)] transition-all duration-300 ease-out hover:-translate-y-1 hover:border-primary/25 hover:shadow-[0_20px_45px_-32px_rgba(16,35,63,0.38)] motion-reduce:transform-none">
       <button
         type="button"
         aria-label={`${detailLabels.chooseTemplate}: ${title}`}
         disabled={!canOpenTemplate}
-        className="relative z-0 block w-full shrink-0 overflow-hidden rounded-t-[21px] bg-[#edf3f8] text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary/40 disabled:cursor-not-allowed disabled:opacity-80"
+        className="relative z-0 block w-full shrink-0 overflow-hidden rounded-t-[21px] bg-[#edf3f8] p-0 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary/40 disabled:cursor-not-allowed disabled:opacity-80"
         onClick={handleSelect}
       >
         <span className="absolute left-3 top-3 z-20 rounded-full border border-white/80 bg-white/95 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.08em] text-primary-dark shadow-sm backdrop-blur">
@@ -59,7 +59,7 @@ export function ProductCard(props: ProductCardProps) {
           fill
           sizes="(min-width: 1024px) 25vw, (min-width: 768px) 50vw, calc(100vw - 40px)"
           wrapperClassName="pointer-events-none aspect-[4/3] w-full rounded-none bg-[#edf3f8]"
-          className="object-cover transition-transform duration-500 ease-out group-hover:scale-[1.035] motion-reduce:transform-none"
+          className="object-cover"
         />
       </button>
 
@@ -70,19 +70,22 @@ export function ProductCard(props: ProductCardProps) {
           className="text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35 disabled:cursor-not-allowed"
           onClick={handleSelect}
         >
-          <h3 className="line-clamp-2 bg-transparent text-[18px] font-bold leading-[1.35] tracking-[-0.012em] text-navy transition-colors group-hover:text-primary-dark sm:text-[19px]">
+          <h3 className="line-clamp-2 bg-transparent text-[18px] font-bold leading-[1.35] tracking-[-0.012em] text-navy sm:text-[19px]">
             {title}
           </h3>
         </button>
 
-        <div className="mt-2 flex min-h-6 flex-wrap items-center gap-2">
-          <p className="text-[12.5px] font-medium text-text-muted">
+        <div className="mt-2 flex min-h-6 flex-wrap items-center gap-2.5">
+          <p className="text-[12.5px] font-semibold text-text-muted">
             {orderCount.toLocaleString()} {detailLabels.orders}
           </p>
           {includedItems.length > 0 ? (
-            <span className="inline-flex max-w-full rounded-full border border-primary/15 bg-primary-light/55 px-2.5 py-1 text-[10.5px] font-semibold leading-4 text-primary-dark">
-              <span className="truncate">+ {includedItems.join(", ")}</span>
-            </span>
+            <>
+              <span aria-hidden="true" className="h-4 w-px bg-slate-200" />
+              <span className="inline-flex max-w-full rounded-lg border border-primary/15 bg-primary-light/55 px-2.5 py-1 text-[10.5px] font-bold uppercase leading-4 text-primary-dark">
+                <span className="truncate">+ {includedItems.join(", ")}</span>
+              </span>
+            </>
           ) : null}
         </div>
 
@@ -92,7 +95,7 @@ export function ProductCard(props: ProductCardProps) {
           </p>
           <div className="mt-1 flex min-h-8 items-end justify-between gap-2">
             <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-0.5">
-              <span className="whitespace-nowrap text-[21px] font-bold leading-none text-primary-dark">
+              <span className="whitespace-nowrap text-[21px] font-bold leading-none text-navy">
                 {formatCurrency(basePrice)}
               </span>
               {originalPrice !== null && originalPrice > basePrice ? (
@@ -110,7 +113,7 @@ export function ProductCard(props: ProductCardProps) {
             <button
               type="button"
               disabled={!canOpenTemplate}
-              className="relative z-10 inline-flex h-11 min-w-0 items-center justify-center gap-2 rounded-[13px] bg-navy px-3 text-[13px] font-bold uppercase tracking-[0.06em] text-white transition-all duration-200 hover:-translate-y-px hover:bg-primary-dark hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35 active:translate-y-0 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500 disabled:shadow-none disabled:hover:translate-y-0 motion-reduce:transform-none"
+              className="relative z-10 inline-flex h-10 min-w-0 items-center justify-center gap-2 rounded-[12px] bg-navy px-3 text-[12.5px] font-bold uppercase tracking-[0.055em] text-white transition-all duration-200 hover:-translate-y-px hover:bg-primary-dark hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35 active:translate-y-0 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500 disabled:shadow-none disabled:hover:translate-y-0 motion-reduce:transform-none"
               onClick={handleSelect}
             >
               <span className="truncate">{detailLabels.chooseTemplate}</span>
@@ -120,7 +123,7 @@ export function ProductCard(props: ProductCardProps) {
               <button
                 type="button"
                 aria-label={`${detailLabels.consultation}: ${title}`}
-                className="grid h-11 w-11 place-items-center rounded-[13px] border border-primary/15 bg-primary-light/55 text-primary-dark transition-all duration-200 hover:-translate-y-px hover:border-primary/30 hover:bg-primary-light hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35 active:translate-y-0 motion-reduce:transform-none"
+                className="grid h-10 w-11 place-items-center rounded-[12px] border border-primary/15 bg-primary-light/55 text-primary-dark transition-all duration-200 hover:-translate-y-px hover:border-primary/30 hover:bg-primary-light hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35 active:translate-y-0 motion-reduce:transform-none"
                 onClick={() => onConsult(props)}
               >
                 <MessageCircle

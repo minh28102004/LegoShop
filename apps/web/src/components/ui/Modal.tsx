@@ -1,43 +1,45 @@
-'use client'
+"use client";
 
-import * as React from 'react'
-import { createPortal } from 'react-dom'
+import * as React from "react";
+import { createPortal } from "react-dom";
 import {
   AnimatePresence,
   motion,
   useReducedMotion,
   type HTMLMotionProps,
-} from 'framer-motion'
-import { cva, type VariantProps } from 'class-variance-authority'
+} from "framer-motion";
+import { cva, type VariantProps } from "class-variance-authority";
 
-import { cn, type Size } from '@lego-shop/ui'
+import { cn, type Size } from "@lego-shop/ui";
+import { useI18n } from "@/lib/i18n/useI18n";
 
 const modalVariants = cva(
-  'relative max-h-[calc(100dvh-32px)] w-full overflow-hidden rounded-md bg-background text-text-primary shadow-2xl',
+  "relative max-h-[calc(100dvh-32px)] w-full overflow-hidden rounded-md bg-background text-text-primary shadow-2xl",
   {
     variants: {
       size: {
-        sm: 'max-w-screen-sm',
-        md: 'max-w-screen-md',
-        lg: 'max-w-screen-lg',
-        full: 'h-[calc(100dvh-32px)] max-w-[calc(100vw-32px)]',
+        sm: "max-w-screen-sm",
+        md: "max-w-screen-md",
+        lg: "max-w-screen-lg",
+        full: "h-[calc(100dvh-32px)] max-w-[calc(100vw-32px)]",
       },
     },
     defaultVariants: {
-      size: 'md',
+      size: "md",
     },
   },
-)
+);
 
 export interface ModalProps
-  extends Omit<HTMLMotionProps<'div'>, 'children' | 'title'>,
-    Omit<VariantProps<typeof modalVariants>, 'size'> {
-  isOpen: boolean
-  onClose: () => void
-  title?: string
-  size?: Extract<Size, 'sm' | 'md' | 'lg'> | 'full'
-  children: React.ReactNode
-  contentClassName?: string
+  extends
+    Omit<HTMLMotionProps<"div">, "children" | "title">,
+    Omit<VariantProps<typeof modalVariants>, "size"> {
+  isOpen: boolean;
+  onClose: () => void;
+  title?: string;
+  size?: Extract<Size, "sm" | "md" | "lg"> | "full";
+  children: React.ReactNode;
+  contentClassName?: string;
 }
 
 function getFocusableElements(container: HTMLElement): HTMLElement[] {
@@ -45,7 +47,7 @@ function getFocusableElements(container: HTMLElement): HTMLElement[] {
     container.querySelectorAll<HTMLElement>(
       'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])',
     ),
-  )
+  );
 }
 
 export const Modal = React.forwardRef<HTMLDivElement, ModalProps>(
@@ -62,86 +64,87 @@ export const Modal = React.forwardRef<HTMLDivElement, ModalProps>(
     },
     ref,
   ) => {
-    const [mounted, setMounted] = React.useState<boolean>(false)
-    const shouldReduceMotion = useReducedMotion()
-    const dialogRef = React.useRef<HTMLDivElement | null>(null)
-    const titleId = React.useId()
+    const { dictionary } = useI18n();
+    const [mounted, setMounted] = React.useState<boolean>(false);
+    const shouldReduceMotion = useReducedMotion();
+    const dialogRef = React.useRef<HTMLDivElement | null>(null);
+    const titleId = React.useId();
 
     React.useEffect(() => {
-      setMounted(true)
-    }, [])
+      setMounted(true);
+    }, []);
 
     React.useEffect(() => {
-      if (!isOpen || typeof document === 'undefined') {
-        return undefined
+      if (!isOpen || typeof document === "undefined") {
+        return undefined;
       }
 
-      const previousActiveElement = document.activeElement
-      const previousOverflow = document.body.style.overflow
+      const previousActiveElement = document.activeElement;
+      const previousOverflow = document.body.style.overflow;
 
-      document.body.style.overflow = 'hidden'
-      dialogRef.current?.focus()
+      document.body.style.overflow = "hidden";
+      dialogRef.current?.focus();
 
       const handleKeyDown = (event: KeyboardEvent): void => {
-        if (event.key === 'Escape') {
-          onClose()
-          return
+        if (event.key === "Escape") {
+          onClose();
+          return;
         }
 
-        if (event.key !== 'Tab' || dialogRef.current === null) {
-          return
+        if (event.key !== "Tab" || dialogRef.current === null) {
+          return;
         }
 
-        const focusableElements = getFocusableElements(dialogRef.current)
+        const focusableElements = getFocusableElements(dialogRef.current);
 
         if (focusableElements.length === 0) {
-          event.preventDefault()
-          return
+          event.preventDefault();
+          return;
         }
 
-        const firstElement = focusableElements[0]
-        const lastElement = focusableElements[focusableElements.length - 1]
+        const firstElement = focusableElements[0];
+        const lastElement = focusableElements[focusableElements.length - 1];
 
         if (firstElement === undefined || lastElement === undefined) {
-          return
+          return;
         }
 
         if (event.shiftKey && document.activeElement === firstElement) {
-          event.preventDefault()
-          lastElement.focus()
+          event.preventDefault();
+          lastElement.focus();
         } else if (!event.shiftKey && document.activeElement === lastElement) {
-          event.preventDefault()
-          firstElement.focus()
+          event.preventDefault();
+          firstElement.focus();
         }
-      }
+      };
 
-      document.addEventListener('keydown', handleKeyDown)
+      document.addEventListener("keydown", handleKeyDown);
 
       return () => {
-        document.removeEventListener('keydown', handleKeyDown)
-        document.body.style.overflow = previousOverflow
+        document.removeEventListener("keydown", handleKeyDown);
+        document.body.style.overflow = previousOverflow;
 
         if (previousActiveElement instanceof HTMLElement) {
-          previousActiveElement.focus()
+          previousActiveElement.focus();
         }
-      }
-    }, [isOpen, onClose])
+      };
+    }, [isOpen, onClose]);
 
     const setRefs = React.useCallback(
       (node: HTMLDivElement | null): void => {
-        dialogRef.current = node
+        dialogRef.current = node;
 
-        if (typeof ref === 'function') {
-          ref(node)
+        if (typeof ref === "function") {
+          ref(node);
         } else if (ref !== null) {
-          ref.current = node
+          ref.current = node;
         }
       },
       [ref],
-    )
+    );
 
-    if (!mounted || typeof document === 'undefined') {
-      return null
+    if (!mounted || typeof document === "undefined") {
+      return null;
     }
 
     return createPortal(
@@ -155,7 +158,7 @@ export const Modal = React.forwardRef<HTMLDivElement, ModalProps>(
           >
             <button
               type="button"
-              aria-label="Đóng modal"
+              aria-label={dictionary.common.closeModal}
               className="absolute inset-0 bg-[rgb(7_29_58/0.58)] backdrop-blur-[2px]"
               onClick={onClose}
             />
@@ -179,7 +182,7 @@ export const Modal = React.forwardRef<HTMLDivElement, ModalProps>(
               transition={
                 shouldReduceMotion
                   ? { duration: 0.12 }
-                  : { type: 'spring', stiffness: 360, damping: 34 }
+                  : { type: "spring", stiffness: 360, damping: 34 }
               }
               className={cn(modalVariants({ size }), className)}
               {...props}
@@ -191,7 +194,7 @@ export const Modal = React.forwardRef<HTMLDivElement, ModalProps>(
                   </h2>
                 </div>
               ) : null}
-              <div className={cn('overflow-y-auto p-6', contentClassName)}>
+              <div className={cn("overflow-y-auto p-6", contentClassName)}>
                 {children}
               </div>
             </motion.div>
@@ -199,8 +202,8 @@ export const Modal = React.forwardRef<HTMLDivElement, ModalProps>(
         ) : null}
       </AnimatePresence>,
       document.body,
-    )
+    );
   },
-)
+);
 
-Modal.displayName = 'Modal'
+Modal.displayName = "Modal";

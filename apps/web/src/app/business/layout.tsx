@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
+import { vi } from "@/lib/i18n/dictionaries/vi";
 
 export const metadata: Metadata = {
-  title: "Quà tặng doanh nghiệp",
-  description:
-    "Giải pháp quà tặng doanh nghiệp cá nhân hóa, duyệt mẫu trước và hỗ trợ số lượng lớn từ Figure Lab.",
+  title: vi.metadata.business.title,
+  description: vi.metadata.business.description,
 };
 
 export default function BusinessLayout({

@@ -1,14 +1,16 @@
 import type { Metadata } from "next";
+import { vi } from "@/lib/i18n/dictionaries/vi";
+
+const siteCopy = vi.metadata.site;
 
 export const SITE = {
   name: "Figure Lab",
-  tagline: "Quà tặng cá nhân hóa tinh tế cho những khoảnh khắc đáng nhớ",
-  description:
-    "Figure Lab mang đến quà tặng cá nhân hóa với figure, mô hình, khung tranh và gift box dành cho sinh nhật, tốt nghiệp, kỷ niệm và doanh nghiệp.",
+  tagline: siteCopy.tagline,
+  description: siteCopy.description,
   url: "https://figurelab.vn",
   email: "hello@figurelab.vn",
   phone: "0901 234 567",
-  address: "Quận 1, TP. Hồ Chí Minh",
+  address: siteCopy.address,
   locale: "vi-VN",
   currency: "VND",
   twitterHandle: "@figurelab.vn",
@@ -23,7 +25,7 @@ export const SOCIAL_LINKS = {
 } as const;
 
 export const SEO = {
-  defaultTitle: `${SITE.name} - Quà tặng cá nhân hóa tinh tế`,
+  defaultTitle: siteCopy.defaultTitle,
   titleTemplate: `%s | ${SITE.name}`,
   defaultDescription: SITE.description,
 } as const;
@@ -37,15 +39,7 @@ export const siteConfig = {
     url: SITE.url,
     locale: SITE.locale,
     ogImage: SITE.ogImage,
-    keywords: [
-      "Figure Lab",
-      "quà tặng cá nhân hóa",
-      "figure quà tặng",
-      "museum box",
-      "love notes box",
-      "khung tranh lego",
-      "gift box doanh nghiệp",
-    ],
+    keywords: siteCopy.keywords,
   },
   socialLinks: SOCIAL_LINKS,
   contact: {

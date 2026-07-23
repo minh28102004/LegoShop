@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 
 import { ROUTES } from "@/config/routes";
-import { SITE } from "@/config/site";
+import { useI18n } from "@/lib/i18n/useI18n";
 import { cn } from "@lego-shop/ui";
 
 type BrandLogoProps = {
@@ -13,10 +13,12 @@ type BrandLogoProps = {
 };
 
 export function BrandLogo({ className, compact = false }: BrandLogoProps) {
+  const { dictionary } = useI18n();
+
   return (
     <Link
       href={ROUTES.home}
-      aria-label={`${SITE.name} home`}
+      aria-label={dictionary.common.brandHomeLabel}
       className={cn(
         "group inline-flex min-w-0 items-center no-underline ",
         className,
@@ -32,7 +34,7 @@ export function BrandLogo({ className, compact = false }: BrandLogoProps) {
       >
         <Image
           src="/brand/figure-lab-logo.png"
-          alt="Figure Lab logo"
+          alt={dictionary.common.brandLogoAlt}
           width={112}
           height={112}
           sizes="(max-width: 640px) 58px, (max-width: 1024px) 64px, 70px"
@@ -50,7 +52,7 @@ export function BrandLogo({ className, compact = false }: BrandLogoProps) {
             : "text-[1.72rem] max-[430px]:text-[1.35rem] sm:text-[1.86rem] lg:text-[1.75rem] xl:text-[1.9rem]",
         )}
       >
-        Figure Lab
+        {dictionary.common.brandName}
       </span>
     </Link>
   );

@@ -89,13 +89,16 @@ export default function RootLayout({
           <div className="flex h-dvh w-full min-w-0 flex-col overflow-hidden">
             <Header />
 
-            <div aria-hidden="true" className="h-[62px] shrink-0 lg:h-[58px]" />
+            <div
+              aria-hidden="true"
+              className="h-[62px] shrink-0 lg:h-[58px] xl:h-[62px]"
+            />
 
             <div
               id="site-scroll-root"
               className="min-h-0 w-full min-w-0 flex-1 overflow-y-auto overflow-x-hidden scroll-pt-[84px] lg:scroll-pt-[78px]"
             >
-              <main className="w-full min-w-0 overflow-x-hidden">
+              <main className="w-full min-w-0 overflow-x-clip">
                 {children}
               </main>
 

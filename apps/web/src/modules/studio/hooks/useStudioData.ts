@@ -116,7 +116,7 @@ export function useStudioData(frameSize: string) {
           .filter(
             (option) => option.status === "active" && option.type === "size",
           )
-          .map(mapFrameOptionSize);
+          .map((option) => mapFrameOptionSize(option, locale));
         const activeFrameSizes = (
           optionFrameSizes.length > 0
             ? optionFrameSizes

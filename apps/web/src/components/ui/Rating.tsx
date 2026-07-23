@@ -1,89 +1,84 @@
-'use client'
+"use client";
 
-import * as React from 'react'
-import { cva, type VariantProps } from 'class-variance-authority'
+import * as React from "react";
+import { cva, type VariantProps } from "class-variance-authority";
 
-import { cn, type Size } from '@lego-shop/ui'
+import { cn, type Size } from "@lego-shop/ui";
+import { useI18n } from "@/lib/i18n/useI18n";
 
-const ratingVariants = cva('inline-flex items-center', {
+const ratingVariants = cva("inline-flex items-center", {
   variants: {
     size: {
-      sm: 'gap-0.5 text-body-sm',
-      md: 'gap-1 text-body-md',
-      lg: 'gap-1.5 text-body-lg',
+      sm: "gap-0.5 text-body-sm",
+      md: "gap-1 text-body-md",
+      lg: "gap-1.5 text-body-lg",
     },
   },
   defaultVariants: {
-    size: 'md',
+    size: "md",
   },
-})
+});
 
 export interface RatingProps
-  extends Omit<React.ComponentPropsWithoutRef<'div'>, 'onChange'>,
-    Omit<VariantProps<typeof ratingVariants>, 'size'> {
-  value: number
-  max?: number
-  readonly?: boolean
-  onChange?: (value: number) => void
-  size?: Extract<Size, 'sm' | 'md' | 'lg'>
+  extends
+    Omit<React.ComponentPropsWithoutRef<"div">, "onChange">,
+    Omit<VariantProps<typeof ratingVariants>, "size"> {
+  value: number;
+  max?: number;
+  readonly?: boolean;
+  onChange?: (value: number) => void;
+  size?: Extract<Size, "sm" | "md" | "lg">;
 }
 
-function getStarFill(value: number, index: number): 'full' | 'half' | 'empty' {
-  const starValue = index + 1
+function getStarFill(value: number, index: number): "full" | "half" | "empty" {
+  const starValue = index + 1;
 
   if (value >= starValue) {
-    return 'full'
+    return "full";
   }
 
   if (value >= starValue - 0.5) {
-    return 'half'
+    return "half";
   }
 
-  return 'empty'
+  return "empty";
 }
 
 export const Rating = React.forwardRef<HTMLDivElement, RatingProps>(
   (
-    {
-      className,
-      max = 5,
-      onChange,
-      readonly = true,
-      size,
-      value,
-      ...props
-    },
+    { className, max = 5, onChange, readonly = true, size, value, ...props },
     ref,
   ) => {
+    const { dictionary } = useI18n();
     return (
       <div
         ref={ref}
-        role={readonly ? 'img' : 'radiogroup'}
-        aria-label={`${value} trên ${max} sao`}
+        role={readonly ? "img" : "radiogroup"}
+        aria-label={dictionary.common.ratingLabel(value, max)}
         className={cn(ratingVariants({ size }), className)}
         {...props}
       >
         {Array.from({ length: max }, (_, index) => {
-          const fill = getStarFill(value, index)
-          const starValue = index + 1
+          const fill = getStarFill(value, index);
+          const starValue = index + 1;
           const star = (
             <span className="relative inline-block text-border">
               ★
-              {fill !== 'empty' ? (
+              {fill !== "empty" ? (
                 <span
                   className={cn(
-                    'absolute inset-0 overflow-hidden text-accent',
-                    fill === 'half' && 'w-1/2',
+                    "absolute inset-0 overflow-hidden text-accent",
+                    fill === "half" && "w-1/2",
                   )}
                 >
                   ★
                 </span>
               ) : null}
             </span>
-          )
+          );
 
           if (readonly) {
-            return <span key={starValue}>{star}</span>
+            return <span key={starValue}>{star}</span>;
           }
 
           return (
@@ -92,17 +87,17 @@ export const Rating = React.forwardRef<HTMLDivElement, RatingProps>(
               type="button"
               role="radio"
               aria-checked={Math.round(value) === starValue}
-              aria-label={`${starValue} sao`}
+              aria-label={dictionary.common.starLabel(starValue)}
               className="rounded-sm transition-base focus:outline-none focus:ring-2 focus:ring-ring/20"
               onClick={() => onChange?.(starValue)}
             >
               {star}
             </button>
-          )
+          );
         })}
       </div>
-    )
+    );
   },
-)
+);
 
-Rating.displayName = 'Rating'
+Rating.displayName = "Rating";

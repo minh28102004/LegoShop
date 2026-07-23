@@ -22,6 +22,8 @@
     "import:sample-media:dry": "tsx src/scripts/import-sample-media.ts --dry-run",
     "import:sample-media": "tsx src/scripts/import-sample-media.ts --apply",
     "import:sample-media:rollback": "tsx src/scripts/import-sample-media.ts --rollback",
+    "backfill:product-compositions": "tsx src/scripts/backfill-product-compositions.ts",
+    "backfill:product-compositions:apply": "tsx src/scripts/backfill-product-compositions.ts --apply",
     "test:sample-media-storage": "tsx src/scripts/test-sample-media-storage.ts"
   },
   "prisma": {

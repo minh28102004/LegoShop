@@ -4,7 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { Prisma, ProductStatus } from '@prisma/client';
+import { OrderStatus, Prisma, ProductStatus } from '@prisma/client';
 import {
   buildAdminListMeta,
   buildDateFilter,
@@ -17,18 +17,37 @@ import {
   resolveSorts,
 } from '../common/admin-query/admin-query.util';
 import { AdminListQueryDto } from '../common/dto/admin-list-query.dto';
+import {
+  stagedSampleMediaPublicStatus,
+  stagedSampleMediaSeedTag,
+} from '../common/sample-media-preview';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { PublicProductsQueryDto } from './dto/public-products-query.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
+
+type CompositionCatalogEntity = {
+  id: string;
+  name: string;
+  price: number;
+  imageUrl: string | null;
+};
+
+type CompositionCatalog = {
+  characters: Map<string, CompositionCatalogEntity>;
+  accessories: Map<string, CompositionCatalogEntity>;
+  frameOptions: Map<string, CompositionCatalogEntity>;
+  backgrounds: Map<string, CompositionCatalogEntity>;
+};
 
 @Injectable()
 export class ProductsService {
   constructor(private readonly prisma: PrismaService) {}
 
   async findPublicProducts(query: PublicProductsQueryDto = {}) {
+    const previewSeedTag = stagedSampleMediaSeedTag();
     const filters: Prisma.ProductWhereInput[] = [
-      { status: ProductStatus.active },
+      this.publicProductVisibility(previewSeedTag),
     ];
     const search = query.search?.trim();
     const collectionValues = Array.from(
@@ -70,7 +89,8 @@ export class ProductsService {
     }
 
     if (query.type) filters.push({ productType: query.type });
-    if (query.featured !== undefined) filters.push({ featured: query.featured });
+    if (query.featured !== undefined)
+      filters.push({ featured: query.featured });
     if (query.minPrice !== undefined || query.maxPrice !== undefined) {
       filters.push({
         basePrice: {
@@ -89,29 +109,33 @@ export class ProductsService {
       where: { AND: filters },
       select: this.publicProductSelect(),
       orderBy: [{ featured: 'desc' }, { createdAt: 'desc' }],
-      ...(query.page === undefined && query.pageSize === undefined && query.limit
+      ...(query.page === undefined &&
+      query.pageSize === undefined &&
+      query.limit
         ? { take: query.limit }
         : {}),
     });
+    const [catalog, orderCounts] = await Promise.all([
+      this.loadCompositionCatalog(products),
+      this.loadProductOrderCounts(products.map((product) => product.id)),
+    ]);
     let items = products.map((product) => {
-      const { _count, ...summary } = product;
       const componentConfig = this.asRecord(product.componentConfig);
-      const accessoryCount = this.countConfiguredParts(
-        componentConfig,
-        'accessories',
-      );
+      const composition = this.buildComposition(componentConfig, catalog);
 
       return {
-        ...summary,
-        status: product.status,
-        originalPrice: this.readOriginalPrice(componentConfig),
-        orderCount: _count.orderItems,
-        characterCount: this.countConfiguredParts(componentConfig, 'characters'),
-        accessoryCount,
-        charmCount: accessoryCount,
-        includedItemLabels: this.readIncludedItems(componentConfig).map(
-          (item) => item.name,
+        ...product,
+        status: stagedSampleMediaPublicStatus(
+          product.status,
+          this.isSelectedPreviewProduct(componentConfig, previewSeedTag),
         ),
+        originalPrice: this.readOriginalPrice(componentConfig),
+        orderCount: orderCounts.get(product.id) ?? 0,
+        characterCount: composition.characterCount,
+        accessoryCount: composition.accessoryCount,
+        charmCount: composition.accessoryCount,
+        includedItemLabels: composition.includedItems.map((item) => item.name),
+        composition,
       };
     });
 
@@ -155,7 +179,9 @@ export class ProductsService {
           ...this.readStringArray(config?.frameSizeLabels),
           this.readString(config?.frameSizeLabel),
         ].filter((value): value is string => Boolean(value));
-        return labels.some((value) => value.toLowerCase() === expectedFrameSize);
+        return labels.some(
+          (value) => value.toLowerCase() === expectedFrameSize,
+        );
       });
     }
 
@@ -165,14 +191,16 @@ export class ProductsService {
       if (sort === 'price_desc') return right.basePrice - left.basePrice;
       if (sort === 'popular') return right.orderCount - left.orderCount;
       if (sort === 'name_asc') return left.name.localeCompare(right.name, 'vi');
-      if (sort === 'newest') return right.createdAt.getTime() - left.createdAt.getTime();
+      if (sort === 'newest')
+        return right.createdAt.getTime() - left.createdAt.getTime();
       return (
         Number(right.featured) - Number(left.featured) ||
         right.createdAt.getTime() - left.createdAt.getTime()
       );
     });
 
-    const shouldPaginate = query.page !== undefined || query.pageSize !== undefined;
+    const shouldPaginate =
+      query.page !== undefined || query.pageSize !== undefined;
     if (!shouldPaginate) return items;
 
     const page = Math.max(1, query.page ?? 1);
@@ -196,10 +224,11 @@ export class ProductsService {
   }
 
   async findPublicProductBySlug(slug: string) {
+    const previewSeedTag = stagedSampleMediaSeedTag();
     const product = await this.prisma.product.findFirst({
       where: {
         slug,
-        status: ProductStatus.active,
+        ...this.publicProductVisibility(previewSeedTag),
       },
       select: this.publicProductSelect(),
     });
@@ -208,7 +237,7 @@ export class ProductsService {
       throw new NotFoundException('Product not found');
     }
 
-    const { _count, ...baseProduct } = product;
+    const baseProduct = product;
     const componentConfig = this.asRecord(product.componentConfig);
     const configuredCharacters = this.readConfiguredParts(
       componentConfig,
@@ -218,6 +247,18 @@ export class ProductsService {
       componentConfig,
       'accessories',
     );
+    const configuredFrame = this.readConfiguredSinglePart(
+      componentConfig,
+      'frame',
+    );
+    const configuredFrameColor = this.readConfiguredSinglePart(
+      componentConfig,
+      'frameColor',
+    );
+    const configuredBackground = this.readConfiguredSinglePart(
+      componentConfig,
+      'background',
+    );
     const configuredFrameSizeIds = this.readStringArray(
       componentConfig?.frameSizeIds,
     );
@@ -225,37 +266,59 @@ export class ProductsService {
       componentConfig?.recommendedFrameSizeId,
     );
 
-    const [frameSizes, characters, accessories, availableAccessories] =
-      await Promise.all([
-        this.prisma.frameSize.findMany({
-          where: {
-            status: ProductStatus.active,
-            ...(configuredFrameSizeIds.length > 0
-              ? { id: { in: configuredFrameSizeIds } }
-              : {}),
+    const [
+      frameSizes,
+      characters,
+      accessories,
+      availableAccessories,
+      configuredFrameOptions,
+      background,
+      orderCounts,
+    ] = await Promise.all([
+      this.prisma.frameSize.findMany({
+        where: {
+          status: ProductStatus.active,
+          ...(configuredFrameSizeIds.length > 0
+            ? { id: { in: configuredFrameSizeIds } }
+            : {}),
+        },
+        orderBy: [{ popular: 'desc' }, { price: 'asc' }],
+      }),
+      this.prisma.character.findMany({
+        where: {
+          status: ProductStatus.active,
+          id: { in: configuredCharacters.map((item) => item.id) },
+        },
+        orderBy: { sortOrder: 'asc' },
+      }),
+      this.prisma.accessory.findMany({
+        where: {
+          ...this.publicAccessoryVisibility(previewSeedTag),
+          id: { in: configuredAccessories.map((item) => item.id) },
+        },
+        orderBy: { sortOrder: 'asc' },
+      }),
+      this.prisma.accessory.findMany({
+        where: this.publicAccessoryVisibility(previewSeedTag),
+        orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
+        take: 48,
+      }),
+      this.prisma.frameOption.findMany({
+        where: {
+          id: {
+            in: [configuredFrame?.id, configuredFrameColor?.id].filter(
+              (id): id is string => Boolean(id),
+            ),
           },
-          orderBy: [{ popular: 'desc' }, { price: 'asc' }],
-        }),
-        this.prisma.character.findMany({
-          where: {
-            status: ProductStatus.active,
-            id: { in: configuredCharacters.map((item) => item.id) },
-          },
-          orderBy: { sortOrder: 'asc' },
-        }),
-        this.prisma.accessory.findMany({
-          where: {
-            status: ProductStatus.active,
-            id: { in: configuredAccessories.map((item) => item.id) },
-          },
-          orderBy: { sortOrder: 'asc' },
-        }),
-        this.prisma.accessory.findMany({
-          where: { status: ProductStatus.active },
-          orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
-          take: 48,
-        }),
-      ]);
+        },
+      }),
+      configuredBackground?.id
+        ? this.prisma.frameBackground.findUnique({
+            where: { id: configuredBackground.id },
+          })
+        : Promise.resolve(null),
+      this.loadProductOrderCounts([product.id]),
+    ]);
 
     const resolvedRecommendedFrameSizeId =
       frameSizes.find((size) => size.id === recommendedFrameSizeId)?.id ??
@@ -266,27 +329,70 @@ export class ProductsService {
       frameSizes.length > 0
         ? Math.min(...frameSizes.map((size) => size.price))
         : 0;
-    const resolvedCharacters = configuredCharacters.map((configured) => {
-      const entity = characters.find((character) => character.id === configured.id);
-      return {
-        id: configured.id,
-        name: entity?.name ?? configured.name,
-        price: configured.price ?? entity?.price ?? 0,
-        imageUrl: entity?.imageUrl ?? configured.imageUrl,
-        quantity: configured.quantity,
-      };
+    const resolvedCharacters = configuredCharacters.flatMap((configured) => {
+      const entity = characters.find(
+        (character) => character.id === configured.id,
+      );
+      return entity
+        ? [
+            {
+              id: entity.id,
+              name: entity.name,
+              price: configured.price ?? entity.price,
+              imageUrl: entity.imageUrl ?? configured.imageUrl,
+              quantity: configured.quantity,
+            },
+          ]
+        : [];
     });
-    const resolvedAccessories = configuredAccessories.map((configured) => {
-      const entity = accessories.find((accessory) => accessory.id === configured.id);
-      return this.toTemplateAccessory(entity, configured);
+    const resolvedAccessories = configuredAccessories.flatMap((configured) => {
+      const entity = accessories.find(
+        (accessory) => accessory.id === configured.id,
+      );
+      return entity ? [this.toTemplateAccessory(entity, configured)] : [];
     });
     const originalPrice = this.readOriginalPrice(componentConfig);
-
-    return {
-      ...baseProduct,
-      status: product.status,
-      originalPrice,
-      orderCount: _count.orderItems,
+    const resolvedFrame = this.resolveSingleCompositionPart(
+      configuredFrame,
+      configuredFrameOptions.find((item) => item.id === configuredFrame?.id),
+      'frame',
+    );
+    const resolvedFrameColor = this.resolveSingleCompositionPart(
+      configuredFrameColor,
+      configuredFrameOptions.find(
+        (item) => item.id === configuredFrameColor?.id,
+      ),
+      'frameColor',
+    );
+    const resolvedBackground = this.resolveSingleCompositionPart(
+      configuredBackground,
+      background
+        ? {
+            id: background.id,
+            name: background.title,
+            price: 0,
+            imageUrl: background.imageUrl,
+          }
+        : undefined,
+      'background',
+    );
+    const composition = {
+      frame: resolvedFrame,
+      frameColor: resolvedFrameColor,
+      background: resolvedBackground,
+      characters: resolvedCharacters.map((character) => ({
+        ...character,
+        type: 'character' as const,
+      })),
+      accessories: resolvedAccessories.map((accessory) => ({
+        id: accessory.id,
+        name: accessory.name,
+        price: accessory.price,
+        quantity: accessory.quantity,
+        imageUrl: accessory.imageUrl,
+        type: 'accessory' as const,
+      })),
+      includedItems: this.readIncludedItems(componentConfig),
       characterCount: resolvedCharacters.reduce(
         (total, character) => total + character.quantity,
         0,
@@ -295,6 +401,21 @@ export class ProductsService {
         (total, accessory) => total + accessory.quantity,
         0,
       ),
+    };
+
+    return {
+      ...baseProduct,
+      status: stagedSampleMediaPublicStatus(
+        product.status,
+        this.isSelectedPreviewProduct(componentConfig, previewSeedTag),
+      ),
+      originalPrice,
+      orderCount: orderCounts.get(product.id) ?? 0,
+      characterCount: composition.characterCount,
+      accessoryCount: composition.accessoryCount,
+      charmCount: composition.accessoryCount,
+      includedItemLabels: composition.includedItems.map((item) => item.name),
+      composition,
       requiresNote: componentConfig?.requiresNote === true,
       frameSizes: frameSizes.map((size) => ({
         id: size.id,
@@ -317,6 +438,211 @@ export class ProductsService {
         minimumPrice: product.basePrice,
       },
     };
+  }
+
+  private async loadProductOrderCounts(productIds: string[]) {
+    if (productIds.length === 0) return new Map<string, number>();
+
+    const rows = await this.prisma.orderItem.groupBy({
+      by: ['productId'],
+      where: {
+        productId: { in: productIds },
+        order: { orderStatus: { not: OrderStatus.cancelled } },
+      },
+      _sum: { quantity: true },
+    });
+
+    return new Map(
+      rows.flatMap((row) =>
+        row.productId ? [[row.productId, row._sum.quantity ?? 0] as const] : [],
+      ),
+    );
+  }
+
+  private async loadCompositionCatalog(
+    products: Array<{ componentConfig: Prisma.JsonValue | null }>,
+  ): Promise<CompositionCatalog> {
+    const characterIds = new Set<string>();
+    const accessoryIds = new Set<string>();
+    const frameOptionIds = new Set<string>();
+    const backgroundIds = new Set<string>();
+
+    for (const product of products) {
+      const config = this.asRecord(product.componentConfig);
+      for (const part of this.readConfiguredParts(config, 'characters')) {
+        characterIds.add(part.id);
+      }
+      for (const part of this.readConfiguredParts(config, 'accessories')) {
+        accessoryIds.add(part.id);
+      }
+      const frame = this.readConfiguredSinglePart(config, 'frame');
+      const frameColor = this.readConfiguredSinglePart(config, 'frameColor');
+      const background = this.readConfiguredSinglePart(config, 'background');
+      if (frame?.id) frameOptionIds.add(frame.id);
+      if (frameColor?.id) frameOptionIds.add(frameColor.id);
+      if (background?.id) backgroundIds.add(background.id);
+    }
+
+    const [characters, accessories, frameOptions, backgrounds] =
+      await Promise.all([
+        this.prisma.character.findMany({
+          where: { id: { in: [...characterIds] } },
+          select: { id: true, name: true, price: true, imageUrl: true },
+        }),
+        this.prisma.accessory.findMany({
+          where: { id: { in: [...accessoryIds] } },
+          select: { id: true, name: true, price: true, imageUrl: true },
+        }),
+        this.prisma.frameOption.findMany({
+          where: { id: { in: [...frameOptionIds] } },
+          select: { id: true, name: true, price: true, imageUrl: true },
+        }),
+        this.prisma.frameBackground.findMany({
+          where: { id: { in: [...backgroundIds] } },
+          select: { id: true, title: true, imageUrl: true },
+        }),
+      ]);
+
+    return {
+      characters: new Map(characters.map((item) => [item.id, item])),
+      accessories: new Map(accessories.map((item) => [item.id, item])),
+      frameOptions: new Map(frameOptions.map((item) => [item.id, item])),
+      backgrounds: new Map(
+        backgrounds.map((item) => [
+          item.id,
+          { id: item.id, name: item.title, price: 0, imageUrl: item.imageUrl },
+        ]),
+      ),
+    };
+  }
+
+  private buildComposition(
+    config: Record<string, unknown> | null,
+    catalog: CompositionCatalog,
+  ) {
+    const characters = this.resolveCompositionParts(
+      this.readConfiguredParts(config, 'characters'),
+      catalog.characters,
+      'character',
+    );
+    const accessories = this.resolveCompositionParts(
+      this.readConfiguredParts(config, 'accessories'),
+      catalog.accessories,
+      'accessory',
+    );
+
+    return {
+      frame: this.resolveSingleCompositionPart(
+        this.readConfiguredSinglePart(config, 'frame'),
+        catalog.frameOptions.get(
+          this.readConfiguredSinglePart(config, 'frame')?.id ?? '',
+        ),
+        'frame',
+      ),
+      frameColor: this.resolveSingleCompositionPart(
+        this.readConfiguredSinglePart(config, 'frameColor'),
+        catalog.frameOptions.get(
+          this.readConfiguredSinglePart(config, 'frameColor')?.id ?? '',
+        ),
+        'frameColor',
+      ),
+      background: this.resolveSingleCompositionPart(
+        this.readConfiguredSinglePart(config, 'background'),
+        catalog.backgrounds.get(
+          this.readConfiguredSinglePart(config, 'background')?.id ?? '',
+        ),
+        'background',
+      ),
+      characters,
+      accessories,
+      includedItems: this.readIncludedItems(config),
+      characterCount: characters.reduce(
+        (total, item) => total + (item.quantity ?? 1),
+        0,
+      ),
+      accessoryCount: accessories.reduce(
+        (total, item) => total + (item.quantity ?? 1),
+        0,
+      ),
+    };
+  }
+
+  private resolveCompositionParts(
+    configuredParts: ReturnType<ProductsService['readConfiguredParts']>,
+    catalog: Map<string, CompositionCatalogEntity>,
+    type: 'character' | 'accessory',
+  ) {
+    return configuredParts.flatMap((configured) => {
+      const entity = catalog.get(configured.id);
+      if (!entity) return [];
+      return [
+        {
+          id: entity.id,
+          type,
+          name: entity.name,
+          price: configured.price ?? entity.price,
+          quantity: configured.quantity,
+          imageUrl: entity.imageUrl ?? configured.imageUrl,
+        },
+      ];
+    });
+  }
+
+  private resolveSingleCompositionPart(
+    configured: ReturnType<ProductsService['readConfiguredSinglePart']>,
+    entity: CompositionCatalogEntity | undefined,
+    type: 'frame' | 'frameColor' | 'background',
+  ) {
+    if (!configured || !entity) return null;
+    return {
+      id: entity.id,
+      type,
+      name: entity.name,
+      price: configured.price ?? entity.price,
+      quantity: configured.quantity,
+      imageUrl: entity.imageUrl ?? configured.imageUrl,
+    };
+  }
+
+  private publicProductVisibility(
+    previewSeedTag?: string,
+  ): Prisma.ProductWhereInput {
+    if (!previewSeedTag) return { status: ProductStatus.active };
+
+    return {
+      OR: [
+        { status: ProductStatus.active },
+        {
+          status: ProductStatus.inactive,
+          componentConfig: {
+            path: ['sampleMedia', 'seedTag'],
+            equals: previewSeedTag,
+          },
+        },
+      ],
+    };
+  }
+
+  private publicAccessoryVisibility(
+    previewSeedTag?: string,
+  ): Prisma.AccessoryWhereInput {
+    return previewSeedTag
+      ? {
+          OR: [
+            { status: ProductStatus.active },
+            { status: ProductStatus.inactive, seedTag: previewSeedTag },
+          ],
+        }
+      : { status: ProductStatus.active };
+  }
+
+  private isSelectedPreviewProduct(
+    componentConfig: Record<string, unknown> | null,
+    previewSeedTag?: string,
+  ) {
+    if (!previewSeedTag) return false;
+    const sampleMedia = this.asRecord(componentConfig?.sampleMedia);
+    return sampleMedia?.seedTag === previewSeedTag;
   }
 
   async findAdminProducts(query?: AdminListQueryDto) {
@@ -430,6 +756,8 @@ export class ProductsService {
       throw new ConflictException('Product slug already exists');
     }
 
+    await this.validateComponentConfig(dto.componentConfig, dto.basePrice);
+
     return this.prisma.product.create({
       data: {
         name: dto.name,
@@ -455,12 +783,17 @@ export class ProductsService {
   async updateProduct(id: string, dto: UpdateProductDto) {
     const existingProduct = await this.prisma.product.findUnique({
       where: { id },
-      select: { id: true },
+      select: { id: true, basePrice: true, componentConfig: true },
     });
 
     if (!existingProduct) {
       throw new NotFoundException('Product not found');
     }
+
+    await this.validateComponentConfig(
+      dto.componentConfig ?? existingProduct.componentConfig,
+      dto.basePrice ?? existingProduct.basePrice,
+    );
 
     const data: Prisma.ProductUncheckedUpdateInput = {};
 
@@ -520,6 +853,106 @@ export class ProductsService {
     };
   }
 
+  private async validateComponentConfig(value: unknown, basePrice: number) {
+    if (value === undefined || value === null) return;
+    const config = this.asRecord(value);
+    if (!config) {
+      throw new BadRequestException(
+        'Product componentConfig must be an object',
+      );
+    }
+
+    const originalPrice = this.readOriginalPrice(config);
+    if (originalPrice !== null && originalPrice <= basePrice) {
+      throw new BadRequestException(
+        'Product originalPrice must be greater than basePrice',
+      );
+    }
+
+    const readRequiredPartIds = (key: 'characters' | 'accessories') => {
+      const raw = config[key];
+      if (raw === undefined) return [];
+      if (!Array.isArray(raw)) {
+        throw new BadRequestException(`Product ${key} must be an array`);
+      }
+
+      return raw.map((item, index) => {
+        const id = this.readString(this.asRecord(item)?.id);
+        if (!id) {
+          throw new BadRequestException(
+            `Product ${key}[${index}].id is required`,
+          );
+        }
+        return id;
+      });
+    };
+
+    const characterIds = readRequiredPartIds('characters');
+    const accessoryIds = readRequiredPartIds('accessories');
+    const frameIds = (['frame', 'frameColor'] as const).flatMap((key) => {
+      if (config[key] === undefined) return [];
+      const id = this.readString(this.asRecord(config[key])?.id);
+      if (!id) {
+        throw new BadRequestException(`Product ${key}.id is required`);
+      }
+      return [id];
+    });
+    const backgroundId =
+      config.background === undefined
+        ? null
+        : this.readString(this.asRecord(config.background)?.id);
+    if (config.background !== undefined && !backgroundId) {
+      throw new BadRequestException('Product background.id is required');
+    }
+
+    const [characterRows, accessoryRows, frameRows, backgroundRow] =
+      await Promise.all([
+        this.prisma.character.findMany({
+          where: { id: { in: characterIds } },
+          select: { id: true },
+        }),
+        this.prisma.accessory.findMany({
+          where: { id: { in: accessoryIds } },
+          select: { id: true },
+        }),
+        this.prisma.frameOption.findMany({
+          where: { id: { in: frameIds } },
+          select: { id: true },
+        }),
+        backgroundId
+          ? this.prisma.frameBackground.findUnique({
+              where: { id: backgroundId },
+              select: { id: true },
+            })
+          : Promise.resolve(null),
+      ]);
+
+    this.assertAllReferencesExist('characters', characterIds, characterRows);
+    this.assertAllReferencesExist('accessories', accessoryIds, accessoryRows);
+    this.assertAllReferencesExist('frame options', frameIds, frameRows);
+    if (backgroundId && !backgroundRow) {
+      throw new BadRequestException(
+        `Product background reference not found: ${backgroundId}`,
+      );
+    }
+  }
+
+  private assertAllReferencesExist(
+    label: string,
+    requestedIds: string[],
+    rows: Array<{ id: string }>,
+  ) {
+    const existingIds = new Set(rows.map((row) => row.id));
+    const missingIds = [...new Set(requestedIds)].filter(
+      (id) => !existingIds.has(id),
+    );
+    if (missingIds.length > 0) {
+      throw new BadRequestException(
+        `Product ${label} reference(s) not found: ${missingIds.join(', ')}`,
+      );
+    }
+  }
+
   private generateSlug(value: string): string {
     const slug = value
       .normalize('NFD')
@@ -567,16 +1000,12 @@ export class ProductsService {
           updatedAt: true,
         },
       },
-      _count: {
-        select: {
-          orderItems: true,
-        },
-      },
     } satisfies Prisma.ProductSelect;
   }
 
   private asRecord(value: unknown): Record<string, unknown> | null {
-    if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+    if (!value || typeof value !== 'object' || Array.isArray(value))
+      return null;
     return value as Record<string, unknown>;
   }
 
@@ -599,8 +1028,27 @@ export class ProductsService {
       : [];
   }
 
-  private readOriginalPrice(config: Record<string, unknown> | null): number | null {
+  private readOriginalPrice(
+    config: Record<string, unknown> | null,
+  ): number | null {
     return this.readNumber(config?.originalPrice ?? config?.originalPriceVnd);
+  }
+
+  private readConfiguredSinglePart(
+    config: Record<string, unknown> | null,
+    key: 'frame' | 'frameColor' | 'background',
+  ) {
+    const record = this.asRecord(config?.[key]);
+    const id = this.readString(record?.id);
+    if (!id) return null;
+
+    return {
+      id,
+      name: this.readString(record?.name) ?? '',
+      price: this.readNumber(record?.price),
+      imageUrl: this.readString(record?.imageUrl),
+      quantity: Math.max(1, this.readNumber(record?.quantity) ?? 1),
+    };
   }
 
   private readConfiguredParts(
@@ -613,13 +1061,12 @@ export class ProductsService {
     return value.flatMap((item) => {
       const record = this.asRecord(item);
       const id = this.readString(record?.id);
-      const name = this.readString(record?.name);
-      if (!id || !name) return [];
+      if (!id) return [];
 
       return [
         {
           id,
-          name,
+          name: this.readString(record?.name) ?? '',
           price: this.readNumber(record?.price),
           originalPrice: this.readNumber(
             record?.originalPrice ?? record?.originalPriceVnd,
@@ -680,10 +1127,9 @@ export class ProductsService {
       iconUrl: entity?.iconUrl ?? configured?.iconUrl ?? null,
       quantity: configured?.quantity ?? 0,
       maxQuantity: configured?.maxQuantity ?? 10,
-      colorVariants:
-        configured?.colorVariants.length
-          ? configured.colorVariants
-          : this.readColorVariants(metadata?.colorVariants),
+      colorVariants: configured?.colorVariants.length
+        ? configured.colorVariants
+        : this.readColorVariants(metadata?.colorVariants),
     };
   }
 
@@ -703,7 +1149,9 @@ export class ProductsService {
           name,
           quantity: Math.max(1, this.readNumber(record?.quantity) ?? 1),
           icon:
-            icon === 'package' || icon === 'sparkles' ? icon : ('gift' as const),
+            icon === 'package' || icon === 'sparkles'
+              ? icon
+              : ('gift' as const),
         },
       ];
     });

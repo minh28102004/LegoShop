@@ -1,5 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { CreateFrameSizeDto } from './dto/create-frame-size.dto';
+import { UpdateFrameSizeDto } from './dto/update-frame-size.dto';
 
 @Injectable()
 export class FrameSizesService {
@@ -7,7 +9,7 @@ export class FrameSizesService {
 
   async findAll() {
     return this.prisma.frameSize.findMany({
-      orderBy: { price: 'asc' }
+      orderBy: { price: 'asc' },
     });
   }
 
@@ -17,11 +19,11 @@ export class FrameSizesService {
     return frameSize;
   }
 
-  async create(data: any) {
+  async create(data: CreateFrameSizeDto) {
     return this.prisma.frameSize.create({ data });
   }
 
-  async update(id: string, data: any) {
+  async update(id: string, data: UpdateFrameSizeDto) {
     return this.prisma.frameSize.update({
       where: { id },
       data,

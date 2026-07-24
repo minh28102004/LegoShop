@@ -19,11 +19,19 @@ import { FrameBackgroundsService } from './frame-backgrounds.service';
 @ApiTags('FrameBackgrounds')
 @Controller()
 export class FrameBackgroundsController {
-  constructor(private readonly frameBackgroundsService: FrameBackgroundsService) {}
+  constructor(
+    private readonly frameBackgroundsService: FrameBackgroundsService,
+  ) {}
 
   @Get('public/frame-backgrounds')
-  findPublicBackgrounds(@Query('frameOptionId') frameOptionId?: string) {
-    return this.frameBackgroundsService.findPublicBackgrounds(frameOptionId);
+  findPublicBackgrounds(
+    @Query('frameOptionId') frameOptionId?: string,
+    @Query('category') category?: string,
+  ) {
+    return this.frameBackgroundsService.findPublicBackgrounds(
+      frameOptionId,
+      category,
+    );
   }
 
   @Get('admin/frame-backgrounds')
@@ -44,7 +52,9 @@ export class FrameBackgroundsController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   createBackground(@Body() createFrameBackgroundDto: CreateFrameBackgroundDto) {
-    return this.frameBackgroundsService.createBackground(createFrameBackgroundDto);
+    return this.frameBackgroundsService.createBackground(
+      createFrameBackgroundDto,
+    );
   }
 
   @Patch('admin/frame-backgrounds/:id')
@@ -54,7 +64,10 @@ export class FrameBackgroundsController {
     @Param('id') id: string,
     @Body() updateFrameBackgroundDto: UpdateFrameBackgroundDto,
   ) {
-    return this.frameBackgroundsService.updateBackground(id, updateFrameBackgroundDto);
+    return this.frameBackgroundsService.updateBackground(
+      id,
+      updateFrameBackgroundDto,
+    );
   }
 
   @Delete('admin/frame-backgrounds/:id')

@@ -100,8 +100,7 @@ export class FrameOptionsService {
         Object.values(FrameOptionType),
         'type',
       );
-      where.type =
-        types.length > 0 ? { in: types } : FrameOptionType.size;
+      where.type = types.length > 0 ? { in: types } : FrameOptionType.size;
 
       if (query?.price_min !== undefined || query?.price_max !== undefined) {
         where.price = {
@@ -174,9 +173,8 @@ export class FrameOptionsService {
     const name = dto.name ?? generatedLabel;
     const label = dto.label ?? generatedLabel;
     const variants = this.parseFrameColorVariants(dto.colorVariantsText);
-    const colorVariants = variants.length > 0
-      ? variants
-      : [{ hex: dto.colorHex }];
+    const colorVariants =
+      variants.length > 0 ? variants : [{ hex: dto.colorHex }];
     const createdOptions = await this.prisma.$transaction(async (tx) => {
       const options: Awaited<ReturnType<typeof tx.frameOption.create>>[] = [];
 
@@ -243,8 +241,10 @@ export class FrameOptionsService {
     const generatedLabel = this.buildFrameOptionLabel(dto);
     if (dto.name !== undefined) data.name = dto.name;
     if (dto.label !== undefined) data.label = dto.label;
-    if (dto.name === undefined && generatedLabel !== 'Khung') data.name = generatedLabel;
-    if (dto.label === undefined && generatedLabel !== 'Khung') data.label = generatedLabel;
+    if (dto.name === undefined && generatedLabel !== 'Khung')
+      data.name = generatedLabel;
+    if (dto.label === undefined && generatedLabel !== 'Khung')
+      data.label = generatedLabel;
     if (dto.description !== undefined) data.description = dto.description;
     if (dto.colorHex !== undefined) data.colorHex = dto.colorHex;
     if (dto.imageUrl !== undefined) data.imageUrl = dto.imageUrl;
@@ -258,7 +258,7 @@ export class FrameOptionsService {
     if (dto.popular !== undefined) data.popular = dto.popular;
     if (dto.status !== undefined) data.status = dto.status;
     if (dto.metadata !== undefined) {
-      data.metadata = dto.metadata as Prisma.InputJsonValue;
+      data.metadata = dto.metadata;
     }
 
     if (dto.slug !== undefined) {
@@ -301,7 +301,9 @@ export class FrameOptionsService {
       maxQuantity !== undefined &&
       maxQuantity < minQuantity
     ) {
-      throw new BadRequestException('maxQuantity must be greater than or equal to minQuantity');
+      throw new BadRequestException(
+        'maxQuantity must be greater than or equal to minQuantity',
+      );
     }
   }
 
@@ -380,25 +382,22 @@ export class FrameOptionsService {
         ...base,
         colorName: variant.name,
         frameColorName: variant.name,
-      } as Prisma.InputJsonValue;
+      };
     }
 
-    return Object.keys(base).length > 0
-      ? (base as Prisma.InputJsonValue)
-      : undefined;
+    return Object.keys(base).length > 0 ? base : undefined;
   }
 
-  private buildFrameOptionLabel(dto: {
-    widthCm?: number;
-    heightCm?: number;
-  }) {
+  private buildFrameOptionLabel(dto: { widthCm?: number; heightCm?: number }) {
     return dto.widthCm !== undefined && dto.heightCm !== undefined
       ? `${this.formatDimension(dto.widthCm)}x${this.formatDimension(dto.heightCm)}`
       : 'Khung';
   }
 
   private formatDimension(value: number) {
-    return Number.isInteger(value) ? String(value) : String(value).replace(/\.?0+$/, '');
+    return Number.isInteger(value)
+      ? String(value)
+      : String(value).replace(/\.?0+$/, '');
   }
 
   private serializeFrameOption<T extends FrameOptionResponse>(option: T) {

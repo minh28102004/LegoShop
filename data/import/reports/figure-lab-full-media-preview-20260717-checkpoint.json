@@ -1,0 +1,106 @@
+{
+  "seedTag": "figure-lab-full-media-preview-20260717",
+  "status": "blocked-before-apply",
+  "checkpointAt": "2026-07-17T14:56:18.0306577+07:00",
+  "reason": "The mandatory Supabase Storage persistence test stopped before upload because STORAGE_PUBLIC_BASE_URL and the related local Supabase Storage configuration are not present.",
+  "safety": {
+    "databaseWritesPerformed": false,
+    "storageObjectsUploaded": 0,
+    "fullImportApplied": false,
+    "commitCreated": false,
+    "pushPerformed": false,
+    "deployPerformed": false,
+    "renderChanged": false,
+    "ordersDeleted": 0,
+    "orderItemsDeleted": 0,
+    "productsDeleted": 0,
+    "oldTestFixturesDeleted": 0,
+    "cleanup35Rerun": false
+  },
+  "backup": {
+    "path": "data/import/backups/figure-lab-public-pre-full-import-20260717T072933Z.json",
+    "bytes": 22965,
+    "sha256": "87cf8321ef7317305201e5153c31333ce88446c5d0cd2a5596a528858c8bb3a3",
+    "verifiedCounts": {
+      "Product": 15,
+      "Banner": 2,
+      "Collection": 2,
+      "FrameBackground": 4,
+      "Accessory": 2,
+      "AccessoryCategory": 2,
+      "SampleMediaImport": 0
+    }
+  },
+  "dryRun": {
+    "jsonReport": "data/import/reports/figure-lab-full-media-preview-20260717-dry-run.json",
+    "markdownReport": "docs/import-reports/figure-lab-full-media-preview-20260717-dry-run.md",
+    "total": 210,
+    "read": 210,
+    "uniqueDownloadedAndProcessed": 202,
+    "duplicateHashGroups": 7,
+    "errors": 0,
+    "uploaded": 0,
+    "inserted": 0,
+    "updated": 0,
+    "targetPlan": {
+      "Accessory": 92,
+      "Banner": 5,
+      "Collection": 6,
+      "FrameBackground": 48,
+      "Product": 41,
+      "ledgerOnlyHomepageAsset": 18
+    }
+  },
+  "storagePersistenceTest": {
+    "command": "pnpm --filter backend test:sample-media-storage",
+    "result": "failed-before-upload",
+    "error": "STORAGE_PUBLIC_BASE_URL is required",
+    "temporaryObjectCreated": false
+  },
+  "validation": {
+    "backendTypecheck": "passed",
+    "backendBuild": "passed",
+    "focusedBackendLint": "passed",
+    "gitDiffCheck": "passed",
+    "publicApiDefaultPreviewDisabled": "passed",
+    "publicApiObservedCounts": {
+      "products": 14,
+      "collections": 2,
+      "banners": 2,
+      "frameBackgrounds": 4,
+      "accessories": 2,
+      "visibleAccessoryCategories": 1
+    },
+    "browserPreviewQa": "not-run-because-apply-was-blocked",
+    "idempotencyApply": "not-run-because-apply-was-blocked",
+    "rollbackDryRun": "not-run-because-apply-was-blocked"
+  },
+  "finalReadOnlyDatabaseCheck": {
+    "schema": "public",
+    "Product": 15,
+    "Banner": 2,
+    "Collection": 2,
+    "FrameBackground": 4,
+    "Accessory": 2,
+    "AccessoryCategory": 2,
+    "SampleMediaImport": 0,
+    "currentSeedTagLedgerRows": 0,
+    "Order": 13,
+    "OrderItem": 17,
+    "preservedTestPagingFixtures": 13
+  },
+  "requiredLocalConfiguration": [
+    "DATABASE_SCHEMA=public",
+    "IMPORT_SAMPLE_ASSETS=false",
+    "IMPORT_PREVIEW_MODE=true",
+    "IMPORT_SEED_TAG=figure-lab-full-media-preview-20260717",
+    "SAMPLE_MEDIA_STORAGE_PROVIDER=supabase",
+    "SUPABASE_URL=https://<project>.supabase.co",
+    "SUPABASE_SECRET_KEY=<backend-only-secret>",
+    "SUPABASE_STORAGE_BUCKET=<public-bucket>",
+    "STORAGE_PUBLIC_BASE_URL=https://<project>.supabase.co/storage/v1/object/public/<public-bucket>",
+    "INCLUDE_STAGED_SAMPLE_MEDIA=true",
+    "STAGED_SAMPLE_MEDIA_SEED_TAG=figure-lab-full-media-preview-20260717"
+  ],
+  "resumeGate": "Put the values in the gitignored apps/backend/.env.local and rerun the storage persistence test. Do not enable IMPORT_SAMPLE_ASSETS or run the full apply until the test passes."
+}

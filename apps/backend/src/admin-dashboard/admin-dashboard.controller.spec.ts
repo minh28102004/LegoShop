@@ -7,7 +7,9 @@ describe('AdminDashboardController', () => {
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [AdminDashboardController],
-    }).compile();
+    })
+      .useMocker(() => ({}))
+      .compile();
 
     controller = module.get<AdminDashboardController>(AdminDashboardController);
   });

@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { Be_Vietnam_Pro } from "next/font/google";
 
 import { Footer } from "@/components/layout/Footer";
 import { Header } from "@/components/layout/Header";
@@ -6,6 +7,13 @@ import { SITE, siteConfig } from "@/config/site";
 import { CartDrawer } from "@/modules/cart/components/CartDrawer";
 import { Providers } from "./providers";
 import "./globals.css";
+
+const beVietnamPro = Be_Vietnam_Pro({
+  subsets: ["latin", "vietnamese"],
+  weight: ["400", "500", "600", "700"],
+  display: "swap",
+  variable: "--font-be-vietnam-pro",
+});
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE.url),
@@ -19,6 +27,11 @@ export const metadata: Metadata = {
   creator: SITE.name,
   publisher: SITE.name,
   applicationName: SITE.name,
+  icons: {
+    icon: "/brand/figure-lab-logo.png",
+    shortcut: "/brand/figure-lab-logo.png",
+    apple: "/brand/figure-lab-logo.png",
+  },
   alternates: {
     canonical: SITE.url,
   },
@@ -72,21 +85,26 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="vi" className="h-full w-full scroll-smooth antialiased">
+    <html
+      lang="vi"
+      data-scroll-behavior="smooth"
+      className={`${beVietnamPro.variable} h-full w-full scroll-smooth antialiased`}
+    >
       <body className="h-dvh w-full overflow-hidden bg-background font-body text-text-primary antialiased">
         <Providers>
           <div className="flex h-dvh w-full min-w-0 flex-col overflow-hidden">
             <Header />
 
-            <div aria-hidden="true" className="h-[62px] shrink-0 lg:h-[58px]" />
+            <div
+              aria-hidden="true"
+              className="h-[62px] shrink-0 lg:h-[58px] xl:h-[62px]"
+            />
 
             <div
               id="site-scroll-root"
               className="min-h-0 w-full min-w-0 flex-1 overflow-y-auto overflow-x-hidden scroll-pt-[84px] lg:scroll-pt-[78px]"
             >
-              <main className="w-full min-w-0 overflow-x-hidden">
-                {children}
-              </main>
+              <main className="w-full min-w-0 overflow-x-clip">{children}</main>
 
               <Footer />
             </div>

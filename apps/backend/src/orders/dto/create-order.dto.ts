@@ -6,20 +6,24 @@ import {
   IsArray,
   IsDateString,
   IsEmail,
-  IsEnum,
   IsIn,
   IsNotEmpty,
   IsBoolean,
   IsOptional,
   IsString,
+  IsUUID,
   ValidateNested,
 } from 'class-validator';
 import { CreateOrderItemDto } from './create-order-item.dto';
 
-const SHIPPING_METHODS = ['shop_support', 'self', 'standard', 'fast'] as const;
+const SHIPPING_METHODS = ['hcm_inner', 'hcm_outer', 'nationwide'] as const;
 const POLAROID_OPTIONS = ['none', '2', '4'] as const;
 
 export class CreateOrderDto {
+  @ApiProperty({ example: '74d10f97-e146-4b23-a3a4-b0bd11d6801f' })
+  @IsUUID()
+  checkoutAttemptId: string;
+
   @ApiProperty({
     example: 'Nguyen Van A',
   })
@@ -171,13 +175,12 @@ export class CreateOrderDto {
   @IsString()
   voucherCode?: string;
 
-  @ApiPropertyOptional({
+  @ApiProperty({
     enum: SHIPPING_METHODS,
-    example: 'shop_support',
+    example: 'hcm_inner',
   })
-  @IsOptional()
   @IsIn(SHIPPING_METHODS)
-  shippingMethod?: (typeof SHIPPING_METHODS)[number];
+  shippingMethod: (typeof SHIPPING_METHODS)[number];
 
   @ApiPropertyOptional({
     example: true,
@@ -195,11 +198,11 @@ export class CreateOrderDto {
   polaroidOption?: (typeof POLAROID_OPTIONS)[number];
 
   @ApiProperty({
-    enum: PaymentMethod,
-    example: PaymentMethod.COD,
+    enum: [PaymentMethod.PAYOS],
+    example: PaymentMethod.PAYOS,
   })
-  @IsEnum(PaymentMethod)
-  paymentMethod: PaymentMethod;
+  @IsIn([PaymentMethod.PAYOS])
+  paymentMethod: typeof PaymentMethod.PAYOS;
 
   @ApiProperty({
     type: [CreateOrderItemDto],

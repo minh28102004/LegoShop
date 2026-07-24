@@ -6,7 +6,15 @@ import type {
 import { PRODUCT_STATUS } from '@lego-shop/shared';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
-import { IsArray, IsEnum, IsInt, IsNotEmpty, IsOptional, IsString, Min } from 'class-validator';
+import {
+  IsArray,
+  IsEnum,
+  IsInt,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  Min,
+} from 'class-validator';
 
 const trimString = ({ value }: { value: unknown }) =>
   typeof value === 'string' ? value.trim() : value;
@@ -17,27 +25,32 @@ const trimOptionalString = ({ value }: { value: unknown }) => {
   return trimmed.length > 0 ? trimmed : undefined;
 };
 
-const parseJsonValue = ({ value }: { value: unknown }) => {
+const parseJsonValue = ({ value }: { value: unknown }): unknown => {
   if (typeof value !== 'string') return value;
   const trimmed = value.trim();
   if (!trimmed) return undefined;
 
   try {
-    return JSON.parse(trimmed);
+    const parsed: unknown = JSON.parse(trimmed);
+    return parsed;
   } catch {
     return value;
   }
 };
 
-const parseStringArray = ({ value }: { value: unknown }) => {
-  if (Array.isArray(value)) return value;
+const parseStringArray = ({ value }: { value: unknown }): unknown => {
+  if (Array.isArray(value)) {
+    return value.filter((item): item is string => typeof item === 'string');
+  }
   if (typeof value !== 'string') return value;
   const trimmed = value.trim();
   if (!trimmed) return undefined;
 
   try {
-    const parsed = JSON.parse(trimmed);
-    if (Array.isArray(parsed)) return parsed;
+    const parsed: unknown = JSON.parse(trimmed);
+    if (Array.isArray(parsed)) {
+      return parsed.filter((item): item is string => typeof item === 'string');
+    }
   } catch {
     return trimmed
       .split(',')
@@ -61,7 +74,9 @@ export class CreateFrameBackgroundDto implements CreateFrameBackgroundRequestCon
   @IsString()
   description?: string;
 
-  @ApiPropertyOptional({ example: 'Dien ten nguoi nhan, ngay tot nghiep va loi chuc.' })
+  @ApiPropertyOptional({
+    example: 'Dien ten nguoi nhan, ngay tot nghiep va loi chuc.',
+  })
   @Transform(trimOptionalString)
   @IsOptional()
   @IsString()

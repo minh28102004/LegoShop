@@ -7,30 +7,72 @@ export default function CharactersPage() {
   const { t } = useI18n();
 
   const fields: EntityField[] = [
-    { key: 'name', label: 'Tên part', type: 'text', required: true },
+    { key: 'name', label: 'Tên linh kiện', type: 'text', required: true },
+    {
+      key: 'slug',
+      label: 'Slug',
+      type: 'text',
+      placeholder: 'VD: toc-den-ngan',
+      helpText: 'Định danh ổn định dùng cho liên kết và import dữ liệu.',
+    },
     {
       key: 'type',
-      label: 'Loại part',
+      label: 'Nhóm linh kiện',
       type: 'select',
       required: true,
       options: [
-        { label: 'FACE / Khuôn mặt', value: 'FACE' },
-        { label: 'HAIR / Tóc', value: 'HAIR' },
-        { label: 'TORSO / Áo', value: 'TORSO' },
-        { label: 'LEGS / Quần', value: 'LEGS' },
-        { label: 'HAT / Mũ', value: 'HAT' },
-        { label: 'ACCESSORY / Phụ kiện nhân vật', value: 'ACCESSORY' },
+        { label: 'Khuôn mặt', value: 'FACE' },
+        { label: 'Tóc', value: 'HAIR' },
+        { label: 'Thân áo', value: 'TORSO' },
+        { label: 'Chân', value: 'LEGS' },
+        { label: 'Mũ', value: 'HAT' },
+        { label: 'Phụ kiện', value: 'ACCESSORY' },
       ],
     },
-    { key: 'imageUrl', label: 'Ảnh PNG/WebP', type: 'image', required: true,
-      helpText: 'Ảnh nên là PNG/WebP nền trong suốt, cùng kích thước canvas (ví dụ 512×512). Vị trí đầu/thân/chân phải đồng bộ giữa các part để nhân vật ghép không bị lệch.' },
-    { key: 'priceAdjustment', label: 'Giá cộng thêm (VND)', type: 'number' },
+    {
+      key: 'imageUrl',
+      label: 'Ảnh PNG/WebP',
+      type: 'image',
+      required: true,
+      helpText:
+        'Dùng ảnh nền trong suốt, cùng kích thước canvas (khuyến nghị 512×512) để các lớp ghép đúng vị trí.',
+    },
+    { key: 'priceAdjustment', label: 'Giá bán (VND)', type: 'number', required: true },
+    { key: 'compareAtPrice', label: 'Giá gốc (VND)', type: 'number' },
+    {
+      key: 'category',
+      label: 'Danh mục',
+      type: 'text',
+      placeholder: 'VD: classic, graduation',
+    },
+    {
+      key: 'availability',
+      label: 'Tình trạng kho',
+      type: 'select',
+      options: [
+        { label: 'Có sẵn', value: 'available' },
+        { label: 'Tạm hết', value: 'out_of_stock' },
+        { label: 'Ngừng bán', value: 'unavailable' },
+      ],
+    },
+    {
+      key: 'compatibility',
+      label: 'Điều kiện tương thích',
+      type: 'json',
+      placeholder: '{\n  "bodyScale": ["standard"]\n}',
+      helpText: 'JSON dùng để giới hạn linh kiện tương thích trong Character Builder.',
+    },
     { key: 'sortOrder', label: 'Thứ tự hiển thị', type: 'number' },
     {
       key: 'tags',
-      label: 'Tags tìm kiếm',
+      label: 'Từ khóa tìm kiếm',
       type: 'tags',
-      placeholder: 'VD: black, short, toc nam',
+      placeholder: 'VD: black, short, tóc nam',
+    },
+    {
+      key: 'isActive',
+      label: 'Cho phép sử dụng trong Builder',
+      type: 'checkbox',
     },
     {
       key: 'status',
@@ -43,14 +85,21 @@ export default function CharactersPage() {
     },
   ];
 
+  const tableFields = fields.filter((field) =>
+    ['name', 'type', 'imageUrl', 'priceAdjustment', 'availability', 'isActive', 'status'].includes(
+      field.key,
+    ),
+  );
+
   return (
     <EntityManager
-      title='bộ phận nhân vật'
+      title='linh kiện nhân vật'
       resource='character-parts'
       fields={fields}
-      pageTitle='Quản lý bộ phận nhân vật'
-      pageDescription='Tạo và sắp xếp các part FACE, HAIR, TORSO, LEGS, ACCESSORY để khách ghép nhân vật LEGO trong Studio.'
-      createButtonLabel='Thêm part nhân vật'
+      tableFields={tableFields}
+      pageTitle='Quản lý linh kiện nhân vật'
+      pageDescription='Quản lý khuôn mặt, tóc, thân áo, chân, mũ và phụ kiện dùng chung cho Character Builder, preset và sản phẩm bán lẻ.'
+      createButtonLabel='Thêm linh kiện'
     />
   );
 }

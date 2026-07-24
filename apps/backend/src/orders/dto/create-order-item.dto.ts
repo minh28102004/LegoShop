@@ -1,4 +1,7 @@
-import type { CreateOrderItemRequestContract, JsonObject } from '@lego-shop/shared';
+import type {
+  CreateOrderItemRequestContract,
+  JsonObject,
+} from '@lego-shop/shared';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
 import {
@@ -7,6 +10,7 @@ import {
   IsNotEmpty,
   IsObject,
   IsOptional,
+  IsIn,
   IsString,
   Min,
 } from 'class-validator';
@@ -21,6 +25,33 @@ export class CreateOrderItemDto implements CreateOrderItemRequestContract {
   @IsOptional()
   @IsString()
   productId?: string;
+
+  @ApiPropertyOptional({
+    enum: ['frame', 'standalone_character', 'custom_character', 'retail_part'],
+  })
+  @IsOptional()
+  @IsIn(['frame', 'standalone_character', 'custom_character', 'retail_part'])
+  lineItemType?:
+    | 'frame'
+    | 'standalone_character'
+    | 'custom_character'
+    | 'retail_part';
+
+  @ApiPropertyOptional({ example: 'lego_character' })
+  @Transform(({ value }: { value: unknown }) =>
+    typeof value === 'string' ? value.trim() : value,
+  )
+  @IsOptional()
+  @IsString()
+  productType?: string;
+
+  @ApiPropertyOptional({ example: 'Minh' })
+  @Transform(({ value }: { value: unknown }) =>
+    typeof value === 'string' ? value.trim() : value,
+  )
+  @IsOptional()
+  @IsString()
+  customName?: string;
 
   @ApiProperty({
     example: 'Dragon Brick Set',
@@ -116,7 +147,12 @@ export class CreateOrderItemDto implements CreateOrderItemRequestContract {
   })
   @IsOptional()
   @IsArray()
-  accessories?: Array<{ id: string; name: string; price: number; quantity?: number }>;
+  accessories?: Array<{
+    id: string;
+    name: string;
+    price: number;
+    quantity?: number;
+  }>;
 
   @ApiPropertyOptional({
     type: Object,

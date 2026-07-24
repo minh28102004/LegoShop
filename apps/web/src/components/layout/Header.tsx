@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ChevronRight, Menu, ShoppingCart, X } from "lucide-react";
+import { ChevronDown, ChevronRight, Menu, ShoppingCart, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { cn } from "@lego-shop/ui";
 import { BrandLogo } from "@/components/layout/BrandLogo";
 import { LanguageSwitcher } from "@/components/layout/LanguageSwitcher";
+import { Badge } from "@/components/ui/Badge";
 import { HEADER_NAV_ITEMS, ROUTES, UI_MODAL_IDS } from "@/config/routes";
 import { useCart } from "@/features/cart/hooks/useCart";
 import { selectIsMobileMenuOpen, useUIStore } from "@/features/ui/store";
@@ -25,6 +26,32 @@ function isNavItemActive(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
+const STUDIO_NAV_ITEMS = [
+  {
+    key: "frame",
+    href: ROUTES.studioFrame,
+  },
+  {
+    key: "character",
+    href: ROUTES.studioCharacter,
+  },
+] as const;
+
+const COLLECTION_NAV_ITEMS = [
+  {
+    key: "templates",
+    href: ROUTES.collection,
+  },
+  {
+    key: "characters",
+    href: `${ROUTES.collection}?type=characters`,
+  },
+  {
+    key: "parts",
+    href: `${ROUTES.collection}?type=parts`,
+  },
+] as const;
+
 export function Header() {
   const pathname = usePathname();
   const { itemCount, openCart } = useCart();
@@ -37,10 +64,18 @@ export function Header() {
 
   const [isScrolled, setIsScrolled] = useState(false);
   const [hasMounted, setHasMounted] = useState(false);
+  const [isStudioMenuOpen, setIsStudioMenuOpen] = useState(false);
+  const [isCollectionMenuOpen, setIsCollectionMenuOpen] = useState(false);
+  const [isMobileStudioOpen, setIsMobileStudioOpen] = useState(false);
+  const [isMobileCollectionOpen, setIsMobileCollectionOpen] = useState(false);
 
   const menuButtonRef = useRef<HTMLButtonElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const drawerRef = useRef<HTMLElement | null>(null);
+  const studioMenuRef = useRef<HTMLDivElement>(null);
+  const studioToggleRef = useRef<HTMLButtonElement>(null);
+  const collectionMenuRef = useRef<HTMLDivElement>(null);
+  const collectionToggleRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => setHasMounted(true));
@@ -48,8 +83,62 @@ export function Header() {
   }, []);
 
   useEffect(() => {
-    closeMobileMenu();
+    const frame = window.requestAnimationFrame(() => {
+      closeMobileMenu();
+      setIsStudioMenuOpen(false);
+      setIsCollectionMenuOpen(false);
+      setIsMobileStudioOpen(false);
+      setIsMobileCollectionOpen(false);
+    });
+
+    return () => window.cancelAnimationFrame(frame);
   }, [closeMobileMenu, pathname]);
+
+  useEffect(() => {
+    if (!isStudioMenuOpen) return;
+
+    const closeStudioMenu = (event: PointerEvent) => {
+      if (!studioMenuRef.current?.contains(event.target as Node)) {
+        setIsStudioMenuOpen(false);
+      }
+    };
+    const handleStudioKeys = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsStudioMenuOpen(false);
+        studioToggleRef.current?.focus();
+      }
+    };
+
+    document.addEventListener("pointerdown", closeStudioMenu);
+    document.addEventListener("keydown", handleStudioKeys);
+    return () => {
+      document.removeEventListener("pointerdown", closeStudioMenu);
+      document.removeEventListener("keydown", handleStudioKeys);
+    };
+  }, [isStudioMenuOpen]);
+
+  useEffect(() => {
+    if (!isCollectionMenuOpen) return;
+
+    const closeCollectionMenu = (event: PointerEvent) => {
+      if (!collectionMenuRef.current?.contains(event.target as Node)) {
+        setIsCollectionMenuOpen(false);
+      }
+    };
+    const handleCollectionKeys = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsCollectionMenuOpen(false);
+        collectionToggleRef.current?.focus();
+      }
+    };
+
+    document.addEventListener("pointerdown", closeCollectionMenu);
+    document.addEventListener("keydown", handleCollectionKeys);
+    return () => {
+      document.removeEventListener("pointerdown", closeCollectionMenu);
+      document.removeEventListener("keydown", handleCollectionKeys);
+    };
+  }, [isCollectionMenuOpen]);
 
   useEffect(() => {
     const scrollRoot = document.getElementById("site-scroll-root");
@@ -161,12 +250,13 @@ export function Header() {
 
   const mobileDrawer = (
     <div
-      className="fixed inset-0 lg:hidden"
+      className="fixed inset-0 overflow-hidden lg:hidden"
       style={{
         zIndex: 1300,
         pointerEvents: isMobileMenuOpen ? "auto" : "none",
       }}
       aria-hidden={!isMobileMenuOpen}
+      inert={!isMobileMenuOpen}
     >
       <div
         aria-hidden="true"
@@ -212,14 +302,7 @@ export function Header() {
             type="button"
             aria-label={t("header.closeMenu")}
             onClick={closeMobileMenu}
-            className="inline-flex h-11 w-11 shrink-0 appearance-none items-center justify-center rounded-none border-0! bg-transparent! p-0! text-navy! shadow-none! outline-none! ring-0! transition-colors duration-200 hover:bg-transparent! hover:text-[#2f91d0]! focus:border-0! focus:shadow-none! focus:outline-none! focus:ring-0! focus-visible:border-0! focus-visible:shadow-none! focus-visible:outline-none! focus-visible:ring-0! active:scale-100"
-            style={{
-              border: "none",
-              outline: "none",
-              boxShadow: "none",
-              background: "transparent",
-              WebkitTapHighlightColor: "transparent",
-            }}
+            className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-button text-navy transition-colors duration-fast hover:bg-primary-light hover:text-primary-dark"
           >
             <X className="h-6 w-6" strokeWidth={2.1} />
           </button>
@@ -231,13 +314,153 @@ export function Header() {
               {HEADER_NAV_ITEMS.map((item) => {
                 const isActive = isNavItemActive(pathname, item.href);
 
+                if (item.key === "studio") {
+                  return (
+                    <div key={item.href} className="grid gap-1">
+                      <button
+                        type="button"
+                        aria-label={t("header.studioMenu.open")}
+                        aria-expanded={isMobileStudioOpen}
+                        aria-controls="mobile-studio-navigation"
+                        onClick={() => {
+                          setIsMobileCollectionOpen(false);
+                          setIsMobileStudioOpen((current) => !current);
+                        }}
+                        className={cn(
+                          "flex min-h-12 w-full items-center gap-3 rounded-lg px-4 py-3 text-left text-[16px] font-medium transition-colors duration-fast",
+                          isActive || isMobileStudioOpen
+                            ? "bg-[#eef7ff] text-[#2f91d0]"
+                            : "text-navy hover:bg-[#f8fbff] hover:text-[#2f91d0]",
+                        )}
+                      >
+                        <span
+                          className={cn(
+                            "h-2.5 w-2.5 shrink-0 rounded-full",
+                            isActive ? "bg-[#2f91d0]" : "bg-slate-300",
+                          )}
+                        />
+                        <span className="min-w-0 flex-1 truncate">
+                          {t("header.nav.studio")}
+                        </span>
+                        <ChevronDown
+                          className={cn(
+                            "h-5 w-5 shrink-0 transition-transform duration-200",
+                            isMobileStudioOpen && "rotate-180",
+                          )}
+                        />
+                      </button>
+
+                      <div
+                        id="mobile-studio-navigation"
+                        className={cn(
+                          "grid overflow-hidden pl-4 transition-[grid-template-rows,opacity] duration-300 ease-out motion-reduce:transition-none",
+                          isMobileStudioOpen
+                            ? "grid-rows-[1fr] opacity-100"
+                            : "grid-rows-[0fr] opacity-0",
+                        )}
+                      >
+                        <div className="min-h-0">
+                          <div className="grid gap-1 border-l border-[#dbe7f1] py-1 pl-3">
+                            {STUDIO_NAV_ITEMS.map(
+                              ({ key: studioMode, href }) => (
+                                <Link
+                                  key={studioMode}
+                                  href={href}
+                                  onClick={closeMobileMenu}
+                                  className={cn(
+                                    "flex min-h-11 items-center rounded-md px-3 py-2.5 text-sm font-semibold transition-colors",
+                                    isNavItemActive(pathname, href)
+                                      ? "bg-[#eef7ff] text-primary"
+                                      : "text-slate-700 hover:bg-slate-50 hover:text-primary",
+                                  )}
+                                >
+                                  {t(`header.studioMenu.${studioMode}.title`)}
+                                </Link>
+                              ),
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                }
+
+                if (item.key === "legoFrame") {
+                  return (
+                    <div key={item.href} className="grid gap-1">
+                      <button
+                        type="button"
+                        aria-label={t("header.collectionMenu.open")}
+                        aria-expanded={isMobileCollectionOpen}
+                        aria-controls="mobile-collection-navigation"
+                        onClick={() => {
+                          setIsMobileStudioOpen(false);
+                          setIsMobileCollectionOpen((current) => !current);
+                        }}
+                        className={cn(
+                          "flex min-h-12 w-full items-center gap-3 rounded-lg px-4 py-3 text-left text-[16px] font-medium transition-colors duration-fast",
+                          isActive || isMobileCollectionOpen
+                            ? "bg-[#eef7ff] text-[#2f91d0]"
+                            : "text-navy hover:bg-[#f8fbff] hover:text-[#2f91d0]",
+                        )}
+                      >
+                        <span
+                          className={cn(
+                            "h-2.5 w-2.5 shrink-0 rounded-full",
+                            isActive ? "bg-[#2f91d0]" : "bg-slate-300",
+                          )}
+                        />
+                        <span className="min-w-0 flex-1 truncate">
+                          {t("header.nav.legoFrame")}
+                        </span>
+                        <ChevronDown
+                          className={cn(
+                            "h-5 w-5 shrink-0 transition-transform duration-200",
+                            isMobileCollectionOpen && "rotate-180",
+                          )}
+                        />
+                      </button>
+
+                      <div
+                        id="mobile-collection-navigation"
+                        className={cn(
+                          "grid overflow-hidden pl-4 transition-[grid-template-rows,opacity] duration-300 ease-out motion-reduce:transition-none",
+                          isMobileCollectionOpen
+                            ? "grid-rows-[1fr] opacity-100"
+                            : "grid-rows-[0fr] opacity-0",
+                        )}
+                      >
+                        <div className="min-h-0">
+                          <div className="grid gap-1 border-l border-[#dbe7f1] py-1 pl-3">
+                            {COLLECTION_NAV_ITEMS.map(
+                              ({ key: collectionMode, href }) => (
+                                <Link
+                                  key={collectionMode}
+                                  href={href}
+                                  onClick={() => {
+                                    setIsMobileCollectionOpen(false);
+                                    closeMobileMenu();
+                                  }}
+                                  className="flex min-h-11 items-center rounded-md px-3 py-2.5 text-sm font-semibold text-slate-700 transition-colors hover:bg-[#eef7ff] hover:text-primary"
+                                >
+                                  {t(`header.collectionMenu.${collectionMode}`)}
+                                </Link>
+                              ),
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                }
+
                 return (
                   <Link
                     key={item.href}
                     href={item.href}
                     onClick={closeMobileMenu}
                     className={cn(
-                      "group flex items-center justify-between gap-4 rounded-[16px] px-5 py-[18px] text-[16px] font-semibold tracking-[-0.01em] transition-all duration-200",
+                      "group flex items-center justify-between gap-4 rounded-lg px-4 py-3.5 text-[16px] font-medium tracking-[-0.01em] transition-all duration-fast",
                       isActive
                         ? "bg-[#eef7ff] text-[#2f91d0] shadow-[inset_0_0_0_1px_rgba(126,191,233,0.34)]"
                         : "text-navy hover:bg-[#f8fbff] hover:text-[#2f91d0]",
@@ -287,16 +510,14 @@ export function Header() {
     <>
       <header
         className={cn(
-          "fixed inset-x-0 top-0 z-60 w-full border-b bg-white transition-all duration-300 ease-out",
-          "before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-[3px] before:bg-linear-to-r before:from-[#7bc7f0] before:via-[#2f91d0] before:to-[#f6d76b]",
-          "after:pointer-events-none after:absolute after:inset-x-0 after:bottom-0 after:h-px after:bg-linear-to-r after:from-transparent after:via-[#b7def3] after:to-transparent",
+          "fixed inset-x-0 top-0 z-60 w-full border-b border-[#e3edf4] bg-white transition-[border-color,box-shadow] duration-300 ease-out",
           isScrolled
-            ? "border-[#cfe4f1] shadow-[0_16px_42px_-30px_rgba(18,45,78,0.5)]"
-            : "border-[#e1edf5] shadow-[0_8px_28px_-26px_rgba(18,45,78,0.35)]",
+            ? "border-[#d7e5ee] shadow-[0_8px_24px_-22px_rgba(18,45,78,0.28)]"
+            : "shadow-[0_2px_10px_-8px_rgba(18,45,78,0.16)]",
         )}
       >
         <div className="w-full px-4 sm:px-6 lg:px-8 xl:px-10 2xl:px-12">
-          <div className="grid min-h-[50px] grid-cols-[minmax(0,auto)_1fr_auto] items-center gap-3 transition-[min-height] duration-300 ease-out lg:min-h-[46px] lg:gap-7">
+          <div className="grid min-h-[62px] grid-cols-[minmax(0,auto)_1fr_auto] items-center gap-3 transition-[min-height] duration-300 ease-out lg:min-h-[46px] xl:gap-7">
             <BrandLogo className="min-w-0 shrink-0" />
 
             <nav className="hidden min-w-0 items-center justify-center lg:flex">
@@ -304,13 +525,179 @@ export function Header() {
                 {HEADER_NAV_ITEMS.map((item) => {
                   const isActive = isNavItemActive(pathname, item.href);
 
+                  if (item.key === "studio") {
+                    return (
+                      <div
+                        key={item.href}
+                        ref={studioMenuRef}
+                        className="relative flex items-center"
+                      >
+                        <button
+                          ref={studioToggleRef}
+                          type="button"
+                          aria-label={t("header.studioMenu.open")}
+                          aria-haspopup="menu"
+                          aria-expanded={isStudioMenuOpen}
+                          onClick={() => {
+                            setIsCollectionMenuOpen(false);
+                            setIsStudioMenuOpen((current) => !current);
+                          }}
+                          onKeyDown={(event) => {
+                            if (event.key === "ArrowDown") {
+                              event.preventDefault();
+                              setIsStudioMenuOpen(true);
+                              window.requestAnimationFrame(() => {
+                                studioMenuRef.current
+                                  ?.querySelector<HTMLAnchorElement>(
+                                    '[role="menuitem"]',
+                                  )
+                                  ?.focus();
+                              });
+                            }
+                          }}
+                          className={cn(
+                            "group relative inline-flex items-center justify-center gap-1.5 rounded-md px-2 py-2 text-[15px] font-[550] tracking-normal text-slate-800 transition-colors duration-fast hover:text-primary xl:px-3.5 xl:text-[15.5px]",
+                            (isActive || isStudioMenuOpen) &&
+                              "font-semibold text-[#2f91d0]",
+                          )}
+                        >
+                          <span>{t("header.nav.studio")}</span>
+                          <ChevronDown
+                            className={cn(
+                              "h-4 w-4 shrink-0 transition-transform duration-200",
+                              isStudioMenuOpen && "rotate-180",
+                            )}
+                            strokeWidth={2}
+                          />
+                          <span
+                            className={cn(
+                              "pointer-events-none absolute inset-x-2 -bottom-px h-[2px] origin-center rounded-full bg-linear-to-r from-[#7bc7f0] via-[#2f91d0] to-[#7bc7f0] transition-transform duration-300 ease-out xl:inset-x-4",
+                              isActive || isStudioMenuOpen
+                                ? "scale-x-100"
+                                : "scale-x-0 group-hover:scale-x-100",
+                            )}
+                          />
+                        </button>
+
+                        <div
+                          role="menu"
+                          aria-label={t("header.nav.studio")}
+                          className={cn(
+                            "absolute left-1/2 top-[calc(100%+9px)] z-80 w-[220px] -translate-x-1/2 rounded-[16px] border border-[#d7e5ee] bg-white p-2 shadow-[0_18px_42px_-28px_rgba(18,45,78,0.34)] transition-[opacity,visibility] duration-150 ease-out motion-reduce:transition-none",
+                            isStudioMenuOpen
+                              ? "visible opacity-100"
+                              : "invisible opacity-0",
+                          )}
+                        >
+                          {STUDIO_NAV_ITEMS.map(({ key: studioMode, href }) => (
+                            <Link
+                              key={studioMode}
+                              role="menuitem"
+                              href={href}
+                              onClick={() => setIsStudioMenuOpen(false)}
+                              className={cn(
+                                "flex min-h-11 items-center rounded-[11px] px-4 py-2.5 text-[14.5px] font-semibold text-slate-700 outline-none transition-colors hover:bg-[#eef7ff] hover:text-primary focus-visible:bg-[#eef7ff] focus-visible:text-primary",
+                                isNavItemActive(pathname, href) &&
+                                  "bg-[#eef7ff] text-primary",
+                              )}
+                            >
+                              {t(`header.studioMenu.${studioMode}.title`)}
+                            </Link>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  if (item.key === "legoFrame") {
+                    return (
+                      <div
+                        key={item.href}
+                        ref={collectionMenuRef}
+                        className="relative flex items-center"
+                      >
+                        <button
+                          ref={collectionToggleRef}
+                          type="button"
+                          aria-label={t("header.collectionMenu.open")}
+                          aria-haspopup="menu"
+                          aria-expanded={isCollectionMenuOpen}
+                          onClick={() => {
+                            setIsStudioMenuOpen(false);
+                            setIsCollectionMenuOpen((current) => !current);
+                          }}
+                          onKeyDown={(event) => {
+                            if (event.key === "ArrowDown") {
+                              event.preventDefault();
+                              setIsCollectionMenuOpen(true);
+                              window.requestAnimationFrame(() => {
+                                collectionMenuRef.current
+                                  ?.querySelector<HTMLAnchorElement>(
+                                    '[role="menuitem"]',
+                                  )
+                                  ?.focus();
+                              });
+                            }
+                          }}
+                          className={cn(
+                            "group relative inline-flex min-h-10 items-center justify-center gap-1.5 rounded-[12px] px-3 py-2 text-[15px] font-[550] text-slate-800 transition-colors duration-fast hover:bg-[#f4faff] hover:text-primary xl:px-3.5 xl:text-[15.5px]",
+                            (isActive || isCollectionMenuOpen) &&
+                              "bg-[#f2f9fd] font-semibold text-[#2f91d0]",
+                          )}
+                        >
+                          <span>{t("header.nav.legoFrame")}</span>
+                          <ChevronDown
+                            className={cn(
+                              "h-4 w-4 shrink-0 transition-transform duration-200",
+                              isCollectionMenuOpen && "rotate-180",
+                            )}
+                            strokeWidth={2}
+                          />
+                          <span
+                            className={cn(
+                              "pointer-events-none absolute inset-x-3 -bottom-[4px] h-[2px] origin-center rounded-full bg-linear-to-r from-[#7bc7f0] via-[#2f91d0] to-[#7bc7f0] transition-transform duration-300",
+                              isActive || isCollectionMenuOpen
+                                ? "scale-x-100"
+                                : "scale-x-0 group-hover:scale-x-100",
+                            )}
+                          />
+                        </button>
+
+                        <div
+                          role="menu"
+                          aria-label={t("header.nav.legoFrame")}
+                          className={cn(
+                            "absolute left-1/2 top-[calc(100%+9px)] z-80 w-[224px] -translate-x-1/2 rounded-[18px] border border-[#d7e5ee] bg-white p-2 shadow-[0_20px_48px_-28px_rgba(18,45,78,0.38)] transition-[opacity,visibility] duration-150 ease-out motion-reduce:transition-none",
+                            isCollectionMenuOpen
+                              ? "visible opacity-100"
+                              : "invisible opacity-0",
+                          )}
+                        >
+                          {COLLECTION_NAV_ITEMS.map(
+                            ({ key: collectionMode, href }) => (
+                              <Link
+                                key={collectionMode}
+                                role="menuitem"
+                                href={href}
+                                onClick={() => setIsCollectionMenuOpen(false)}
+                                className="flex min-h-11 items-center rounded-[12px] px-4 py-2.5 text-sm font-semibold text-slate-700 outline-none transition-colors hover:bg-[#eef7ff] hover:text-primary focus-visible:bg-[#eef7ff] focus-visible:text-primary"
+                              >
+                                {t(`header.collectionMenu.${collectionMode}`)}
+                              </Link>
+                            ),
+                          )}
+                        </div>
+                      </div>
+                    );
+                  }
+
                   return (
                     <Link
                       key={item.href}
                       href={item.href}
                       className={cn(
-                        "group relative inline-flex items-center justify-center px-3 py-1.5 text-[15px] font-semibold tracking-[-0.01em] text-slate-800 transition-colors duration-200 hover:text-[#2f91d0] xl:px-4 xl:text-[15.5px]",
-                        isActive && "text-[#2f91d0]",
+                        "group relative inline-flex items-center justify-center rounded-md px-2 py-2 text-[15px] font-[550] tracking-normal text-slate-800 transition-colors duration-fast hover:text-primary xl:px-3.5 xl:text-[15.5px]",
+                        isActive && "font-semibold text-[#2f91d0]",
                       )}
                     >
                       <span>{t(`header.nav.${item.key}`)}</span>
@@ -334,18 +721,25 @@ export function Header() {
                 type="button"
                 aria-label={t("header.openCart")}
                 onClick={openCartDrawer}
-                className="relative inline-flex h-9 w-9 items-center justify-center rounded-[12px] border border-transparent bg-transparent text-slate-700 transition-all duration-200 hover:bg-[#edf8ff] hover:text-[#2f91d0]"
+                className="relative inline-flex h-11 w-11 items-center justify-center rounded-button border border-transparent bg-transparent text-slate-700 transition-all duration-fast hover:bg-primary-light hover:text-primary-dark"
               >
                 <ShoppingCart className="h-6 w-6" strokeWidth={1.8} />
 
                 {hasMounted && itemCount > 0 ? (
-                  <span className="absolute -right-1 -top-1 inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-[#f6d76b] px-1 text-[10px] font-extrabold text-navy">
+                  <Badge
+                    variant="highlight"
+                    size="sm"
+                    className="absolute -right-1 -top-1 h-6 min-w-6 justify-center px-1 text-[12.5px] font-bold"
+                  >
                     {itemCount}
-                  </span>
+                  </Badge>
                 ) : null}
               </button>
 
-              <LanguageSwitcher className="hidden lg:flex" />
+              <LanguageSwitcher
+                compact
+                className="hidden lg:ml-3 lg:flex xl:ml-4"
+              />
 
               <button
                 ref={menuButtonRef}
@@ -358,14 +752,7 @@ export function Header() {
                 aria-controls="mobile-navigation-drawer"
                 aria-expanded={isMobileMenuOpen}
                 onClick={isMobileMenuOpen ? closeMobileMenu : openMobileMenu}
-                className="inline-flex h-11 w-11 appearance-none items-center justify-center rounded-none border-0! bg-transparent! p-0! text-navy! shadow-none! outline-none! ring-0! transition-colors duration-200 hover:bg-transparent! hover:text-[#2f91d0]! focus:border-0! focus:shadow-none! focus:outline-none! focus:ring-0! focus-visible:border-0! focus-visible:shadow-none! focus-visible:outline-none! focus-visible:ring-0! active:scale-100 lg:hidden"
-                style={{
-                  border: "none",
-                  outline: "none",
-                  boxShadow: "none",
-                  background: "transparent",
-                  WebkitTapHighlightColor: "transparent",
-                }}
+                className="inline-flex h-11 w-11 items-center justify-center rounded-button text-navy transition-colors duration-fast hover:bg-primary-light hover:text-primary-dark lg:hidden"
               >
                 {isMobileMenuOpen ? (
                   <X className="h-6 w-6" strokeWidth={2.1} />

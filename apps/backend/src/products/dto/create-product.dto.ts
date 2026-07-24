@@ -31,7 +31,7 @@ const parseJsonObject = ({ value }: { value: unknown }) => {
   if (!trimmed) return undefined;
 
   try {
-    return JSON.parse(trimmed);
+    return JSON.parse(trimmed) as unknown;
   } catch {
     return value;
   }
@@ -69,6 +69,12 @@ export class CreateProductDto implements CreateProductRequestContract {
   @IsString()
   description?: string;
 
+  @ApiPropertyOptional({ example: 'Nhân vật LEGO tốt nghiệp cá nhân hóa.' })
+  @Transform(trimOptionalString)
+  @IsOptional()
+  @IsString()
+  shortDescription?: string;
+
   @ApiProperty({
     example: 299000,
     minimum: 0,
@@ -77,6 +83,13 @@ export class CreateProductDto implements CreateProductRequestContract {
   @IsInt()
   @Min(0)
   basePrice: number;
+
+  @ApiPropertyOptional({ example: 349000 })
+  @Type(() => Number)
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  compareAtPrice?: number | null;
 
   @ApiPropertyOptional({
     type: [String],
@@ -87,6 +100,12 @@ export class CreateProductDto implements CreateProductRequestContract {
   @IsString({ each: true })
   images?: string[];
 
+  @ApiPropertyOptional({ example: '/uploads/admin/character-preview.png' })
+  @Transform(trimOptionalString)
+  @IsOptional()
+  @IsString()
+  thumbnailUrl?: string;
+
   @ApiPropertyOptional({
     enum: PRODUCT_TYPE,
     example: PRODUCT_TYPE.FINISHED,
@@ -95,13 +114,66 @@ export class CreateProductDto implements CreateProductRequestContract {
   @IsEnum(PRODUCT_TYPE)
   productType?: ProductType;
 
+  @ApiPropertyOptional({ example: 'graduation' })
+  @Transform(trimOptionalString)
+  @IsOptional()
+  @IsString()
+  category?: string;
+
+  @ApiPropertyOptional({ example: 'available' })
+  @Transform(trimOptionalString)
+  @IsOptional()
+  @IsString()
+  availability?: string;
+
+  @ApiPropertyOptional({ example: 20 })
+  @Type(() => Number)
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  inventory?: number | null;
+
+  @ApiPropertyOptional({ example: true })
+  @IsOptional()
+  @IsBoolean()
+  published?: boolean;
+
+  @ApiPropertyOptional()
+  @Transform(trimOptionalString)
+  @IsOptional()
+  @IsString()
+  characterPresetId?: string | null;
+
   @ApiPropertyOptional({
     type: Object,
     example: {
       frame: { id: 'frame-option-id', name: 'Khung 30x30 den', price: 30000 },
+      frameColor: {
+        id: 'frame-color-id',
+        name: 'Den',
+        price: 0,
+      },
       background: { id: 'background-id', name: 'Nen trai tim', price: 0 },
-      characters: [{ name: 'Nhan vat', quantity: 2, price: 10000 }],
-      accessories: [{ id: 'accessory-id', name: 'Charm trai tim', quantity: 1, price: 10000 }],
+      characters: [
+        {
+          id: 'character-id',
+          name: 'Nhan vat',
+          quantity: 2,
+          price: 10000,
+        },
+      ],
+      accessories: [
+        {
+          id: 'accessory-id',
+          name: 'Charm trai tim',
+          quantity: 1,
+          price: 10000,
+        },
+      ],
+      includedItems: [
+        { id: 'gift-box', name: 'Hop qua', quantity: 1, icon: 'gift' },
+      ],
+      originalPrice: 350000,
     },
   })
   @Transform(parseJsonObject)

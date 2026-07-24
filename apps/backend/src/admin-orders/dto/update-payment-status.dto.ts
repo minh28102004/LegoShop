@@ -1,4 +1,7 @@
-import type { PaymentStatus, UpdatePaymentStatusRequestContract } from '@lego-shop/shared';
+import type {
+  PaymentStatus,
+  UpdatePaymentStatusRequestContract,
+} from '@lego-shop/shared';
 import { PAYMENT_STATUS } from '@lego-shop/shared';
 import { ApiProperty } from '@nestjs/swagger';
 import { IsEnum } from 'class-validator';

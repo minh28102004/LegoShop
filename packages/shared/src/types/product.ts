@@ -1,4 +1,9 @@
-import type { CharacterPartType, FrameOptionType, ProductStatus, ProductType } from '../constants/status';
+import type {
+  CharacterPartType,
+  FrameOptionType,
+  ProductStatus,
+  ProductType,
+} from "../constants/status";
 import type {
   ID,
   JsonObject,
@@ -7,12 +12,22 @@ import type {
   PriceInVND,
   Timestamped,
   URLString,
-} from './common';
-import type { AccessoryCategory, Collection, TemplateCategory } from './category';
+} from "./common";
+import type {
+  AccessoryCategory,
+  Collection,
+  TemplateCategory,
+} from "./category";
 
 export type ProductComponentPart = JsonObject & {
   id?: ID;
-  type: 'frame' | 'background' | 'character' | 'accessory' | 'product';
+  type:
+    | "frame"
+    | "frameColor"
+    | "background"
+    | "character"
+    | "accessory"
+    | "product";
   name: string;
   price?: PriceInVND;
   quantity?: number;
@@ -21,10 +36,28 @@ export type ProductComponentPart = JsonObject & {
 
 export type ProductComponentConfig = JsonObject & {
   frame?: ProductComponentPart;
+  frameColor?: ProductComponentPart;
   background?: ProductComponentPart;
   characters?: ProductComponentPart[];
   accessories?: ProductComponentPart[];
   parts?: ProductComponentPart[];
+  includedItems?: ProductIncludedItem[];
+  originalPrice?: PriceInVND;
+  frameSizeIds?: ID[];
+  recommendedFrameSizeId?: ID;
+  requiresNote?: boolean;
+  customizableFields?: ProductCustomizableField[];
+};
+
+export type ProductCompositionSummary = {
+  frame: Nullable<ProductComponentPart>;
+  frameColor: Nullable<ProductComponentPart>;
+  background: Nullable<ProductComponentPart>;
+  characters: ProductComponentPart[];
+  accessories: ProductComponentPart[];
+  includedItems: ProductIncludedItem[];
+  characterCount: number;
+  accessoryCount: number;
 };
 
 export type Product = Timestamped & {
@@ -32,29 +65,90 @@ export type Product = Timestamped & {
   name: string;
   slug: string;
   description: Nullable<string>;
+  shortDescription?: Nullable<string>;
   basePrice: PriceInVND;
+  compareAtPrice?: Nullable<PriceInVND>;
   images: URLString[];
+  thumbnailUrl?: Nullable<URLString>;
   productType: ProductType | string;
+  category?: Nullable<string>;
+  availability?: string;
+  inventory?: Nullable<number>;
+  published?: boolean;
+  characterPresetId?: Nullable<ID>;
   componentConfig: Nullable<ProductComponentConfig>;
   status: ProductStatus;
   featured: boolean;
   collectionId: Nullable<ID>;
   collection?: Nullable<Collection>;
+  originalPrice?: Nullable<PriceInVND>;
+  orderCount?: number;
+  characterCount?: number;
+  accessoryCount?: number;
+  charmCount?: number;
+  componentCount?: number;
+  isBuilderPreset?: boolean;
+  preset?: Nullable<CharacterPreset>;
+  includedItemLabels?: string[];
+  composition?: ProductCompositionSummary;
+};
+
+export type PublicProductsSort =
+  "featured" | "newest" | "popular" | "price_asc" | "price_desc" | "name_asc";
+
+export type PublicProductsQuery = {
+  page?: number;
+  pageSize?: number;
+  search?: string;
+  category?: string;
+  availability?: string;
+  published?: boolean;
+  collection?: string;
+  collections?: string[];
+  collectionIds?: string[];
+  minPrice?: number;
+  maxPrice?: number;
+  characterCount?: number;
+  characterCounts?: number[];
+  charmCount?: number;
+  charmCounts?: number[];
+  statuses?: ProductStatus[];
+  sort?: PublicProductsSort;
+  type?: string;
+  types?: string[];
+  featured?: boolean;
+  isNew?: boolean;
+  includedGift?: boolean;
+  frameSize?: string;
+};
+
+export type PublicProductsMeta = {
+  page: number;
+  pageSize: number;
+  totalItems: number;
+  totalPages: number;
+  hasNextPage: boolean;
+  hasPreviousPage: boolean;
+};
+
+export type PublicProductsResponse = {
+  items: Product[];
+  meta: PublicProductsMeta;
 };
 
 export type ProductSummary = Pick<
   Product,
-  | 'id'
-  | 'name'
-  | 'slug'
-  | 'description'
-  | 'basePrice'
-  | 'images'
-  | 'productType'
-  | 'componentConfig'
-  | 'status'
-  | 'featured'
-  | 'collectionId'
+  | "id"
+  | "name"
+  | "slug"
+  | "description"
+  | "basePrice"
+  | "images"
+  | "productType"
+  | "componentConfig"
+  | "status"
+  | "featured"
+  | "collectionId"
 >;
 
 export type Template = Timestamped & {
@@ -70,9 +164,13 @@ export type Template = Timestamped & {
 export type Accessory = Timestamped & {
   id: ID;
   name: string;
+  slug?: Nullable<string>;
   price: PriceInVND;
   imageUrl: Nullable<URLString>;
   iconUrl: Nullable<URLString>;
+  sortOrder: number;
+  naturalWidth: Nullable<number>;
+  naturalHeight: Nullable<number>;
   status: ProductStatus;
   categoryId: Nullable<ID>;
   category?: Nullable<AccessoryCategory>;
@@ -90,9 +188,15 @@ export type Character = Timestamped & {
 export type CharacterPart = Timestamped & {
   id: ID;
   name: string;
+  slug: Nullable<string>;
   type: CharacterPartType;
   imageUrl: URLString;
   priceAdjustment: PriceInVND;
+  compareAtPrice?: Nullable<PriceInVND>;
+  category?: Nullable<string>;
+  availability?: string;
+  isActive?: boolean;
+  compatibility?: Nullable<JsonValue>;
   sortOrder: number;
   tags: Nullable<JsonValue>;
   status: ProductStatus;
@@ -104,15 +208,32 @@ export type Banner = Timestamped & {
   imageUrl: URLString;
   linkUrl: Nullable<URLString>;
   sortOrder: number;
+  naturalWidth: Nullable<number>;
+  naturalHeight: Nullable<number>;
   status: ProductStatus;
+};
+
+export type HomepageMedia = {
+  id: ID;
+  sourceKey: string;
+  imageUrl: URLString;
+  thumbnailUrl: Nullable<URLString>;
+  naturalWidth: number;
+  naturalHeight: number;
+  sortOrder: number;
 };
 
 export type FrameBackground = Timestamped & {
   id: ID;
   title: string;
+  slug?: Nullable<string>;
+  category: Nullable<string>;
   description: Nullable<string>;
   instructions: Nullable<string>;
   imageUrl: URLString;
+  thumbnailUrl: Nullable<URLString>;
+  naturalWidth: Nullable<number>;
+  naturalHeight: Nullable<number>;
   contentFields: Nullable<JsonValue>;
   frameOptionIds: ID[];
   sortOrder: number;
@@ -158,12 +279,94 @@ export type FrameOption = Timestamped & {
 export type CharacterPreset = Timestamped & {
   id: ID;
   name: string;
+  slug: Nullable<string>;
   description: Nullable<string>;
+  previewImageUrl?: Nullable<URLString>;
+  isBuilderPreset?: boolean;
+  isSellable?: boolean;
   faceHint: Nullable<string>;
   hairHint: Nullable<string>;
   torsoHint: Nullable<string>;
   legsHint: Nullable<string>;
   hatHint: Nullable<string>;
+  facePartId?: Nullable<ID>;
+  hairPartId?: Nullable<ID>;
+  torsoPartId?: Nullable<ID>;
+  legsPartId?: Nullable<ID>;
+  hatPartId?: Nullable<ID>;
+  facePart?: Nullable<CharacterPart>;
+  hairPart?: Nullable<CharacterPart>;
+  torsoPart?: Nullable<CharacterPart>;
+  legsPart?: Nullable<CharacterPart>;
+  hatPart?: Nullable<CharacterPart>;
+  accessories?: Array<{
+    partId: ID;
+    sortOrder: number;
+    quantity: number;
+    part: CharacterPart;
+  }>;
   sortOrder: number;
   status: ProductStatus;
+};
+
+export type ProductTemplateFrameSize = {
+  id: ID;
+  label: string;
+  price: PriceInVND;
+  priceAdjustment: PriceInVND;
+  recommended: boolean;
+};
+
+export type ProductTemplateCharacter = {
+  id: ID;
+  name: string;
+  price: PriceInVND;
+  imageUrl: Nullable<URLString>;
+  quantity: number;
+};
+
+export type ProductTemplateAccessory = {
+  id: ID;
+  name: string;
+  price: PriceInVND;
+  originalPrice: Nullable<PriceInVND>;
+  imageUrl: Nullable<URLString>;
+  iconUrl: Nullable<URLString>;
+  quantity: number;
+  maxQuantity: number;
+  colorVariants: Array<{
+    name: string;
+    colorHex: string;
+  }>;
+};
+
+export type ProductIncludedItem = {
+  id: string;
+  name: string;
+  quantity: number;
+  icon: "gift" | "package" | "sparkles";
+};
+
+export type ProductCustomizableField = {
+  key: string;
+  label: string;
+  required: boolean;
+};
+
+export type ProductPricingSummary = {
+  basePrice: PriceInVND;
+  originalPrice: Nullable<PriceInVND>;
+  minimumPrice: PriceInVND;
+};
+
+export type ProductDetail = Product & {
+  requiresNote: boolean;
+  frameSizes: ProductTemplateFrameSize[];
+  recommendedFrameSizeId: Nullable<ID>;
+  characters: ProductTemplateCharacter[];
+  accessories: ProductTemplateAccessory[];
+  availableAccessories: ProductTemplateAccessory[];
+  includedItems: ProductIncludedItem[];
+  customizableFields: ProductCustomizableField[];
+  pricing: ProductPricingSummary;
 };

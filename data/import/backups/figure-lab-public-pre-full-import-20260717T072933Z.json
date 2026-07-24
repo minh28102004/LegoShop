@@ -1,0 +1,671 @@
+{
+  "backupVersion": 1,
+  "createdAt": "2026-07-17T07:29:33.044Z",
+  "database": {
+    "name": "postgres",
+    "schema": "public",
+    "searchPath": "\"\\$user\", public, extensions",
+    "connectionDetailsRedacted": true
+  },
+  "migrationStatus": {
+    "repoMigrationCount": 13,
+    "prismaStatus": "Database schema is up to date",
+    "databaseMigrationRows": [
+      {
+        "name": "20260530084206_init",
+        "finishedAt": "2026-05-30T08:42:07.877Z",
+        "rolledBackAt": null
+      },
+      {
+        "name": "20260617090000_add_frame_options",
+        "finishedAt": "2026-06-17T09:12:21.978Z",
+        "rolledBackAt": null
+      },
+      {
+        "name": "20260617103000_backfill_frame_option_dimensions",
+        "finishedAt": "2026-06-17T09:33:22.350Z",
+        "rolledBackAt": null
+      },
+      {
+        "name": "20260617113000_add_frame_backgrounds",
+        "finishedAt": null,
+        "rolledBackAt": "2026-06-17T11:02:39.980Z"
+      },
+      {
+        "name": "20260617113000_add_frame_backgrounds",
+        "finishedAt": "2026-06-17T11:02:52.992Z",
+        "rolledBackAt": null
+      },
+      {
+        "name": "20260619033000_order_checkout_metadata",
+        "finishedAt": "2026-06-20T08:42:04.749Z",
+        "rolledBackAt": null
+      },
+      {
+        "name": "20260620093000_add_frame_background_content_fields",
+        "finishedAt": "2026-06-20T08:42:05.256Z",
+        "rolledBackAt": null
+      },
+      {
+        "name": "20260627130000_guest_design_upload_order_hardening",
+        "finishedAt": "2026-06-27T13:40:22.038Z",
+        "rolledBackAt": null
+      },
+      {
+        "name": "20260630161000_vouchers_shipping_item_notes",
+        "finishedAt": "2026-07-01T18:30:54.186Z",
+        "rolledBackAt": null
+      },
+      {
+        "name": "20260702093000_catalog_components_characters",
+        "finishedAt": "2026-07-01T18:30:54.482Z",
+        "rolledBackAt": null
+      },
+      {
+        "name": "20260702162000_add_character_parts",
+        "finishedAt": "2026-07-02T09:49:51.086Z",
+        "rolledBackAt": null
+      },
+      {
+        "name": "20260703000000_add_hat_character_part_type",
+        "finishedAt": "2026-07-09T17:41:12.305Z",
+        "rolledBackAt": null
+      },
+      {
+        "name": "20260704000000_add_character_presets",
+        "finishedAt": "2026-07-09T17:41:12.799Z",
+        "rolledBackAt": null
+      },
+      {
+        "name": "20260717130000_add_sample_media_import",
+        "finishedAt": "2026-07-17T07:04:17.820Z",
+        "rolledBackAt": null
+      }
+    ]
+  },
+  "counts": {
+    "Product": 15,
+    "Banner": 2,
+    "Collection": 2,
+    "FrameBackground": 4,
+    "Accessory": 2,
+    "AccessoryCategory": 2,
+    "SampleMediaImport": 0
+  },
+  "tables": {
+    "Product": [
+      {
+        "id": "1dd8525b-6b57-4a67-b5e2-2088b558c281",
+        "name": "Brick Safari Jeep",
+        "slug": "test-paging-brick-safari-jeep",
+        "description": "Sản phẩm mẫu 45 dùng để kiểm thử phân trang, tìm kiếm và sắp xếp trong admin.",
+        "basePrice": 279000,
+        "images": [
+          "http://localhost:3000/uploads/admin/1782923660896-ada85cca-63a6-4b39-80c0-ea7349a886f0.png"
+        ],
+        "status": "inactive",
+        "featured": false,
+        "createdAt": "2026-06-09T02:43:15.726Z",
+        "updatedAt": "2026-07-16T21:23:56.918Z",
+        "productType": "finished",
+        "componentConfig": null,
+        "collectionId": null
+      },
+      {
+        "id": "21b42eeb-a1d7-413e-87a7-2463a3a803d4",
+        "name": "Rainy Street Diorama",
+        "slug": "test-paging-rainy-street-diorama",
+        "description": "Sản phẩm mẫu 41 dùng để kiểm thử phân trang, tìm kiếm và sắp xếp trong admin.",
+        "basePrice": 79000,
+        "images": [
+          "http://localhost:3000/uploads/admin/1782923680861-cbf90150-1e49-4f0f-b4b6-1ee949c0e71b.png"
+        ],
+        "status": "active",
+        "featured": false,
+        "createdAt": "2026-06-09T02:43:15.461Z",
+        "updatedAt": "2026-07-16T21:23:56.752Z",
+        "productType": "finished",
+        "componentConfig": null,
+        "collectionId": null
+      },
+      {
+        "id": "40f20918-b2c1-4c11-8177-6f8426c06951",
+        "name": "Modern Villa Frame",
+        "slug": "test-paging-modern-villa-frame",
+        "description": "Sản phẩm mẫu 47 dùng để kiểm thử phân trang, tìm kiếm và sắp xếp trong admin.",
+        "basePrice": 379000,
+        "images": [
+          "http://localhost:3000/uploads/admin/1782923632103-911f46d6-9085-49b8-b4cb-b19947843af3.png"
+        ],
+        "status": "active",
+        "featured": false,
+        "createdAt": "2026-06-09T02:43:15.859Z",
+        "updatedAt": "2026-07-16T21:23:56.996Z",
+        "productType": "finished",
+        "componentConfig": null,
+        "collectionId": null
+      },
+      {
+        "id": "4ceaa95a-1bf9-42e2-9de9-4b29161bd060",
+        "name": "Train Bridge Display",
+        "slug": "test-paging-train-bridge-display",
+        "description": "Sản phẩm mẫu 46 dùng để kiểm thử phân trang, tìm kiếm và sắp xếp trong admin.",
+        "basePrice": 329000,
+        "images": [
+          "http://localhost:3000/uploads/admin/1782923656231-023b8139-64f4-4060-a832-e95717b806e9.png"
+        ],
+        "status": "active",
+        "featured": false,
+        "createdAt": "2026-06-09T02:43:15.793Z",
+        "updatedAt": "2026-07-16T21:23:56.957Z",
+        "productType": "finished",
+        "componentConfig": null,
+        "collectionId": null
+      },
+      {
+        "id": "66ee6b54-2e87-4678-b069-b4c65f16e26a",
+        "name": "Sports Car Wall Frame",
+        "slug": "test-paging-sports-car-wall-frame",
+        "description": "Sản phẩm mẫu 42 dùng để kiểm thử phân trang, tìm kiếm và sắp xếp trong admin.",
+        "basePrice": 129000,
+        "images": [
+          "http://localhost:3000/uploads/admin/1782923672020-37f80eba-bb42-4fe8-9848-51c7abef68e2.png"
+        ],
+        "status": "active",
+        "featured": false,
+        "createdAt": "2026-06-09T02:43:15.528Z",
+        "updatedAt": "2026-07-16T21:23:56.796Z",
+        "productType": "finished",
+        "componentConfig": null,
+        "collectionId": null
+      },
+      {
+        "id": "7a9ce624-e919-40b9-a778-eea09877f98c",
+        "name": "Mini Figure Custom",
+        "slug": "mini-figure-custom",
+        "description": "Customizable mini figure model.",
+        "basePrice": 99000,
+        "images": [],
+        "status": "active",
+        "featured": true,
+        "createdAt": "2026-07-16T21:21:50.530Z",
+        "updatedAt": "2026-07-16T21:21:50.530Z",
+        "productType": "finished",
+        "componentConfig": null,
+        "collectionId": null
+      },
+      {
+        "id": "7ca421a9-1e3f-4d20-bf3d-adf82a79063d",
+        "name": "Galaxy Explorer Poster",
+        "slug": "test-paging-galaxy-explorer-poster",
+        "description": "Sản phẩm mẫu 48 dùng để kiểm thử phân trang, tìm kiếm và sắp xếp trong admin.",
+        "basePrice": 429000,
+        "images": [
+          "http://localhost:3000/uploads/admin/1782923626752-8bb08fb3-388e-4946-b629-7d93b31dbc04.png"
+        ],
+        "status": "active",
+        "featured": false,
+        "createdAt": "2026-06-09T02:43:15.926Z",
+        "updatedAt": "2026-07-16T21:23:57.044Z",
+        "productType": "finished",
+        "componentConfig": null,
+        "collectionId": null
+      },
+      {
+        "id": "93d48998-f9b4-4b29-a1ae-2d509532de7c",
+        "name": "Police Pursuit Display",
+        "slug": "test-paging-police-pursuit-display",
+        "description": "Sản phẩm mẫu 27 dùng để kiểm thử phân trang, tìm kiếm và sắp xếp trong admin.",
+        "basePrice": 179000,
+        "images": [
+          "http://localhost:3000/uploads/admin/1782923726560-c2f09613-84bf-49f5-8f89-67d522748f14.png"
+        ],
+        "status": "active",
+        "featured": false,
+        "createdAt": "2026-06-09T02:43:14.513Z",
+        "updatedAt": "2026-07-16T21:23:56.201Z",
+        "productType": "finished",
+        "componentConfig": null,
+        "collectionId": null
+      },
+      {
+        "id": "b1d24e72-e751-4ee0-9536-ff14b47d0574",
+        "name": "Dragon Temple Gate",
+        "slug": "test-paging-dragon-temple-gate",
+        "description": "Sản phẩm mẫu 38 dùng để kiểm thử phân trang, tìm kiếm và sắp xếp trong admin.",
+        "basePrice": 329000,
+        "images": [
+          "http://localhost:3000/uploads/admin/1782923696059-5203031d-eb88-45d1-96ae-c103a12d5f88.png"
+        ],
+        "status": "active",
+        "featured": false,
+        "createdAt": "2026-06-09T02:43:15.255Z",
+        "updatedAt": "2026-07-16T21:23:56.635Z",
+        "productType": "finished",
+        "componentConfig": null,
+        "collectionId": null
+      },
+      {
+        "id": "b6fd2c08-f55b-4139-8275-ee864ee137c8",
+        "name": "Vintage Camera Frame",
+        "slug": "test-paging-vintage-camera-frame",
+        "description": "Sản phẩm mẫu 40 dùng để kiểm thử phân trang, tìm kiếm và sắp xếp trong admin.",
+        "basePrice": 429000,
+        "images": [
+          "http://localhost:3000/uploads/admin/1782923686512-f92da8f2-24af-447b-ae59-3f4ab174b58e.png"
+        ],
+        "status": "active",
+        "featured": false,
+        "createdAt": "2026-06-09T02:43:15.392Z",
+        "updatedAt": "2026-07-16T21:23:56.714Z",
+        "productType": "finished",
+        "componentConfig": null,
+        "collectionId": null
+      },
+      {
+        "id": "d41eea2d-699d-4753-a1b8-96e7cec9e6e6",
+        "name": "Wizard Tower Mini Set",
+        "slug": "test-paging-wizard-tower-mini-set",
+        "description": "Sản phẩm mẫu 43 dùng để kiểm thử phân trang, tìm kiếm và sắp xếp trong admin.",
+        "basePrice": 179000,
+        "images": [
+          "http://localhost:3000/uploads/admin/1782923676803-595e2124-8eb2-4813-b923-8b8340a63f9b.png"
+        ],
+        "status": "active",
+        "featured": true,
+        "createdAt": "2026-06-09T02:43:15.596Z",
+        "updatedAt": "2026-07-16T21:23:56.838Z",
+        "productType": "finished",
+        "componentConfig": null,
+        "collectionId": null
+      },
+      {
+        "id": "d502d31c-a868-40fa-b08d-2ad8b4e7c3d6",
+        "name": "Snow Cabin Shadowbox",
+        "slug": "test-paging-snow-cabin-shadowbox",
+        "description": "Sản phẩm mẫu 44 dùng để kiểm thử phân trang, tìm kiếm và sắp xếp trong admin.",
+        "basePrice": 229000,
+        "images": [
+          "http://localhost:3000/uploads/admin/1782923667129-f547a5eb-80fa-402e-9404-12d41dfbc629.png"
+        ],
+        "status": "active",
+        "featured": false,
+        "createdAt": "2026-06-09T02:43:15.660Z",
+        "updatedAt": "2026-07-16T21:23:56.876Z",
+        "productType": "finished",
+        "componentConfig": null,
+        "collectionId": null
+      },
+      {
+        "id": "dfbf95a1-15d1-41cb-af72-23f6757421b5",
+        "name": "Space Station Module",
+        "slug": "test-paging-space-station-module",
+        "description": "Sản phẩm mẫu 39 dùng để kiểm thử phân trang, tìm kiếm và sắp xếp trong admin.",
+        "basePrice": 379000,
+        "images": [
+          "http://localhost:3000/uploads/admin/1782923691482-99ac7249-96de-46b4-943e-3874f8ce0238.png"
+        ],
+        "status": "active",
+        "featured": false,
+        "createdAt": "2026-06-09T02:43:15.322Z",
+        "updatedAt": "2026-07-16T21:23:56.674Z",
+        "productType": "finished",
+        "componentConfig": null,
+        "collectionId": null
+      },
+      {
+        "id": "ebad0a8a-b8bb-4e5e-8379-e2de4b2cd26a",
+        "name": "Classic Brick Set",
+        "slug": "classic-brick-set",
+        "description": "Basic brick set for beginners.",
+        "basePrice": 199000,
+        "images": [],
+        "status": "active",
+        "featured": true,
+        "createdAt": "2026-07-16T21:21:50.307Z",
+        "updatedAt": "2026-07-16T21:21:50.307Z",
+        "productType": "finished",
+        "componentConfig": null,
+        "collectionId": null
+      },
+      {
+        "id": "f334fdf4-b524-459c-b4be-64a3ab9fc1bb",
+        "name": "Farmhouse Brick Scene",
+        "slug": "test-paging-farmhouse-brick-scene",
+        "description": "Sản phẩm mẫu 37 dùng để kiểm thử phân trang, tìm kiếm và sắp xếp trong admin.",
+        "basePrice": 279000,
+        "images": [
+          "http://localhost:3000/uploads/admin/1782923699938-ce6924e3-d137-442f-ad00-24d299a1a615.png"
+        ],
+        "status": "active",
+        "featured": false,
+        "createdAt": "2026-06-09T02:43:15.187Z",
+        "updatedAt": "2026-07-16T21:23:56.591Z",
+        "productType": "finished",
+        "componentConfig": null,
+        "collectionId": null
+      }
+    ],
+    "Banner": [
+      {
+        "id": "f7feeea6-b289-4954-9b34-ea7903724cc7",
+        "title": "New Brick Collection",
+        "imageUrl": "https://example.com/banner.jpg",
+        "linkUrl": "/collection",
+        "sortOrder": 1,
+        "status": "active",
+        "createdAt": "2026-05-30T02:52:35.008Z",
+        "updatedAt": "2026-05-30T02:52:35.008Z",
+        "naturalWidth": null,
+        "naturalHeight": null,
+        "sourceKey": null,
+        "sourceHash": null,
+        "seedTag": null,
+        "metadata": null
+      },
+      {
+        "id": "shared-banner-desktop",
+        "title": "Desktop hero banner",
+        "imageUrl": "/shared/images/banner/desktop.png",
+        "linkUrl": null,
+        "sortOrder": 0,
+        "status": "active",
+        "createdAt": "2026-06-17T04:02:53.086Z",
+        "updatedAt": "2026-06-17T04:02:53.086Z",
+        "naturalWidth": null,
+        "naturalHeight": null,
+        "sourceKey": null,
+        "sourceHash": null,
+        "seedTag": null,
+        "metadata": null
+      }
+    ],
+    "Collection": [
+      {
+        "id": "c98e6885-441c-4f16-9069-aa917ff1e38b",
+        "name": "Dragon Series",
+        "slug": "dragon-series",
+        "description": "B? suu t?p brick ch? d? r?ng.",
+        "imageUrl": "https://example.com/dragon-series.jpg",
+        "status": "active",
+        "createdAt": "2026-05-30T02:52:35.119Z",
+        "updatedAt": "2026-05-30T02:52:35.119Z",
+        "sortOrder": 0,
+        "naturalWidth": null,
+        "naturalHeight": null,
+        "sourceKey": null,
+        "sourceHash": null,
+        "seedTag": null,
+        "metadata": null
+      },
+      {
+        "id": "e6e82065-7a7a-4c1b-a80b-742b147ca373",
+        "name": "Starter Sets",
+        "slug": "starter-sets",
+        "description": "Các bộ brick phù hợp cho người mới.",
+        "imageUrl": null,
+        "status": "active",
+        "createdAt": "2026-05-30T01:53:08.259Z",
+        "updatedAt": "2026-05-30T01:53:08.259Z",
+        "sortOrder": 0,
+        "naturalWidth": null,
+        "naturalHeight": null,
+        "sourceKey": null,
+        "sourceHash": null,
+        "seedTag": null,
+        "metadata": null
+      }
+    ],
+    "FrameBackground": [
+      {
+        "id": "shared-bg-template-1",
+        "title": "Graduation Frame Background",
+        "imageUrl": "/shared/images/bg_template/1.png",
+        "sortOrder": 1,
+        "status": "active",
+        "createdAt": "2026-06-17T04:02:53.050Z",
+        "updatedAt": "2026-07-02T01:58:22.507Z",
+        "description": "Mẫu tốt nghiệp với tên/ngành/trường và lời chúc.",
+        "instructions": "Điền đầy đủ thông tin để được in lên mẫu.",
+        "contentFields": [
+          {
+            "key": "title",
+            "type": "text",
+            "label": "Tên",
+            "required": true,
+            "placeholder": "VD: Nguyen Phuc Thien Nhi"
+          },
+          {
+            "key": "date",
+            "type": "date",
+            "label": "Ngày tốt nghiệp",
+            "required": false,
+            "placeholder": "VD: 01/06/2026"
+          },
+          {
+            "key": "major",
+            "type": "text",
+            "label": "Ngành/Trường",
+            "required": false,
+            "placeholder": "VD: Hospitality Management / USSH"
+          }
+        ],
+        "frameOptionIds": [],
+        "slug": null,
+        "category": null,
+        "thumbnailUrl": null,
+        "naturalWidth": null,
+        "naturalHeight": null,
+        "sourceKey": null,
+        "sourceHash": null,
+        "seedTag": null,
+        "metadata": null
+      },
+      {
+        "id": "shared-bg-template-2",
+        "title": "Frame Background 2",
+        "imageUrl": "/shared/images/bg_template/2.png",
+        "sortOrder": 2,
+        "status": "active",
+        "createdAt": "2026-06-17T04:02:53.050Z",
+        "updatedAt": "2026-06-17T04:02:53.050Z",
+        "description": "Mau nen tuy chinh cho khung LEGO.",
+        "instructions": "Dien cac thong tin ben duoi de designer canh dung bo cuc cua mau.",
+        "contentFields": [
+          {
+            "key": "title",
+            "type": "text",
+            "label": "Ten / loi tua ngan",
+            "required": true,
+            "placeholder": "VD: Tu & Lan"
+          },
+          {
+            "key": "date",
+            "type": "date",
+            "label": "Ngay ky niem",
+            "required": false,
+            "placeholder": "VD: 01/06/2026"
+          },
+          {
+            "key": "message",
+            "type": "textarea",
+            "label": "Loi nhan",
+            "required": false,
+            "placeholder": "Nhap loi nhan gui..."
+          }
+        ],
+        "frameOptionIds": [],
+        "slug": null,
+        "category": null,
+        "thumbnailUrl": null,
+        "naturalWidth": null,
+        "naturalHeight": null,
+        "sourceKey": null,
+        "sourceHash": null,
+        "seedTag": null,
+        "metadata": null
+      },
+      {
+        "id": "shared-bg-template-3",
+        "title": "Frame Background 3",
+        "imageUrl": "/shared/images/bg_template/3.png",
+        "sortOrder": 3,
+        "status": "active",
+        "createdAt": "2026-06-17T04:02:53.050Z",
+        "updatedAt": "2026-06-17T04:02:53.050Z",
+        "description": "Mau nen tuy chinh cho khung LEGO.",
+        "instructions": "Dien cac thong tin ben duoi de designer canh dung bo cuc cua mau.",
+        "contentFields": [
+          {
+            "key": "title",
+            "type": "text",
+            "label": "Ten / loi tua ngan",
+            "required": true,
+            "placeholder": "VD: Tu & Lan"
+          },
+          {
+            "key": "date",
+            "type": "date",
+            "label": "Ngay ky niem",
+            "required": false,
+            "placeholder": "VD: 01/06/2026"
+          },
+          {
+            "key": "message",
+            "type": "textarea",
+            "label": "Loi nhan",
+            "required": false,
+            "placeholder": "Nhap loi nhan gui..."
+          }
+        ],
+        "frameOptionIds": [],
+        "slug": null,
+        "category": null,
+        "thumbnailUrl": null,
+        "naturalWidth": null,
+        "naturalHeight": null,
+        "sourceKey": null,
+        "sourceHash": null,
+        "seedTag": null,
+        "metadata": null
+      },
+      {
+        "id": "shared-bg-template-4",
+        "title": "Frame Background 4",
+        "imageUrl": "http://localhost:3003/uploads/admin/1783947548545-1d5fb29d-ea4f-4ff7-b942-3a21060b1395.png",
+        "sortOrder": 4,
+        "status": "active",
+        "createdAt": "2026-06-17T04:02:53.050Z",
+        "updatedAt": "2026-07-13T05:59:10.397Z",
+        "description": "Màu nền",
+        "instructions": "Cần Điền các thông tin bên dưới để hoàn thành",
+        "contentFields": [
+          {
+            "key": "title",
+            "type": "text",
+            "label": "Tên",
+            "required": true,
+            "placeholder": "VD:TúvàLan"
+          },
+          {
+            "key": "date",
+            "type": "date",
+            "label": "Ngày Kỉ Niệm",
+            "required": false,
+            "placeholder": "VD: 01/06/2026"
+          },
+          {
+            "key": "message",
+            "type": "textarea",
+            "label": "Lời Nhắn",
+            "required": false,
+            "placeholder": "Nhap loi nhan gui..."
+          },
+          {
+            "key": "message",
+            "type": "text",
+            "label": "Tên 1 và Tên 2",
+            "required": true,
+            "placeholder": "Thịnh&Minh"
+          },
+          {
+            "key": "message",
+            "type": "text",
+            "label": "ngày kỉ niệm",
+            "required": true,
+            "placeholder": "01/08/2004"
+          }
+        ],
+        "frameOptionIds": [],
+        "slug": null,
+        "category": null,
+        "thumbnailUrl": null,
+        "naturalWidth": null,
+        "naturalHeight": null,
+        "sourceKey": null,
+        "sourceHash": null,
+        "seedTag": null,
+        "metadata": null
+      }
+    ],
+    "Accessory": [
+      {
+        "id": "24ab154a-0653-4da8-b5e6-fb4f8a41c6f4",
+        "name": "Dragon Sword",
+        "imageUrl": "https://example.com/sword.png",
+        "iconUrl": "https://example.com/sword-icon.png",
+        "status": "active",
+        "categoryId": null,
+        "createdAt": "2026-05-30T02:36:51.678Z",
+        "updatedAt": "2026-05-30T02:36:51.678Z",
+        "price": 0,
+        "slug": null,
+        "sortOrder": 0,
+        "naturalWidth": null,
+        "naturalHeight": null,
+        "sourceKey": null,
+        "sourceHash": null,
+        "seedTag": null,
+        "metadata": null
+      },
+      {
+        "id": "ace5fc05-b9cb-48e3-bed1-d8e1a471658c",
+        "name": "Charm Trái Tim Đỏ",
+        "imageUrl": "https://images.unsplash.com/photo-1518199266791-5375a83190b7?w=100&auto=format&fit=crop&q=60",
+        "iconUrl": "https://images.unsplash.com/photo-1518199266791-5375a83190b7?w=50&auto=format&fit=crop&q=60",
+        "status": "active",
+        "categoryId": "887b42be-4831-467c-ae54-8e1d8ca75bbf",
+        "createdAt": "2026-06-15T01:18:27.372Z",
+        "updatedAt": "2026-06-15T01:18:27.372Z",
+        "price": 10000,
+        "slug": null,
+        "sortOrder": 0,
+        "naturalWidth": null,
+        "naturalHeight": null,
+        "sourceKey": null,
+        "sourceHash": null,
+        "seedTag": null,
+        "metadata": null
+      }
+    ],
+    "AccessoryCategory": [
+      {
+        "id": "887b42be-4831-467c-ae54-8e1d8ca75bbf",
+        "name": "Charm & Sticker",
+        "slug": "charm-sticker",
+        "createdAt": "2026-06-15T01:18:27.098Z",
+        "updatedAt": "2026-06-15T01:18:27.098Z",
+        "seedTag": null
+      },
+      {
+        "id": "c45c9aae-d715-42ab-bec0-b4a2931d7a65",
+        "name": "Weapons",
+        "slug": "weapons",
+        "createdAt": "2026-05-30T02:45:35.931Z",
+        "updatedAt": "2026-05-30T02:45:35.931Z",
+        "seedTag": null
+      }
+    ],
+    "SampleMediaImport": []
+  }
+}

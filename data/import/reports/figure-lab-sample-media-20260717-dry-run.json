@@ -1,0 +1,2248 @@
+{
+  "seedTag": "figure-lab-sample-media-20260717",
+  "mode": "dry-run",
+  "manifestPath": "data/import/theluvin-source.normalized.json",
+  "startedAt": "2026-07-17T04:52:37.338Z",
+  "configuration": {
+    "only": [
+      "homepage",
+      "collection",
+      "backgrounds",
+      "charms"
+    ],
+    "concurrency": 4,
+    "timeoutMs": 20000,
+    "maxBytes": 25000000,
+    "maxRedirects": 5,
+    "maxRetries": 2,
+    "resume": false
+  },
+  "counts": {
+    "total": 210,
+    "selected": 210,
+    "read": 210,
+    "downloaded": 202,
+    "processed": 202,
+    "uploaded": 0,
+    "inserted": 0,
+    "updated": 0,
+    "assetOnly": 0,
+    "skipped": 0,
+    "rolledBack": 0,
+    "conflicts": 0,
+    "errors": 0
+  },
+  "duplicateHashes": [
+    {
+      "sourceHash": "2f91b3f91ce3ed20a0f44e995edcbda948a6ffa1ca05a6531de711bf0c163b54",
+      "sourceKeys": [
+        "home-8e671c73a2a7",
+        "collection-8e671c73a2a7"
+      ]
+    },
+    {
+      "sourceHash": "3f7f3d3492ff3f8c59cb7a1108f34bbab8c66aba9895421675f503369da204af",
+      "sourceKeys": [
+        "home-c4c80ef0a8d8",
+        "collection-c4c80ef0a8d8"
+      ]
+    },
+    {
+      "sourceHash": "4f01c91279b98b2474f222150cff9490a126f4c87dbdb1b7127101f706b867da",
+      "sourceKeys": [
+        "home-05ab77985e0f",
+        "collection-05ab77985e0f"
+      ]
+    },
+    {
+      "sourceHash": "1bff3e2b6fd3dc2bff9b8a900cbbef169fb4db968a9dd441ab99abd85542b306",
+      "sourceKeys": [
+        "home-417896f0f024",
+        "collection-417896f0f024"
+      ]
+    },
+    {
+      "sourceHash": "fd535e0869ce7d1dfc5d27ab33866cd5d7f3087726c9d77bdf56646e19cd301b",
+      "sourceKeys": [
+        "home-71ed4bb27e72",
+        "collection-71ed4bb27e72"
+      ]
+    },
+    {
+      "sourceHash": "bb76a6e7f896765004790882525e6338fcd16e3e186bb803cbf97ad5eae4254f",
+      "sourceKeys": [
+        "home-105c056924fe",
+        "collection-105c056924fe"
+      ]
+    },
+    {
+      "sourceHash": "071b59c013a8cfe68931f9b5c906c48b50f0dcf2e45704bde5f078236732e4d9",
+      "sourceKeys": [
+        "home-b5ee178723cb",
+        "collection-b5ee178723cb",
+        "background-b5ee178723cb"
+      ]
+    }
+  ],
+  "records": [
+    {
+      "sourceKey": "home-c4c80ef0a8d8",
+      "kind": "homepage",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1768921932684_561bhn_THE_LUVIN__6_.png",
+      "sourceHash": "3f7f3d3492ff3f8c59cb7a1108f34bbab8c66aba9895421675f503369da204af",
+      "destinationUrl": "https://dry-run.invalid/uploads/banners/homepage/3f7f3d3492ff3f8c59cb7a1108f34bbab8c66aba9895421675f503369da204af.png",
+      "storagePath": "/uploads/banners/homepage/3f7f3d3492ff3f8c59cb7a1108f34bbab8c66aba9895421675f503369da204af.png",
+      "status": "planned",
+      "message": "Validated and processed; no curated mapping, so target remains ledger-only"
+    },
+    {
+      "sourceKey": "home-8e671c73a2a7",
+      "kind": "homepage",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2Ftemp%2F1776265477905_tkeyff_617563327_1977901456496772_3828303482408869211_n.jpg",
+      "sourceHash": "2f91b3f91ce3ed20a0f44e995edcbda948a6ffa1ca05a6531de711bf0c163b54",
+      "destinationUrl": "https://dry-run.invalid/uploads/banners/homepage/2f91b3f91ce3ed20a0f44e995edcbda948a6ffa1ca05a6531de711bf0c163b54.webp",
+      "storagePath": "/uploads/banners/homepage/2f91b3f91ce3ed20a0f44e995edcbda948a6ffa1ca05a6531de711bf0c163b54.webp",
+      "status": "planned",
+      "message": "Validated and processed; no curated mapping, so target remains ledger-only"
+    },
+    {
+      "sourceKey": "home-5b7e7a1b43de",
+      "kind": "homepage",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1766910375453_pnrpw4_DSC01771.JPG",
+      "sourceHash": "b570cac5f8668d5c3a94244019aa4ce923c684ccc1ed71ef4fc524f538c381ff",
+      "destinationUrl": "https://dry-run.invalid/uploads/banners/homepage/b570cac5f8668d5c3a94244019aa4ce923c684ccc1ed71ef4fc524f538c381ff.webp",
+      "storagePath": "/uploads/banners/homepage/b570cac5f8668d5c3a94244019aa4ce923c684ccc1ed71ef4fc524f538c381ff.webp",
+      "status": "planned",
+      "message": "Validated and processed; no curated mapping, so target remains ledger-only"
+    },
+    {
+      "sourceKey": "home-3b5f2fba858d",
+      "kind": "homepage",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2Ftemp%2F1780624910410_f6sf12_713744284_17922032289360696_5939045072827131297_n.jpg",
+      "sourceHash": "cc4a1d873b8425527c85434528808cceb1cf4cf4bfdddbe8262ef31a8173cd7a",
+      "destinationUrl": "https://dry-run.invalid/uploads/banners/homepage/cc4a1d873b8425527c85434528808cceb1cf4cf4bfdddbe8262ef31a8173cd7a.webp",
+      "storagePath": "/uploads/banners/homepage/cc4a1d873b8425527c85434528808cceb1cf4cf4bfdddbe8262ef31a8173cd7a.webp",
+      "status": "planned",
+      "message": "Validated and processed; no curated mapping, so target remains ledger-only"
+    },
+    {
+      "sourceKey": "home-987cea0c90ec",
+      "kind": "homepage",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2Ftemp%2F1780905433659_g8yyhg_photo_6133967920606941841_w.jpg",
+      "sourceHash": "4d1bde4ed664d49425d5d0b9c63ac06336d898243e05152287b6100b11e835ef",
+      "destinationUrl": "https://dry-run.invalid/uploads/banners/homepage/4d1bde4ed664d49425d5d0b9c63ac06336d898243e05152287b6100b11e835ef.webp",
+      "storagePath": "/uploads/banners/homepage/4d1bde4ed664d49425d5d0b9c63ac06336d898243e05152287b6100b11e835ef.webp",
+      "status": "planned",
+      "message": "Validated and processed; no curated mapping, so target remains ledger-only"
+    },
+    {
+      "sourceKey": "home-f36630532d29",
+      "kind": "homepage",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2Ftemp%2F1780906518351_vmgdz9_photo_6133967920606941843_w.jpg",
+      "sourceHash": "f4e244bbc58551ca163d2e17598599d1f0e09197b4371e024179f8f97f13c3bf",
+      "destinationUrl": "https://dry-run.invalid/uploads/banners/homepage/f4e244bbc58551ca163d2e17598599d1f0e09197b4371e024179f8f97f13c3bf.webp",
+      "storagePath": "/uploads/banners/homepage/f4e244bbc58551ca163d2e17598599d1f0e09197b4371e024179f8f97f13c3bf.webp",
+      "status": "planned",
+      "message": "Validated and processed; no curated mapping, so target remains ledger-only"
+    },
+    {
+      "sourceKey": "home-af82065cfc1a",
+      "kind": "homepage",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2Ftemp%2F1780907240191_706q9b_photo_6133967920606941840_w.jpg",
+      "sourceHash": "2b830ef20c36617492469fe9bab8d6cbbdb517a192867ddf00abd73ffc5d4d09",
+      "destinationUrl": "https://dry-run.invalid/uploads/banners/homepage/2b830ef20c36617492469fe9bab8d6cbbdb517a192867ddf00abd73ffc5d4d09.webp",
+      "storagePath": "/uploads/banners/homepage/2b830ef20c36617492469fe9bab8d6cbbdb517a192867ddf00abd73ffc5d4d09.webp",
+      "status": "planned",
+      "message": "Validated and processed; no curated mapping, so target remains ledger-only"
+    },
+    {
+      "sourceKey": "home-05ab77985e0f",
+      "kind": "homepage",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1766843404848_7vo1v_72f00bad_b3dd_4a28_b664_d2fc8616eb85.jpg",
+      "sourceHash": "4f01c91279b98b2474f222150cff9490a126f4c87dbdb1b7127101f706b867da",
+      "destinationUrl": "https://dry-run.invalid/uploads/banners/homepage/4f01c91279b98b2474f222150cff9490a126f4c87dbdb1b7127101f706b867da.webp",
+      "storagePath": "/uploads/banners/homepage/4f01c91279b98b2474f222150cff9490a126f4c87dbdb1b7127101f706b867da.webp",
+      "status": "planned",
+      "message": "Validated and processed; no curated mapping, so target remains ledger-only"
+    },
+    {
+      "sourceKey": "home-417896f0f024",
+      "kind": "homepage",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1766052039916_86jt3_photo_6188374122476276964_w.jpg",
+      "sourceHash": "1bff3e2b6fd3dc2bff9b8a900cbbef169fb4db968a9dd441ab99abd85542b306",
+      "destinationUrl": "https://dry-run.invalid/uploads/banners/homepage/1bff3e2b6fd3dc2bff9b8a900cbbef169fb4db968a9dd441ab99abd85542b306.webp",
+      "storagePath": "/uploads/banners/homepage/1bff3e2b6fd3dc2bff9b8a900cbbef169fb4db968a9dd441ab99abd85542b306.webp",
+      "status": "planned",
+      "message": "Validated and processed; no curated mapping, so target remains ledger-only"
+    },
+    {
+      "sourceKey": "home-71ed4bb27e72",
+      "kind": "homepage",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1766052521235_8ndcdy_7e2a048a_4d10_4231_85fb_19b70c8d3a2d.jpg",
+      "sourceHash": "fd535e0869ce7d1dfc5d27ab33866cd5d7f3087726c9d77bdf56646e19cd301b",
+      "destinationUrl": "https://dry-run.invalid/uploads/banners/homepage/fd535e0869ce7d1dfc5d27ab33866cd5d7f3087726c9d77bdf56646e19cd301b.webp",
+      "storagePath": "/uploads/banners/homepage/fd535e0869ce7d1dfc5d27ab33866cd5d7f3087726c9d77bdf56646e19cd301b.webp",
+      "status": "planned",
+      "message": "Validated and processed; no curated mapping, so target remains ledger-only"
+    },
+    {
+      "sourceKey": "home-105c056924fe",
+      "kind": "homepage",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1766053448934_ah9wjp_1524cce8_423a_4809_be99_a2639c795b2f.jpg",
+      "sourceHash": "bb76a6e7f896765004790882525e6338fcd16e3e186bb803cbf97ad5eae4254f",
+      "destinationUrl": "https://dry-run.invalid/uploads/banners/homepage/bb76a6e7f896765004790882525e6338fcd16e3e186bb803cbf97ad5eae4254f.webp",
+      "storagePath": "/uploads/banners/homepage/bb76a6e7f896765004790882525e6338fcd16e3e186bb803cbf97ad5eae4254f.webp",
+      "status": "planned",
+      "message": "Validated and processed; no curated mapping, so target remains ledger-only"
+    },
+    {
+      "sourceKey": "home-7311b08ed929",
+      "kind": "homepage",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1767065640179_dqs91h_1.png",
+      "sourceHash": "7924f0514bf76fa9ace69e9fcbc25a5f69adf74745bf90a9790f65a0cd009bde",
+      "destinationUrl": "https://dry-run.invalid/uploads/banners/homepage/7924f0514bf76fa9ace69e9fcbc25a5f69adf74745bf90a9790f65a0cd009bde.webp",
+      "storagePath": "/uploads/banners/homepage/7924f0514bf76fa9ace69e9fcbc25a5f69adf74745bf90a9790f65a0cd009bde.webp",
+      "status": "planned",
+      "message": "Validated and processed; no curated mapping, so target remains ledger-only"
+    },
+    {
+      "sourceKey": "home-9ec5ec0daa65",
+      "kind": "homepage",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1767065662440_n59ibf_2.png",
+      "sourceHash": "8a7e7e417d6cc8eda0a82d9049f5e6f8995da46c28dd80f0fef28f1998cce04b",
+      "destinationUrl": "https://dry-run.invalid/uploads/banners/homepage/8a7e7e417d6cc8eda0a82d9049f5e6f8995da46c28dd80f0fef28f1998cce04b.webp",
+      "storagePath": "/uploads/banners/homepage/8a7e7e417d6cc8eda0a82d9049f5e6f8995da46c28dd80f0fef28f1998cce04b.webp",
+      "status": "planned",
+      "message": "Validated and processed; no curated mapping, so target remains ledger-only"
+    },
+    {
+      "sourceKey": "home-68c4350d1184",
+      "kind": "homepage",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1767065673611_2zg7y_3.png",
+      "sourceHash": "f88a92f06c4c43cde13faeab1ac4d9fe5752d6c88d0ddb9b4f3161306f429a0e",
+      "destinationUrl": "https://dry-run.invalid/uploads/banners/homepage/f88a92f06c4c43cde13faeab1ac4d9fe5752d6c88d0ddb9b4f3161306f429a0e.webp",
+      "storagePath": "/uploads/banners/homepage/f88a92f06c4c43cde13faeab1ac4d9fe5752d6c88d0ddb9b4f3161306f429a0e.webp",
+      "status": "planned",
+      "message": "Validated and processed; no curated mapping, so target remains ledger-only"
+    },
+    {
+      "sourceKey": "home-d24a575d9795",
+      "kind": "homepage",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1767065682068_9qy6uc_4.png",
+      "sourceHash": "62b00d94a8161a1450eb1e502345ca76e609e21df6dcb1879796c65bdcbd57c5",
+      "destinationUrl": "https://dry-run.invalid/uploads/banners/homepage/62b00d94a8161a1450eb1e502345ca76e609e21df6dcb1879796c65bdcbd57c5.webp",
+      "storagePath": "/uploads/banners/homepage/62b00d94a8161a1450eb1e502345ca76e609e21df6dcb1879796c65bdcbd57c5.webp",
+      "status": "planned",
+      "message": "Validated and processed; no curated mapping, so target remains ledger-only"
+    },
+    {
+      "sourceKey": "home-d0f435ed2052",
+      "kind": "homepage",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1767065689263_u1nav9_5.png",
+      "sourceHash": "1a0a4392bccc5ef6e3558e251aae831a67afea997c38d1c4a765969a94b7de46",
+      "destinationUrl": "https://dry-run.invalid/uploads/banners/homepage/1a0a4392bccc5ef6e3558e251aae831a67afea997c38d1c4a765969a94b7de46.webp",
+      "storagePath": "/uploads/banners/homepage/1a0a4392bccc5ef6e3558e251aae831a67afea997c38d1c4a765969a94b7de46.webp",
+      "status": "planned",
+      "message": "Validated and processed; no curated mapping, so target remains ledger-only"
+    },
+    {
+      "sourceKey": "home-dae717e75851",
+      "kind": "homepage",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1767065704863_l0zvosi_6.png",
+      "sourceHash": "8a06d80fc0f270c0a433fa14f2a733f7aa213ca85658d2684975fc5e22959524",
+      "destinationUrl": "https://dry-run.invalid/uploads/banners/homepage/8a06d80fc0f270c0a433fa14f2a733f7aa213ca85658d2684975fc5e22959524.webp",
+      "storagePath": "/uploads/banners/homepage/8a06d80fc0f270c0a433fa14f2a733f7aa213ca85658d2684975fc5e22959524.webp",
+      "status": "planned",
+      "message": "Validated and processed; no curated mapping, so target remains ledger-only"
+    },
+    {
+      "sourceKey": "home-7530e57b682c",
+      "kind": "homepage",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1767065712895_joo6ec_7.png",
+      "sourceHash": "7606c7017084c66fc9014a327b9726c7d0947190ea3673521d02a6fbd1e03779",
+      "destinationUrl": "https://dry-run.invalid/uploads/banners/homepage/7606c7017084c66fc9014a327b9726c7d0947190ea3673521d02a6fbd1e03779.webp",
+      "storagePath": "/uploads/banners/homepage/7606c7017084c66fc9014a327b9726c7d0947190ea3673521d02a6fbd1e03779.webp",
+      "status": "planned",
+      "message": "Validated and processed; no curated mapping, so target remains ledger-only"
+    },
+    {
+      "sourceKey": "home-a672dacb40b9",
+      "kind": "homepage",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1767065720434_1n6jis_8.png",
+      "sourceHash": "85bb4071ae549cb0e8a9fb4c8c5886068121145b99fb0bb0c17bfe2d998a5fe8",
+      "destinationUrl": "https://dry-run.invalid/uploads/banners/homepage/85bb4071ae549cb0e8a9fb4c8c5886068121145b99fb0bb0c17bfe2d998a5fe8.webp",
+      "storagePath": "/uploads/banners/homepage/85bb4071ae549cb0e8a9fb4c8c5886068121145b99fb0bb0c17bfe2d998a5fe8.webp",
+      "status": "planned",
+      "message": "Validated and processed; no curated mapping, so target remains ledger-only"
+    },
+    {
+      "sourceKey": "home-e0cd61e3c267",
+      "kind": "homepage",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1767065728245_pqata_9.png",
+      "sourceHash": "3e9fc05ad16bdcd937ea39f68830b0fe24156a018b4aca6624ee13e0b1da30d2",
+      "destinationUrl": "https://dry-run.invalid/uploads/banners/homepage/3e9fc05ad16bdcd937ea39f68830b0fe24156a018b4aca6624ee13e0b1da30d2.webp",
+      "storagePath": "/uploads/banners/homepage/3e9fc05ad16bdcd937ea39f68830b0fe24156a018b4aca6624ee13e0b1da30d2.webp",
+      "status": "planned",
+      "message": "Validated and processed; no curated mapping, so target remains ledger-only"
+    },
+    {
+      "sourceKey": "home-1d2f7f17cdce",
+      "kind": "homepage",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1767065738230_ebm3x9_10.png",
+      "sourceHash": "9ea20eca43d0b62e5f8d24de76e2989755051a2c43cd925a6567b0afc67aa43c",
+      "destinationUrl": "https://dry-run.invalid/uploads/banners/homepage/9ea20eca43d0b62e5f8d24de76e2989755051a2c43cd925a6567b0afc67aa43c.webp",
+      "storagePath": "/uploads/banners/homepage/9ea20eca43d0b62e5f8d24de76e2989755051a2c43cd925a6567b0afc67aa43c.webp",
+      "status": "planned",
+      "message": "Validated and processed; no curated mapping, so target remains ledger-only"
+    },
+    {
+      "sourceKey": "home-e26dc982fd45",
+      "kind": "homepage",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1767065746914_s7oqzc_11.png",
+      "sourceHash": "bf844d7ff4143710c003adfe52d46c7e320601e2adfa9bbbfeb94e33c2ae53d7",
+      "destinationUrl": "https://dry-run.invalid/uploads/banners/homepage/bf844d7ff4143710c003adfe52d46c7e320601e2adfa9bbbfeb94e33c2ae53d7.webp",
+      "storagePath": "/uploads/banners/homepage/bf844d7ff4143710c003adfe52d46c7e320601e2adfa9bbbfeb94e33c2ae53d7.webp",
+      "status": "planned",
+      "message": "Validated and processed; no curated mapping, so target remains ledger-only"
+    },
+    {
+      "sourceKey": "home-b5ee178723cb",
+      "kind": "homepage",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2Ftemp%2F1778574268222_mhhur_design_preview.png",
+      "sourceHash": "071b59c013a8cfe68931f9b5c906c48b50f0dcf2e45704bde5f078236732e4d9",
+      "destinationUrl": "https://dry-run.invalid/uploads/banners/homepage/071b59c013a8cfe68931f9b5c906c48b50f0dcf2e45704bde5f078236732e4d9.png",
+      "storagePath": "/uploads/banners/homepage/071b59c013a8cfe68931f9b5c906c48b50f0dcf2e45704bde5f078236732e4d9.png",
+      "status": "planned",
+      "message": "Validated and processed; no curated mapping, so target remains ledger-only"
+    },
+    {
+      "sourceKey": "collection-c4c80ef0a8d8",
+      "kind": "collection",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1768921932684_561bhn_THE_LUVIN__6_.png",
+      "sourceHash": "3f7f3d3492ff3f8c59cb7a1108f34bbab8c66aba9895421675f503369da204af",
+      "destinationUrl": "https://dry-run.invalid/uploads/banners/homepage/3f7f3d3492ff3f8c59cb7a1108f34bbab8c66aba9895421675f503369da204af.png",
+      "storagePath": "/uploads/banners/homepage/3f7f3d3492ff3f8c59cb7a1108f34bbab8c66aba9895421675f503369da204af.png",
+      "status": "planned",
+      "duplicateOfSourceKey": "home-c4c80ef0a8d8",
+      "message": "Validated and processed; no curated mapping, so target remains ledger-only"
+    },
+    {
+      "sourceKey": "collection-05ab77985e0f",
+      "kind": "collection",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1766843404848_7vo1v_72f00bad_b3dd_4a28_b664_d2fc8616eb85.jpg",
+      "sourceHash": "4f01c91279b98b2474f222150cff9490a126f4c87dbdb1b7127101f706b867da",
+      "destinationUrl": "https://dry-run.invalid/uploads/banners/homepage/4f01c91279b98b2474f222150cff9490a126f4c87dbdb1b7127101f706b867da.webp",
+      "storagePath": "/uploads/banners/homepage/4f01c91279b98b2474f222150cff9490a126f4c87dbdb1b7127101f706b867da.webp",
+      "status": "planned",
+      "duplicateOfSourceKey": "home-05ab77985e0f",
+      "message": "Validated and processed; no curated mapping, so target remains ledger-only"
+    },
+    {
+      "sourceKey": "collection-417896f0f024",
+      "kind": "collection",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1766052039916_86jt3_photo_6188374122476276964_w.jpg",
+      "sourceHash": "1bff3e2b6fd3dc2bff9b8a900cbbef169fb4db968a9dd441ab99abd85542b306",
+      "destinationUrl": "https://dry-run.invalid/uploads/banners/homepage/1bff3e2b6fd3dc2bff9b8a900cbbef169fb4db968a9dd441ab99abd85542b306.webp",
+      "storagePath": "/uploads/banners/homepage/1bff3e2b6fd3dc2bff9b8a900cbbef169fb4db968a9dd441ab99abd85542b306.webp",
+      "status": "planned",
+      "duplicateOfSourceKey": "home-417896f0f024",
+      "message": "Validated and processed; no curated mapping, so target remains ledger-only"
+    },
+    {
+      "sourceKey": "collection-71ed4bb27e72",
+      "kind": "collection",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1766052521235_8ndcdy_7e2a048a_4d10_4231_85fb_19b70c8d3a2d.jpg",
+      "sourceHash": "fd535e0869ce7d1dfc5d27ab33866cd5d7f3087726c9d77bdf56646e19cd301b",
+      "destinationUrl": "https://dry-run.invalid/uploads/banners/homepage/fd535e0869ce7d1dfc5d27ab33866cd5d7f3087726c9d77bdf56646e19cd301b.webp",
+      "storagePath": "/uploads/banners/homepage/fd535e0869ce7d1dfc5d27ab33866cd5d7f3087726c9d77bdf56646e19cd301b.webp",
+      "status": "planned",
+      "duplicateOfSourceKey": "home-71ed4bb27e72",
+      "message": "Validated and processed; no curated mapping, so target remains ledger-only"
+    },
+    {
+      "sourceKey": "collection-105c056924fe",
+      "kind": "collection",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1766053448934_ah9wjp_1524cce8_423a_4809_be99_a2639c795b2f.jpg",
+      "sourceHash": "bb76a6e7f896765004790882525e6338fcd16e3e186bb803cbf97ad5eae4254f",
+      "destinationUrl": "https://dry-run.invalid/uploads/banners/homepage/bb76a6e7f896765004790882525e6338fcd16e3e186bb803cbf97ad5eae4254f.webp",
+      "storagePath": "/uploads/banners/homepage/bb76a6e7f896765004790882525e6338fcd16e3e186bb803cbf97ad5eae4254f.webp",
+      "status": "planned",
+      "duplicateOfSourceKey": "home-105c056924fe",
+      "message": "Validated and processed; no curated mapping, so target remains ledger-only"
+    },
+    {
+      "sourceKey": "collection-dc082781bf0a",
+      "kind": "collection",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1766053943281_y1s5w_8bb5d5d1_0916_468a_ad03_6e3987478932.jpg",
+      "sourceHash": "a3e058c570f4c2d9f038de2c500d3e0fe205a9e1567715e5b9393dbda274e399",
+      "destinationUrl": "https://dry-run.invalid/uploads/collections/a3e058c570f4c2d9f038de2c500d3e0fe205a9e1567715e5b9393dbda274e399.webp",
+      "storagePath": "/uploads/collections/a3e058c570f4c2d9f038de2c500d3e0fe205a9e1567715e5b9393dbda274e399.webp",
+      "status": "planned",
+      "message": "Validated and processed; no curated mapping, so target remains ledger-only"
+    },
+    {
+      "sourceKey": "collection-2894975278e4",
+      "kind": "collection",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1766201257834_zh4hbq_a09e1108_deca_4c0c_830c_7da819205cf7.jpg",
+      "sourceHash": "7338eb9c3b5183ddbf3df47f48a05b3b33b322992851541e1046ca937696d569",
+      "destinationUrl": "https://dry-run.invalid/uploads/collections/7338eb9c3b5183ddbf3df47f48a05b3b33b322992851541e1046ca937696d569.webp",
+      "storagePath": "/uploads/collections/7338eb9c3b5183ddbf3df47f48a05b3b33b322992851541e1046ca937696d569.webp",
+      "status": "planned",
+      "message": "Validated and processed; no curated mapping, so target remains ledger-only"
+    },
+    {
+      "sourceKey": "collection-cb64521b0cd0",
+      "kind": "collection",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1766201451336_4hgxwb_12898927_016b_4cd6_8e96_46fb6904680e.jpg",
+      "sourceHash": "fe42109f309b126acdfd3dd931fb514dd2f1938d8fe091ec6e60fd9b317367df",
+      "destinationUrl": "https://dry-run.invalid/uploads/collections/fe42109f309b126acdfd3dd931fb514dd2f1938d8fe091ec6e60fd9b317367df.webp",
+      "storagePath": "/uploads/collections/fe42109f309b126acdfd3dd931fb514dd2f1938d8fe091ec6e60fd9b317367df.webp",
+      "status": "planned",
+      "message": "Validated and processed; no curated mapping, so target remains ledger-only"
+    },
+    {
+      "sourceKey": "collection-8e671c73a2a7",
+      "kind": "collection",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2Ftemp%2F1776265477905_tkeyff_617563327_1977901456496772_3828303482408869211_n.jpg",
+      "sourceHash": "2f91b3f91ce3ed20a0f44e995edcbda948a6ffa1ca05a6531de711bf0c163b54",
+      "destinationUrl": "https://dry-run.invalid/uploads/banners/homepage/2f91b3f91ce3ed20a0f44e995edcbda948a6ffa1ca05a6531de711bf0c163b54.webp",
+      "storagePath": "/uploads/banners/homepage/2f91b3f91ce3ed20a0f44e995edcbda948a6ffa1ca05a6531de711bf0c163b54.webp",
+      "status": "planned",
+      "duplicateOfSourceKey": "home-8e671c73a2a7",
+      "message": "Validated and processed; no curated mapping, so target remains ledger-only"
+    },
+    {
+      "sourceKey": "collection-20e01310acb6",
+      "kind": "collection",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1766201617740_mu8gq_53508344_af94_4e17_9b20_ab898ffe9f2b.jpg",
+      "sourceHash": "95f81d3b1c9dffd1f8261ade6320cfdd863e8f9ce6d1e26dd92629da18ca0e1e",
+      "destinationUrl": "https://dry-run.invalid/uploads/collections/95f81d3b1c9dffd1f8261ade6320cfdd863e8f9ce6d1e26dd92629da18ca0e1e.webp",
+      "storagePath": "/uploads/collections/95f81d3b1c9dffd1f8261ade6320cfdd863e8f9ce6d1e26dd92629da18ca0e1e.webp",
+      "status": "planned",
+      "message": "Validated and processed; no curated mapping, so target remains ledger-only"
+    },
+    {
+      "sourceKey": "collection-f580b4e74852",
+      "kind": "collection",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1766201760080_33x15c_113921ee_c703_4c04_b7c1_7681d105c7aa.jpg",
+      "sourceHash": "2cfea57c2ca7ae694f8036f1f2ebb1b41fb84cba39c0c91c9830c182c776c438",
+      "destinationUrl": "https://dry-run.invalid/uploads/collections/2cfea57c2ca7ae694f8036f1f2ebb1b41fb84cba39c0c91c9830c182c776c438.webp",
+      "storagePath": "/uploads/collections/2cfea57c2ca7ae694f8036f1f2ebb1b41fb84cba39c0c91c9830c182c776c438.webp",
+      "status": "planned",
+      "message": "Validated and processed; no curated mapping, so target remains ledger-only"
+    },
+    {
+      "sourceKey": "collection-8894e8fabdc6",
+      "kind": "collection",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1766201963325_0u6vq3_f0a8145e_31ea_4cfd_a6f2_8490b36d7fa4.jpg",
+      "sourceHash": "eb7834374be8d4c6974500135dcea34eb4c49d82ea32b3c1948e25a410c95af7",
+      "destinationUrl": "https://dry-run.invalid/uploads/collections/eb7834374be8d4c6974500135dcea34eb4c49d82ea32b3c1948e25a410c95af7.webp",
+      "storagePath": "/uploads/collections/eb7834374be8d4c6974500135dcea34eb4c49d82ea32b3c1948e25a410c95af7.webp",
+      "status": "planned",
+      "message": "Validated and processed; no curated mapping, so target remains ledger-only"
+    },
+    {
+      "sourceKey": "collection-809f306b5cd1",
+      "kind": "collection",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1767794278992_501e9_610634265_17899863042360696_8102546890317442871_n.jpg",
+      "sourceHash": "e883662bd99ea008938644e832474a480e87e63a50d6eda7a867d06a3353b1db",
+      "destinationUrl": "https://dry-run.invalid/uploads/collections/e883662bd99ea008938644e832474a480e87e63a50d6eda7a867d06a3353b1db.webp",
+      "storagePath": "/uploads/collections/e883662bd99ea008938644e832474a480e87e63a50d6eda7a867d06a3353b1db.webp",
+      "status": "planned",
+      "message": "Validated and processed; no curated mapping, so target remains ledger-only"
+    },
+    {
+      "sourceKey": "collection-deed1be097da",
+      "kind": "collection",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1767794443860_3pn1bc_610602879_17899863024360696_1587168961729711062_n.jpg",
+      "sourceHash": "bec72e51c588b294ca0eb50b996017bd1b6368d98ca5522b3a21cf4f581b8ea9",
+      "destinationUrl": "https://dry-run.invalid/uploads/collections/bec72e51c588b294ca0eb50b996017bd1b6368d98ca5522b3a21cf4f581b8ea9.webp",
+      "storagePath": "/uploads/collections/bec72e51c588b294ca0eb50b996017bd1b6368d98ca5522b3a21cf4f581b8ea9.webp",
+      "status": "planned",
+      "message": "Validated and processed; no curated mapping, so target remains ledger-only"
+    },
+    {
+      "sourceKey": "collection-df6758460466",
+      "kind": "collection",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2Ftemp%2F1777132978961_9dj4gic_610534321_17899863015360696_392344720474300130_n.jpg",
+      "sourceHash": "40b1fcdf56ef99fa76ce1a91ea3e9fd3be98d7ba300e071e7f96a8ffd359cbc4",
+      "destinationUrl": "https://dry-run.invalid/uploads/collections/40b1fcdf56ef99fa76ce1a91ea3e9fd3be98d7ba300e071e7f96a8ffd359cbc4.webp",
+      "storagePath": "/uploads/collections/40b1fcdf56ef99fa76ce1a91ea3e9fd3be98d7ba300e071e7f96a8ffd359cbc4.webp",
+      "status": "planned",
+      "message": "Validated and processed; no curated mapping, so target remains ledger-only"
+    },
+    {
+      "sourceKey": "collection-bee5b3762c9e",
+      "kind": "collection",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2Ftemp%2F1776675653367_hy6ca_b0834956_8165_458b_bd45_719fecd2f3dd.jpg",
+      "sourceHash": "1c326127c0be4b94951edae393547acfc4633026f9e3b1a87167518daaa0b48c",
+      "destinationUrl": "https://dry-run.invalid/uploads/collections/1c326127c0be4b94951edae393547acfc4633026f9e3b1a87167518daaa0b48c.webp",
+      "storagePath": "/uploads/collections/1c326127c0be4b94951edae393547acfc4633026f9e3b1a87167518daaa0b48c.webp",
+      "status": "planned",
+      "message": "Validated and processed; no curated mapping, so target remains ledger-only"
+    },
+    {
+      "sourceKey": "collection-dee5531e2577",
+      "kind": "collection",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2Ftemp%2F1776833573453_gmojdi_623785149_17902684224360696_2095024177630993109_n.jpg",
+      "sourceHash": "aa05fd2b2999d9df1b197c77e951a515cba08264fda724d8263f8307cc8fc966",
+      "destinationUrl": "https://dry-run.invalid/uploads/collections/aa05fd2b2999d9df1b197c77e951a515cba08264fda724d8263f8307cc8fc966.webp",
+      "storagePath": "/uploads/collections/aa05fd2b2999d9df1b197c77e951a515cba08264fda724d8263f8307cc8fc966.webp",
+      "status": "planned",
+      "message": "Validated and processed; no curated mapping, so target remains ledger-only"
+    },
+    {
+      "sourceKey": "collection-3f37c96c4ab4",
+      "kind": "collection",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2Ftemp%2F1776842212514_m5vrk5_514409906_122115986186894146_7182626316490804832_n.jpg",
+      "sourceHash": "358b6635c71373636eed465fe61836c0bc3fd5acfaa030bfd3bad3b7eb7fc572",
+      "destinationUrl": "https://dry-run.invalid/uploads/collections/358b6635c71373636eed465fe61836c0bc3fd5acfaa030bfd3bad3b7eb7fc572.webp",
+      "storagePath": "/uploads/collections/358b6635c71373636eed465fe61836c0bc3fd5acfaa030bfd3bad3b7eb7fc572.webp",
+      "status": "planned",
+      "message": "Validated and processed; no curated mapping, so target remains ledger-only"
+    },
+    {
+      "sourceKey": "collection-5ad0fa5cefdb",
+      "kind": "collection",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2Ftemp%2F1776842429252_ikmo5_514406010_122115986150894146_2156834894492438780_n__1_.jpg",
+      "sourceHash": "9c8e1b6e569b90ed50980d705fd0e8c3dd54208c3e706cfa5b3cb1b4affd46d1",
+      "destinationUrl": "https://dry-run.invalid/uploads/collections/9c8e1b6e569b90ed50980d705fd0e8c3dd54208c3e706cfa5b3cb1b4affd46d1.webp",
+      "storagePath": "/uploads/collections/9c8e1b6e569b90ed50980d705fd0e8c3dd54208c3e706cfa5b3cb1b4affd46d1.webp",
+      "status": "planned",
+      "message": "Validated and processed; no curated mapping, so target remains ledger-only"
+    },
+    {
+      "sourceKey": "collection-bfa4e942eb65",
+      "kind": "collection",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2Ftemp%2F1776842588701_ftuil_photo_6208535837130034269_y.jpg",
+      "sourceHash": "7ba388e897c57d1f18c74e17693d1af46ee218ee868ca40014e4e1f4aad4f80c",
+      "destinationUrl": "https://dry-run.invalid/uploads/collections/7ba388e897c57d1f18c74e17693d1af46ee218ee868ca40014e4e1f4aad4f80c.webp",
+      "storagePath": "/uploads/collections/7ba388e897c57d1f18c74e17693d1af46ee218ee868ca40014e4e1f4aad4f80c.webp",
+      "status": "planned",
+      "message": "Validated and processed; no curated mapping, so target remains ledger-only"
+    },
+    {
+      "sourceKey": "collection-96117f5fe61f",
+      "kind": "collection",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2Ftemp%2F1776927755726_ylzxlji_60b0953b_7e3a_473d_98a4_4f4a10932064.jpg",
+      "sourceHash": "0be39c650bce05575ddefaf620da8958770c34898a65f689b815cfdd60efc9ec",
+      "destinationUrl": "https://dry-run.invalid/uploads/collections/0be39c650bce05575ddefaf620da8958770c34898a65f689b815cfdd60efc9ec.webp",
+      "storagePath": "/uploads/collections/0be39c650bce05575ddefaf620da8958770c34898a65f689b815cfdd60efc9ec.webp",
+      "status": "planned",
+      "message": "Validated and processed; no curated mapping, so target remains ledger-only"
+    },
+    {
+      "sourceKey": "collection-711fe068fa75",
+      "kind": "collection",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2Ftemp%2F1777432696959_1noj9l_photo_6160962906750043775_y.jpg",
+      "sourceHash": "2d529e1e6b778ceeb57db77a221568376337cd1ff0a287cbd8558191367f8ddf",
+      "destinationUrl": "https://dry-run.invalid/uploads/collections/2d529e1e6b778ceeb57db77a221568376337cd1ff0a287cbd8558191367f8ddf.webp",
+      "storagePath": "/uploads/collections/2d529e1e6b778ceeb57db77a221568376337cd1ff0a287cbd8558191367f8ddf.webp",
+      "status": "planned",
+      "message": "Validated and processed; no curated mapping, so target remains ledger-only"
+    },
+    {
+      "sourceKey": "collection-6b6cdae29af7",
+      "kind": "collection",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2Ftemp%2F1776927983062_k2ettf_a61a71f0_e99f_45ba_b1e8_3663c91503c2.jpg",
+      "sourceHash": "2411abef2c66dca94688980474c880b8ef0f3522681411d5617ba1e8c7a3cc60",
+      "destinationUrl": "https://dry-run.invalid/uploads/collections/2411abef2c66dca94688980474c880b8ef0f3522681411d5617ba1e8c7a3cc60.webp",
+      "storagePath": "/uploads/collections/2411abef2c66dca94688980474c880b8ef0f3522681411d5617ba1e8c7a3cc60.webp",
+      "status": "planned",
+      "message": "Validated and processed; no curated mapping, so target remains ledger-only"
+    },
+    {
+      "sourceKey": "collection-9011667fa3c9",
+      "kind": "collection",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2Ftemp%2F1776928264267_bgxvyo_608540616_729214833196643_5466933999854983088_n.jpg",
+      "sourceHash": "089837e8b20a07d11c7c57d09e65e8828e57445ce12df05d029fa9148af32400",
+      "destinationUrl": "https://dry-run.invalid/uploads/collections/089837e8b20a07d11c7c57d09e65e8828e57445ce12df05d029fa9148af32400.webp",
+      "storagePath": "/uploads/collections/089837e8b20a07d11c7c57d09e65e8828e57445ce12df05d029fa9148af32400.webp",
+      "status": "planned",
+      "message": "Validated and processed; no curated mapping, so target remains ledger-only"
+    },
+    {
+      "sourceKey": "collection-c41c38f93e47",
+      "kind": "collection",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2Ftemp%2F1776928425357_tocqy6_ad4e50e8_d574_41a3_a1b8_4fd17b49ee10.jpg",
+      "sourceHash": "a2b082ee500672b490e24636be2a4ef3cd7d5b89c74a96ebfa2d1c3bbf2e9efb",
+      "destinationUrl": "https://dry-run.invalid/uploads/collections/a2b082ee500672b490e24636be2a4ef3cd7d5b89c74a96ebfa2d1c3bbf2e9efb.webp",
+      "storagePath": "/uploads/collections/a2b082ee500672b490e24636be2a4ef3cd7d5b89c74a96ebfa2d1c3bbf2e9efb.webp",
+      "status": "planned",
+      "message": "Validated and processed; no curated mapping, so target remains ledger-only"
+    },
+    {
+      "sourceKey": "collection-6fcabd549705",
+      "kind": "collection",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2Ftemp%2F1776928552666_i6id1r_2409ffd2_9df2_4c18_bdbc_88410fbb6709.jpg",
+      "sourceHash": "0ec5a7698759ef8783fc793345a156dc2f96fed95d9021276f0d53ed143c5a6f",
+      "destinationUrl": "https://dry-run.invalid/uploads/collections/0ec5a7698759ef8783fc793345a156dc2f96fed95d9021276f0d53ed143c5a6f.webp",
+      "storagePath": "/uploads/collections/0ec5a7698759ef8783fc793345a156dc2f96fed95d9021276f0d53ed143c5a6f.webp",
+      "status": "planned",
+      "message": "Validated and processed; no curated mapping, so target remains ledger-only"
+    },
+    {
+      "sourceKey": "collection-b7697d7d9a96",
+      "kind": "collection",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2Ftemp%2F1776928651150_swjgn_6c59f548_5982_4b99_9353_a3fd2e144426.jpg",
+      "sourceHash": "e5d747e730c452f90d8b48fdc8efab294b944e6d3a3f02e055503942bcf025dc",
+      "destinationUrl": "https://dry-run.invalid/uploads/collections/e5d747e730c452f90d8b48fdc8efab294b944e6d3a3f02e055503942bcf025dc.webp",
+      "storagePath": "/uploads/collections/e5d747e730c452f90d8b48fdc8efab294b944e6d3a3f02e055503942bcf025dc.webp",
+      "status": "planned",
+      "message": "Validated and processed; no curated mapping, so target remains ledger-only"
+    },
+    {
+      "sourceKey": "collection-0f03ee1bfa6a",
+      "kind": "collection",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2Ftemp%2F1776928957765_uoxbh6_photo_6208535837130034272_y.jpg",
+      "sourceHash": "e84fe7721f437bc1a64f5c5bcab702023090d57a80009c81a57b1d9d53a49795",
+      "destinationUrl": "https://dry-run.invalid/uploads/collections/e84fe7721f437bc1a64f5c5bcab702023090d57a80009c81a57b1d9d53a49795.webp",
+      "storagePath": "/uploads/collections/e84fe7721f437bc1a64f5c5bcab702023090d57a80009c81a57b1d9d53a49795.webp",
+      "status": "planned",
+      "message": "Validated and processed; no curated mapping, so target remains ledger-only"
+    },
+    {
+      "sourceKey": "collection-8245116dc687",
+      "kind": "collection",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2Ftemp%2F1776929057463_1ltg6_bdae6372_038b_44db_bdf4_7e973e59e228.jpg",
+      "sourceHash": "542d4a4b5eaf5ae127bc0d51330a2a29685174e3969b41aa280e0dc978b33df1",
+      "destinationUrl": "https://dry-run.invalid/uploads/collections/542d4a4b5eaf5ae127bc0d51330a2a29685174e3969b41aa280e0dc978b33df1.webp",
+      "storagePath": "/uploads/collections/542d4a4b5eaf5ae127bc0d51330a2a29685174e3969b41aa280e0dc978b33df1.webp",
+      "status": "planned",
+      "message": "Validated and processed; no curated mapping, so target remains ledger-only"
+    },
+    {
+      "sourceKey": "collection-d5c804cc693d",
+      "kind": "collection",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2Ftemp%2F1776931873834_y9aebj_DSC09440.JPG",
+      "sourceHash": "3bae937ed2920953b28d41f1c4179868f5d1d4be0ca6e998065a4685ea232deb",
+      "destinationUrl": "https://dry-run.invalid/uploads/collections/3bae937ed2920953b28d41f1c4179868f5d1d4be0ca6e998065a4685ea232deb.webp",
+      "storagePath": "/uploads/collections/3bae937ed2920953b28d41f1c4179868f5d1d4be0ca6e998065a4685ea232deb.webp",
+      "status": "planned",
+      "message": "Validated and processed; no curated mapping, so target remains ledger-only"
+    },
+    {
+      "sourceKey": "collection-d8160872fceb",
+      "kind": "collection",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2Ftemp%2F1777042842010_yg0o0d_DSC03783.JPG",
+      "sourceHash": "61e1e50b5f41508c6562f43399471dba8e058dea57a07f189bd4d21ca63a2447",
+      "destinationUrl": "https://dry-run.invalid/uploads/collections/61e1e50b5f41508c6562f43399471dba8e058dea57a07f189bd4d21ca63a2447.webp",
+      "storagePath": "/uploads/collections/61e1e50b5f41508c6562f43399471dba8e058dea57a07f189bd4d21ca63a2447.webp",
+      "status": "planned",
+      "message": "Validated and processed; no curated mapping, so target remains ledger-only"
+    },
+    {
+      "sourceKey": "collection-575d7bc66f68",
+      "kind": "collection",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2Ftemp%2F1777043073839_jrdx3n_DSC04591.JPG",
+      "sourceHash": "cdd217607db3c835c77a2e7acb8d402ff9beeace7246b241365a61ff956d7d02",
+      "destinationUrl": "https://dry-run.invalid/uploads/collections/cdd217607db3c835c77a2e7acb8d402ff9beeace7246b241365a61ff956d7d02.webp",
+      "storagePath": "/uploads/collections/cdd217607db3c835c77a2e7acb8d402ff9beeace7246b241365a61ff956d7d02.webp",
+      "status": "planned",
+      "message": "Validated and processed; no curated mapping, so target remains ledger-only"
+    },
+    {
+      "sourceKey": "collection-ffcf44ce1a74",
+      "kind": "collection",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2Ftemp%2F1777278198587_qxd8hs_DSC04736.jpg",
+      "sourceHash": "ecef82288c6064f478e178f3d372a7c2dada37acf3f9179ca3ffca55bd9f4172",
+      "destinationUrl": "https://dry-run.invalid/uploads/collections/ecef82288c6064f478e178f3d372a7c2dada37acf3f9179ca3ffca55bd9f4172.webp",
+      "storagePath": "/uploads/collections/ecef82288c6064f478e178f3d372a7c2dada37acf3f9179ca3ffca55bd9f4172.webp",
+      "status": "planned",
+      "message": "Validated and processed; no curated mapping, so target remains ledger-only"
+    },
+    {
+      "sourceKey": "collection-6252c8d20b88",
+      "kind": "collection",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2Ftemp%2F1777732530340_sx60l8_604716469_17894947380376341_8017371250365722296_n.jpg",
+      "sourceHash": "02f89b078fcfbaead86a9a83489cd0d2d939848ae60604f9d41cb7216b1d2556",
+      "destinationUrl": "https://dry-run.invalid/uploads/collections/02f89b078fcfbaead86a9a83489cd0d2d939848ae60604f9d41cb7216b1d2556.webp",
+      "storagePath": "/uploads/collections/02f89b078fcfbaead86a9a83489cd0d2d939848ae60604f9d41cb7216b1d2556.webp",
+      "status": "planned",
+      "message": "Validated and processed; no curated mapping, so target remains ledger-only"
+    },
+    {
+      "sourceKey": "collection-5ae6338e2184",
+      "kind": "collection",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2Ftemp%2F1777278369011_tay0bu_DSC04738.jpg",
+      "sourceHash": "be6b732b7c80af0798119242aa249f702a845c109c8e183ef43bbb69d147888c",
+      "destinationUrl": "https://dry-run.invalid/uploads/collections/be6b732b7c80af0798119242aa249f702a845c109c8e183ef43bbb69d147888c.webp",
+      "storagePath": "/uploads/collections/be6b732b7c80af0798119242aa249f702a845c109c8e183ef43bbb69d147888c.webp",
+      "status": "planned",
+      "message": "Validated and processed; no curated mapping, so target remains ledger-only"
+    },
+    {
+      "sourceKey": "collection-45e5a84b3664",
+      "kind": "collection",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2Ftemp%2F1777718176209_j6955y_87e91614_3810_4910_8b99_31f275b2c9cf.jpg",
+      "sourceHash": "1483d08a83cadf2767a892dc2b5a6b9b182319ddb3cc3ac583987ba8aff1a379",
+      "destinationUrl": "https://dry-run.invalid/uploads/collections/1483d08a83cadf2767a892dc2b5a6b9b182319ddb3cc3ac583987ba8aff1a379.webp",
+      "storagePath": "/uploads/collections/1483d08a83cadf2767a892dc2b5a6b9b182319ddb3cc3ac583987ba8aff1a379.webp",
+      "status": "planned",
+      "message": "Validated and processed; no curated mapping, so target remains ledger-only"
+    },
+    {
+      "sourceKey": "collection-4961e02adadd",
+      "kind": "collection",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2Ftemp%2F1777732310275_f9w9q3_624210745_17902684242360696_8693122519655296249_n.jpg",
+      "sourceHash": "61e039218cb90128e1970eaf32b9ac6151802e76571baa786f5b66a437ec6da6",
+      "destinationUrl": "https://dry-run.invalid/uploads/collections/61e039218cb90128e1970eaf32b9ac6151802e76571baa786f5b66a437ec6da6.webp",
+      "storagePath": "/uploads/collections/61e039218cb90128e1970eaf32b9ac6151802e76571baa786f5b66a437ec6da6.webp",
+      "status": "planned",
+      "message": "Validated and processed; no curated mapping, so target remains ledger-only"
+    },
+    {
+      "sourceKey": "collection-dd3cf66a1bfd",
+      "kind": "collection",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2Ftemp%2F1780571648319_6gbjkj_37bca2ad_c277_47c0_8287_e4805dd6d1f0.jpg",
+      "sourceHash": "4b631e5d98e33e10fe1116ddae7adba815f09fa0df0036beac4ccc25f96cb87e",
+      "destinationUrl": "https://dry-run.invalid/uploads/collections/4b631e5d98e33e10fe1116ddae7adba815f09fa0df0036beac4ccc25f96cb87e.webp",
+      "storagePath": "/uploads/collections/4b631e5d98e33e10fe1116ddae7adba815f09fa0df0036beac4ccc25f96cb87e.webp",
+      "status": "planned",
+      "message": "Validated and processed; no curated mapping, so target remains ledger-only"
+    },
+    {
+      "sourceKey": "collection-efcd11e000d8",
+      "kind": "collection",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2Ftemp%2F1780571785811_f8v3mb_c2ad8980_900d_44eb_bd8f_7ddd969deaea.png",
+      "sourceHash": "46e077edb349cd8012a0d763ad75743b11ed789ce5ad10f7d7d7463d2d0b5093",
+      "destinationUrl": "https://dry-run.invalid/uploads/collections/46e077edb349cd8012a0d763ad75743b11ed789ce5ad10f7d7d7463d2d0b5093.webp",
+      "storagePath": "/uploads/collections/46e077edb349cd8012a0d763ad75743b11ed789ce5ad10f7d7d7463d2d0b5093.webp",
+      "status": "planned",
+      "message": "Validated and processed; no curated mapping, so target remains ledger-only"
+    },
+    {
+      "sourceKey": "collection-6d50aa46fc6d",
+      "kind": "collection",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2Ftemp%2F1780572002556_zmmi78_53d3fc9b_4abe_40cb_ac6e_49155a106689.jpg",
+      "sourceHash": "c8d31a1cf79f55105d7ddee567acdc20c617c4e5efaaf88be46b0687d216ddf5",
+      "destinationUrl": "https://dry-run.invalid/uploads/collections/c8d31a1cf79f55105d7ddee567acdc20c617c4e5efaaf88be46b0687d216ddf5.webp",
+      "storagePath": "/uploads/collections/c8d31a1cf79f55105d7ddee567acdc20c617c4e5efaaf88be46b0687d216ddf5.webp",
+      "status": "planned",
+      "message": "Validated and processed; no curated mapping, so target remains ledger-only"
+    },
+    {
+      "sourceKey": "collection-6b291d92fa1b",
+      "kind": "collection",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2Ftemp%2F1780572081120_xras1p_b4a5e44f_fee7_4173_ac69_1f21279b6fb2.jpg",
+      "sourceHash": "bdacd9ba6ae38b3f0722c746ef5c9eab8f4cfa52075a8a12e0942038b999163b",
+      "destinationUrl": "https://dry-run.invalid/uploads/collections/bdacd9ba6ae38b3f0722c746ef5c9eab8f4cfa52075a8a12e0942038b999163b.webp",
+      "storagePath": "/uploads/collections/bdacd9ba6ae38b3f0722c746ef5c9eab8f4cfa52075a8a12e0942038b999163b.webp",
+      "status": "planned",
+      "message": "Validated and processed; no curated mapping, so target remains ledger-only"
+    },
+    {
+      "sourceKey": "collection-348ce6e669c0",
+      "kind": "collection",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2Ftemp%2F1780572386743_hf371_5a78c9fa_2a3f_42c6_82bf_f7b2f804d064.jpg",
+      "sourceHash": "f038c058aeadb33038a7ccb5d38080fcf41af4258617de1af0e3eb1ce25c00ac",
+      "destinationUrl": "https://dry-run.invalid/uploads/collections/f038c058aeadb33038a7ccb5d38080fcf41af4258617de1af0e3eb1ce25c00ac.webp",
+      "storagePath": "/uploads/collections/f038c058aeadb33038a7ccb5d38080fcf41af4258617de1af0e3eb1ce25c00ac.webp",
+      "status": "planned",
+      "message": "Validated and processed; no curated mapping, so target remains ledger-only"
+    },
+    {
+      "sourceKey": "collection-1fd6c1893c77",
+      "kind": "collection",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2Ftemp%2F1780572650879_w6mxs_4508693f_82b0_4752_85d9_a89b791833db.jpg",
+      "sourceHash": "c39997588196f5496ee79aa15252cd680cbdb96658bb92b0425dd37bb8441485",
+      "destinationUrl": "https://dry-run.invalid/uploads/collections/c39997588196f5496ee79aa15252cd680cbdb96658bb92b0425dd37bb8441485.webp",
+      "storagePath": "/uploads/collections/c39997588196f5496ee79aa15252cd680cbdb96658bb92b0425dd37bb8441485.webp",
+      "status": "planned",
+      "message": "Validated and processed; no curated mapping, so target remains ledger-only"
+    },
+    {
+      "sourceKey": "collection-7c11cc166559",
+      "kind": "collection",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2Ftemp%2F1780572750087_eafyv_744485d9_e4bd_4173_987f_93c554a4c0bb.jpg",
+      "sourceHash": "64f4540ca5d10e44c08b6f521d3e7324a21a2a792dcf9228500b1590271ec380",
+      "destinationUrl": "https://dry-run.invalid/uploads/collections/64f4540ca5d10e44c08b6f521d3e7324a21a2a792dcf9228500b1590271ec380.webp",
+      "storagePath": "/uploads/collections/64f4540ca5d10e44c08b6f521d3e7324a21a2a792dcf9228500b1590271ec380.webp",
+      "status": "planned",
+      "message": "Validated and processed; no curated mapping, so target remains ledger-only"
+    },
+    {
+      "sourceKey": "collection-a2a62cdd9999",
+      "kind": "collection",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2Ftemp%2F1780573124465_uv1lzt_2a0433c5_257b_4757_b33d_4e308140c4cc.jpg",
+      "sourceHash": "a57eb0b25a224bd1afbc8eb2f868d888e5a34adeb7a268b642272eca206aaf37",
+      "destinationUrl": "https://dry-run.invalid/uploads/collections/a57eb0b25a224bd1afbc8eb2f868d888e5a34adeb7a268b642272eca206aaf37.webp",
+      "storagePath": "/uploads/collections/a57eb0b25a224bd1afbc8eb2f868d888e5a34adeb7a268b642272eca206aaf37.webp",
+      "status": "planned",
+      "message": "Validated and processed; no curated mapping, so target remains ledger-only"
+    },
+    {
+      "sourceKey": "collection-f1dade97a0c4",
+      "kind": "collection",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2Ftemp%2F1780654268534_qmx5mc_z7903987970286_ce6c2bbab6d723f9abade8d0bda244da.jpg",
+      "sourceHash": "e7b28d8ecb1804ed011d86937de0f533faa001a5c9ace94145f5b50f48d35fee",
+      "destinationUrl": "https://dry-run.invalid/uploads/collections/e7b28d8ecb1804ed011d86937de0f533faa001a5c9ace94145f5b50f48d35fee.webp",
+      "storagePath": "/uploads/collections/e7b28d8ecb1804ed011d86937de0f533faa001a5c9ace94145f5b50f48d35fee.webp",
+      "status": "planned",
+      "message": "Validated and processed; no curated mapping, so target remains ledger-only"
+    },
+    {
+      "sourceKey": "collection-b5ee178723cb",
+      "kind": "collection",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2Ftemp%2F1778574268222_mhhur_design_preview.png",
+      "sourceHash": "071b59c013a8cfe68931f9b5c906c48b50f0dcf2e45704bde5f078236732e4d9",
+      "destinationUrl": "https://dry-run.invalid/uploads/banners/homepage/071b59c013a8cfe68931f9b5c906c48b50f0dcf2e45704bde5f078236732e4d9.png",
+      "storagePath": "/uploads/banners/homepage/071b59c013a8cfe68931f9b5c906c48b50f0dcf2e45704bde5f078236732e4d9.png",
+      "status": "planned",
+      "duplicateOfSourceKey": "home-b5ee178723cb",
+      "message": "Validated and processed; no curated mapping, so target remains ledger-only"
+    },
+    {
+      "sourceKey": "background-4e71bb162a68",
+      "kind": "backgrounds",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1774323820059_5bz3mh_Screenshot_2026_03_24_104320.png",
+      "sourceHash": "46848100c21f0fd228bc362c1c4553709cda207fad341d5400bae3e00655328c",
+      "destinationUrl": "https://dry-run.invalid/uploads/templates/backgrounds/46848100c21f0fd228bc362c1c4553709cda207fad341d5400bae3e00655328c.png",
+      "storagePath": "/uploads/templates/backgrounds/46848100c21f0fd228bc362c1c4553709cda207fad341d5400bae3e00655328c.png",
+      "thumbnailUrl": "https://dry-run.invalid/uploads/templates/backgrounds/46848100c21f0fd228bc362c1c4553709cda207fad341d5400bae3e00655328c-thumb.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "background-0cb6850f7143",
+      "kind": "backgrounds",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1774323898559_l5hrvr_Screenshot_2026_03_24_104447.png",
+      "sourceHash": "43ac2c7f9bb59e894a601386ca0ca84bc4d269f00d27200978ac967c493bb2b2",
+      "destinationUrl": "https://dry-run.invalid/uploads/templates/backgrounds/43ac2c7f9bb59e894a601386ca0ca84bc4d269f00d27200978ac967c493bb2b2.png",
+      "storagePath": "/uploads/templates/backgrounds/43ac2c7f9bb59e894a601386ca0ca84bc4d269f00d27200978ac967c493bb2b2.png",
+      "thumbnailUrl": "https://dry-run.invalid/uploads/templates/backgrounds/43ac2c7f9bb59e894a601386ca0ca84bc4d269f00d27200978ac967c493bb2b2-thumb.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "background-92a303e167a1",
+      "kind": "backgrounds",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1774324573933_lh09xk_Screenshot_2026_03_24_105606.png",
+      "sourceHash": "0cf49f5ef95561656d7a96ae8b5623b57800976e1071353121c17636094cf982",
+      "destinationUrl": "https://dry-run.invalid/uploads/templates/backgrounds/0cf49f5ef95561656d7a96ae8b5623b57800976e1071353121c17636094cf982.png",
+      "storagePath": "/uploads/templates/backgrounds/0cf49f5ef95561656d7a96ae8b5623b57800976e1071353121c17636094cf982.png",
+      "thumbnailUrl": "https://dry-run.invalid/uploads/templates/backgrounds/0cf49f5ef95561656d7a96ae8b5623b57800976e1071353121c17636094cf982-thumb.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "background-da2ef5a1e977",
+      "kind": "backgrounds",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1774328924110_llq5ka_Screenshot_2026_03_24_120834.png",
+      "sourceHash": "3d2fb24c3c8ca57ae5badc627ac5b4a738f5760fda6048f70f79da1e3cde4319",
+      "destinationUrl": "https://dry-run.invalid/uploads/templates/backgrounds/3d2fb24c3c8ca57ae5badc627ac5b4a738f5760fda6048f70f79da1e3cde4319.png",
+      "storagePath": "/uploads/templates/backgrounds/3d2fb24c3c8ca57ae5badc627ac5b4a738f5760fda6048f70f79da1e3cde4319.png",
+      "thumbnailUrl": "https://dry-run.invalid/uploads/templates/backgrounds/3d2fb24c3c8ca57ae5badc627ac5b4a738f5760fda6048f70f79da1e3cde4319-thumb.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "background-98802af0acc3",
+      "kind": "backgrounds",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1766831035270_8ki3cm__nh_ch_p_m_n_h_nh_2025_12_27_172350.png",
+      "sourceHash": "afe21b9bccabc0d40463004328cc7df8644269ac1aa7e8a87dd6a57efaaf45e4",
+      "destinationUrl": "https://dry-run.invalid/uploads/templates/backgrounds/afe21b9bccabc0d40463004328cc7df8644269ac1aa7e8a87dd6a57efaaf45e4.png",
+      "storagePath": "/uploads/templates/backgrounds/afe21b9bccabc0d40463004328cc7df8644269ac1aa7e8a87dd6a57efaaf45e4.png",
+      "thumbnailUrl": "https://dry-run.invalid/uploads/templates/backgrounds/afe21b9bccabc0d40463004328cc7df8644269ac1aa7e8a87dd6a57efaaf45e4-thumb.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "background-3a3e2c8e23f9",
+      "kind": "backgrounds",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1766831255053_tzjelb__nh_ch_p_m_n_h_nh_2025_12_27_172730.png",
+      "sourceHash": "259a5723f4277812cdfedc504fea03c7e3c6ecddce873cd100a881366200aea3",
+      "destinationUrl": "https://dry-run.invalid/uploads/templates/backgrounds/259a5723f4277812cdfedc504fea03c7e3c6ecddce873cd100a881366200aea3.png",
+      "storagePath": "/uploads/templates/backgrounds/259a5723f4277812cdfedc504fea03c7e3c6ecddce873cd100a881366200aea3.png",
+      "thumbnailUrl": "https://dry-run.invalid/uploads/templates/backgrounds/259a5723f4277812cdfedc504fea03c7e3c6ecddce873cd100a881366200aea3-thumb.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "background-c152f91b045e",
+      "kind": "backgrounds",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1774329034933_jts8m8_HPBD5.png",
+      "sourceHash": "56307a7f2baf930d8dc9ead0b2e39b7c8e5e83a9418cd7cbeb990601caaa1abf",
+      "destinationUrl": "https://dry-run.invalid/uploads/templates/backgrounds/56307a7f2baf930d8dc9ead0b2e39b7c8e5e83a9418cd7cbeb990601caaa1abf.png",
+      "storagePath": "/uploads/templates/backgrounds/56307a7f2baf930d8dc9ead0b2e39b7c8e5e83a9418cd7cbeb990601caaa1abf.png",
+      "thumbnailUrl": "https://dry-run.invalid/uploads/templates/backgrounds/56307a7f2baf930d8dc9ead0b2e39b7c8e5e83a9418cd7cbeb990601caaa1abf-thumb.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "background-fb0bad3cda74",
+      "kind": "backgrounds",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1766831464498_n25hfe__nh_ch_p_m_n_h_nh_2025_12_27_173101.png",
+      "sourceHash": "21f9d180946a050c20cfe6f9caab651783da3f62f9080e9f7557a3894d0afad1",
+      "destinationUrl": "https://dry-run.invalid/uploads/templates/backgrounds/21f9d180946a050c20cfe6f9caab651783da3f62f9080e9f7557a3894d0afad1.png",
+      "storagePath": "/uploads/templates/backgrounds/21f9d180946a050c20cfe6f9caab651783da3f62f9080e9f7557a3894d0afad1.png",
+      "thumbnailUrl": "https://dry-run.invalid/uploads/templates/backgrounds/21f9d180946a050c20cfe6f9caab651783da3f62f9080e9f7557a3894d0afad1-thumb.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "background-52ab13db6104",
+      "kind": "backgrounds",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1774329050350_9ubujf0v_HPAN3.png",
+      "sourceHash": "0dd46e87b8841df7107ff624656b4c7821354d0c87621611b937490acc4c3928",
+      "destinationUrl": "https://dry-run.invalid/uploads/templates/backgrounds/0dd46e87b8841df7107ff624656b4c7821354d0c87621611b937490acc4c3928.png",
+      "storagePath": "/uploads/templates/backgrounds/0dd46e87b8841df7107ff624656b4c7821354d0c87621611b937490acc4c3928.png",
+      "thumbnailUrl": "https://dry-run.invalid/uploads/templates/backgrounds/0dd46e87b8841df7107ff624656b4c7821354d0c87621611b937490acc4c3928-thumb.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "background-44ebacb54bfe",
+      "kind": "backgrounds",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1774329061408_7m8k25_HPAN4.png",
+      "sourceHash": "e61b47a85563fc9ad60ce4cf9e8b2a12aad3467c627c4112b308ae88117321ff",
+      "destinationUrl": "https://dry-run.invalid/uploads/templates/backgrounds/e61b47a85563fc9ad60ce4cf9e8b2a12aad3467c627c4112b308ae88117321ff.png",
+      "storagePath": "/uploads/templates/backgrounds/e61b47a85563fc9ad60ce4cf9e8b2a12aad3467c627c4112b308ae88117321ff.png",
+      "thumbnailUrl": "https://dry-run.invalid/uploads/templates/backgrounds/e61b47a85563fc9ad60ce4cf9e8b2a12aad3467c627c4112b308ae88117321ff-thumb.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "background-43ecee483608",
+      "kind": "backgrounds",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1774329089674_o8femd_LOVE1.png",
+      "sourceHash": "90ecce7700fdb834a7408b6b19b84243936e97b2e68bb52a7945dbb7e79b61c0",
+      "destinationUrl": "https://dry-run.invalid/uploads/templates/backgrounds/90ecce7700fdb834a7408b6b19b84243936e97b2e68bb52a7945dbb7e79b61c0.png",
+      "storagePath": "/uploads/templates/backgrounds/90ecce7700fdb834a7408b6b19b84243936e97b2e68bb52a7945dbb7e79b61c0.png",
+      "thumbnailUrl": "https://dry-run.invalid/uploads/templates/backgrounds/90ecce7700fdb834a7408b6b19b84243936e97b2e68bb52a7945dbb7e79b61c0-thumb.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "background-3cbd89314827",
+      "kind": "backgrounds",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1766832120570_22ay6t__nh_ch_p_m_n_h_nh_2025_12_27_173629.png",
+      "sourceHash": "26a49cc5f5d4075e080f9600749739d94f0e0cb42316e69866b1ad5f602d86be",
+      "destinationUrl": "https://dry-run.invalid/uploads/templates/backgrounds/26a49cc5f5d4075e080f9600749739d94f0e0cb42316e69866b1ad5f602d86be.png",
+      "storagePath": "/uploads/templates/backgrounds/26a49cc5f5d4075e080f9600749739d94f0e0cb42316e69866b1ad5f602d86be.png",
+      "thumbnailUrl": "https://dry-run.invalid/uploads/templates/backgrounds/26a49cc5f5d4075e080f9600749739d94f0e0cb42316e69866b1ad5f602d86be-thumb.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "background-e110ee0d345f",
+      "kind": "backgrounds",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1766832169464_md9jdb__nh_ch_p_m_n_h_nh_2025_12_27_174243.png",
+      "sourceHash": "34ecd227aa2440c11c8ac7ca274be9707c487cf389e9ea13da445655e7f87328",
+      "destinationUrl": "https://dry-run.invalid/uploads/templates/backgrounds/34ecd227aa2440c11c8ac7ca274be9707c487cf389e9ea13da445655e7f87328.png",
+      "storagePath": "/uploads/templates/backgrounds/34ecd227aa2440c11c8ac7ca274be9707c487cf389e9ea13da445655e7f87328.png",
+      "thumbnailUrl": "https://dry-run.invalid/uploads/templates/backgrounds/34ecd227aa2440c11c8ac7ca274be9707c487cf389e9ea13da445655e7f87328-thumb.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "background-c957a7f26fa0",
+      "kind": "backgrounds",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1766832264116_3aimab__nh_ch_p_m_n_h_nh_2025_12_27_174416.png",
+      "sourceHash": "60850deffd86b5a5d0ba03d2a0915e1f20168f3637259429082f26b4ade89e14",
+      "destinationUrl": "https://dry-run.invalid/uploads/templates/backgrounds/60850deffd86b5a5d0ba03d2a0915e1f20168f3637259429082f26b4ade89e14.png",
+      "storagePath": "/uploads/templates/backgrounds/60850deffd86b5a5d0ba03d2a0915e1f20168f3637259429082f26b4ade89e14.png",
+      "thumbnailUrl": "https://dry-run.invalid/uploads/templates/backgrounds/60850deffd86b5a5d0ba03d2a0915e1f20168f3637259429082f26b4ade89e14-thumb.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "background-1f2716bd9d7a",
+      "kind": "backgrounds",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1766832053259_xjtmo__nh_ch_p_m_n_h_nh_2025_12_27_174042.png",
+      "sourceHash": "8937c2b6308e2899cc41bfda6fd397ad679ea54cd9d7f5bcdf277a4616859eaf",
+      "destinationUrl": "https://dry-run.invalid/uploads/templates/backgrounds/8937c2b6308e2899cc41bfda6fd397ad679ea54cd9d7f5bcdf277a4616859eaf.png",
+      "storagePath": "/uploads/templates/backgrounds/8937c2b6308e2899cc41bfda6fd397ad679ea54cd9d7f5bcdf277a4616859eaf.png",
+      "thumbnailUrl": "https://dry-run.invalid/uploads/templates/backgrounds/8937c2b6308e2899cc41bfda6fd397ad679ea54cd9d7f5bcdf277a4616859eaf-thumb.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "background-580161fb4906",
+      "kind": "backgrounds",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1766832292369_9pwlr__nh_ch_p_m_n_h_nh_2025_12_27_174448.png",
+      "sourceHash": "7f08e8e9c6104653d95bd7072d10df01877fbb7f36a4920b958c6e7767597cc7",
+      "destinationUrl": "https://dry-run.invalid/uploads/templates/backgrounds/7f08e8e9c6104653d95bd7072d10df01877fbb7f36a4920b958c6e7767597cc7.png",
+      "storagePath": "/uploads/templates/backgrounds/7f08e8e9c6104653d95bd7072d10df01877fbb7f36a4920b958c6e7767597cc7.png",
+      "thumbnailUrl": "https://dry-run.invalid/uploads/templates/backgrounds/7f08e8e9c6104653d95bd7072d10df01877fbb7f36a4920b958c6e7767597cc7-thumb.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "background-88db75d6f638",
+      "kind": "backgrounds",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1766832635970_4oruv_Ch_a_c__t_n__148_x_210_mm___2_.png",
+      "sourceHash": "b9ffe2baeabf5c09a65dfe3c85681f51b66def116722f2300e2a0f67c4f011e7",
+      "destinationUrl": "https://dry-run.invalid/uploads/templates/backgrounds/b9ffe2baeabf5c09a65dfe3c85681f51b66def116722f2300e2a0f67c4f011e7.webp",
+      "storagePath": "/uploads/templates/backgrounds/b9ffe2baeabf5c09a65dfe3c85681f51b66def116722f2300e2a0f67c4f011e7.webp",
+      "thumbnailUrl": "https://dry-run.invalid/uploads/templates/backgrounds/b9ffe2baeabf5c09a65dfe3c85681f51b66def116722f2300e2a0f67c4f011e7-thumb.webp",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "background-d5e523e76f14",
+      "kind": "backgrounds",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1766841608551_wdfevt__nh_ch_p_m_n_h_nh_2025_12_27_202000.png",
+      "sourceHash": "3be0538887653b70d28c7acae6663537fbad55067a88eeb56a76a5a87263c34e",
+      "destinationUrl": "https://dry-run.invalid/uploads/templates/backgrounds/3be0538887653b70d28c7acae6663537fbad55067a88eeb56a76a5a87263c34e.png",
+      "storagePath": "/uploads/templates/backgrounds/3be0538887653b70d28c7acae6663537fbad55067a88eeb56a76a5a87263c34e.png",
+      "thumbnailUrl": "https://dry-run.invalid/uploads/templates/backgrounds/3be0538887653b70d28c7acae6663537fbad55067a88eeb56a76a5a87263c34e-thumb.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "background-887f30ce57fd",
+      "kind": "backgrounds",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1766841496595_utfuso__nh_ch_p_m_n_h_nh_2025_12_27_201806.png",
+      "sourceHash": "6f66ef7c7d3083c6557ba856b077addddb72b9631463b2e791acb626f4e49329",
+      "destinationUrl": "https://dry-run.invalid/uploads/templates/backgrounds/6f66ef7c7d3083c6557ba856b077addddb72b9631463b2e791acb626f4e49329.png",
+      "storagePath": "/uploads/templates/backgrounds/6f66ef7c7d3083c6557ba856b077addddb72b9631463b2e791acb626f4e49329.png",
+      "thumbnailUrl": "https://dry-run.invalid/uploads/templates/backgrounds/6f66ef7c7d3083c6557ba856b077addddb72b9631463b2e791acb626f4e49329-thumb.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "background-b8c15d75b98e",
+      "kind": "backgrounds",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1766841535283_ot2vve__nh_ch_p_m_n_h_nh_2025_12_27_201846.png",
+      "sourceHash": "792b1811510521a9484e1915992069f9b42e14a33b6161a863df5bf5ce489b95",
+      "destinationUrl": "https://dry-run.invalid/uploads/templates/backgrounds/792b1811510521a9484e1915992069f9b42e14a33b6161a863df5bf5ce489b95.png",
+      "storagePath": "/uploads/templates/backgrounds/792b1811510521a9484e1915992069f9b42e14a33b6161a863df5bf5ce489b95.png",
+      "thumbnailUrl": "https://dry-run.invalid/uploads/templates/backgrounds/792b1811510521a9484e1915992069f9b42e14a33b6161a863df5bf5ce489b95-thumb.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "background-e96c894b964b",
+      "kind": "backgrounds",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1766841642534_2taq__nh_ch_p_m_n_h_nh_2025_12_27_202034.png",
+      "sourceHash": "0a75423e35f9913155ff35a63aeeb676f85dc251d9a5510d7d1ee4d4c9d4d0f4",
+      "destinationUrl": "https://dry-run.invalid/uploads/templates/backgrounds/0a75423e35f9913155ff35a63aeeb676f85dc251d9a5510d7d1ee4d4c9d4d0f4.png",
+      "storagePath": "/uploads/templates/backgrounds/0a75423e35f9913155ff35a63aeeb676f85dc251d9a5510d7d1ee4d4c9d4d0f4.png",
+      "thumbnailUrl": "https://dry-run.invalid/uploads/templates/backgrounds/0a75423e35f9913155ff35a63aeeb676f85dc251d9a5510d7d1ee4d4c9d4d0f4-thumb.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "background-3940d7ff3d43",
+      "kind": "backgrounds",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1766841026606_x1qxk8__nh_ch_p_m_n_h_nh_2025_12_27_201019.png",
+      "sourceHash": "fb4d5cd0c997d9a01d69601d02808949a79592dce749e6179cf02210c3aaa25e",
+      "destinationUrl": "https://dry-run.invalid/uploads/templates/backgrounds/fb4d5cd0c997d9a01d69601d02808949a79592dce749e6179cf02210c3aaa25e.png",
+      "storagePath": "/uploads/templates/backgrounds/fb4d5cd0c997d9a01d69601d02808949a79592dce749e6179cf02210c3aaa25e.png",
+      "thumbnailUrl": "https://dry-run.invalid/uploads/templates/backgrounds/fb4d5cd0c997d9a01d69601d02808949a79592dce749e6179cf02210c3aaa25e-thumb.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "background-0d6f7a64c0d1",
+      "kind": "backgrounds",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1766841432611_z53ngv__nh_ch_p_m_n_h_nh_2025_12_27_201706.png",
+      "sourceHash": "a6a293f965cfd3e5ebdbcaf5d70f9a8faa6d5669ef04f966718f083e23ca31cb",
+      "destinationUrl": "https://dry-run.invalid/uploads/templates/backgrounds/a6a293f965cfd3e5ebdbcaf5d70f9a8faa6d5669ef04f966718f083e23ca31cb.png",
+      "storagePath": "/uploads/templates/backgrounds/a6a293f965cfd3e5ebdbcaf5d70f9a8faa6d5669ef04f966718f083e23ca31cb.png",
+      "thumbnailUrl": "https://dry-run.invalid/uploads/templates/backgrounds/a6a293f965cfd3e5ebdbcaf5d70f9a8faa6d5669ef04f966718f083e23ca31cb-thumb.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "background-553b3fa543ae",
+      "kind": "backgrounds",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1766841711540_yoxaa__nh_ch_p_m_n_h_nh_2025_12_27_202139.png",
+      "sourceHash": "3237f58cc12d2e652c22246aa0008f833a68ddd50a587d3e813ef483acd6ff85",
+      "destinationUrl": "https://dry-run.invalid/uploads/templates/backgrounds/3237f58cc12d2e652c22246aa0008f833a68ddd50a587d3e813ef483acd6ff85.png",
+      "storagePath": "/uploads/templates/backgrounds/3237f58cc12d2e652c22246aa0008f833a68ddd50a587d3e813ef483acd6ff85.png",
+      "thumbnailUrl": "https://dry-run.invalid/uploads/templates/backgrounds/3237f58cc12d2e652c22246aa0008f833a68ddd50a587d3e813ef483acd6ff85-thumb.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "background-e300b7c7c8ec",
+      "kind": "backgrounds",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1766840906107_nr9oeg__nh_ch_p_m_n_h_nh_2025_12_27_200819.png",
+      "sourceHash": "a60a403733c1c5e60c5c108336010fd73f229be7b10132f09d39ba79fdce72c2",
+      "destinationUrl": "https://dry-run.invalid/uploads/templates/backgrounds/a60a403733c1c5e60c5c108336010fd73f229be7b10132f09d39ba79fdce72c2.png",
+      "storagePath": "/uploads/templates/backgrounds/a60a403733c1c5e60c5c108336010fd73f229be7b10132f09d39ba79fdce72c2.png",
+      "thumbnailUrl": "https://dry-run.invalid/uploads/templates/backgrounds/a60a403733c1c5e60c5c108336010fd73f229be7b10132f09d39ba79fdce72c2-thumb.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "background-a6a0642df96f",
+      "kind": "backgrounds",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1766840981248_woikj__nh_ch_p_m_n_h_nh_2025_12_27_200928.png",
+      "sourceHash": "cddf879d3b779a7c0222238266757a9387d41a93f6791c92136936b6f86707f8",
+      "destinationUrl": "https://dry-run.invalid/uploads/templates/backgrounds/cddf879d3b779a7c0222238266757a9387d41a93f6791c92136936b6f86707f8.png",
+      "storagePath": "/uploads/templates/backgrounds/cddf879d3b779a7c0222238266757a9387d41a93f6791c92136936b6f86707f8.png",
+      "thumbnailUrl": "https://dry-run.invalid/uploads/templates/backgrounds/cddf879d3b779a7c0222238266757a9387d41a93f6791c92136936b6f86707f8-thumb.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "background-c7e94b3db2fc",
+      "kind": "backgrounds",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1766832334859_mw28ck__nh_ch_p_m_n_h_nh_2025_12_27_174525.png",
+      "sourceHash": "7f8b9f004fc6c92fc219bd2c7a92aed9c7e9ca07a27d6be9013cde643c07f20a",
+      "destinationUrl": "https://dry-run.invalid/uploads/templates/backgrounds/7f8b9f004fc6c92fc219bd2c7a92aed9c7e9ca07a27d6be9013cde643c07f20a.png",
+      "storagePath": "/uploads/templates/backgrounds/7f8b9f004fc6c92fc219bd2c7a92aed9c7e9ca07a27d6be9013cde643c07f20a.png",
+      "thumbnailUrl": "https://dry-run.invalid/uploads/templates/backgrounds/7f8b9f004fc6c92fc219bd2c7a92aed9c7e9ca07a27d6be9013cde643c07f20a-thumb.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "background-235a191525c8",
+      "kind": "backgrounds",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1766832413014_6werui__nh_ch_p_m_n_h_nh_2025_12_27_174648.png",
+      "sourceHash": "077d14eed1ee02c773d98a489353b37d087a398e4f46af5dc9aead20e2d46be9",
+      "destinationUrl": "https://dry-run.invalid/uploads/templates/backgrounds/077d14eed1ee02c773d98a489353b37d087a398e4f46af5dc9aead20e2d46be9.png",
+      "storagePath": "/uploads/templates/backgrounds/077d14eed1ee02c773d98a489353b37d087a398e4f46af5dc9aead20e2d46be9.png",
+      "thumbnailUrl": "https://dry-run.invalid/uploads/templates/backgrounds/077d14eed1ee02c773d98a489353b37d087a398e4f46af5dc9aead20e2d46be9-thumb.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "background-c80604ae72ba",
+      "kind": "backgrounds",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1766840239966_nq6h2c__nh_ch_p_m_n_h_nh_2025_12_27_195716.png",
+      "sourceHash": "d88d1f40269dbc87bd4719914f1fa77c84e657e40b83a3a0aaa5fe9ac8435ad8",
+      "destinationUrl": "https://dry-run.invalid/uploads/templates/backgrounds/d88d1f40269dbc87bd4719914f1fa77c84e657e40b83a3a0aaa5fe9ac8435ad8.png",
+      "storagePath": "/uploads/templates/backgrounds/d88d1f40269dbc87bd4719914f1fa77c84e657e40b83a3a0aaa5fe9ac8435ad8.png",
+      "thumbnailUrl": "https://dry-run.invalid/uploads/templates/backgrounds/d88d1f40269dbc87bd4719914f1fa77c84e657e40b83a3a0aaa5fe9ac8435ad8-thumb.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "background-4f55dfe3e536",
+      "kind": "backgrounds",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1766840374112_ddl9gu__nh_ch_p_m_n_h_nh_2025_12_27_195922.png",
+      "sourceHash": "1b180e07a85c44d712ee72cf5174ce55b1cb95575ead465e424a14d288f6d365",
+      "destinationUrl": "https://dry-run.invalid/uploads/templates/backgrounds/1b180e07a85c44d712ee72cf5174ce55b1cb95575ead465e424a14d288f6d365.png",
+      "storagePath": "/uploads/templates/backgrounds/1b180e07a85c44d712ee72cf5174ce55b1cb95575ead465e424a14d288f6d365.png",
+      "thumbnailUrl": "https://dry-run.invalid/uploads/templates/backgrounds/1b180e07a85c44d712ee72cf5174ce55b1cb95575ead465e424a14d288f6d365-thumb.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "background-267df1159647",
+      "kind": "backgrounds",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1766832690012_gc6v1__nh_ch_p_m_n_h_nh_2025_12_27_175122.png",
+      "sourceHash": "7348d368936631fde10b38ab73741eb9e802e8faf21e96ffa00c043ec41e27d0",
+      "destinationUrl": "https://dry-run.invalid/uploads/templates/backgrounds/7348d368936631fde10b38ab73741eb9e802e8faf21e96ffa00c043ec41e27d0.png",
+      "storagePath": "/uploads/templates/backgrounds/7348d368936631fde10b38ab73741eb9e802e8faf21e96ffa00c043ec41e27d0.png",
+      "thumbnailUrl": "https://dry-run.invalid/uploads/templates/backgrounds/7348d368936631fde10b38ab73741eb9e802e8faf21e96ffa00c043ec41e27d0-thumb.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "background-7323c099da0d",
+      "kind": "backgrounds",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1766832784892_kjap__nh_ch_p_m_n_h_nh_2025_12_27_175256.png",
+      "sourceHash": "8fc5ab6ce40d576e30b6132a8f58422df97ed5ff07eecaf5a3f8dba38fdac96b",
+      "destinationUrl": "https://dry-run.invalid/uploads/templates/backgrounds/8fc5ab6ce40d576e30b6132a8f58422df97ed5ff07eecaf5a3f8dba38fdac96b.png",
+      "storagePath": "/uploads/templates/backgrounds/8fc5ab6ce40d576e30b6132a8f58422df97ed5ff07eecaf5a3f8dba38fdac96b.png",
+      "thumbnailUrl": "https://dry-run.invalid/uploads/templates/backgrounds/8fc5ab6ce40d576e30b6132a8f58422df97ed5ff07eecaf5a3f8dba38fdac96b-thumb.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "background-ad37b17adcc5",
+      "kind": "backgrounds",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1766841973686_ejflbf__nh_ch_p_m_n_h_nh_2025_12_27_202610.png",
+      "sourceHash": "d747e444f1958bec90a3b258f88a6cfec292714396890b34a6731281106e2d99",
+      "destinationUrl": "https://dry-run.invalid/uploads/templates/backgrounds/d747e444f1958bec90a3b258f88a6cfec292714396890b34a6731281106e2d99.png",
+      "storagePath": "/uploads/templates/backgrounds/d747e444f1958bec90a3b258f88a6cfec292714396890b34a6731281106e2d99.png",
+      "thumbnailUrl": "https://dry-run.invalid/uploads/templates/backgrounds/d747e444f1958bec90a3b258f88a6cfec292714396890b34a6731281106e2d99-thumb.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "background-c12097b2b1f6",
+      "kind": "backgrounds",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1765529864178_zwy7s__nh_ch_p_m_n_h_nh_2025_12_12_155741.png",
+      "sourceHash": "e5369163343c5eac7bff7e7f44536071e6aaba2d23d205e3934d42e44b891726",
+      "destinationUrl": "https://dry-run.invalid/uploads/templates/backgrounds/e5369163343c5eac7bff7e7f44536071e6aaba2d23d205e3934d42e44b891726.png",
+      "storagePath": "/uploads/templates/backgrounds/e5369163343c5eac7bff7e7f44536071e6aaba2d23d205e3934d42e44b891726.png",
+      "thumbnailUrl": "https://dry-run.invalid/uploads/templates/backgrounds/e5369163343c5eac7bff7e7f44536071e6aaba2d23d205e3934d42e44b891726-thumb.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "background-504a56000a50",
+      "kind": "backgrounds",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1765529950882_4aogq4__nh_ch_p_m_n_h_nh_2025_12_12_155845.png",
+      "sourceHash": "a6ea527d93c3851d13bf09ab764e56644dbcdae1efc2c55d0d7d9048c4aff031",
+      "destinationUrl": "https://dry-run.invalid/uploads/templates/backgrounds/a6ea527d93c3851d13bf09ab764e56644dbcdae1efc2c55d0d7d9048c4aff031.png",
+      "storagePath": "/uploads/templates/backgrounds/a6ea527d93c3851d13bf09ab764e56644dbcdae1efc2c55d0d7d9048c4aff031.png",
+      "thumbnailUrl": "https://dry-run.invalid/uploads/templates/backgrounds/a6ea527d93c3851d13bf09ab764e56644dbcdae1efc2c55d0d7d9048c4aff031-thumb.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "background-037b08c613a1",
+      "kind": "backgrounds",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1775110448530_shytfw_Screenshot_2026_04_02_131355.png",
+      "sourceHash": "67d577f59a208db34a788875cbc6105c342d450c15c394519608c707c7d77df7",
+      "destinationUrl": "https://dry-run.invalid/uploads/templates/backgrounds/67d577f59a208db34a788875cbc6105c342d450c15c394519608c707c7d77df7.png",
+      "storagePath": "/uploads/templates/backgrounds/67d577f59a208db34a788875cbc6105c342d450c15c394519608c707c7d77df7.png",
+      "thumbnailUrl": "https://dry-run.invalid/uploads/templates/backgrounds/67d577f59a208db34a788875cbc6105c342d450c15c394519608c707c7d77df7-thumb.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "background-494073315e0a",
+      "kind": "backgrounds",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1766225044551_efl9yd_Screenshot_2025_12_20_170350.png",
+      "sourceHash": "1a1ceced330051674547035c7ee8fedd6b4a452477e6f98a1c49fc83a9d75114",
+      "destinationUrl": "https://dry-run.invalid/uploads/templates/backgrounds/1a1ceced330051674547035c7ee8fedd6b4a452477e6f98a1c49fc83a9d75114.png",
+      "storagePath": "/uploads/templates/backgrounds/1a1ceced330051674547035c7ee8fedd6b4a452477e6f98a1c49fc83a9d75114.png",
+      "thumbnailUrl": "https://dry-run.invalid/uploads/templates/backgrounds/1a1ceced330051674547035c7ee8fedd6b4a452477e6f98a1c49fc83a9d75114-thumb.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "background-7d2e73c862d0",
+      "kind": "backgrounds",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1766840770432_rshjnv__nh_ch_p_m_n_h_nh_2025_12_27_200538.png",
+      "sourceHash": "dc5d37fe66e2ba83a5ac1e2ebd0a3d01bc73b4b6eed91e4f4294809256cdc910",
+      "destinationUrl": "https://dry-run.invalid/uploads/templates/backgrounds/dc5d37fe66e2ba83a5ac1e2ebd0a3d01bc73b4b6eed91e4f4294809256cdc910.png",
+      "storagePath": "/uploads/templates/backgrounds/dc5d37fe66e2ba83a5ac1e2ebd0a3d01bc73b4b6eed91e4f4294809256cdc910.png",
+      "thumbnailUrl": "https://dry-run.invalid/uploads/templates/backgrounds/dc5d37fe66e2ba83a5ac1e2ebd0a3d01bc73b4b6eed91e4f4294809256cdc910-thumb.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "background-f807976b2d95",
+      "kind": "backgrounds",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1766840818372_5g1yv6__nh_ch_p_m_n_h_nh_2025_12_27_200638.png",
+      "sourceHash": "032f2a236d4acbbb0d860d803b6d8ada9c9ff7b338f08ad0e20c4b929e42840d",
+      "destinationUrl": "https://dry-run.invalid/uploads/templates/backgrounds/032f2a236d4acbbb0d860d803b6d8ada9c9ff7b338f08ad0e20c4b929e42840d.png",
+      "storagePath": "/uploads/templates/backgrounds/032f2a236d4acbbb0d860d803b6d8ada9c9ff7b338f08ad0e20c4b929e42840d.png",
+      "thumbnailUrl": "https://dry-run.invalid/uploads/templates/backgrounds/032f2a236d4acbbb0d860d803b6d8ada9c9ff7b338f08ad0e20c4b929e42840d-thumb.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "background-32d81ddc2144",
+      "kind": "backgrounds",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1767683027913_hs64oy_Ch_a_c__t_n__148_x_210_mm_.png",
+      "sourceHash": "1b1764b48d2e87dbab916288cae094998726c62a51583095503c8c1aa01b96ae",
+      "destinationUrl": "https://dry-run.invalid/uploads/templates/backgrounds/1b1764b48d2e87dbab916288cae094998726c62a51583095503c8c1aa01b96ae.webp",
+      "storagePath": "/uploads/templates/backgrounds/1b1764b48d2e87dbab916288cae094998726c62a51583095503c8c1aa01b96ae.webp",
+      "thumbnailUrl": "https://dry-run.invalid/uploads/templates/backgrounds/1b1764b48d2e87dbab916288cae094998726c62a51583095503c8c1aa01b96ae-thumb.webp",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "background-871de25d4472",
+      "kind": "backgrounds",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1767774689969_nodrc9_Screenshot_2026_01_07_153122.png",
+      "sourceHash": "c9cbba9726d81490a17bea227bdee9df7e4e99fc55c5be03c7d80783430363bd",
+      "destinationUrl": "https://dry-run.invalid/uploads/templates/backgrounds/c9cbba9726d81490a17bea227bdee9df7e4e99fc55c5be03c7d80783430363bd.png",
+      "storagePath": "/uploads/templates/backgrounds/c9cbba9726d81490a17bea227bdee9df7e4e99fc55c5be03c7d80783430363bd.png",
+      "thumbnailUrl": "https://dry-run.invalid/uploads/templates/backgrounds/c9cbba9726d81490a17bea227bdee9df7e4e99fc55c5be03c7d80783430363bd-thumb.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "background-03b301e27a1a",
+      "kind": "backgrounds",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1767774770169_ewe7srv_Screenshot_2026_01_07_153246.png",
+      "sourceHash": "48d166a562d587ce88108bb6fceb1240fdc0c8828c03b10d3975bb8acc2ff3b1",
+      "destinationUrl": "https://dry-run.invalid/uploads/templates/backgrounds/48d166a562d587ce88108bb6fceb1240fdc0c8828c03b10d3975bb8acc2ff3b1.png",
+      "storagePath": "/uploads/templates/backgrounds/48d166a562d587ce88108bb6fceb1240fdc0c8828c03b10d3975bb8acc2ff3b1.png",
+      "thumbnailUrl": "https://dry-run.invalid/uploads/templates/backgrounds/48d166a562d587ce88108bb6fceb1240fdc0c8828c03b10d3975bb8acc2ff3b1-thumb.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "background-5ce0dc0c8ebd",
+      "kind": "backgrounds",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1767774832641_j6w085_Screenshot_2026_01_07_153345.png",
+      "sourceHash": "172e5e640ad79a9338c5412a34aab2a445dea3088031b298cb5fb260da7344ec",
+      "destinationUrl": "https://dry-run.invalid/uploads/templates/backgrounds/172e5e640ad79a9338c5412a34aab2a445dea3088031b298cb5fb260da7344ec.png",
+      "storagePath": "/uploads/templates/backgrounds/172e5e640ad79a9338c5412a34aab2a445dea3088031b298cb5fb260da7344ec.png",
+      "thumbnailUrl": "https://dry-run.invalid/uploads/templates/backgrounds/172e5e640ad79a9338c5412a34aab2a445dea3088031b298cb5fb260da7344ec-thumb.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "background-034a58fe7335",
+      "kind": "backgrounds",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1768920922597_697pn_Qu__cho_H_ng__20_x_20_cm_.png",
+      "sourceHash": "ce4ba422b15163e3fad379fbe925b3f82bdcd3ace61627cdf4add01881fe23bd",
+      "destinationUrl": "https://dry-run.invalid/uploads/templates/backgrounds/ce4ba422b15163e3fad379fbe925b3f82bdcd3ace61627cdf4add01881fe23bd.webp",
+      "storagePath": "/uploads/templates/backgrounds/ce4ba422b15163e3fad379fbe925b3f82bdcd3ace61627cdf4add01881fe23bd.webp",
+      "thumbnailUrl": "https://dry-run.invalid/uploads/templates/backgrounds/ce4ba422b15163e3fad379fbe925b3f82bdcd3ace61627cdf4add01881fe23bd-thumb.webp",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "background-a9beaf00560f",
+      "kind": "backgrounds",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1768921081063_mkhfv7_HAPPY_ANNIVERSARY_3_years.png",
+      "sourceHash": "5f069e834455fa28291685763f2a532d9753f22e5dfa8e72d5a0cb93f24557fd",
+      "destinationUrl": "https://dry-run.invalid/uploads/templates/backgrounds/5f069e834455fa28291685763f2a532d9753f22e5dfa8e72d5a0cb93f24557fd.webp",
+      "storagePath": "/uploads/templates/backgrounds/5f069e834455fa28291685763f2a532d9753f22e5dfa8e72d5a0cb93f24557fd.webp",
+      "thumbnailUrl": "https://dry-run.invalid/uploads/templates/backgrounds/5f069e834455fa28291685763f2a532d9753f22e5dfa8e72d5a0cb93f24557fd-thumb.webp",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "background-9cfd948b97e1",
+      "kind": "backgrounds",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1775129987339_jzlfb_Screenshot_2026_04_01_195140.png",
+      "sourceHash": "4c09ddc6d8de11f7bce865ef07d36a5b9d4d6ed6d1ca38280ab5cf4509108450",
+      "destinationUrl": "https://dry-run.invalid/uploads/templates/backgrounds/4c09ddc6d8de11f7bce865ef07d36a5b9d4d6ed6d1ca38280ab5cf4509108450.png",
+      "storagePath": "/uploads/templates/backgrounds/4c09ddc6d8de11f7bce865ef07d36a5b9d4d6ed6d1ca38280ab5cf4509108450.png",
+      "thumbnailUrl": "https://dry-run.invalid/uploads/templates/backgrounds/4c09ddc6d8de11f7bce865ef07d36a5b9d4d6ed6d1ca38280ab5cf4509108450-thumb.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "background-61ab4e39cdbb",
+      "kind": "backgrounds",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2Ftemp%2F1777523983338_fmk9tg_Screenshot_2026_04_30_113813.png",
+      "sourceHash": "4d3e191add768d2c85eaa49b42e78f2854b54c15dfb2d8c1cc1ff94e23a01e36",
+      "destinationUrl": "https://dry-run.invalid/uploads/templates/backgrounds/4d3e191add768d2c85eaa49b42e78f2854b54c15dfb2d8c1cc1ff94e23a01e36.png",
+      "storagePath": "/uploads/templates/backgrounds/4d3e191add768d2c85eaa49b42e78f2854b54c15dfb2d8c1cc1ff94e23a01e36.png",
+      "thumbnailUrl": "https://dry-run.invalid/uploads/templates/backgrounds/4d3e191add768d2c85eaa49b42e78f2854b54c15dfb2d8c1cc1ff94e23a01e36-thumb.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "background-b5ee178723cb",
+      "kind": "backgrounds",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2Ftemp%2F1778574268222_mhhur_design_preview.png",
+      "sourceHash": "071b59c013a8cfe68931f9b5c906c48b50f0dcf2e45704bde5f078236732e4d9",
+      "destinationUrl": "https://dry-run.invalid/uploads/banners/homepage/071b59c013a8cfe68931f9b5c906c48b50f0dcf2e45704bde5f078236732e4d9.png",
+      "storagePath": "/uploads/banners/homepage/071b59c013a8cfe68931f9b5c906c48b50f0dcf2e45704bde5f078236732e4d9.png",
+      "thumbnailUrl": "https://dry-run.invalid/uploads/banners/homepage/071b59c013a8cfe68931f9b5c906c48b50f0dcf2e45704bde5f078236732e4d9-thumb.png",
+      "status": "planned",
+      "duplicateOfSourceKey": "home-b5ee178723cb",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "charm-42e5f9a02f42",
+      "kind": "charms",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1766823453961_60pmur_Thi_t_k__ch_a_c__t_n__56_.png",
+      "sourceHash": "9b4ac74ab28db984a4b46a2db2a14b81b425692d609e5fa32f4a3cbe05774763",
+      "destinationUrl": "https://dry-run.invalid/uploads/accessories/9b4ac74ab28db984a4b46a2db2a14b81b425692d609e5fa32f4a3cbe05774763.png",
+      "storagePath": "/uploads/accessories/9b4ac74ab28db984a4b46a2db2a14b81b425692d609e5fa32f4a3cbe05774763.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "charm-7ef2547b06e2",
+      "kind": "charms",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1766824160770_79g3l7_6181575_0.png",
+      "sourceHash": "f410406509f96a7b9debe2cf3eb3436ec1cf162e5b4da8b33b6bad217659b150",
+      "destinationUrl": "https://dry-run.invalid/uploads/accessories/f410406509f96a7b9debe2cf3eb3436ec1cf162e5b4da8b33b6bad217659b150.png",
+      "storagePath": "/uploads/accessories/f410406509f96a7b9debe2cf3eb3436ec1cf162e5b4da8b33b6bad217659b150.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "charm-157d9eabb939",
+      "kind": "charms",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1775123023590_ia2seth_B_n_sao_c_a_Ch_a_c__t_n__3_.png",
+      "sourceHash": "453b07f141d5ac74cf66a959f3aacc99077061c067ef2fb9a001fcbe77f7a12d",
+      "destinationUrl": "https://dry-run.invalid/uploads/accessories/453b07f141d5ac74cf66a959f3aacc99077061c067ef2fb9a001fcbe77f7a12d.png",
+      "storagePath": "/uploads/accessories/453b07f141d5ac74cf66a959f3aacc99077061c067ef2fb9a001fcbe77f7a12d.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "charm-3acc65148466",
+      "kind": "charms",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1766822969780_i1uwe_6476480_0.png",
+      "sourceHash": "1a35c922fc6fe5280363f8af3c3b2858e30939663c6da9fe13c7590dd7b7d805",
+      "destinationUrl": "https://dry-run.invalid/uploads/accessories/1a35c922fc6fe5280363f8af3c3b2858e30939663c6da9fe13c7590dd7b7d805.png",
+      "storagePath": "/uploads/accessories/1a35c922fc6fe5280363f8af3c3b2858e30939663c6da9fe13c7590dd7b7d805.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "charm-2ce8d93f9644",
+      "kind": "charms",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1766980898932_ll2y7q_Thi_t_k__ch_a_c__t_n__1_.png",
+      "sourceHash": "bc634c7661d75d1de202772156b77ef08b9ab52200c0bea0b6057c9f701d8870",
+      "destinationUrl": "https://dry-run.invalid/uploads/accessories/bc634c7661d75d1de202772156b77ef08b9ab52200c0bea0b6057c9f701d8870.png",
+      "storagePath": "/uploads/accessories/bc634c7661d75d1de202772156b77ef08b9ab52200c0bea0b6057c9f701d8870.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "charm-b39e5f7d8f5c",
+      "kind": "charms",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1766826070509_vebbljj_13.png",
+      "sourceHash": "9acdb7cea04b1d001f906fc027f74adcd6a82c4d8ab733a08853bc5b067a95bc",
+      "destinationUrl": "https://dry-run.invalid/uploads/accessories/9acdb7cea04b1d001f906fc027f74adcd6a82c4d8ab733a08853bc5b067a95bc.png",
+      "storagePath": "/uploads/accessories/9acdb7cea04b1d001f906fc027f74adcd6a82c4d8ab733a08853bc5b067a95bc.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "charm-825c377d937f",
+      "kind": "charms",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1766826188701_a735ne_16.png",
+      "sourceHash": "a3f22a3f976870eb10182e0e981e474ce6a4f1eb5334d94c9f0c539d2b8c9e50",
+      "destinationUrl": "https://dry-run.invalid/uploads/accessories/a3f22a3f976870eb10182e0e981e474ce6a4f1eb5334d94c9f0c539d2b8c9e50.png",
+      "storagePath": "/uploads/accessories/a3f22a3f976870eb10182e0e981e474ce6a4f1eb5334d94c9f0c539d2b8c9e50.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "charm-c08a949ded52",
+      "kind": "charms",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1766826870405_i3m9xo_33.png",
+      "sourceHash": "6d520a6481cdc6b1b8a98381e64f53370b6ca3b30ffeb165352e0fa6d9b94489",
+      "destinationUrl": "https://dry-run.invalid/uploads/accessories/6d520a6481cdc6b1b8a98381e64f53370b6ca3b30ffeb165352e0fa6d9b94489.png",
+      "storagePath": "/uploads/accessories/6d520a6481cdc6b1b8a98381e64f53370b6ca3b30ffeb165352e0fa6d9b94489.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "charm-8b5dac124b3e",
+      "kind": "charms",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1766825817318_88neoh_37.png",
+      "sourceHash": "dd37e466260de01ba10b58dceaeab6a235a0bfc0a3254efd0a20baaa58a61d43",
+      "destinationUrl": "https://dry-run.invalid/uploads/accessories/dd37e466260de01ba10b58dceaeab6a235a0bfc0a3254efd0a20baaa58a61d43.png",
+      "storagePath": "/uploads/accessories/dd37e466260de01ba10b58dceaeab6a235a0bfc0a3254efd0a20baaa58a61d43.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "charm-11832c388728",
+      "kind": "charms",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1766822651041_14t3g_Thi_t_k__ch_a_c__t_n__38_.png",
+      "sourceHash": "93dce0813095889d7977d4b3c04d47096e0ff3dd4e72adcf02242e2c26cec1db",
+      "destinationUrl": "https://dry-run.invalid/uploads/accessories/93dce0813095889d7977d4b3c04d47096e0ff3dd4e72adcf02242e2c26cec1db.png",
+      "storagePath": "/uploads/accessories/93dce0813095889d7977d4b3c04d47096e0ff3dd4e72adcf02242e2c26cec1db.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "charm-577c1439ec2a",
+      "kind": "charms",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1766823642275_4yybpj_Thi_t_k__ch_a_c__t_n__39_.png",
+      "sourceHash": "17d33e37975df405c5be8b94ae2d4ea5a9db0c67f9836adfa1c59a375b080967",
+      "destinationUrl": "https://dry-run.invalid/uploads/accessories/17d33e37975df405c5be8b94ae2d4ea5a9db0c67f9836adfa1c59a375b080967.png",
+      "storagePath": "/uploads/accessories/17d33e37975df405c5be8b94ae2d4ea5a9db0c67f9836adfa1c59a375b080967.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "charm-b66118d6769b",
+      "kind": "charms",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1766825272936_7e2mbg_Thi_t_k__ch_a_c__t_n__30_.png",
+      "sourceHash": "690fdcd50047144732c8a4bc2c47d4c10265bba70c4da90d40db5afde10d1334",
+      "destinationUrl": "https://dry-run.invalid/uploads/accessories/690fdcd50047144732c8a4bc2c47d4c10265bba70c4da90d40db5afde10d1334.png",
+      "storagePath": "/uploads/accessories/690fdcd50047144732c8a4bc2c47d4c10265bba70c4da90d40db5afde10d1334.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "charm-85f8b4ae53a2",
+      "kind": "charms",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1766822951335_4n56o_Thi_t_k__ch_a_c__t_n__28_.png",
+      "sourceHash": "cf54ebb40bc551731b8cd54bdcf125573106e00b1fa0f9ccf4ff98aaf7e1385d",
+      "destinationUrl": "https://dry-run.invalid/uploads/accessories/cf54ebb40bc551731b8cd54bdcf125573106e00b1fa0f9ccf4ff98aaf7e1385d.png",
+      "storagePath": "/uploads/accessories/cf54ebb40bc551731b8cd54bdcf125573106e00b1fa0f9ccf4ff98aaf7e1385d.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "charm-41e63e13fc80",
+      "kind": "charms",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1766822720863_ni3j4i_6139435_0.png",
+      "sourceHash": "202f265642cb4c35e38fdf04474ac066352f6b97db5bd1538ed2dd7c83aa6b60",
+      "destinationUrl": "https://dry-run.invalid/uploads/accessories/202f265642cb4c35e38fdf04474ac066352f6b97db5bd1538ed2dd7c83aa6b60.png",
+      "storagePath": "/uploads/accessories/202f265642cb4c35e38fdf04474ac066352f6b97db5bd1538ed2dd7c83aa6b60.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "charm-e0128c6f0fb8",
+      "kind": "charms",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1766823665075_dc9vl_Thi_t_k__ch_a_c__t_n__40_.png",
+      "sourceHash": "301233d2b188bfb6bc60c70272108992a5de09ad24baa77f9cbd7f25eef5cee1",
+      "destinationUrl": "https://dry-run.invalid/uploads/accessories/301233d2b188bfb6bc60c70272108992a5de09ad24baa77f9cbd7f25eef5cee1.png",
+      "storagePath": "/uploads/accessories/301233d2b188bfb6bc60c70272108992a5de09ad24baa77f9cbd7f25eef5cee1.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "charm-e484dfedc1c1",
+      "kind": "charms",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1766823624291_gg5r3k_Thi_t_k__ch_a_c__t_n__34_.png",
+      "sourceHash": "4ba356b2a1e0696f5e8e8901dfbe2b3e2d59043106bac0752e5763e685eef86f",
+      "destinationUrl": "https://dry-run.invalid/uploads/accessories/4ba356b2a1e0696f5e8e8901dfbe2b3e2d59043106bac0752e5763e685eef86f.png",
+      "storagePath": "/uploads/accessories/4ba356b2a1e0696f5e8e8901dfbe2b3e2d59043106bac0752e5763e685eef86f.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "charm-3a20b64032cd",
+      "kind": "charms",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1766822912013_nxtsbq_Thi_t_k__ch_a_c__t_n__35_.png",
+      "sourceHash": "cf9412ef661bf93e8da7bf1a7d6fce36450ca98bc071d7f746425cb283496ccd",
+      "destinationUrl": "https://dry-run.invalid/uploads/accessories/cf9412ef661bf93e8da7bf1a7d6fce36450ca98bc071d7f746425cb283496ccd.png",
+      "storagePath": "/uploads/accessories/cf9412ef661bf93e8da7bf1a7d6fce36450ca98bc071d7f746425cb283496ccd.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "charm-05157fd1ce38",
+      "kind": "charms",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1766822765252_52hroj_9.png",
+      "sourceHash": "a44abe33b48afdfddc267f409392e742a0dc7e40d13f728cf344960f1f91cfb9",
+      "destinationUrl": "https://dry-run.invalid/uploads/accessories/a44abe33b48afdfddc267f409392e742a0dc7e40d13f728cf344960f1f91cfb9.png",
+      "storagePath": "/uploads/accessories/a44abe33b48afdfddc267f409392e742a0dc7e40d13f728cf344960f1f91cfb9.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "charm-eb5da0e77c9e",
+      "kind": "charms",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1766822959112_52wsoq_Thi_t_k__ch_a_c__t_n__43_.png",
+      "sourceHash": "58286d982a9ee0c46e40d0f146bc2d50bca4648b99f50b0b12253614671980e4",
+      "destinationUrl": "https://dry-run.invalid/uploads/accessories/58286d982a9ee0c46e40d0f146bc2d50bca4648b99f50b0b12253614671980e4.png",
+      "storagePath": "/uploads/accessories/58286d982a9ee0c46e40d0f146bc2d50bca4648b99f50b0b12253614671980e4.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "charm-28533870aaf8",
+      "kind": "charms",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1766823633150_60clvb_Thi_t_k__ch_a_c__t_n__36_.png",
+      "sourceHash": "2ed58bdf526422847dcbb286ddcef15a46d75030b3021bfe2749ca337bc6c533",
+      "destinationUrl": "https://dry-run.invalid/uploads/accessories/2ed58bdf526422847dcbb286ddcef15a46d75030b3021bfe2749ca337bc6c533.png",
+      "storagePath": "/uploads/accessories/2ed58bdf526422847dcbb286ddcef15a46d75030b3021bfe2749ca337bc6c533.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "charm-a61ac7302ae2",
+      "kind": "charms",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1766822939566_asvkrp_6327722_0.png",
+      "sourceHash": "10fa6683a1b1942a8559d76ba04ac7fc9b429d8e722e831526f1b1d8fc6deb8b",
+      "destinationUrl": "https://dry-run.invalid/uploads/accessories/10fa6683a1b1942a8559d76ba04ac7fc9b429d8e722e831526f1b1d8fc6deb8b.png",
+      "storagePath": "/uploads/accessories/10fa6683a1b1942a8559d76ba04ac7fc9b429d8e722e831526f1b1d8fc6deb8b.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "charm-fbbb83f860db",
+      "kind": "charms",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1766822930230_ghjmp_6275176_0.png",
+      "sourceHash": "7759c1f2e88e4fbcb9b1962151c6111f36338e37b8ba672329210a4863f328a4",
+      "destinationUrl": "https://dry-run.invalid/uploads/accessories/7759c1f2e88e4fbcb9b1962151c6111f36338e37b8ba672329210a4863f328a4.png",
+      "storagePath": "/uploads/accessories/7759c1f2e88e4fbcb9b1962151c6111f36338e37b8ba672329210a4863f328a4.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "charm-783d8e309893",
+      "kind": "charms",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1766823734131_plazdc_5.png",
+      "sourceHash": "71ed3909672c53b4c4506031811b07c44bf842d3d462ed7cb03092ef395cf60a",
+      "destinationUrl": "https://dry-run.invalid/uploads/accessories/71ed3909672c53b4c4506031811b07c44bf842d3d462ed7cb03092ef395cf60a.png",
+      "storagePath": "/uploads/accessories/71ed3909672c53b4c4506031811b07c44bf842d3d462ed7cb03092ef395cf60a.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "charm-8cff7b22c3b7",
+      "kind": "charms",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1766823780363_eftbm2_2.png",
+      "sourceHash": "cfac876af96135c09a1b63534f0ca8a17dea4c3e7d2410266cbb7516251dbd12",
+      "destinationUrl": "https://dry-run.invalid/uploads/accessories/cfac876af96135c09a1b63534f0ca8a17dea4c3e7d2410266cbb7516251dbd12.png",
+      "storagePath": "/uploads/accessories/cfac876af96135c09a1b63534f0ca8a17dea4c3e7d2410266cbb7516251dbd12.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "charm-a3068d3616ab",
+      "kind": "charms",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1766824556499_11tol2_8.png",
+      "sourceHash": "792ed778e64e799c2206b982fe710915a1978e8e055d3ae2539084b303493da0",
+      "destinationUrl": "https://dry-run.invalid/uploads/accessories/792ed778e64e799c2206b982fe710915a1978e8e055d3ae2539084b303493da0.png",
+      "storagePath": "/uploads/accessories/792ed778e64e799c2206b982fe710915a1978e8e055d3ae2539084b303493da0.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "charm-b84ea1ef401f",
+      "kind": "charms",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1766823556753_6jwxe2_10.png",
+      "sourceHash": "6b205db04a75013a6362d9163e781f28144a1086256497d3f25367bb5c184d04",
+      "destinationUrl": "https://dry-run.invalid/uploads/accessories/6b205db04a75013a6362d9163e781f28144a1086256497d3f25367bb5c184d04.png",
+      "storagePath": "/uploads/accessories/6b205db04a75013a6362d9163e781f28144a1086256497d3f25367bb5c184d04.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "charm-42f95f378f7f",
+      "kind": "charms",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1766823366877_nk7p6_Thi_t_k__ch_a_c__t_n__48_.png",
+      "sourceHash": "66fcd6922890941484934e3ac13d757c2355b1c598955962c80afa32fb952713",
+      "destinationUrl": "https://dry-run.invalid/uploads/accessories/66fcd6922890941484934e3ac13d757c2355b1c598955962c80afa32fb952713.png",
+      "storagePath": "/uploads/accessories/66fcd6922890941484934e3ac13d757c2355b1c598955962c80afa32fb952713.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "charm-a26fa4f8c854",
+      "kind": "charms",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1774507892249_sagi3p_31.png",
+      "sourceHash": "33d10130ea625e36b3ccd56bcf6867acdd1d032ba60901b2ed98ac4eba1878e8",
+      "destinationUrl": "https://dry-run.invalid/uploads/accessories/33d10130ea625e36b3ccd56bcf6867acdd1d032ba60901b2ed98ac4eba1878e8.png",
+      "storagePath": "/uploads/accessories/33d10130ea625e36b3ccd56bcf6867acdd1d032ba60901b2ed98ac4eba1878e8.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "charm-3e5b00bbaa25",
+      "kind": "charms",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1766825484089_f8kv1_Thi_t_k__ch_a_c__t_n.png",
+      "sourceHash": "4a65bcc7d08f5f4a03f2314b072b38b0c08bda316550644f7ac22f744d0bf422",
+      "destinationUrl": "https://dry-run.invalid/uploads/accessories/4a65bcc7d08f5f4a03f2314b072b38b0c08bda316550644f7ac22f744d0bf422.png",
+      "storagePath": "/uploads/accessories/4a65bcc7d08f5f4a03f2314b072b38b0c08bda316550644f7ac22f744d0bf422.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "charm-cb77326f2fb7",
+      "kind": "charms",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1766825523193_wivw8_Thi_t_k__ch_a_c__t_n__1_.png",
+      "sourceHash": "e2d4d3a84d25a33b763e3264a76cfe0cf58ba4f1382b7d25d50f323fb3194178",
+      "destinationUrl": "https://dry-run.invalid/uploads/accessories/e2d4d3a84d25a33b763e3264a76cfe0cf58ba4f1382b7d25d50f323fb3194178.png",
+      "storagePath": "/uploads/accessories/e2d4d3a84d25a33b763e3264a76cfe0cf58ba4f1382b7d25d50f323fb3194178.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "charm-c734afba76bb",
+      "kind": "charms",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1766825540776_j4cru_Thi_t_k__ch_a_c__t_n__2_.png",
+      "sourceHash": "aa14250e71e1489ffc3b798394e8d2e15dd4f28d49ddb75e03a881959028ba66",
+      "destinationUrl": "https://dry-run.invalid/uploads/accessories/aa14250e71e1489ffc3b798394e8d2e15dd4f28d49ddb75e03a881959028ba66.png",
+      "storagePath": "/uploads/accessories/aa14250e71e1489ffc3b798394e8d2e15dd4f28d49ddb75e03a881959028ba66.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "charm-1a91d27ed9d2",
+      "kind": "charms",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1766825560527_jcqa9_Thi_t_k__ch_a_c__t_n__3_.png",
+      "sourceHash": "a4edb504958a34c3446851116c97820d00c23173ea7b449cf667154df17e0f74",
+      "destinationUrl": "https://dry-run.invalid/uploads/accessories/a4edb504958a34c3446851116c97820d00c23173ea7b449cf667154df17e0f74.png",
+      "storagePath": "/uploads/accessories/a4edb504958a34c3446851116c97820d00c23173ea7b449cf667154df17e0f74.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "charm-613da58062f5",
+      "kind": "charms",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1766824175174_dan1g_6412881_0.png",
+      "sourceHash": "3c73eda381e6f439314bafa6af29f674155d0345eeac42bde91ec014f04f4006",
+      "destinationUrl": "https://dry-run.invalid/uploads/accessories/3c73eda381e6f439314bafa6af29f674155d0345eeac42bde91ec014f04f4006.png",
+      "storagePath": "/uploads/accessories/3c73eda381e6f439314bafa6af29f674155d0345eeac42bde91ec014f04f4006.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "charm-b835790130ae",
+      "kind": "charms",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1766822728256_uhycc_6263451_0.png",
+      "sourceHash": "22a83280f5c31d3da5f53f5ed890edc19ce520978c831b120c5627a1a6c22e79",
+      "destinationUrl": "https://dry-run.invalid/uploads/accessories/22a83280f5c31d3da5f53f5ed890edc19ce520978c831b120c5627a1a6c22e79.png",
+      "storagePath": "/uploads/accessories/22a83280f5c31d3da5f53f5ed890edc19ce520978c831b120c5627a1a6c22e79.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "charm-7a6517352044",
+      "kind": "charms",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1766822895241_aqhdtl_Thi_t_k__ch_a_c__t_n__57_.png",
+      "sourceHash": "dbba343404efe8f59971db26baa1011925b6cdeee823f25cf9403a793de20910",
+      "destinationUrl": "https://dry-run.invalid/uploads/accessories/dbba343404efe8f59971db26baa1011925b6cdeee823f25cf9403a793de20910.png",
+      "storagePath": "/uploads/accessories/dbba343404efe8f59971db26baa1011925b6cdeee823f25cf9403a793de20910.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "charm-6c4beb8886ab",
+      "kind": "charms",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1766823407961_4rjuwj_Thi_t_k__ch_a_c__t_n__58_.png",
+      "sourceHash": "bffd212e6a358676f5acfdb77e177839e7cacb57249f5d1e37aecaefd1c3c227",
+      "destinationUrl": "https://dry-run.invalid/uploads/accessories/bffd212e6a358676f5acfdb77e177839e7cacb57249f5d1e37aecaefd1c3c227.png",
+      "storagePath": "/uploads/accessories/bffd212e6a358676f5acfdb77e177839e7cacb57249f5d1e37aecaefd1c3c227.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "charm-9ad279d4cf66",
+      "kind": "charms",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1766823416983_blr7ee_Thi_t_k__ch_a_c__t_n__59_.png",
+      "sourceHash": "7497e90431d4ae32590e0a38c81f9d46a94f4790cbe94f6a25bece40a1f104b0",
+      "destinationUrl": "https://dry-run.invalid/uploads/accessories/7497e90431d4ae32590e0a38c81f9d46a94f4790cbe94f6a25bece40a1f104b0.png",
+      "storagePath": "/uploads/accessories/7497e90431d4ae32590e0a38c81f9d46a94f4790cbe94f6a25bece40a1f104b0.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "charm-1203ff8620bd",
+      "kind": "charms",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1775120944099_sbavw_Ch_a_c__t_n__3_x_4.5_cm___15_x_11_cm___4_x_6_cm___1_.png",
+      "sourceHash": "0c3fe301ed9cae2eb997210bb66d973b630b556fa66252569eb6bac7cb0baaf4",
+      "destinationUrl": "https://dry-run.invalid/uploads/accessories/0c3fe301ed9cae2eb997210bb66d973b630b556fa66252569eb6bac7cb0baaf4.png",
+      "storagePath": "/uploads/accessories/0c3fe301ed9cae2eb997210bb66d973b630b556fa66252569eb6bac7cb0baaf4.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "charm-bf5e15b03c66",
+      "kind": "charms",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1766823890483_1umobr_70.png",
+      "sourceHash": "75a46b4362ec7bbe11b6d7f6686b20f5af744ce98f2a0285f3f77ad7f8277cbd",
+      "destinationUrl": "https://dry-run.invalid/uploads/accessories/75a46b4362ec7bbe11b6d7f6686b20f5af744ce98f2a0285f3f77ad7f8277cbd.png",
+      "storagePath": "/uploads/accessories/75a46b4362ec7bbe11b6d7f6686b20f5af744ce98f2a0285f3f77ad7f8277cbd.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "charm-0e7ce0b98b0e",
+      "kind": "charms",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1766823398641_b6gdm7_Ch_a_c__t_n__3_x_4.5_cm___9_.png",
+      "sourceHash": "267ef1226580c5cfef204b84973ef3c9c6d5a227a4c5de3f9357140fbb8c8046",
+      "destinationUrl": "https://dry-run.invalid/uploads/accessories/267ef1226580c5cfef204b84973ef3c9c6d5a227a4c5de3f9357140fbb8c8046.png",
+      "storagePath": "/uploads/accessories/267ef1226580c5cfef204b84973ef3c9c6d5a227a4c5de3f9357140fbb8c8046.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "charm-412e8993a779",
+      "kind": "charms",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1766825763273_h1zzr_THE_LUVIN__1_.png",
+      "sourceHash": "545d2835a386815b97875e67f6a521e0900b2bb81ce70ae76d391600b1f5355b",
+      "destinationUrl": "https://dry-run.invalid/uploads/accessories/545d2835a386815b97875e67f6a521e0900b2bb81ce70ae76d391600b1f5355b.png",
+      "storagePath": "/uploads/accessories/545d2835a386815b97875e67f6a521e0900b2bb81ce70ae76d391600b1f5355b.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "charm-deea14b2938d",
+      "kind": "charms",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1766824099735_fv2yio_Thi_t_k__ch_a_c__t_n__60_.png",
+      "sourceHash": "d1348b722a171081da3e91d053cbfa5f56427a7569bc26cbf13f1a1275e128b7",
+      "destinationUrl": "https://dry-run.invalid/uploads/accessories/d1348b722a171081da3e91d053cbfa5f56427a7569bc26cbf13f1a1275e128b7.png",
+      "storagePath": "/uploads/accessories/d1348b722a171081da3e91d053cbfa5f56427a7569bc26cbf13f1a1275e128b7.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "charm-5ce6e2902ec9",
+      "kind": "charms",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1766825898972_am56ab_3.png",
+      "sourceHash": "be52b7aae564e846914994c29d24f9f375c58c01ba5eb6a349d6447fa54040ce",
+      "destinationUrl": "https://dry-run.invalid/uploads/accessories/be52b7aae564e846914994c29d24f9f375c58c01ba5eb6a349d6447fa54040ce.png",
+      "storagePath": "/uploads/accessories/be52b7aae564e846914994c29d24f9f375c58c01ba5eb6a349d6447fa54040ce.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "charm-a43f31cd2ab4",
+      "kind": "charms",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1766825925277_s6jaqq_4.png",
+      "sourceHash": "b070a36b676cdad4cb9bc7eb4ec111fc29443ae4b2e09df2337c98f94e1a1d39",
+      "destinationUrl": "https://dry-run.invalid/uploads/accessories/b070a36b676cdad4cb9bc7eb4ec111fc29443ae4b2e09df2337c98f94e1a1d39.png",
+      "storagePath": "/uploads/accessories/b070a36b676cdad4cb9bc7eb4ec111fc29443ae4b2e09df2337c98f94e1a1d39.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "charm-d272bb7dd016",
+      "kind": "charms",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1766825940583_hdr8qm_5.png",
+      "sourceHash": "2e5925334fe2d96457148fc0c6813d808a77c8455637994b89c7d81f5b4d346c",
+      "destinationUrl": "https://dry-run.invalid/uploads/accessories/2e5925334fe2d96457148fc0c6813d808a77c8455637994b89c7d81f5b4d346c.png",
+      "storagePath": "/uploads/accessories/2e5925334fe2d96457148fc0c6813d808a77c8455637994b89c7d81f5b4d346c.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "charm-634a7a567633",
+      "kind": "charms",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1766825994046_5akh3i_9.png",
+      "sourceHash": "7770cb748ced3ade61b680c14817feadff4762a9bbe2bd189e84d6a5d8c9bcb1",
+      "destinationUrl": "https://dry-run.invalid/uploads/accessories/7770cb748ced3ade61b680c14817feadff4762a9bbe2bd189e84d6a5d8c9bcb1.png",
+      "storagePath": "/uploads/accessories/7770cb748ced3ade61b680c14817feadff4762a9bbe2bd189e84d6a5d8c9bcb1.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "charm-f0c74b715b05",
+      "kind": "charms",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1766826025126_53ltph_10.png",
+      "sourceHash": "763348daf2caa245036466e3bad290e53c924c183696e795ffed70e8e54f5ba5",
+      "destinationUrl": "https://dry-run.invalid/uploads/accessories/763348daf2caa245036466e3bad290e53c924c183696e795ffed70e8e54f5ba5.png",
+      "storagePath": "/uploads/accessories/763348daf2caa245036466e3bad290e53c924c183696e795ffed70e8e54f5ba5.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "charm-92a1875c703b",
+      "kind": "charms",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1766826038963_s63xq1_11.png",
+      "sourceHash": "32f73e9144aada8d50325bc102a1bfbff532ca5482e67b9778bb95994c0fa5e6",
+      "destinationUrl": "https://dry-run.invalid/uploads/accessories/32f73e9144aada8d50325bc102a1bfbff532ca5482e67b9778bb95994c0fa5e6.png",
+      "storagePath": "/uploads/accessories/32f73e9144aada8d50325bc102a1bfbff532ca5482e67b9778bb95994c0fa5e6.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "charm-e668ff6de2a9",
+      "kind": "charms",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1766826088965_17gh8d_14.png",
+      "sourceHash": "9414463c50fb9a5564907375650e6a5fd51a6e1c36351f8566e670b71f749c3f",
+      "destinationUrl": "https://dry-run.invalid/uploads/accessories/9414463c50fb9a5564907375650e6a5fd51a6e1c36351f8566e670b71f749c3f.png",
+      "storagePath": "/uploads/accessories/9414463c50fb9a5564907375650e6a5fd51a6e1c36351f8566e670b71f749c3f.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "charm-a0dfd97e91f8",
+      "kind": "charms",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1766826156369_c2x917_15.png",
+      "sourceHash": "bb16717a31fecdfcfd65e9467c4a20e94d2258bb6f323ee8404f12f65cbc146e",
+      "destinationUrl": "https://dry-run.invalid/uploads/accessories/bb16717a31fecdfcfd65e9467c4a20e94d2258bb6f323ee8404f12f65cbc146e.png",
+      "storagePath": "/uploads/accessories/bb16717a31fecdfcfd65e9467c4a20e94d2258bb6f323ee8404f12f65cbc146e.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "charm-3950a087af36",
+      "kind": "charms",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1766826204211_j4uyjg_17.png",
+      "sourceHash": "d3bb64a5d74dd380a8d945e8bd322309b3410b910cf87fe29270682419d51a7c",
+      "destinationUrl": "https://dry-run.invalid/uploads/accessories/d3bb64a5d74dd380a8d945e8bd322309b3410b910cf87fe29270682419d51a7c.png",
+      "storagePath": "/uploads/accessories/d3bb64a5d74dd380a8d945e8bd322309b3410b910cf87fe29270682419d51a7c.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "charm-facb3d2326b7",
+      "kind": "charms",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1766826317056_roac1_18.png",
+      "sourceHash": "79146689059a1d5ad64eac176d9627a17d0187819cc593037d8be5cfca9f1979",
+      "destinationUrl": "https://dry-run.invalid/uploads/accessories/79146689059a1d5ad64eac176d9627a17d0187819cc593037d8be5cfca9f1979.png",
+      "storagePath": "/uploads/accessories/79146689059a1d5ad64eac176d9627a17d0187819cc593037d8be5cfca9f1979.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "charm-52645b8b3b15",
+      "kind": "charms",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1766826292755_0fzppu_19.png",
+      "sourceHash": "1aac976528732f05d987bd36714c29743da7123e34606018fc61c40bbc279f28",
+      "destinationUrl": "https://dry-run.invalid/uploads/accessories/1aac976528732f05d987bd36714c29743da7123e34606018fc61c40bbc279f28.png",
+      "storagePath": "/uploads/accessories/1aac976528732f05d987bd36714c29743da7123e34606018fc61c40bbc279f28.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "charm-841f35f05050",
+      "kind": "charms",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1766826478557_tpxib_20.png",
+      "sourceHash": "2a195a35161f23f47ac88fb946582101ed2d1f9c149affe0e2d3365bb3f82687",
+      "destinationUrl": "https://dry-run.invalid/uploads/accessories/2a195a35161f23f47ac88fb946582101ed2d1f9c149affe0e2d3365bb3f82687.png",
+      "storagePath": "/uploads/accessories/2a195a35161f23f47ac88fb946582101ed2d1f9c149affe0e2d3365bb3f82687.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "charm-b312148c3b38",
+      "kind": "charms",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1766826528750_kaobs_21.png",
+      "sourceHash": "465aecc18c56d63d9d1083c539a281ef60e37ac2e5c0967416787f55e97551af",
+      "destinationUrl": "https://dry-run.invalid/uploads/accessories/465aecc18c56d63d9d1083c539a281ef60e37ac2e5c0967416787f55e97551af.png",
+      "storagePath": "/uploads/accessories/465aecc18c56d63d9d1083c539a281ef60e37ac2e5c0967416787f55e97551af.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "charm-eea865a1d331",
+      "kind": "charms",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1766826544399_ttpuva_22.png",
+      "sourceHash": "8defd488bc68ccd78d55d8fb7cee520c87f54628952404fe22654c86de2df378",
+      "destinationUrl": "https://dry-run.invalid/uploads/accessories/8defd488bc68ccd78d55d8fb7cee520c87f54628952404fe22654c86de2df378.png",
+      "storagePath": "/uploads/accessories/8defd488bc68ccd78d55d8fb7cee520c87f54628952404fe22654c86de2df378.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "charm-919c71c9329c",
+      "kind": "charms",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1766826727188_9afge_23.png",
+      "sourceHash": "768cb8a109c3f54ffa46e8bccbdfe74e75cf02ccea8effacd8992ebc05fb1c71",
+      "destinationUrl": "https://dry-run.invalid/uploads/accessories/768cb8a109c3f54ffa46e8bccbdfe74e75cf02ccea8effacd8992ebc05fb1c71.png",
+      "storagePath": "/uploads/accessories/768cb8a109c3f54ffa46e8bccbdfe74e75cf02ccea8effacd8992ebc05fb1c71.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "charm-8c31ddfaeb44",
+      "kind": "charms",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1766826745200_so3d7_25.png",
+      "sourceHash": "c70bf6b031dc34d577d291955d87ff8384eab6de40651b8e55e1075f5f847d11",
+      "destinationUrl": "https://dry-run.invalid/uploads/accessories/c70bf6b031dc34d577d291955d87ff8384eab6de40651b8e55e1075f5f847d11.png",
+      "storagePath": "/uploads/accessories/c70bf6b031dc34d577d291955d87ff8384eab6de40651b8e55e1075f5f847d11.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "charm-1769b6084d8f",
+      "kind": "charms",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1766826762581_uruyck_26.png",
+      "sourceHash": "297843b1ac5b027a832accfd647267f611af605b9066bb72d3d8f97042731f20",
+      "destinationUrl": "https://dry-run.invalid/uploads/accessories/297843b1ac5b027a832accfd647267f611af605b9066bb72d3d8f97042731f20.png",
+      "storagePath": "/uploads/accessories/297843b1ac5b027a832accfd647267f611af605b9066bb72d3d8f97042731f20.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "charm-9a38481e1b0f",
+      "kind": "charms",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1766826779049_eglfk_24.png",
+      "sourceHash": "4a711ab6cdd103c52f3ce3dfc62791cb8905ddf6306b9dd4426e2ad53ab212ea",
+      "destinationUrl": "https://dry-run.invalid/uploads/accessories/4a711ab6cdd103c52f3ce3dfc62791cb8905ddf6306b9dd4426e2ad53ab212ea.png",
+      "storagePath": "/uploads/accessories/4a711ab6cdd103c52f3ce3dfc62791cb8905ddf6306b9dd4426e2ad53ab212ea.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "charm-dfd2aa849645",
+      "kind": "charms",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1766826800582_wtbd4_27.png",
+      "sourceHash": "4c8dbfa3520a48bdcd0e0fa913f71ce1a4f92123abc6ace3aa55fe334cd60a03",
+      "destinationUrl": "https://dry-run.invalid/uploads/accessories/4c8dbfa3520a48bdcd0e0fa913f71ce1a4f92123abc6ace3aa55fe334cd60a03.png",
+      "storagePath": "/uploads/accessories/4c8dbfa3520a48bdcd0e0fa913f71ce1a4f92123abc6ace3aa55fe334cd60a03.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "charm-ec371d06948e",
+      "kind": "charms",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1766826836421_23836_30.png",
+      "sourceHash": "5c0087bb1ea231b335b0faa98634510d3f2f4a08b1e6845fc71e09f2f4af9920",
+      "destinationUrl": "https://dry-run.invalid/uploads/accessories/5c0087bb1ea231b335b0faa98634510d3f2f4a08b1e6845fc71e09f2f4af9920.png",
+      "storagePath": "/uploads/accessories/5c0087bb1ea231b335b0faa98634510d3f2f4a08b1e6845fc71e09f2f4af9920.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "charm-1843511826b6",
+      "kind": "charms",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1766827414313_gqzb7_Ch_a_c__t_n__2.5_x_4.5_cm___3_x_4.5_cm_.png",
+      "sourceHash": "341e47d4d766254595f299f1e6b0a5fc4b02d8ab37795fe71eb49ef27ccbcf26",
+      "destinationUrl": "https://dry-run.invalid/uploads/accessories/341e47d4d766254595f299f1e6b0a5fc4b02d8ab37795fe71eb49ef27ccbcf26.png",
+      "storagePath": "/uploads/accessories/341e47d4d766254595f299f1e6b0a5fc4b02d8ab37795fe71eb49ef27ccbcf26.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "charm-e3f7b20db4e2",
+      "kind": "charms",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1766826907199_a495v3_34.png",
+      "sourceHash": "431d4da9ff47262456df1b30586251ea7c794ddbad6145fa7d7a48f1a0369383",
+      "destinationUrl": "https://dry-run.invalid/uploads/accessories/431d4da9ff47262456df1b30586251ea7c794ddbad6145fa7d7a48f1a0369383.png",
+      "storagePath": "/uploads/accessories/431d4da9ff47262456df1b30586251ea7c794ddbad6145fa7d7a48f1a0369383.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "charm-76c14654bd71",
+      "kind": "charms",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1766826921816_0al8co6t_36.png",
+      "sourceHash": "44967a24c473cbf521b9a4668f375c5a2a86079e651759a75dab73cc0ae5cf2d",
+      "destinationUrl": "https://dry-run.invalid/uploads/accessories/44967a24c473cbf521b9a4668f375c5a2a86079e651759a75dab73cc0ae5cf2d.png",
+      "storagePath": "/uploads/accessories/44967a24c473cbf521b9a4668f375c5a2a86079e651759a75dab73cc0ae5cf2d.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "charm-6279810998f5",
+      "kind": "charms",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1766826945793_snkprb_40.png",
+      "sourceHash": "358eccdc8d5277cc823de23d61043d556c10d691c3b2d24f2b938f1ed945b5a5",
+      "destinationUrl": "https://dry-run.invalid/uploads/accessories/358eccdc8d5277cc823de23d61043d556c10d691c3b2d24f2b938f1ed945b5a5.png",
+      "storagePath": "/uploads/accessories/358eccdc8d5277cc823de23d61043d556c10d691c3b2d24f2b938f1ed945b5a5.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "charm-faf89643bf3a",
+      "kind": "charms",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1775122059021_vxt0dp_Thi_t_k__ch_a_c__t_n__79_.png",
+      "sourceHash": "8ff66e32d1b942655009143527e4999f52637ebf973b63f59705ce4c68658cf2",
+      "destinationUrl": "https://dry-run.invalid/uploads/accessories/8ff66e32d1b942655009143527e4999f52637ebf973b63f59705ce4c68658cf2.png",
+      "storagePath": "/uploads/accessories/8ff66e32d1b942655009143527e4999f52637ebf973b63f59705ce4c68658cf2.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "charm-944c70c93fad",
+      "kind": "charms",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1766826999738_oecj4c_35.png",
+      "sourceHash": "688b68e2b8284f7252e317a07fb0d3ddcf6e1af701ac3e29a423c1af3b31ab56",
+      "destinationUrl": "https://dry-run.invalid/uploads/accessories/688b68e2b8284f7252e317a07fb0d3ddcf6e1af701ac3e29a423c1af3b31ab56.png",
+      "storagePath": "/uploads/accessories/688b68e2b8284f7252e317a07fb0d3ddcf6e1af701ac3e29a423c1af3b31ab56.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "charm-1a3831fcc546",
+      "kind": "charms",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1766827013371_4wofhr_44.png",
+      "sourceHash": "0508f915c7e32f3ff1278dcd8286062737083a2a8054c8e2254fa3548491f0c9",
+      "destinationUrl": "https://dry-run.invalid/uploads/accessories/0508f915c7e32f3ff1278dcd8286062737083a2a8054c8e2254fa3548491f0c9.png",
+      "storagePath": "/uploads/accessories/0508f915c7e32f3ff1278dcd8286062737083a2a8054c8e2254fa3548491f0c9.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "charm-73bb0135d13c",
+      "kind": "charms",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1775121263941_uarpxq_49.png",
+      "sourceHash": "5e469f6eaaad8bc19c95f95edbad73a9b959ef8188496cdec9334175779785e0",
+      "destinationUrl": "https://dry-run.invalid/uploads/accessories/5e469f6eaaad8bc19c95f95edbad73a9b959ef8188496cdec9334175779785e0.png",
+      "storagePath": "/uploads/accessories/5e469f6eaaad8bc19c95f95edbad73a9b959ef8188496cdec9334175779785e0.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "charm-3f6a854b5e94",
+      "kind": "charms",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2Ftemp%2F1780568704419_3ui11e_B_n_sao_c_a_Ch_a_c__t_n__6_.png",
+      "sourceHash": "e9242423ab9eac5e6febe49ccc4719c0ba1199f54cd897745cd7f9d74e783ef8",
+      "destinationUrl": "https://dry-run.invalid/uploads/accessories/e9242423ab9eac5e6febe49ccc4719c0ba1199f54cd897745cd7f9d74e783ef8.png",
+      "storagePath": "/uploads/accessories/e9242423ab9eac5e6febe49ccc4719c0ba1199f54cd897745cd7f9d74e783ef8.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "charm-044e5f9c444d",
+      "kind": "charms",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2Ftemp%2F1780905281172_rnek0d_B_n_sao_c_a_Ch_a_c__t_n__8_.png",
+      "sourceHash": "da9442eeabc25da169b1a7eba5467214b448b15b33ceafe7e0ba9864696d4101",
+      "destinationUrl": "https://dry-run.invalid/uploads/accessories/da9442eeabc25da169b1a7eba5467214b448b15b33ceafe7e0ba9864696d4101.png",
+      "storagePath": "/uploads/accessories/da9442eeabc25da169b1a7eba5467214b448b15b33ceafe7e0ba9864696d4101.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "charm-7f9248635f03",
+      "kind": "charms",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2Ftemp%2F1780907618431_fjh18l_B_n_sao_c_a_Ch_a_c__t_n__12_.png",
+      "sourceHash": "e5c67fbee1b805f45642baa171efcbab7ca4a5c32f697f5843849f3559b1868a",
+      "destinationUrl": "https://dry-run.invalid/uploads/accessories/e5c67fbee1b805f45642baa171efcbab7ca4a5c32f697f5843849f3559b1868a.png",
+      "storagePath": "/uploads/accessories/e5c67fbee1b805f45642baa171efcbab7ca4a5c32f697f5843849f3559b1868a.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "charm-86bec168c870",
+      "kind": "charms",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2Ftemp%2F1780905154038_e1e5bn_B_n_sao_c_a_Ch_a_c__t_n__7_.png",
+      "sourceHash": "489e6e79064f4a9fc9acd69b0867353fb1d32310231d30038d4f5f1bfb827c37",
+      "destinationUrl": "https://dry-run.invalid/uploads/accessories/489e6e79064f4a9fc9acd69b0867353fb1d32310231d30038d4f5f1bfb827c37.png",
+      "storagePath": "/uploads/accessories/489e6e79064f4a9fc9acd69b0867353fb1d32310231d30038d4f5f1bfb827c37.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "charm-69cbed5fb36b",
+      "kind": "charms",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1767590176365_e396wr_55.png",
+      "sourceHash": "0c6ebe2093954a86a38223d1c458b3759fb43ba39506e10597ffac51ede82fb2",
+      "destinationUrl": "https://dry-run.invalid/uploads/accessories/0c6ebe2093954a86a38223d1c458b3759fb43ba39506e10597ffac51ede82fb2.png",
+      "storagePath": "/uploads/accessories/0c6ebe2093954a86a38223d1c458b3759fb43ba39506e10597ffac51ede82fb2.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "charm-7ffa9ec004a2",
+      "kind": "charms",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1766824264581_frfz5t_Thi_t_k__ch_a_c__t_n__55_.png",
+      "sourceHash": "871cdb8a5e06d60e5c37d0d1530bd1c965681e1b556f322d42a8331d3f311ede",
+      "destinationUrl": "https://dry-run.invalid/uploads/accessories/871cdb8a5e06d60e5c37d0d1530bd1c965681e1b556f322d42a8331d3f311ede.png",
+      "storagePath": "/uploads/accessories/871cdb8a5e06d60e5c37d0d1530bd1c965681e1b556f322d42a8331d3f311ede.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "charm-604d391e222c",
+      "kind": "charms",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1766825134207_ppfx3a_4623481_0.png",
+      "sourceHash": "c689eefd1e9d2f7dca2fbe2b357861018b9bb7d17b810acdbafc15c4b67a7d3a",
+      "destinationUrl": "https://dry-run.invalid/uploads/accessories/c689eefd1e9d2f7dca2fbe2b357861018b9bb7d17b810acdbafc15c4b67a7d3a.png",
+      "storagePath": "/uploads/accessories/c689eefd1e9d2f7dca2fbe2b357861018b9bb7d17b810acdbafc15c4b67a7d3a.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "charm-2bff69f1f49b",
+      "kind": "charms",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2Ftemp%2F1780733991190_cbkyn_1766825288600_6sk0ed_Thi_t_k__ch_a_c__t_n__33_.png",
+      "sourceHash": "5fc91ac8baf0d3e548bcf5ece1d08d93eedc722ae3b3d92a2a80bffe2c0115ea",
+      "destinationUrl": "https://dry-run.invalid/uploads/accessories/5fc91ac8baf0d3e548bcf5ece1d08d93eedc722ae3b3d92a2a80bffe2c0115ea.png",
+      "storagePath": "/uploads/accessories/5fc91ac8baf0d3e548bcf5ece1d08d93eedc722ae3b3d92a2a80bffe2c0115ea.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "charm-da5ba98b7221",
+      "kind": "charms",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1766824281896_gc2fol_6405725_0.png",
+      "sourceHash": "f1d3583d385594a2791a5c0feea19a0a9ca85df9088336ec745433bd27036e6d",
+      "destinationUrl": "https://dry-run.invalid/uploads/accessories/f1d3583d385594a2791a5c0feea19a0a9ca85df9088336ec745433bd27036e6d.png",
+      "storagePath": "/uploads/accessories/f1d3583d385594a2791a5c0feea19a0a9ca85df9088336ec745433bd27036e6d.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "charm-0d6155312a48",
+      "kind": "charms",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1766824249114_cvgoqg_Thi_t_k__ch_a_c__t_n__31_.png",
+      "sourceHash": "ed5eb2fd4097c513302837432985517c8491a4aded883ca1b7501b78de2cd614",
+      "destinationUrl": "https://dry-run.invalid/uploads/accessories/ed5eb2fd4097c513302837432985517c8491a4aded883ca1b7501b78de2cd614.png",
+      "storagePath": "/uploads/accessories/ed5eb2fd4097c513302837432985517c8491a4aded883ca1b7501b78de2cd614.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "charm-fe10517e6cec",
+      "kind": "charms",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1766824237714_2skfw4_Thi_t_k__ch_a_c__t_n__44_.png",
+      "sourceHash": "d5c0603f8896a8c1f63518297f12ebf1016a72dc5efc0fa868e4697a8bc3e285",
+      "destinationUrl": "https://dry-run.invalid/uploads/accessories/d5c0603f8896a8c1f63518297f12ebf1016a72dc5efc0fa868e4697a8bc3e285.png",
+      "storagePath": "/uploads/accessories/d5c0603f8896a8c1f63518297f12ebf1016a72dc5efc0fa868e4697a8bc3e285.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "charm-0380d2c22d49",
+      "kind": "charms",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1766824200469_5afezs_Thi_t_k__ch_a_c__t_n__45_.png",
+      "sourceHash": "1996d5ef06920c81b9059dd0dad9a7d4559d875d0201deb2b3037eead8da5fb0",
+      "destinationUrl": "https://dry-run.invalid/uploads/accessories/1996d5ef06920c81b9059dd0dad9a7d4559d875d0201deb2b3037eead8da5fb0.png",
+      "storagePath": "/uploads/accessories/1996d5ef06920c81b9059dd0dad9a7d4559d875d0201deb2b3037eead8da5fb0.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "charm-0bbd1a961e9f",
+      "kind": "charms",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1766824231701_kwzrz_Thi_t_k__ch_a_c__t_n__46_.png",
+      "sourceHash": "77d48c1d628cc997cf236b44e5e6ce469d1afd498ab59b93bff5846cc294f46d",
+      "destinationUrl": "https://dry-run.invalid/uploads/accessories/77d48c1d628cc997cf236b44e5e6ce469d1afd498ab59b93bff5846cc294f46d.png",
+      "storagePath": "/uploads/accessories/77d48c1d628cc997cf236b44e5e6ce469d1afd498ab59b93bff5846cc294f46d.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "charm-57f0bc126a18",
+      "kind": "charms",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1766824216501_tc0p8_Thi_t_k__ch_a_c__t_n__47_.png",
+      "sourceHash": "c5902af702c59e438ecb01241d47abdeb179d9cb28e4bfc5a2856733864fdc5b",
+      "destinationUrl": "https://dry-run.invalid/uploads/accessories/c5902af702c59e438ecb01241d47abdeb179d9cb28e4bfc5a2856733864fdc5b.png",
+      "storagePath": "/uploads/accessories/c5902af702c59e438ecb01241d47abdeb179d9cb28e4bfc5a2856733864fdc5b.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "charm-d63368ec0880",
+      "kind": "charms",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1766824223997_9sykh4_Thi_t_k__ch_a_c__t_n__50_.png",
+      "sourceHash": "288a562f3a984057355c08d3ccca363f7faff76c5876c0370f42f7c7e38ea89c",
+      "destinationUrl": "https://dry-run.invalid/uploads/accessories/288a562f3a984057355c08d3ccca363f7faff76c5876c0370f42f7c7e38ea89c.png",
+      "storagePath": "/uploads/accessories/288a562f3a984057355c08d3ccca363f7faff76c5876c0370f42f7c7e38ea89c.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "charm-16bf11c9c219",
+      "kind": "charms",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1766824207295_hzf9u_Thi_t_k__ch_a_c__t_n__52_.png",
+      "sourceHash": "a88e9e9f3f5b0715a94a2138b60eb284f57c0f407f7718ab2733a891225b64a3",
+      "destinationUrl": "https://dry-run.invalid/uploads/accessories/a88e9e9f3f5b0715a94a2138b60eb284f57c0f407f7718ab2733a891225b64a3.png",
+      "storagePath": "/uploads/accessories/a88e9e9f3f5b0715a94a2138b60eb284f57c0f407f7718ab2733a891225b64a3.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "charm-14fcb21e5528",
+      "kind": "charms",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1766980833054_xruizi_THE_LUVIN__3_.png",
+      "sourceHash": "0f358e0800501adec8d90dca7f9682845e02b5b1856fd1f55cdb088c4b8e971f",
+      "destinationUrl": "https://dry-run.invalid/uploads/accessories/0f358e0800501adec8d90dca7f9682845e02b5b1856fd1f55cdb088c4b8e971f.png",
+      "storagePath": "/uploads/accessories/0f358e0800501adec8d90dca7f9682845e02b5b1856fd1f55cdb088c4b8e971f.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "charm-b740c6caabcc",
+      "kind": "charms",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1766824308549_piah2d_12.png",
+      "sourceHash": "5d73396b8cf57de1e17412253cb0011db00cb873bdf04e93ec1801ae19300047",
+      "destinationUrl": "https://dry-run.invalid/uploads/accessories/5d73396b8cf57de1e17412253cb0011db00cb873bdf04e93ec1801ae19300047.png",
+      "storagePath": "/uploads/accessories/5d73396b8cf57de1e17412253cb0011db00cb873bdf04e93ec1801ae19300047.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "charm-1d171c9b1159",
+      "kind": "charms",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1766825618282_kg4h6_Thi_t_k__ch_a_c__t_n__5_.png",
+      "sourceHash": "df74994963fb67010457793257affd63eb1a782aeedf83561687622865959091",
+      "destinationUrl": "https://dry-run.invalid/uploads/accessories/df74994963fb67010457793257affd63eb1a782aeedf83561687622865959091.png",
+      "storagePath": "/uploads/accessories/df74994963fb67010457793257affd63eb1a782aeedf83561687622865959091.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "charm-b3e2f715e7f0",
+      "kind": "charms",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1766825969633_j1l7dq_7.png",
+      "sourceHash": "2cf0b3716c50b9d68581b7ebe72d1e0ab8c3a8a69026ceb8039f3daa5947c284",
+      "destinationUrl": "https://dry-run.invalid/uploads/accessories/2cf0b3716c50b9d68581b7ebe72d1e0ab8c3a8a69026ceb8039f3daa5947c284.png",
+      "storagePath": "/uploads/accessories/2cf0b3716c50b9d68581b7ebe72d1e0ab8c3a8a69026ceb8039f3daa5947c284.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "charm-f032d6895f4d",
+      "kind": "charms",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1766827175870_fkp41b_THE_LUVIN__1_.png",
+      "sourceHash": "9a706ae2f511ce8d8b574bf3ace75710f8750c1a5e5c77fb0b8e4e289019aed5",
+      "destinationUrl": "https://dry-run.invalid/uploads/accessories/9a706ae2f511ce8d8b574bf3ace75710f8750c1a5e5c77fb0b8e4e289019aed5.png",
+      "storagePath": "/uploads/accessories/9a706ae2f511ce8d8b574bf3ace75710f8750c1a5e5c77fb0b8e4e289019aed5.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    },
+    {
+      "sourceKey": "charm-b68c2d98ae4d",
+      "kind": "charms",
+      "sourceUrl": "https://firebasestorage.googleapis.com/v0/b/the-luvin.firebasestorage.app/o/uploads%2F1766825594005_aadsk_Thi_t_k__ch_a_c__t_n__4_.png",
+      "sourceHash": "63ab45cef4b0fc722a084453d1cc84acdbf501665474e44059e1cdb7d3ece3df",
+      "destinationUrl": "https://dry-run.invalid/uploads/accessories/63ab45cef4b0fc722a084453d1cc84acdbf501665474e44059e1cdb7d3ece3df.png",
+      "storagePath": "/uploads/accessories/63ab45cef4b0fc722a084453d1cc84acdbf501665474e44059e1cdb7d3ece3df.png",
+      "status": "planned",
+      "message": "Validated and processed; target would be upserted"
+    }
+  ],
+  "rollbackCommand": "pnpm --filter backend import:sample-media:rollback -- figure-lab-sample-media-20260717",
+  "finishedAt": "2026-07-17T04:54:04.070Z",
+  "runtimeMs": 86733
+}

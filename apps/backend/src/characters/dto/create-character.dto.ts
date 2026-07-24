@@ -1,8 +1,18 @@
-import type { CreateCharacterRequestContract, ProductStatus } from '@lego-shop/shared';
+import type {
+  CreateCharacterRequestContract,
+  ProductStatus,
+} from '@lego-shop/shared';
 import { PRODUCT_STATUS } from '@lego-shop/shared';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
-import { IsEnum, IsInt, IsNotEmpty, IsOptional, IsString, Min } from 'class-validator';
+import {
+  IsEnum,
+  IsInt,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  Min,
+} from 'class-validator';
 
 const trimOptionalString = ({ value }: { value: unknown }) => {
   if (typeof value !== 'string') return value;

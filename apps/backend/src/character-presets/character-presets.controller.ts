@@ -19,7 +19,9 @@ import { UpdateCharacterPresetDto } from './dto/update-character-preset.dto';
 @ApiTags('Character Presets')
 @Controller()
 export class CharacterPresetsController {
-  constructor(private readonly characterPresetsService: CharacterPresetsService) {}
+  constructor(
+    private readonly characterPresetsService: CharacterPresetsService,
+  ) {}
 
   @Get('public/character-presets')
   findPublicCharacterPresets(@Query() query: CharacterPresetsQueryDto) {

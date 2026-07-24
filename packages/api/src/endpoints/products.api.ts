@@ -3,6 +3,8 @@ import type {
   Character,
   CharacterPart,
   CharacterPreset,
+  CharacterBuilderQuoteRequestContract,
+  CharacterBuilderQuoteResponseContract,
   Collection,
   FrameBackground,
   FrameColor,
@@ -10,34 +12,55 @@ import type {
   FrameOptionType,
   FrameSize,
   Product,
+  ProductDetail,
+  PublicProductsQuery,
+  PublicProductsResponse,
   Template,
-} from '@lego-shop/shared';
-import type { ApiRequester, QueryParams } from '../client';
+} from "@lego-shop/shared";
+import type { ApiRequester, ApiRequestOptions, QueryParams } from "../client";
 
 export type FrameOptionsQuery = QueryParams & {
   type?: FrameOptionType;
 };
 
+export type AccessoriesQuery = QueryParams & {
+  categoryId?: string;
+};
+
+export type FrameBackgroundsQuery = QueryParams & {
+  category?: string;
+  frameOptionId?: string;
+};
+
+type ProductCatalogRequestOptions = Pick<ApiRequestOptions, "signal">;
+
 export function createProductsApi(request: ApiRequester) {
   return {
     listProducts(query?: QueryParams): Promise<Product[]> {
-      return request('public/products', { query });
+      return request("public/products", { query });
     },
 
-    getProductBySlug(slug: string): Promise<Product> {
+    listProductCatalog(
+      query?: PublicProductsQuery,
+      options?: ProductCatalogRequestOptions,
+    ): Promise<PublicProductsResponse> {
+      return request("public/products", { ...options, query });
+    },
+
+    getProductBySlug(slug: string): Promise<ProductDetail> {
       return request(`public/products/${encodeURIComponent(slug)}`);
     },
 
     listTemplates(query?: QueryParams): Promise<Template[]> {
-      return request('public/templates', { query });
+      return request("public/templates", { query });
     },
 
     getTemplateById(id: string): Promise<Template> {
       return request(`public/templates/${encodeURIComponent(id)}`);
     },
 
-    listAccessories(query?: QueryParams): Promise<Accessory[]> {
-      return request('public/accessories', { query });
+    listAccessories(query?: AccessoriesQuery): Promise<Accessory[]> {
+      return request("public/accessories", { query });
     },
 
     getAccessoryById(id: string): Promise<Accessory> {
@@ -45,7 +68,7 @@ export function createProductsApi(request: ApiRequester) {
     },
 
     listCharacters(query?: QueryParams): Promise<Character[]> {
-      return request('public/characters', { query });
+      return request("public/characters", { query });
     },
 
     getCharacterById(id: string): Promise<Character> {
@@ -53,15 +76,24 @@ export function createProductsApi(request: ApiRequester) {
     },
 
     listCharacterParts(query?: QueryParams): Promise<CharacterPart[]> {
-      return request('public/character-parts', { query });
+      return request("public/character-parts", { query });
+    },
+
+    quoteCharacterBuilder(
+      payload: CharacterBuilderQuoteRequestContract,
+    ): Promise<CharacterBuilderQuoteResponseContract> {
+      return request("public/character-parts/quote", {
+        method: "POST",
+        body: payload,
+      });
     },
 
     listCharacterPresets(query?: QueryParams): Promise<CharacterPreset[]> {
-      return request('public/character-presets', { query });
+      return request("public/character-presets", { query });
     },
 
     listCollections(query?: QueryParams): Promise<Collection[]> {
-      return request('public/collections', { query });
+      return request("public/collections", { query });
     },
 
     getCollectionBySlug(slug: string): Promise<Collection> {
@@ -69,19 +101,21 @@ export function createProductsApi(request: ApiRequester) {
     },
 
     listFrameOptions(query?: FrameOptionsQuery): Promise<FrameOption[]> {
-      return request('public/frame-options', { query });
+      return request("public/frame-options", { query });
     },
 
     listFrameSizes(query?: QueryParams): Promise<FrameSize[]> {
-      return request('public/frame-sizes', { query });
+      return request("public/frame-sizes", { query });
     },
 
     listFrameColors(query?: QueryParams): Promise<FrameColor[]> {
-      return request('public/frame-colors', { query });
+      return request("public/frame-colors", { query });
     },
 
-    listFrameBackgrounds(query?: QueryParams): Promise<FrameBackground[]> {
-      return request('public/frame-backgrounds', { query });
+    listFrameBackgrounds(
+      query?: FrameBackgroundsQuery,
+    ): Promise<FrameBackground[]> {
+      return request("public/frame-backgrounds", { query });
     },
   };
 }

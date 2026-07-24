@@ -7,9 +7,13 @@ describe('AdminBusinessInquiriesController', () => {
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [AdminBusinessInquiriesController],
-    }).compile();
+    })
+      .useMocker(() => ({}))
+      .compile();
 
-    controller = module.get<AdminBusinessInquiriesController>(AdminBusinessInquiriesController);
+    controller = module.get<AdminBusinessInquiriesController>(
+      AdminBusinessInquiriesController,
+    );
   });
 
   it('should be defined', () => {

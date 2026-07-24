@@ -7,7 +7,9 @@ describe('AdminDashboardService', () => {
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [AdminDashboardService],
-    }).compile();
+    })
+      .useMocker(() => ({}))
+      .compile();
 
     service = module.get<AdminDashboardService>(AdminDashboardService);
   });

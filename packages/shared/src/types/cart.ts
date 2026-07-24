@@ -1,6 +1,12 @@
 import type { ID, JsonObject, PriceInVND, URLString } from './common';
 import type { Product } from './product';
 
+export type CartLineItemType =
+  | 'frame'
+  | 'standalone_character'
+  | 'custom_character'
+  | 'retail_part';
+
 export type DesignData = {
   productId?: ID;
   templateId?: ID;
@@ -11,6 +17,9 @@ export type DesignData = {
 
 export type CartItem = {
   productId?: ID;
+  lineItemType?: CartLineItemType;
+  productType?: string;
+  customName?: string;
   productName: string;
   quantity: number;
   price: PriceInVND;
@@ -21,6 +30,9 @@ export type CartItem = {
 export type CartLineItem = {
   id: ID;
   product: Product;
+  lineItemType?: CartLineItemType;
+  productType?: string;
+  customName?: string;
   quantity: number;
   unitPrice: PriceInVND;
   totalPrice: PriceInVND;

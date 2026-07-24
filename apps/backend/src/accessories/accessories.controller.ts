@@ -22,8 +22,8 @@ export class AccessoriesController {
   constructor(private readonly accessoriesService: AccessoriesService) {}
 
   @Get('public/accessories')
-  findPublicAccessories() {
-    return this.accessoriesService.findPublicAccessories();
+  findPublicAccessories(@Query('categoryId') categoryId?: string) {
+    return this.accessoriesService.findPublicAccessories(categoryId);
   }
 
   @Get('public/accessories/:id')

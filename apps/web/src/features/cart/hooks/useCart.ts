@@ -4,9 +4,11 @@
 // useCart hook - wrapper đơn giản cho cartStore
 // ============================================================
 
-import { useCallback } from 'react'
+import { useCallback, useEffect } from 'react'
 import {
+  hydrateCartStore,
   selectCartIsOpen,
+  selectCartHasHydrated,
   selectCartItemCount,
   selectCartItems,
   selectCartTotalAmount,
@@ -21,12 +23,15 @@ interface UseCartResult {
   itemCount: number
   totalAmount: number
   isOpen: boolean
+  hasHydrated: boolean
   isEmpty: boolean
   addItem: (item: Omit<SimpleCartItem, 'id' | 'addedAt' | 'totalPrice'>) => void
   updateItem: (id: string, item: Omit<SimpleCartItem, 'id' | 'addedAt' | 'totalPrice'>) => void
   removeItem: (id: string) => void
+  restoreItem: (item: SimpleCartItem, index?: number) => void
   updateQuantity: (id: string, quantity: number) => void
   updateItemNote: (id: string, note: string) => void
+  updateQuotedPrices: (prices: Record<string, number>) => void
   clearCart: () => void
   toggleCart: () => void
   openCart: () => void
@@ -40,15 +45,22 @@ export function useCart(): UseCartResult {
   const itemCount = useCartStore(selectCartItemCount)
   const totalAmount = useCartStore(selectCartTotalAmount)
   const isOpen = useCartStore(selectCartIsOpen)
+  const hasHydrated = useCartStore(selectCartHasHydrated)
   const addItem = useCartStore((state) => state.addItem)
   const updateItem = useCartStore((state) => state.updateItem)
   const removeItem = useCartStore((state) => state.removeItem)
+  const restoreItem = useCartStore((state) => state.restoreItem)
   const updateQuantity = useCartStore((state) => state.updateQuantity)
   const updateItemNote = useCartStore((state) => state.updateItemNote)
+  const updateQuotedPrices = useCartStore((state) => state.updateQuotedPrices)
   const clearCart = useCartStore((state) => state.clearCart)
   const toggleCart = useCartStore((state) => state.toggleCart)
   const openCart = useCartStore((state) => state.openCart)
   const closeCart = useCartStore((state) => state.closeCart)
+
+  useEffect(() => {
+    void hydrateCartStore()
+  }, [])
 
   const isEmpty = itemCount === 0
 
@@ -67,12 +79,15 @@ export function useCart(): UseCartResult {
     itemCount,
     totalAmount,
     isOpen,
+    hasHydrated,
     isEmpty,
     addItem,
     updateItem,
     removeItem,
+    restoreItem,
     updateQuantity,
     updateItemNote,
+    updateQuotedPrices,
     clearCart,
     toggleCart,
     openCart,

@@ -90,10 +90,10 @@ export default function AdminNotificationDropdown() {
               onClick={close}
               className='rounded-[10px] p-1 text-slate-400 transition hover:bg-red-50 hover:text-red-700 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-red-100'
               aria-label={t('common.close')}
-            >
-              <CloseIcon />
-            </button>
-          </div>
+              >
+                <CloseIcon />
+              </button>
+            </div>
 
           <ul className='admin-scrollbar flex h-auto flex-col overflow-y-auto pr-1'>
             {items.length === 0 ? (

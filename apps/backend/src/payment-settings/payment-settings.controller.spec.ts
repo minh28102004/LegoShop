@@ -7,9 +7,13 @@ describe('PaymentSettingsController', () => {
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [PaymentSettingsController],
-    }).compile();
+    })
+      .useMocker(() => ({}))
+      .compile();
 
-    controller = module.get<PaymentSettingsController>(PaymentSettingsController);
+    controller = module.get<PaymentSettingsController>(
+      PaymentSettingsController,
+    );
   });
 
   it('should be defined', () => {

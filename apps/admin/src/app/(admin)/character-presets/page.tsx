@@ -1,78 +1,134 @@
 'use client';
 
+import { useEffect, useMemo, useState } from 'react';
 import EntityManager, { type EntityField } from '@/modules/admin/components/entity-manager';
 import { useI18n } from '@/lib/i18n/useI18n';
+import { listResource } from '@/modules/admin/services/adminApi';
+import type { CharacterPart } from '@/modules/admin/types/admin.types';
 
 export default function CharacterPresetsPage() {
   const { t } = useI18n();
+  const [parts, setParts] = useState<CharacterPart[]>([]);
 
-  const fields: EntityField[] = [
-    {
-      key: 'name',
-      label: 'Tên mẫu',
-      type: 'text',
-      required: true,
-      placeholder: 'VD: Nam tốt nghiệp',
-    },
-    {
-      key: 'description',
-      label: 'Mô tả',
-      type: 'text',
-      placeholder: 'VD: Tóc nam + mũ tốt nghiệp',
-    },
-    {
-      key: 'faceHint',
-      label: 'Gợi ý mặt (faceHint)',
-      type: 'text',
-      placeholder: 'VD: mỉm cười, da sáng',
-      helpText: 'Từ khoá tìm part FACE theo tên. Để trống = chọn part đầu tiên.',
-    },
-    {
-      key: 'hairHint',
-      label: 'Gợi ý tóc (hairHint)',
-      type: 'text',
-      placeholder: 'VD: nam, nữ, dài, ngắn',
-      helpText: 'Từ khoá tìm part HAIR theo tên.',
-    },
-    {
-      key: 'torsoHint',
-      label: 'Gợi ý áo (torsoHint)',
-      type: 'text',
-      placeholder: 'VD: đỏ, xanh, vest',
-    },
-    {
-      key: 'legsHint',
-      label: 'Gợi ý quần (legsHint)',
-      type: 'text',
-      placeholder: 'VD: đen, jeans',
-    },
-    {
-      key: 'hatHint',
-      label: 'Gợi ý mũ (hatHint)',
-      type: 'text',
-      placeholder: 'VD: tốt nghiệp, bảo hiểm',
-      helpText: 'Để trống = không chọn mũ cho mẫu này.',
-    },
-    { key: 'sortOrder', label: 'Thứ tự hiển thị', type: 'number' },
-    {
-      key: 'status',
-      label: t('common.status'),
-      type: 'select',
-      options: [
-        { label: t('status.active'), value: 'active' },
-        { label: t('status.inactive'), value: 'inactive' },
-      ],
-    },
-  ];
+  useEffect(() => {
+    listResource('character-parts')
+      .then(setParts)
+      .catch(() => setParts([]));
+  }, []);
+
+  const fields = useMemo<EntityField[]>(() => {
+    const optionsFor = (type: CharacterPart['type']) =>
+      parts
+        .filter((part) => part.type === type && part.status === 'active' && part.isActive !== false)
+        .map((part) => ({
+          label: `${part.name} · ${part.priceAdjustment.toLocaleString('vi-VN')}đ`,
+          value: part.id,
+        }));
+
+    return [
+      {
+        key: 'name',
+        label: 'Tên preset',
+        type: 'text',
+        required: true,
+        placeholder: 'VD: Nam tốt nghiệp',
+      },
+      {
+        key: 'slug',
+        label: 'Slug',
+        type: 'text',
+        placeholder: 'VD: nam-tot-nghiep',
+      },
+      {
+        key: 'description',
+        label: 'Mô tả ngắn',
+        type: 'textarea',
+        placeholder: 'Mô tả phong cách và các thành phần chính.',
+      },
+      {
+        key: 'previewImageUrl',
+        label: 'Ảnh xem trước',
+        type: 'image',
+      },
+      {
+        key: 'facePartId',
+        label: 'Khuôn mặt',
+        type: 'select',
+        required: true,
+        options: optionsFor('FACE'),
+      },
+      {
+        key: 'hairPartId',
+        label: 'Tóc',
+        type: 'select',
+        required: true,
+        options: optionsFor('HAIR'),
+      },
+      {
+        key: 'torsoPartId',
+        label: 'Thân áo',
+        type: 'select',
+        required: true,
+        options: optionsFor('TORSO'),
+      },
+      {
+        key: 'legsPartId',
+        label: 'Chân',
+        type: 'select',
+        required: true,
+        options: optionsFor('LEGS'),
+      },
+      {
+        key: 'hatPartId',
+        label: 'Mũ (không bắt buộc)',
+        type: 'select',
+        options: optionsFor('HAT'),
+      },
+      {
+        key: 'accessoryPartIds',
+        label: 'Phụ kiện đi kèm',
+        type: 'multi-select',
+        options: optionsFor('ACCESSORY'),
+        helpText: 'Có thể chọn nhiều phụ kiện. Giá preset được tính từ các linh kiện thực tế.',
+      },
+      { key: 'sortOrder', label: 'Thứ tự hiển thị', type: 'number' },
+      {
+        key: 'isBuilderPreset',
+        label: 'Hiển thị trong Character Builder',
+        type: 'checkbox',
+      },
+      {
+        key: 'isSellable',
+        label: 'Cho phép bán như sản phẩm',
+        type: 'checkbox',
+      },
+      {
+        key: 'status',
+        label: t('common.status'),
+        type: 'select',
+        options: [
+          { label: t('status.active'), value: 'active' },
+          { label: t('status.inactive'), value: 'inactive' },
+        ],
+      },
+    ];
+  }, [parts, t]);
+
+  const tableFields = fields.filter((field) =>
+    ['name', 'previewImageUrl', 'sortOrder', 'isBuilderPreset', 'isSellable', 'status'].includes(
+      field.key,
+    ),
+  );
 
   return (
     <EntityManager
-      title='mẫu nhân vật'
+      title='preset nhân vật'
       resource='character-presets'
       fields={fields}
-      pageTitle='Quản lý mẫu nhân vật có sẵn'
-      pageDescription='Tạo mẫu preset để khách chọn nhanh khi thiết kế nhân vật. Mỗi mẫu gợi ý part theo từ khoá, khách vẫn có thể sửa từng part sau khi chọn.'
-      createButtonLabel='Thêm mẫu nhân vật'
+      tableFields={tableFields}
+      pageTitle='Quản lý preset nhân vật'
+      pageDescription='Ghép trực tiếp linh kiện thật thành preset để dùng trong Character Builder và liên kết với sản phẩm nhân vật.'
+      createButtonLabel='Thêm preset nhân vật'
     />
   );
 }

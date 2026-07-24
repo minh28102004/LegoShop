@@ -1,45 +1,46 @@
-import {
-  BadgePercent,
-  Building2,
-  MessageSquare,
-  Users,
-} from 'lucide-react'
+import { DECORATIVE_ICON_PATHS } from "@/config/icons";
+import { FIGURE_LAB_TEAM_GIFT_IMAGE } from "@/config/marketing-media";
 
-import type { BusinessBenefit } from '@/modules/business/types/business-page.types'
+export const BUSINESS_HERO_IMAGES = [
+  "/home/graduation-celebration.png",
+  "/home/love-frame.png",
+  FIGURE_LAB_TEAM_GIFT_IMAGE,
+  "/home/birthday-frame.png",
+] as const;
 
-export const BUSINESS_BENEFITS: BusinessBenefit[] = [
-  {
-    icon: BadgePercent,
-    color: 'bg-primary/10 text-primary',
-    title: 'Chiết khấu số lượng lớn',
-    desc: 'Giá ưu đãi cho đơn từ 10 sản phẩm trở lên',
-  },
-  {
-    icon: MessageSquare,
-    color: 'bg-blue-100 text-blue-600',
-    title: 'Thiết kế theo yêu cầu',
-    desc: 'Tùy biến logo, màu sắc thương hiệu riêng biệt',
-  },
-  {
-    icon: Users,
-    color: 'bg-emerald-100 text-emerald-600',
-    title: 'Tư vấn tận tình',
-    desc: 'Đội ngũ hỗ trợ 24/7, phản hồi trong 2 giờ',
-  },
-  {
-    icon: Building2,
-    color: 'bg-purple-100 text-purple-600',
-    title: 'Giao hàng đúng hẹn',
-    desc: 'Đảm bảo tiến độ cho sự kiện của bạn',
-  },
-]
+export const BUSINESS_SHOWCASE_IMAGES = [
+  FIGURE_LAB_TEAM_GIFT_IMAGE,
+  "/home/love-frame.png",
+  "/home/graduation-celebration.png",
+  "/home/birthday-frame.png",
+] as const;
 
-export const BUSINESS_USE_CASES = [
-  'Sự kiện công ty',
-  'Quà tri ân nhân viên',
-  'Tết & Lễ hội',
-  'Team building',
-  'Ra mắt sản phẩm',
-  'Kỷ niệm thành lập',
-  'Quà tặng đối tác',
-] as const
+export const BUSINESS_METRIC_ICONS = [
+  DECORATIVE_ICON_PATHS.telephoneReceiver,
+  DECORATIVE_ICON_PATHS.chartIncreasing,
+  DECORATIVE_ICON_PATHS.receipt,
+  DECORATIVE_ICON_PATHS.deliveryTruck,
+] as const;
+
+export const BUSINESS_USE_CASE_ICONS = [
+  DECORATIVE_ICON_PATHS.trophy,
+  DECORATIVE_ICON_PATHS.identificationCard,
+  DECORATIVE_ICON_PATHS.handshake,
+  DECORATIVE_ICON_PATHS.calendar,
+  DECORATIVE_ICON_PATHS.officeBuilding,
+  DECORATIVE_ICON_PATHS.megaphone,
+] as const;
+
+export const BUSINESS_BENEFIT_ICONS = [
+  DECORATIVE_ICON_PATHS.chartIncreasing,
+  DECORATIVE_ICON_PATHS.artistPalette,
+  DECORATIVE_ICON_PATHS.receipt,
+  DECORATIVE_ICON_PATHS.deliveryTruck,
+] as const;
+
+export const BUSINESS_PROCESS_ICONS = [
+  DECORATIVE_ICON_PATHS.envelope,
+  DECORATIVE_ICON_PATHS.telephoneReceiver,
+  DECORATIVE_ICON_PATHS.checkMark,
+  DECORATIVE_ICON_PATHS.package,
+] as const;

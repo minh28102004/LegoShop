@@ -7,7 +7,15 @@ import type {
 import { CHARACTER_PART_TYPE, PRODUCT_STATUS } from '@lego-shop/shared';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
-import { IsEnum, IsInt, IsNotEmpty, IsOptional, IsString, Min } from 'class-validator';
+import {
+  IsBoolean,
+  IsEnum,
+  IsInt,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  Min,
+} from 'class-validator';
 
 const trimString = ({ value }: { value: unknown }) =>
   typeof value === 'string' ? value.trim() : value;
@@ -18,13 +26,13 @@ const trimOptionalString = ({ value }: { value: unknown }) => {
   return trimmed.length > 0 ? trimmed : undefined;
 };
 
-const parseJsonValue = ({ value }: { value: unknown }) => {
+const parseJsonValue = ({ value }: { value: unknown }): unknown => {
   if (typeof value !== 'string') return value;
   const trimmed = value.trim();
   if (!trimmed) return undefined;
 
   try {
-    return JSON.parse(trimmed);
+    return JSON.parse(trimmed) as unknown;
   } catch {
     return value;
   }
@@ -36,6 +44,12 @@ export class CreateCharacterPartDto implements CreateCharacterPartRequestContrac
   @IsString()
   @IsNotEmpty()
   name: string;
+
+  @ApiPropertyOptional({ example: 'smile-face-01' })
+  @Transform(trimOptionalString)
+  @IsOptional()
+  @IsString()
+  slug?: string;
 
   @ApiProperty({ enum: CHARACTER_PART_TYPE, example: CHARACTER_PART_TYPE.FACE })
   @IsEnum(CHARACTER_PART_TYPE)
@@ -53,6 +67,35 @@ export class CreateCharacterPartDto implements CreateCharacterPartRequestContrac
   @IsInt()
   @Min(0)
   priceAdjustment?: number;
+
+  @ApiPropertyOptional({ example: 15000 })
+  @Type(() => Number)
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  compareAtPrice?: number | null;
+
+  @ApiPropertyOptional({ example: 'classic' })
+  @Transform(trimOptionalString)
+  @IsOptional()
+  @IsString()
+  category?: string;
+
+  @ApiPropertyOptional({ example: 'available', default: 'available' })
+  @Transform(trimOptionalString)
+  @IsOptional()
+  @IsString()
+  availability?: string;
+
+  @ApiPropertyOptional({ example: true, default: true })
+  @IsOptional()
+  @IsBoolean()
+  isActive?: boolean;
+
+  @ApiPropertyOptional({ example: { bodyScale: ['standard'] } })
+  @Transform(parseJsonValue)
+  @IsOptional()
+  compatibility?: JsonValue;
 
   @ApiPropertyOptional({ example: 0, default: 0 })
   @Type(() => Number)

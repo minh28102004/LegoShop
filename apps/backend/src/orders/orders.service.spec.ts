@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { PaymentSettingsService } from '../payment-settings/payment-settings.service';
 import { PaymentsService } from '../payments/payments.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { VouchersService } from '../vouchers/vouchers.service';
 import { OrdersService } from './orders.service';
 
 describe('OrdersService', () => {
@@ -21,6 +22,10 @@ describe('OrdersService', () => {
         },
         {
           provide: PaymentsService,
+          useValue: {},
+        },
+        {
+          provide: VouchersService,
           useValue: {},
         },
       ],

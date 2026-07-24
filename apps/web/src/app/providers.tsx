@@ -1,9 +1,10 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { I18nProvider } from "@/lib/i18n/I18nProvider";
-import { HOT_TOAST_OPTIONS } from "../../../../packages/ui/dist/components/Toast";
+import { HOT_TOAST_OPTIONS } from "@lego-shop/ui";
 import { Toaster } from "react-hot-toast";
+
+import { I18nProvider } from "@/lib/i18n/I18nProvider";
 
 export interface ProvidersProps {
   children: ReactNode;
@@ -12,7 +13,7 @@ export interface ProvidersProps {
 export function Providers({ children }: ProvidersProps) {
   return (
     <I18nProvider>
-      {children}{" "}
+      {children}
       <Toaster position="top-right" toastOptions={HOT_TOAST_OPTIONS} />
     </I18nProvider>
   );

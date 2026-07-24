@@ -1,82 +1,117 @@
-import { PageContainer } from '@/components/layout/PageContainer'
-import { cn } from '@lego-shop/ui'
+import { Container } from "@/components/layout/Container";
+import { DecorativeIcon } from "@/components/shared/FeatureIcon";
+import { ScrollReveal } from "@/components/shared/ScrollReveal";
+import { DECORATIVE_ICON_PATHS } from "@/config/icons";
+import type { HomeProcessContent } from "@/modules/home/types/home.types";
 
-import type { HomeOrderStep } from '@/modules/home/types/home.types'
-import { SectionHeader } from './SectionHeader'
+import { DecorativeBrick } from "./DecorativeBrick";
+import { SectionHeader } from "./SectionHeader";
+
+const STEP_ICON_PATHS = [
+  DECORATIVE_ICON_PATHS.framedPicture,
+  DECORATIVE_ICON_PATHS.camera,
+  DECORATIVE_ICON_PATHS.checkMark,
+  DECORATIVE_ICON_PATHS.package,
+];
 
 type HowToOrderProps = {
-  steps: HomeOrderStep[]
-}
+  content: HomeProcessContent;
+};
 
-export function HowToOrder({ steps }: HowToOrderProps) {
+export function HowToOrder({ content }: HowToOrderProps) {
+  const { steps } = content;
+
   return (
-    <section id="how-to-order" className="pt-14 md:pt-[88px]">
-      <PageContainer>
-        <SectionHeader
-          align="center"
-          eyebrow="How it works"
-          title="Hướng dẫn đặt hàng"
-          subtitle="Quy trình gọn gàng để món quà của bạn vừa đẹp vừa đúng câu chuyện cần kể."
-          className="mb-9"
-        />
+    <section
+      id="how-to-order"
+      data-home-section="process"
+      className="relative overflow-hidden bg-[#f4f8fc] py-12 md:py-16 lg:py-18"
+    >
+      <DecorativeBrick
+        tone="gold"
+        size="sm"
+        studs={4}
+        className="absolute right-[7%] top-16 hidden rotate-3 opacity-65 lg:inline-grid"
+      />
+      <Container size="default" className="relative">
+        <ScrollReveal>
+          <SectionHeader
+            align="center"
+            eyebrow={content.eyebrow}
+            title={content.title}
+            subtitle={content.subtitle}
+            className="mb-10 sm:mb-12"
+          />
+        </ScrollReveal>
 
-        <div className="hidden lg:block">
-          <div className="relative grid grid-cols-4 gap-[26px]">
-            <div className="absolute left-[12.5%] right-[12.5%] top-6 h-px bg-border" />
-            {steps.map((step, index) => (
-              <article key={step.step} className="relative text-center">
-                <span
-                  className={cn(
-                    'relative z-[1] mx-auto inline-flex h-12 w-12 items-center justify-center rounded-full border text-sm font-extrabold',
-                    index === steps.length - 1
-                      ? 'border-primary bg-primary text-white shadow-soft'
-                      : 'border-primary/20 bg-white text-primary-dark',
-                  )}
-                >
-                  {step.step}
-                </span>
-                <h3 className="mt-[18px] text-lg font-bold leading-[1.35] tracking-[-0.03em] text-navy">
-                  {step.title}
-                </h3>
-                <p className="mt-2.5 text-sm leading-7 text-muted">
-                  {step.description}
-                </p>
-              </article>
-            ))}
-          </div>
-        </div>
+        <div className="relative hidden lg:grid lg:grid-cols-4 lg:gap-8">
+          <div className="absolute left-[12.5%] right-[12.5%] top-8 h-px bg-gradient-to-r from-primary/20 via-primary/55 to-primary/20" />
+          {steps.map((step, index) => {
+            const iconSrc =
+              STEP_ICON_PATHS[index] ?? DECORATIVE_ICON_PATHS.checkMark;
 
-        <div className="grid gap-4 lg:hidden">
-          {steps.map((step, index) => (
-            <article
-              key={step.step}
-              className="relative rounded-[22px] border border-border bg-white p-5"
-            >
-              {index < steps.length - 1 ? (
-                <span className="absolute bottom-4 left-[29px] top-[52px] w-px bg-border" />
-              ) : null}
-              <div className="flex gap-4">
-                <span
-                  className={cn(
-                    'relative z-[1] inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border text-sm font-extrabold',
-                    index === steps.length - 1
-                      ? 'border-primary bg-primary text-white shadow-soft'
-                      : 'border-primary/20 bg-white text-primary-dark',
-                  )}
-                >
-                  {step.step}
-                </span>
-                <div className="space-y-2">
-                  <h3 className="text-base font-bold leading-[1.35] tracking-[-0.03em] text-navy">
+            return (
+              <ScrollReveal
+                key={step.step}
+                delay={index * 0.07}
+                className="relative text-center"
+              >
+                <div className="group">
+                  <span className="relative z-10 mx-auto inline-flex h-16 w-16 items-center justify-center overflow-visible rounded-[20px] border border-primary/15 bg-white shadow-sm">
+                    <DecorativeIcon
+                      src={iconSrc}
+                      size="md"
+                      className="relative z-10 h-11 w-11 transform-gpu transition-transform duration-300 ease-out will-change-transform group-hover:scale-[1.08] motion-reduce:transform-none motion-reduce:transition-none"
+                    />
+                    <span className="absolute -right-2 -top-2 z-30 inline-flex h-7 min-w-7 items-center justify-center rounded-full border-2 border-[#f4f8fc] bg-accent px-1 text-[13px] font-semibold leading-none text-accent-foreground">
+                      {step.step}
+                    </span>
+                  </span>
+                  <h3 className="mt-5 text-[18px] font-semibold leading-[1.35] tracking-[-0.008em] text-navy sm:text-[19px]">
                     {step.title}
                   </h3>
-                  <p className="text-sm leading-7 text-muted">{step.description}</p>
+                  <p className="mx-auto mt-2 max-w-[240px] text-[14.5px] leading-[1.6] text-text-secondary sm:text-[15px]">
+                    {step.description}
+                  </p>
                 </div>
-              </div>
-            </article>
-          ))}
+              </ScrollReveal>
+            );
+          })}
         </div>
-      </PageContainer>
+
+        <div className="relative grid gap-3 lg:hidden">
+          <span className="absolute bottom-8 left-[25px] top-8 w-px bg-primary/20" />
+          {steps.map((step, index) => {
+            const iconSrc =
+              STEP_ICON_PATHS[index] ?? DECORATIVE_ICON_PATHS.checkMark;
+
+            return (
+              <ScrollReveal key={step.step} delay={index * 0.05}>
+                <article className="group relative flex gap-4 rounded-[20px] border border-border bg-white p-5">
+                  <span className="relative z-20 inline-flex h-12 w-12 shrink-0 items-center justify-center overflow-visible rounded-[15px] border border-primary/15 bg-primary-light/55">
+                    <DecorativeIcon
+                      src={iconSrc}
+                      size="sm"
+                      className="h-8 w-8 transform-gpu transition-transform duration-300 ease-out will-change-transform group-hover:scale-[1.08] motion-reduce:transform-none motion-reduce:transition-none"
+                    />
+                    <span className="absolute -right-1.5 -top-1.5 inline-flex h-6 min-w-6 items-center justify-center rounded-full border-2 border-white bg-accent px-1 text-[12.5px] font-semibold leading-none text-accent-foreground">
+                      {step.step}
+                    </span>
+                  </span>
+                  <div className="relative z-20">
+                    <h3 className="text-[17px] font-semibold leading-[1.35] text-navy">
+                      {step.title}
+                    </h3>
+                    <p className="mt-1.5 text-[14.5px] leading-[1.6] text-text-secondary">
+                      {step.description}
+                    </p>
+                  </div>
+                </article>
+              </ScrollReveal>
+            );
+          })}
+        </div>
+      </Container>
     </section>
-  )
+  );
 }

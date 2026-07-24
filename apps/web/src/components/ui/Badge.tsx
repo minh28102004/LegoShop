@@ -14,6 +14,8 @@ const badgeVariants = cva(
         primary: 'border-transparent bg-primary text-primary-foreground',
         success: 'border-transparent bg-success-soft text-success',
         warning: 'border-transparent bg-warning-soft text-warning',
+        highlight:
+          'border-[#e6b93e] bg-[#ffe083] text-[#10253f] shadow-none',
         error: 'border-transparent bg-error text-text-inverse',
         outline: 'border-border bg-background text-navy',
       },
@@ -34,6 +36,7 @@ export type BadgeVariant =
   | 'primary'
   | 'success'
   | 'warning'
+  | 'highlight'
   | 'error'
   | 'outline'
 export type BadgeSize = Extract<Size, 'sm' | 'md'>
@@ -46,10 +49,15 @@ export interface BadgeProps
 }
 
 export const Badge = React.forwardRef<HTMLSpanElement, BadgeProps>(
-  ({ className, size, variant, ...props }, ref) => (
+  ({ className, size, style, variant, ...props }, ref) => (
     <span
       ref={ref}
       className={cn(badgeVariants({ variant, size }), className)}
+      style={
+        variant === 'highlight'
+          ? { ...style, color: '#10253f' }
+          : style
+      }
       {...props}
     />
   ),

@@ -1,26 +1,22 @@
-import { ValidationPipe } from "@nestjs/common";
-import { ConfigService } from "@nestjs/config";
-import { NestFactory } from "@nestjs/core";
+import { ValidationPipe } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
-import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { existsSync } from 'fs';
 import { join } from 'path';
-import { AppModule } from "./app.module";
+import { AppModule } from './app.module';
 
 const DEFAULT_ALLOWED_ORIGINS = [
-  'http://localhost:3000',
   'http://localhost:3001',
   'http://localhost:3002',
-  'http://127.0.0.1:3000',
   'http://127.0.0.1:3001',
   'http://127.0.0.1:3002',
   'https://figure-lab.vercel.app',
   'https://figure-lab-admin.vercel.app',
 ];
 
-const DEFAULT_ALLOWED_ORIGIN_PATTERNS = [
-  /^https:\/\/.*\.vercel\.app$/,
-];
+const DEFAULT_ALLOWED_ORIGIN_PATTERNS = [/^https:\/\/.*\.vercel\.app$/];
 
 function parseOrigins(value?: string): string[] {
   return value
@@ -55,15 +51,6 @@ function parseOriginPatterns(value?: string): RegExp[] {
     : [];
 }
 
-function isLoopbackOrigin(origin: string): boolean {
-  try {
-    const { hostname } = new URL(origin);
-    return hostname === 'localhost' || hostname === '127.0.0.1';
-  } catch {
-    return false;
-  }
-}
-
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
   const config = app.get(ConfigService);
@@ -73,12 +60,14 @@ async function bootstrap() {
   const adminUrl = config.get<string>('ADMIN_URL');
   const corsOrigins = config.get<string>('CORS_ORIGINS');
   const corsOriginPatterns = config.get<string>('CORS_ORIGIN_PATTERNS');
-  const allowedOrigins = new Set([
-    ...DEFAULT_ALLOWED_ORIGINS,
-    ...parseOrigins(frontendUrl),
-    ...parseOrigins(adminUrl),
-    ...parseOrigins(corsOrigins),
-  ].map(normalizeOrigin));
+  const allowedOrigins = new Set(
+    [
+      ...DEFAULT_ALLOWED_ORIGINS,
+      ...parseOrigins(frontendUrl),
+      ...parseOrigins(adminUrl),
+      ...parseOrigins(corsOrigins),
+    ].map(normalizeOrigin),
+  );
   const allowedOriginPatterns = [
     ...DEFAULT_ALLOWED_ORIGIN_PATTERNS,
     ...parseOriginPatterns(corsOriginPatterns),
@@ -88,14 +77,15 @@ async function bootstrap() {
     origin: (origin, callback) => {
       const normalizedOrigin = origin ? normalizeOrigin(origin) : origin;
       const isPatternAllowed = normalizedOrigin
-        ? allowedOriginPatterns.some((pattern) => pattern.test(normalizedOrigin))
+        ? allowedOriginPatterns.some((pattern) =>
+            pattern.test(normalizedOrigin),
+          )
         : false;
 
       if (
         !normalizedOrigin ||
         allowedOrigins.has(normalizedOrigin) ||
-        isPatternAllowed ||
-        isLoopbackOrigin(normalizedOrigin)
+        isPatternAllowed
       ) {
         callback(null, true);
         return;
@@ -138,22 +128,22 @@ async function bootstrap() {
     new ValidationPipe({
       whitelist: true,
       transform: true,
-      forbidNonWhitelisted: true
-    })
+      forbidNonWhitelisted: true,
+    }),
   );
 
   const swaggerConfig = new DocumentBuilder()
-    .setTitle("Lego Shop API")
-    .setDescription("API for customer website, admin, orders and payments")
-    .setVersion("1.0")
+    .setTitle('Lego Shop API')
+    .setDescription('API for customer website, admin, orders and payments')
+    .setVersion('1.0')
     .addBearerAuth()
     .build();
 
   const document = SwaggerModule.createDocument(app, swaggerConfig);
-  SwaggerModule.setup("docs", app, document);
+  SwaggerModule.setup('docs', app, document);
 
-  const port = config.get<number>("PORT") || 3002;
+  const port = Number(config.get<string>('PORT') ?? 3000);
   await app.listen(port);
 }
 
-bootstrap();
+void bootstrap();

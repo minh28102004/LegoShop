@@ -1,0 +1,86 @@
+{
+  "version": 1,
+  "homepage": [
+    {
+      "sourceKey": "home-8e671c73a2a7",
+      "target": "banner",
+      "slot": "hero"
+    },
+    {
+      "sourceKey": "home-5b7e7a1b43de",
+      "target": "banner",
+      "slot": "story"
+    },
+    {
+      "sourceKey": "home-af82065cfc1a",
+      "target": "banner",
+      "slot": "friendship"
+    },
+    {
+      "sourceKey": "home-b5ee178723cb",
+      "target": "banner",
+      "slot": "transformation"
+    },
+    {
+      "sourceKey": "home-3b5f2fba858d",
+      "target": "banner",
+      "slot": "final-cta"
+    }
+  ],
+  "collection": [
+    {
+      "sourceKey": "collection-3f37c96c4ab4",
+      "target": "collection",
+      "slug": "qua-tot-nghiep",
+      "name": "Quà tốt nghiệp",
+      "description": "Khung minifigure lưu dấu lễ tốt nghiệp, ngành học và chặng đường đáng nhớ.",
+      "sortOrder": -60,
+      "createIfMissing": true
+    },
+    {
+      "sourceKey": "collection-d8160872fceb",
+      "target": "collection",
+      "slug": "qua-sinh-nhat",
+      "name": "Quà sinh nhật",
+      "description": "Món quà sinh nhật được thiết kế theo tính cách, sở thích và câu chuyện riêng.",
+      "sortOrder": -50,
+      "createIfMissing": true
+    },
+    {
+      "sourceKey": "collection-df6758460466",
+      "target": "collection",
+      "slug": "qua-ky-niem",
+      "name": "Quà kỷ niệm",
+      "description": "Gói những cột mốc bên nhau thành một khung minifigure giàu cảm xúc.",
+      "sortOrder": -40,
+      "createIfMissing": true
+    },
+    {
+      "sourceKey": "collection-4961e02adadd",
+      "target": "collection",
+      "slug": "qua-tinh-yeu",
+      "name": "Quà tình yêu",
+      "description": "Thiết kế dành cho hai người với ngày đặc biệt, lời nhắn và chi tiết thân quen.",
+      "sortOrder": -30,
+      "createIfMissing": true
+    },
+    {
+      "sourceKey": "collection-bfa4e942eb65",
+      "target": "collection",
+      "slug": "qua-nghe-nghiep",
+      "name": "Quà nghề nghiệp",
+      "description": "Tôn vinh nghề nghiệp, thành tựu và những dấu ấn riêng trong công việc.",
+      "sortOrder": -20,
+      "createIfMissing": true
+    },
+    {
+      "sourceKey": "collection-dd3cf66a1bfd",
+      "target": "collection",
+      "slug": "qua-doanh-nghiep",
+      "name": "Quà doanh nghiệp",
+      "description": "Quà tri ân cá nhân hóa cho đồng nghiệp, quản lý, đối tác và đội ngũ.",
+      "sortOrder": -10,
+      "createIfMissing": true
+    }
+  ]
+}

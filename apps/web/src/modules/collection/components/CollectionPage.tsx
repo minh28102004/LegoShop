@@ -13,6 +13,7 @@ import type {
   PublicProductsQuery,
   PublicProductsSort,
 } from "@lego-shop/shared";
+import { PRODUCT_TYPE } from "@lego-shop/shared";
 import {
   Boxes,
   LayoutGrid,
@@ -34,11 +35,11 @@ import { useI18n } from "@/lib/i18n/useI18n";
 import { resolveApiAssetUrl } from "@/lib/api/assets";
 import { publicApiClient } from "@/lib/api/public-client";
 import { withProductImageFallback } from "@/lib/product-image-fallback";
-import { CharacterBuilderShop } from "@/modules/lego-frame/components/CharacterBuilderShop";
 import { ProductCard } from "@/modules/home/components/ProductCard";
 import { ProductTemplateDetailModal } from "@/modules/home/components/ProductTemplateDetailModal";
 import type { HomeFeaturedProduct } from "@/modules/home/types/home.types";
 import { CollectionFilterDrawer } from "@/modules/collection/components/CollectionFilterDrawer";
+import { CollectionCharacterCard } from "@/modules/collection/components/CollectionCharacterCard";
 import { CollectionPagination } from "@/modules/collection/components/CollectionPagination";
 import { CollectionRetailGrid } from "@/modules/collection/components/CollectionRetailGrid";
 import type { CollectionDictionary } from "@/lib/i18n/dictionaries";
@@ -387,10 +388,10 @@ export function CollectionPage() {
     [searchParams],
   );
   const [products, setProducts] = useState<HomeFeaturedProduct[]>([]);
+  const [characterProducts, setCharacterProducts] = useState<Product[]>([]);
   const [meta, setMeta] = useState<PublicProductsMeta>(DEFAULT_META);
   const [collections, setCollections] = useState<Collection[]>([]);
   const [frameSizes, setFrameSizes] = useState<FrameSize[]>([]);
-  const [characterParts, setCharacterParts] = useState<CharacterPart[]>([]);
   const [retailCatalog, setRetailCatalog] = useState<CollectionRetailItem[]>(
     [],
   );
@@ -398,6 +399,9 @@ export function CollectionPage() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [filterOpen, setFilterOpen] = useState(false);
   const [selectedSlug, setSelectedSlug] = useState<string | null>(null);
+  const [selectedCharacterId, setSelectedCharacterId] = useState<string | null>(
+    null,
+  );
   const [isToolbarStuck, setIsToolbarStuck] = useState(false);
   const requestId = useRef(0);
   const templateAbortController = useRef<AbortController | null>(null);
@@ -484,8 +488,6 @@ export function CollectionPage() {
   }, [pathname, router, searchParams]);
 
   useEffect(() => {
-    if (tab === "characters") return;
-
     const toolbar = toolbarRef.current;
     if (!toolbar) return;
 
@@ -543,7 +545,7 @@ export function CollectionPage() {
     };
   }, []);
 
-  const loadTemplates = useCallback(async () => {
+  const loadCatalog = useCallback(async () => {
     templateAbortController.current?.abort();
     const controller = new AbortController();
     templateAbortController.current = controller;
@@ -554,6 +556,16 @@ export function CollectionPage() {
       page,
       pageSize,
       sort,
+      types:
+        tab === "characters"
+          ? [PRODUCT_TYPE.LEGO_CHARACTER]
+          : [
+              PRODUCT_TYPE.RETAIL,
+              PRODUCT_TYPE.FINISHED,
+              PRODUCT_TYPE.PREMADE_CHARACTER,
+              PRODUCT_TYPE.DIY_KIT,
+              PRODUCT_TYPE.FRAME_TEMPLATE,
+            ],
       ...(urlSearch ? { search: urlSearch } : {}),
       ...(selectedCollections.length > 0
         ? { collections: selectedCollections }
@@ -588,10 +600,12 @@ export function CollectionPage() {
         });
       if (currentRequest !== requestId.current) return;
       if (Array.isArray(response)) {
-        const mapped = response.map((item, index) =>
-          toFeaturedProduct(item as Product, index),
+        const rawItems = response as Product[];
+        const mapped = rawItems.map((item, index) =>
+          toFeaturedProduct(item, index),
         );
-        setProducts(mapped);
+        if (tab === "characters") setCharacterProducts(rawItems);
+        else setProducts(mapped);
         setMeta({
           ...DEFAULT_META,
           pageSize,
@@ -604,9 +618,13 @@ export function CollectionPage() {
           meta?: Partial<PublicProductsMeta>;
         };
         const items = Array.isArray(payload.items) ? payload.items : [];
-        setProducts(
-          items.map((item, index) => toFeaturedProduct(item as Product, index)),
-        );
+        const rawItems = items as Product[];
+        if (tab === "characters") setCharacterProducts(rawItems);
+        else {
+          setProducts(
+            rawItems.map((item, index) => toFeaturedProduct(item, index)),
+          );
+        }
         setMeta({
           page: Math.max(1, Number(payload.meta?.page) || 1),
           pageSize: Math.max(1, Number(payload.meta?.pageSize) || pageSize),
@@ -619,7 +637,8 @@ export function CollectionPage() {
     } catch (error) {
       if (controller.signal.aborted || isAbortError(error)) return;
       if (currentRequest !== requestId.current) return;
-      setProducts([]);
+      if (tab === "characters") setCharacterProducts([]);
+      else setProducts([]);
       setMeta({ ...DEFAULT_META, pageSize });
       setLoadError(error instanceof Error ? error.message : labels.loadError);
     } finally {
@@ -635,45 +654,20 @@ export function CollectionPage() {
     pageSize,
     selectedCollections,
     sort,
+    tab,
     urlSearch,
   ]);
 
   useEffect(() => {
-    if (tab !== "templates") return;
-    const timer = window.setTimeout(() => void loadTemplates(), 0);
+    if (tab !== "templates" && tab !== "characters") return;
+    const timer = window.setTimeout(() => void loadCatalog(), 0);
     return () => {
       window.clearTimeout(timer);
       const controller = templateAbortController.current;
       templateAbortController.current = null;
       controller?.abort();
     };
-  }, [loadTemplates, tab]);
-
-  useEffect(() => {
-    if (tab !== "characters") return;
-    const timer = window.setTimeout(() => {
-      const currentRequest = ++requestId.current;
-      setIsLoading(true);
-      setLoadError(null);
-      publicApiClient.products
-        .listCharacterParts()
-        .then((items) => {
-          if (currentRequest !== requestId.current) return;
-          setCharacterParts(Array.isArray(items) ? items : []);
-        })
-        .catch((error: unknown) => {
-          if (currentRequest !== requestId.current) return;
-          setCharacterParts([]);
-          setLoadError(
-            error instanceof Error ? error.message : labels.loadError,
-          );
-        })
-        .finally(() => {
-          if (currentRequest === requestId.current) setIsLoading(false);
-        });
-    }, 0);
-    return () => window.clearTimeout(timer);
-  }, [labels.loadError, tab]);
+  }, [loadCatalog, tab]);
 
   useEffect(() => {
     if (tab !== "parts") return;
@@ -848,16 +842,13 @@ export function CollectionPage() {
     <main className="min-h-screen min-w-0 overflow-x-clip bg-[#f4f6f8] pb-20 text-navy">
       <section className="border-b border-slate-200/75 bg-white">
         <Container size="full" className="max-w-[1520px] px-4 sm:px-6 lg:px-8">
-          <div className="flex min-h-[174px] w-full min-w-0 max-w-full flex-col items-center justify-center py-5 text-center sm:min-h-[182px]">
-            <p className="text-xs font-bold uppercase tracking-[0.18em] text-primary-dark">
-              {labels.eyebrow}
-            </p>
-            <h1 className="mt-2.5 text-[clamp(2.1rem,3.4vw,3.5rem)] font-bold leading-[1.02] tracking-[-0.04em] text-navy">
-              {labels.title}
+          <div className="flex min-h-[148px] w-full min-w-0 max-w-full flex-col items-center justify-center py-6 text-center sm:min-h-[158px]">
+            <h1 className="flex flex-wrap items-baseline justify-center gap-x-2.5 text-[clamp(1.75rem,2.7vw,2.75rem)] font-extrabold leading-[1.08] tracking-[-0.04em] text-navy sm:gap-x-3">
+              <span>{labels.title}</span>
+              <span className="font-serif font-semibold italic tracking-[-0.035em] text-primary-dark">
+                {labels.brand}
+              </span>
             </h1>
-            <p className="mx-auto mt-3 max-w-[340px] whitespace-normal break-words px-1 text-sm leading-6 text-text-muted sm:max-w-2xl sm:text-base">
-              {labels.description}
-            </p>
 
             <div className="mt-5 w-full min-w-0 max-w-full pb-1">
               <div className="mx-auto flex w-full min-w-0 max-w-[380px] gap-0.5 rounded-2xl border border-border/80 bg-white p-1 shadow-sm sm:w-max sm:max-w-none sm:gap-1">
@@ -893,7 +884,7 @@ export function CollectionPage() {
         </Container>
       </section>
 
-      {tab !== "characters" ? (
+      {tab !== "parts" ? (
         <div
           ref={toolbarRef}
           className={`sticky top-0 z-30 w-full border-y border-slate-200/80 bg-white/95 px-4 py-2.5 backdrop-blur-xl transition-shadow duration-200 sm:px-6 lg:px-8 ${
@@ -902,10 +893,10 @@ export function CollectionPage() {
               : "shadow-none"
           }`}
         >
-          <div className="mx-auto grid w-full min-w-0 max-w-[1520px] grid-cols-2 items-center gap-2 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-[minmax(260px,1fr)_230px_auto_168px_116px] xl:grid-cols-[minmax(320px,1fr)_250px_auto_190px_128px]">
+          <div className="mx-auto grid w-full min-w-0 max-w-[1280px] grid-cols-2 items-center gap-2 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-[minmax(210px,1fr)_220px_auto_164px_140px] xl:grid-cols-[minmax(240px,1fr)_240px_auto_184px_150px]">
             <div
               className={
-                tab === "templates"
+                tab === "templates" || tab === "characters"
                   ? "col-span-2 min-w-0 sm:col-span-2 md:col-span-4 lg:col-span-1"
                   : "col-span-2 min-w-0 sm:col-span-2 md:col-span-4 lg:col-span-5"
               }
@@ -920,7 +911,7 @@ export function CollectionPage() {
               />
             </div>
 
-            {tab === "templates" ? (
+            {tab === "templates" || tab === "characters" ? (
               <>
                 <SearchableMultiSelect
                   ariaLabel={labels.otherCollections}
@@ -965,7 +956,8 @@ export function CollectionPage() {
                       label: labels.sorts[option],
                       value: option,
                     }))}
-                    className="min-w-0 overflow-hidden px-3 font-semibold shadow-none sm:px-4"
+                    className="min-w-0 overflow-hidden px-3 text-[13px] font-semibold shadow-none sm:px-4"
+                    itemClassName="whitespace-nowrap text-[13px]"
                     controlSize="compact"
                     onValueChange={(value) =>
                       replaceQuery({ sort: value, page: undefined })
@@ -981,7 +973,8 @@ export function CollectionPage() {
                       label: `${option} / ${labels.pageSizeShort}`,
                       value: String(option),
                     }))}
-                    className="min-w-0 overflow-hidden px-3 font-semibold shadow-none sm:px-4"
+                    className="min-w-0 overflow-hidden px-3 text-[13px] font-semibold shadow-none sm:px-4"
+                    itemClassName="whitespace-nowrap text-[13px]"
                     controlSize="compact"
                     onValueChange={(value) => {
                       const nextPageSize = Number(value);
@@ -1000,7 +993,8 @@ export function CollectionPage() {
       ) : null}
 
       <Container size="full" className="max-w-[1520px] px-4 sm:px-6 lg:px-8">
-        {tab === "templates" && activeFilterLabels.length > 0 ? (
+        {(tab === "templates" || tab === "characters") &&
+        activeFilterLabels.length > 0 ? (
           <div className="mt-4 flex flex-wrap items-center gap-2">
             <span className="mr-1 text-xs font-bold uppercase tracking-[0.08em] text-text-muted">
               {labels.activeFilters}
@@ -1031,7 +1025,7 @@ export function CollectionPage() {
           className="mb-5 mt-7 flex scroll-mt-[148px] items-center justify-between gap-4"
         >
           <p className="text-sm font-semibold text-text-muted">
-            {tab === "templates"
+            {tab === "templates" || tab === "characters"
               ? labels.resultRange(resultStart, resultEnd, meta.totalItems)
               : tab === "parts"
                 ? labels.resultCount(filteredRetail.length)
@@ -1052,7 +1046,8 @@ export function CollectionPage() {
               type="button"
               className="mt-5 h-11 rounded-xl bg-navy px-5 text-sm font-bold text-white transition-colors hover:bg-primary-dark"
               onClick={() => {
-                if (tab === "templates") void loadTemplates();
+                if (tab === "templates" || tab === "characters")
+                  void loadCatalog();
                 else router.refresh();
               }}
             >
@@ -1061,7 +1056,7 @@ export function CollectionPage() {
           </div>
         ) : isLoading ? (
           <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3 min-[1200px]:grid-cols-4 xl:grid-cols-4 xl:gap-6">
-            {Array.from({ length: tab === "characters" ? 3 : 8 }).map(
+            {Array.from({ length: 8 }).map(
               (_, index) => (
                 <ProductSkeleton key={index} />
               ),
@@ -1144,7 +1139,69 @@ export function CollectionPage() {
             </div>
           )
         ) : tab === "characters" ? (
-          <CharacterBuilderShop parts={characterParts} loading={false} />
+          characterProducts.length > 0 ? (
+            <>
+              <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3 min-[1200px]:grid-cols-4 xl:grid-cols-4 xl:gap-6">
+                {characterProducts.map((product, index) => (
+                  <CollectionCharacterCard
+                    key={product.id}
+                    labels={labels.characterProduct}
+                    product={product}
+                    productIndex={index}
+                    selected={selectedCharacterId === product.id}
+                    onOpen={() => setSelectedCharacterId(product.id)}
+                    onClose={() => setSelectedCharacterId(null)}
+                  />
+                ))}
+              </div>
+              <CollectionPagination
+                labels={labels}
+                page={meta.page}
+                totalPages={meta.totalPages}
+                onChange={(nextPage) => {
+                  replaceQuery({ page: nextPage === 1 ? undefined : nextPage });
+                  document
+                    .getElementById("collection-results")
+                    ?.scrollIntoView({
+                      behavior: "smooth",
+                      block: "start",
+                    });
+                }}
+              />
+            </>
+          ) : (
+            <div className="min-w-0 max-w-full overflow-hidden rounded-[28px] border border-dashed border-border bg-white px-5 py-16 text-center sm:px-6">
+              <PackageSearch className="mx-auto h-10 w-10 text-primary/55" />
+              <h2 className="mt-4 text-xl font-bold text-navy">
+                {labels.characterProduct.emptyTitle}
+              </h2>
+              <p className="mx-auto mt-2 max-w-lg text-sm font-medium leading-6 text-text-muted">
+                {labels.characterProduct.emptyDescription}
+              </p>
+              <button
+                type="button"
+                className="mt-5 h-11 rounded-xl bg-primary px-5 text-sm font-bold text-white transition-colors hover:bg-primary-dark"
+                onClick={() => {
+                  replaceQuery({
+                    search: undefined,
+                    page: undefined,
+                    categoryIds: undefined,
+                    minPrice: undefined,
+                    maxPrice: undefined,
+                    characterCounts: undefined,
+                    charmCounts: undefined,
+                    statuses: undefined,
+                    featured: undefined,
+                    isNew: undefined,
+                    includedGift: undefined,
+                    frameSize: undefined,
+                  });
+                }}
+              >
+                {labels.emptyAction}
+              </button>
+            </div>
+          )
         ) : (
           <CollectionRetailGrid items={filteredRetail} labels={labels} />
         )}

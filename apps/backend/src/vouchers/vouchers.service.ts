@@ -192,8 +192,10 @@ export class VouchersService {
     if (dto.description !== undefined) data.description = dto.description;
     if (dto.discountType !== undefined) data.discountType = dto.discountType;
     if (dto.discountValue !== undefined) data.discountValue = dto.discountValue;
-    if (dto.minOrderAmount !== undefined) data.minOrderAmount = dto.minOrderAmount;
-    if (dto.maxDiscountAmount !== undefined) data.maxDiscountAmount = dto.maxDiscountAmount;
+    if (dto.minOrderAmount !== undefined)
+      data.minOrderAmount = dto.minOrderAmount;
+    if (dto.maxDiscountAmount !== undefined)
+      data.maxDiscountAmount = dto.maxDiscountAmount;
     if (dto.usageLimit !== undefined) data.usageLimit = dto.usageLimit;
     if (dto.startsAt !== undefined) {
       data.startsAt = dto.startsAt ? new Date(dto.startsAt) : null;
@@ -271,10 +273,7 @@ export class VouchersService {
     };
   }
 
-  async markVoucherUsed(
-    tx: Prisma.TransactionClient,
-    voucherId: string,
-  ) {
+  async markVoucherUsed(tx: Prisma.TransactionClient, voucherId: string) {
     const voucher = await tx.voucher.findUnique({
       where: { id: voucherId },
       select: { usageLimit: true, usedCount: true },
@@ -284,7 +283,10 @@ export class VouchersService {
       throw new BadRequestException('Voucher code not found');
     }
 
-    if (voucher.usageLimit !== null && voucher.usedCount >= voucher.usageLimit) {
+    if (
+      voucher.usageLimit !== null &&
+      voucher.usedCount >= voucher.usageLimit
+    ) {
       throw new BadRequestException('Voucher usage limit has been reached');
     }
 
@@ -311,10 +313,15 @@ export class VouchersService {
     discountValue: number,
   ) {
     if (discountValue <= 0) {
-      throw new BadRequestException('Voucher discount value must be greater than 0');
+      throw new BadRequestException(
+        'Voucher discount value must be greater than 0',
+      );
     }
 
-    if (discountType === VoucherDiscountType.percentage && discountValue > 100) {
+    if (
+      discountType === VoucherDiscountType.percentage &&
+      discountValue > 100
+    ) {
       throw new BadRequestException('Percentage voucher cannot exceed 100');
     }
   }
@@ -342,7 +349,10 @@ export class VouchersService {
       throw new BadRequestException('Voucher has expired');
     }
 
-    if (voucher.usageLimit !== null && voucher.usedCount >= voucher.usageLimit) {
+    if (
+      voucher.usageLimit !== null &&
+      voucher.usedCount >= voucher.usageLimit
+    ) {
       throw new BadRequestException('Voucher usage limit has been reached');
     }
 

@@ -69,6 +69,12 @@ export class CreateProductDto implements CreateProductRequestContract {
   @IsString()
   description?: string;
 
+  @ApiPropertyOptional({ example: 'Nhân vật LEGO tốt nghiệp cá nhân hóa.' })
+  @Transform(trimOptionalString)
+  @IsOptional()
+  @IsString()
+  shortDescription?: string;
+
   @ApiProperty({
     example: 299000,
     minimum: 0,
@@ -77,6 +83,13 @@ export class CreateProductDto implements CreateProductRequestContract {
   @IsInt()
   @Min(0)
   basePrice: number;
+
+  @ApiPropertyOptional({ example: 349000 })
+  @Type(() => Number)
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  compareAtPrice?: number | null;
 
   @ApiPropertyOptional({
     type: [String],
@@ -87,6 +100,12 @@ export class CreateProductDto implements CreateProductRequestContract {
   @IsString({ each: true })
   images?: string[];
 
+  @ApiPropertyOptional({ example: '/uploads/admin/character-preview.png' })
+  @Transform(trimOptionalString)
+  @IsOptional()
+  @IsString()
+  thumbnailUrl?: string;
+
   @ApiPropertyOptional({
     enum: PRODUCT_TYPE,
     example: PRODUCT_TYPE.FINISHED,
@@ -94,6 +113,36 @@ export class CreateProductDto implements CreateProductRequestContract {
   @IsOptional()
   @IsEnum(PRODUCT_TYPE)
   productType?: ProductType;
+
+  @ApiPropertyOptional({ example: 'graduation' })
+  @Transform(trimOptionalString)
+  @IsOptional()
+  @IsString()
+  category?: string;
+
+  @ApiPropertyOptional({ example: 'available' })
+  @Transform(trimOptionalString)
+  @IsOptional()
+  @IsString()
+  availability?: string;
+
+  @ApiPropertyOptional({ example: 20 })
+  @Type(() => Number)
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  inventory?: number | null;
+
+  @ApiPropertyOptional({ example: true })
+  @IsOptional()
+  @IsBoolean()
+  published?: boolean;
+
+  @ApiPropertyOptional()
+  @Transform(trimOptionalString)
+  @IsOptional()
+  @IsString()
+  characterPresetId?: string | null;
 
   @ApiPropertyOptional({
     type: Object,

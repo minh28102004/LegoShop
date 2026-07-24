@@ -38,9 +38,26 @@ const POLAROID_PRICES: Record<string, number> = {
   '2': 15_000,
   '4': 25_000,
 };
+const SHIPPING_OPTIONS = [
+  { id: 'hcm_inner', fee: 25_000 },
+  { id: 'hcm_outer', fee: 35_000 },
+  { id: 'nationwide', fee: 45_000 },
+] as const;
+type CheckoutShippingMethod = (typeof SHIPPING_OPTIONS)[number]['id'];
+const SHIPPING_FEES: Record<CheckoutShippingMethod, number> =
+  Object.fromEntries(
+    SHIPPING_OPTIONS.map(({ id, fee }) => [id, fee]),
+  ) as Record<CheckoutShippingMethod, number>;
 
 type ResolvedOrderItem = {
   productId?: string;
+  lineItemType:
+    | 'frame'
+    | 'standalone_character'
+    | 'custom_character'
+    | 'retail_part';
+  productType?: string;
+  customName?: string;
   productName: string;
   quantity: number;
   price: number;
@@ -57,6 +74,7 @@ type ResolvedOrderItem = {
     quantity: number;
   }>;
   designData?: Record<string, unknown>;
+  componentSnapshot?: Record<string, unknown>;
   previewUrl?: string;
 };
 
@@ -74,6 +92,31 @@ type ResolvedCharacterPart = {
   type: CharacterPartType;
   imageUrl: string;
   priceAdjustment: number;
+};
+
+type ResolvedCharacterPreset = {
+  id: string;
+  name: string;
+  facePart: ResolvedCharacterPart | null;
+  hairPart: ResolvedCharacterPart | null;
+  torsoPart: ResolvedCharacterPart | null;
+  legsPart: ResolvedCharacterPart | null;
+  hatPart: ResolvedCharacterPart | null;
+  accessories: Array<{
+    quantity: number;
+    part: ResolvedCharacterPart;
+  }>;
+};
+
+type ResolvedOrderProduct = {
+  id: string;
+  name: string;
+  basePrice: number;
+  productType: string;
+  characterPresetId: string | null;
+  inventory: number | null;
+  componentConfig: Prisma.JsonValue;
+  characterPreset: ResolvedCharacterPreset | null;
 };
 
 type ResolvedProductFrameSize = {
@@ -185,18 +228,7 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
     const pricing = await this.createPricingSummary(dto, resolvedItems);
     const paymentSettings = await this.paymentSettingsService.getSettings();
 
-    if (
-      dto.paymentMethod === PaymentMethod.COD &&
-      !paymentSettings.codEnabled &&
-      !paymentSettings.codDepositEnabled
-    ) {
-      throw new BadRequestException('COD payment is disabled');
-    }
-
-    if (
-      dto.paymentMethod === PaymentMethod.PAYOS &&
-      !paymentSettings.payosEnabled
-    ) {
+    if (!paymentSettings.payosEnabled) {
       throw new BadRequestException('PAYOS payment is disabled');
     }
 
@@ -301,17 +333,7 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
 
   async quoteCart(dto: CartQuoteDto) {
     const paymentSettings = await this.paymentSettingsService.getSettings();
-    if (
-      dto.paymentMethod === PaymentMethod.COD &&
-      !paymentSettings.codEnabled &&
-      !paymentSettings.codDepositEnabled
-    ) {
-      throw new BadRequestException('COD payment is disabled');
-    }
-    if (
-      dto.paymentMethod === PaymentMethod.PAYOS &&
-      !paymentSettings.payosEnabled
-    ) {
+    if (dto.paymentMethod && !paymentSettings.payosEnabled) {
       throw new BadRequestException('PAYOS payment is disabled');
     }
 
@@ -321,6 +343,9 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
           const [resolved] = await this.resolveOrderItems([
             {
               productId: item.productId,
+              lineItemType: item.lineItemType,
+              productType: item.productType,
+              customName: item.customName,
               productName: item.productName,
               quantity: item.quantity,
               price: item.priceSnapshot,
@@ -355,6 +380,9 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
               quantity: resolved.quantity,
               lineTotal: resolved.price * resolved.quantity,
               productName: resolved.productName,
+              lineItemType: resolved.lineItemType,
+              productType: resolved.productType,
+              customName: resolved.customName,
               warnings: priceChanged
                 ? [
                     {
@@ -392,7 +420,11 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
     const resolvedItems = itemResults.flatMap((result) =>
       result.resolved ? [result.resolved] : [],
     );
-    const pricing = await this.createPricingSummary(dto, resolvedItems);
+    const pricing = await this.createPricingSummary(
+      dto,
+      resolvedItems,
+      Boolean(dto.shippingMethod),
+    );
 
     return {
       items,
@@ -401,7 +433,7 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
       polaroidFee: pricing.polaroidFee,
       addOnTotal: pricing.giftFee + pricing.polaroidFee,
       discount: pricing.discountAmount,
-      shipping: null,
+      shipping: pricing.shippingFee,
       total: pricing.totalAmount,
       valid: items.every((item) => item.valid),
       quotedAt: new Date().toISOString(),
@@ -412,12 +444,12 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
     const payment = await this.paymentSettingsService.getSettings();
     return {
       payment: {
-        codEnabled: payment.codEnabled,
+        codEnabled: false,
         payosEnabled: payment.payosEnabled,
-        codDepositEnabled: payment.codDepositEnabled,
-        codDepositPercent: payment.codDepositPercent,
+        codDepositEnabled: false,
+        codDepositPercent: 0,
       },
-      shippingMethods: ['shop_support', 'self'] as const,
+      shippingMethods: SHIPPING_OPTIONS,
       giftPackage: {
         enabled: true,
         pricePerItem: GIFT_PACKAGE_FEE_PER_ITEM,
@@ -788,12 +820,84 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
             in: uniqueProductIds,
           },
           status: ProductStatus.active,
+          published: true,
+          availability: 'available',
+          OR: [{ inventory: null }, { inventory: { gt: 0 } }],
         },
         select: {
           id: true,
           name: true,
           basePrice: true,
+          productType: true,
+          characterPresetId: true,
+          inventory: true,
           componentConfig: true,
+          characterPreset: {
+            select: {
+              id: true,
+              name: true,
+              facePart: {
+                select: {
+                  id: true,
+                  name: true,
+                  type: true,
+                  imageUrl: true,
+                  priceAdjustment: true,
+                },
+              },
+              hairPart: {
+                select: {
+                  id: true,
+                  name: true,
+                  type: true,
+                  imageUrl: true,
+                  priceAdjustment: true,
+                },
+              },
+              torsoPart: {
+                select: {
+                  id: true,
+                  name: true,
+                  type: true,
+                  imageUrl: true,
+                  priceAdjustment: true,
+                },
+              },
+              legsPart: {
+                select: {
+                  id: true,
+                  name: true,
+                  type: true,
+                  imageUrl: true,
+                  priceAdjustment: true,
+                },
+              },
+              hatPart: {
+                select: {
+                  id: true,
+                  name: true,
+                  type: true,
+                  imageUrl: true,
+                  priceAdjustment: true,
+                },
+              },
+              accessories: {
+                orderBy: { sortOrder: 'asc' },
+                select: {
+                  quantity: true,
+                  part: {
+                    select: {
+                      id: true,
+                      name: true,
+                      type: true,
+                      imageUrl: true,
+                      priceAdjustment: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
         },
       }),
       this.prisma.frameOption.findMany({
@@ -845,6 +949,8 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
       this.prisma.characterPart.findMany({
         where: {
           status: ProductStatus.active,
+          isActive: true,
+          availability: 'available',
         },
         select: {
           id: true,
@@ -918,6 +1024,11 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
             `Product ${item.productId} is not available`,
           );
         }
+        if (product.inventory !== null && product.inventory < item.quantity) {
+          throw new BadRequestException(
+            `Product ${item.productId} does not have enough inventory`,
+          );
+        }
 
         const resolvedAccessories = this.resolveAccessorySnapshot(
           item,
@@ -935,6 +1046,15 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
 
         return {
           productId: product.id,
+          lineItemType:
+            product.productType === 'lego_character' ||
+            product.productType === 'premade_character'
+              ? 'standalone_character'
+              : product.productType === 'loose_part'
+                ? 'retail_part'
+                : 'frame',
+          productType: product.productType,
+          customName: this.readString(item.customName),
           productName: product.name,
           quantity: item.quantity,
           price,
@@ -946,6 +1066,7 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
           note: item.note,
           accessories: resolvedAccessories,
           designData: item.designData,
+          componentSnapshot: this.createProductComponentSnapshot(product),
           previewUrl: item.previewUrl,
         };
       }
@@ -1005,6 +1126,9 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
 
       return {
         productId: undefined,
+        lineItemType: 'frame',
+        productType: 'custom_frame',
+        customName: this.readString(item.customName),
         productName: item.productName || 'Khung LEGO tuy chinh',
         quantity: item.quantity,
         price: serverComputedPrice,
@@ -1016,6 +1140,12 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
         note: item.note,
         accessories: resolvedAccessories,
         designData,
+        componentSnapshot: this.createFrameComponentSnapshot({
+          frameOption,
+          backgroundId,
+          accessories: resolvedAccessories,
+          designData,
+        }),
         previewUrl: item.previewUrl,
       };
     });
@@ -1048,6 +1178,9 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
       this.assertFrameQuantity(frameOption, item.quantity);
 
       return {
+        lineItemType: 'frame',
+        productType: 'frame_template',
+        customName: this.readString(item.customName),
         productName: item.productName || frameOption.label,
         quantity: item.quantity,
         price: frameOption.price,
@@ -1057,6 +1190,13 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
         frameColorName: item.frameColorName,
         note: item.note,
         designData: item.designData,
+        componentSnapshot: {
+          frame: {
+            id: frameOption.id,
+            label: frameOption.label,
+            price: frameOption.price,
+          },
+        },
         previewUrl: item.previewUrl,
       };
     }
@@ -1077,12 +1217,21 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
       }
 
       return {
+        lineItemType: 'retail_part',
+        productType: 'loose_part',
+        customName: this.readString(item.customName),
         productName: item.productName || background.title,
         quantity: item.quantity,
         price: Math.max(0, item.price),
         backgroundId,
         note: item.note,
         designData: item.designData,
+        componentSnapshot: {
+          background: {
+            id: background.id,
+            name: background.title,
+          },
+        },
         previewUrl: item.previewUrl,
       };
     }
@@ -1104,6 +1253,9 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
       );
 
       return {
+        lineItemType: 'retail_part',
+        productType: 'loose_part',
+        customName: this.readString(item.customName),
         productName:
           item.productName ||
           resolvedAccessories.map((accessory) => accessory.name).join(', '),
@@ -1112,6 +1264,9 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
         note: item.note,
         accessories: resolvedAccessories,
         designData: item.designData,
+        componentSnapshot: {
+          accessories: resolvedAccessories,
+        },
         previewUrl: item.previewUrl,
       };
     }
@@ -1123,11 +1278,17 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
       }
 
       return {
+        lineItemType: 'retail_part',
+        productType: 'loose_part',
+        customName: this.readString(item.customName),
         productName: item.productName || part.name,
         quantity: item.quantity,
         price: Math.max(0, part.priceAdjustment),
         note: item.note,
         designData: item.designData,
+        componentSnapshot: {
+          parts: [this.toCharacterPartSnapshot(part)],
+        },
         previewUrl: item.previewUrl || part.imageUrl,
       };
     }
@@ -1180,6 +1341,15 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
       : {};
 
     return {
+      lineItemType: 'custom_character',
+      productType: 'custom_character',
+      customName:
+        this.readString(item.customName) ||
+        this.readString(
+          this.isRecord(item.designData?.character)
+            ? item.designData.character.name
+            : undefined,
+        ),
       productName: item.productName || 'Nhan vat LEGO tuy rap',
       quantity: item.quantity,
       price,
@@ -1195,6 +1365,10 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
           imageUrl: part.imageUrl,
           priceAdjustment: Math.max(0, part.priceAdjustment),
         })),
+      },
+      componentSnapshot: {
+        basePrice: CHARACTER_PRICE,
+        parts: selectedParts.map((part) => this.toCharacterPartSnapshot(part)),
       },
       previewUrl: item.previewUrl || selectedParts[0]?.imageUrl,
     };
@@ -1246,14 +1420,18 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
   private async createPricingSummary(
     dto: CheckoutPricingSelection,
     items: ResolvedOrderItem[],
+    includeShipping = true,
   ): Promise<OrderPricingSummary> {
     const itemsAmount = items.reduce(
       (sum, item) => sum + item.price * item.quantity,
       0,
     );
     const itemCount = items.reduce((sum, item) => sum + item.quantity, 0);
-    const shippingMethod = dto.shippingMethod ?? 'shop_support';
-    const shippingFee = this.getShippingFee();
+    const shippingMethod = (dto.shippingMethod ??
+      SHIPPING_OPTIONS[0].id) as CheckoutShippingMethod;
+    const shippingFee = includeShipping
+      ? this.getShippingFee(shippingMethod)
+      : 0;
     const giftPackage = dto.giftPackage === true;
     const giftFee = giftPackage ? itemCount * GIFT_PACKAGE_FEE_PER_ITEM : 0;
     const polaroidOption = dto.polaroidOption ?? 'none';
@@ -1345,6 +1523,7 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
       items
         .filter((item) => !item.productId && item.frameSizeId)
         .map((item) => ({
+          lineItemType: 'frame' as const,
           productName: '',
           quantity: item.quantity,
           price: 0,
@@ -1385,8 +1564,8 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
     }, new Map<string, number>());
   }
 
-  private getShippingFee() {
-    return 0;
+  private getShippingFee(shippingMethod: CheckoutShippingMethod) {
+    return SHIPPING_FEES[shippingMethod];
   }
 
   private getCustomFrameOptionId(item: CreateOrderItemDto): string | undefined {
@@ -1409,11 +1588,85 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
   }
 
   private isRetailOrderItem(item: CreateOrderItemDto) {
-    return this.readString(item.designData?.type) === 'RETAIL_ITEM';
+    return (
+      this.readString(item.designData?.type) === 'RETAIL_ITEM' &&
+      this.readString(item.designData?.retailType) !== 'product'
+    );
   }
 
   private isCustomCharacterOrderItem(item: CreateOrderItemDto) {
     return this.readString(item.designData?.type) === 'CUSTOM_CHARACTER';
+  }
+
+  private toCharacterPartSnapshot(part: ResolvedCharacterPart) {
+    return {
+      id: part.id,
+      name: part.name,
+      type: part.type,
+      imageUrl: part.imageUrl,
+      price: Math.max(0, part.priceAdjustment),
+    };
+  }
+
+  private createProductComponentSnapshot(product: ResolvedOrderProduct) {
+    const preset = product.characterPreset;
+    const parts = preset
+      ? [
+          preset.facePart,
+          preset.hairPart,
+          preset.torsoPart,
+          preset.legsPart,
+          preset.hatPart,
+        ]
+          .filter((part): part is ResolvedCharacterPart => Boolean(part))
+          .map((part) => this.toCharacterPartSnapshot(part))
+      : [];
+
+    return {
+      productId: product.id,
+      productType: product.productType,
+      characterPresetId: product.characterPresetId,
+      preset: preset
+        ? {
+            id: preset.id,
+            name: preset.name,
+          }
+        : null,
+      parts,
+      accessories:
+        preset?.accessories.map(({ part, quantity }) => ({
+          ...this.toCharacterPartSnapshot(part),
+          quantity,
+        })) ?? [],
+    };
+  }
+
+  private createFrameComponentSnapshot(input: {
+    frameOption: ResolvedFrameOption;
+    backgroundId?: string;
+    accessories: Array<{
+      id: string;
+      name: string;
+      price: number;
+      quantity: number;
+    }>;
+    designData: Record<string, unknown>;
+  }) {
+    return {
+      frame: {
+        id: input.frameOption.id,
+        label: input.frameOption.label,
+        price: input.frameOption.price,
+      },
+      backgroundId: input.backgroundId ?? null,
+      accessories: input.accessories,
+      characters: Array.isArray(input.designData.characters)
+        ? input.designData.characters
+        : [],
+      content: this.isRecord(input.designData.content)
+        ? input.designData.content
+        : null,
+    };
   }
 
   private normalizeCustomDesignData(
@@ -2032,6 +2285,8 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
       createdAt: Date;
       updatedAt?: Date;
       items: Array<{
+        lineItemType: string | null;
+        customName: string | null;
         productName: string;
         quantity: number;
         price: number;
@@ -2040,6 +2295,7 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
         frameColorName: string | null;
         accessories: Prisma.JsonValue | null;
         designData: Prisma.JsonValue | null;
+        componentSnapshot: Prisma.JsonValue | null;
         previewUrl: string | null;
       }>;
       statusHistories?: Array<{
@@ -2061,6 +2317,8 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
       paymentMethod: order.paymentMethod,
       shippingMethod: order.shippingMethod,
       items: order.items.map((item) => ({
+        lineItemType: item.lineItemType,
+        customName: item.customName,
         productName: item.productName,
         quantity: item.quantity,
         price: item.price,
@@ -2069,6 +2327,9 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
         frameColorName: item.frameColorName,
         accessories: this.toPublicAccessorySummary(item.accessories),
         designData: this.isRecord(item.designData) ? item.designData : null,
+        componentSnapshot: this.isRecord(item.componentSnapshot)
+          ? item.componentSnapshot
+          : null,
         previewUrl: item.previewUrl,
       })),
       itemsAmount: order.itemsAmount,
@@ -2192,7 +2453,13 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
         },
       },
       include: {
-        items: true,
+        items: {
+          select: {
+            productId: true,
+            frameSizeId: true,
+            quantity: true,
+          },
+        },
       },
       take: 50,
     });
@@ -2322,6 +2589,8 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
           }
         : undefined,
       productName: item.productName,
+      lineItemType: item.lineItemType,
+      customName: item.customName,
       quantity: item.quantity,
       price: item.price,
       note: item.note,
@@ -2335,6 +2604,10 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
       designData:
         item.designData !== undefined
           ? (item.designData as Prisma.InputJsonValue)
+          : undefined,
+      componentSnapshot:
+        item.componentSnapshot !== undefined
+          ? (item.componentSnapshot as Prisma.InputJsonValue)
           : undefined,
       previewUrl: item.previewUrl,
     };

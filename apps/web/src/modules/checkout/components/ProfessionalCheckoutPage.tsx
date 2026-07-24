@@ -3,19 +3,20 @@
 import type {
   ApplyVoucherResponseContract,
   CartQuoteItemResponseContract,
+  CheckoutShippingMethod,
   CheckoutSettingsContract,
   CreateOrderRequestContract,
   JsonObject,
 } from "@lego-shop/shared";
 import { formatCurrency as formatPrice } from "@lego-shop/shared";
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import {
   AlertCircle,
   ArrowLeft,
   ArrowRight,
   Check,
-  ChevronDown,
   ChevronRight,
+  ListChecks,
   LoaderCircle,
   PackageCheck,
   Pencil,
@@ -34,7 +35,6 @@ import type {
 } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import { Drawer } from "@/components/ui/Drawer";
 import { Badge } from "@/components/ui/Badge";
 import { Input } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
@@ -71,9 +71,8 @@ type VietnamProvince = {
   name: string;
   districts: VietnamDistrict[];
 };
-type ShippingMethod = "shop_support" | "self";
+type ShippingMethod = CheckoutShippingMethod;
 type PolaroidOption = "none" | "2" | "4";
-type CheckoutPaymentMethod = "COD" | "PAYOS" | "COD_DEPOSIT";
 type SubmitStatus = "idle" | "checking" | "creating" | "redirecting";
 type FormData = {
   name: string;
@@ -193,7 +192,7 @@ function getEditDesignHref(item: SimpleCartItem) {
   const params = new URLSearchParams({ editCartItemId: item.id });
   if (item.frameSizeLabel) params.set("frameLabel", item.frameSizeLabel);
   if (item.frameColorName) params.set("frameColor", item.frameColorName);
-  return `${ROUTES.studio}?${params.toString()}`;
+  return `${ROUTES.studioFrame}?${params.toString()}`;
 }
 
 function hasUnpersistedDesignImage(item: SimpleCartItem) {
@@ -375,6 +374,32 @@ function ProductImage({
   );
 }
 
+function getCheckoutProductTypeLabel(
+  item: SimpleCartItem,
+  copy: CheckoutDictionary,
+) {
+  if (
+    item.lineItemType === "custom_character" ||
+    item.designData.type === "CUSTOM_CHARACTER"
+  ) {
+    return copy.productTypes.customCharacter;
+  }
+
+  if (item.lineItemType === "standalone_character") {
+    return copy.productTypes.standaloneCharacter;
+  }
+
+  if (item.lineItemType === "retail_part") {
+    return copy.productTypes.retailPart;
+  }
+
+  if (item.designData.type === "CUSTOM_FRAME") {
+    return copy.productTypes.customFrame;
+  }
+
+  return copy.productTypes.finishedProduct;
+}
+
 function SummaryRow({
   label,
   value,
@@ -426,9 +451,8 @@ export default function ProfessionalCheckoutPage() {
   );
   const [settingsError, setSettingsError] = useState(false);
   const [shippingMethod, setShippingMethod] =
-    useState<ShippingMethod>("shop_support");
-  const [paymentMethod, setPaymentMethod] =
-    useState<CheckoutPaymentMethod>("PAYOS");
+    useState<ShippingMethod>("hcm_inner");
+  const paymentMethod = "PAYOS" as const;
   const [giftPackage, setGiftPackage] = useState(false);
   const [polaroid, setPolaroid] = useState<PolaroidOption>("none");
   const [discountCode, setDiscountCode] = useState("");
@@ -438,8 +462,7 @@ export default function ProfessionalCheckoutPage() {
   const [voucherError, setVoucherError] = useState<string | null>(null);
   const [submitStatus, setSubmitStatus] = useState<SubmitStatus>("idle");
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const [expandedItems, setExpandedItems] = useState<string[]>([]);
-  const [summaryOpen, setSummaryOpen] = useState(false);
+  const [orderDetailsOpen, setOrderDetailsOpen] = useState(false);
   const [previewItem, setPreviewItem] = useState<SimpleCartItem | null>(null);
   const [confirmedPriceSignature, setConfirmedPriceSignature] = useState("");
   const [manualPriceChanges, setManualPriceChanges] = useState<
@@ -501,18 +524,11 @@ export default function ProfessionalCheckoutPage() {
       .then((nextSettings) => {
         if (cancelled) return;
         setSettings(nextSettings);
-        setSettingsError(false);
-        if (nextSettings.payment.codDepositEnabled) {
-          setPaymentMethod("COD_DEPOSIT");
-        } else if (nextSettings.payment.payosEnabled) {
-          setPaymentMethod("PAYOS");
-        } else if (nextSettings.payment.codEnabled) {
-          setPaymentMethod("COD");
-        }
+        setSettingsError(!nextSettings.payment.payosEnabled);
         setShippingMethod((current) =>
-          nextSettings.shippingMethods.includes(current)
+          nextSettings.shippingMethods.some((option) => option.id === current)
             ? current
-            : (nextSettings.shippingMethods[0] ?? "shop_support"),
+            : (nextSettings.shippingMethods[0]?.id ?? "hcm_inner"),
         );
       })
       .catch(() => {
@@ -533,7 +549,6 @@ export default function ProfessionalCheckoutPage() {
             version?: number;
             formData?: Partial<FormData>;
             shippingMethod?: ShippingMethod;
-            paymentMethod?: CheckoutPaymentMethod;
             giftPackage?: boolean;
             polaroid?: PolaroidOption;
             checkoutAttemptId?: string;
@@ -541,7 +556,6 @@ export default function ProfessionalCheckoutPage() {
           if (parsed.version === 1) {
             setFormData({ ...INITIAL_FORM, ...parsed.formData });
             if (parsed.shippingMethod) setShippingMethod(parsed.shippingMethod);
-            if (parsed.paymentMethod) setPaymentMethod(parsed.paymentMethod);
             if (typeof parsed.giftPackage === "boolean") {
               setGiftPackage(parsed.giftPackage);
             }
@@ -579,8 +593,7 @@ export default function ProfessionalCheckoutPage() {
     shippingMethod,
   ]);
 
-  const backendPaymentMethod: "COD" | "PAYOS" =
-    paymentMethod === "PAYOS" ? "PAYOS" : "COD";
+  const backendPaymentMethod = "PAYOS" as const;
   const appliedVoucherCode = appliedVoucher?.code;
   const quoteOptions = useMemo(
     () => ({
@@ -661,49 +674,22 @@ export default function ProfessionalCheckoutPage() {
   const giftFee = quote?.giftFee ?? 0;
   const polaroidFee = quote?.polaroidFee ?? 0;
   const discount = quote?.discount ?? 0;
+  const shippingFee = quote?.shipping ?? 0;
   const finalTotal = quote?.total ?? 0;
-  const depositPercent = settings?.payment.codDepositPercent ?? 0;
-  const amountToPay =
-    paymentMethod === "COD_DEPOSIT"
-      ? Math.round(finalTotal * (depositPercent / 100))
-      : paymentMethod === "PAYOS"
-        ? finalTotal
-        : 0;
+  const amountToPay = finalTotal;
 
   const paymentOptions = useMemo(() => {
-    if (!settings) return [];
-    const options: Array<{
-      id: CheckoutPaymentMethod;
-      label: string;
-      detail: string;
-      amount: string;
-    }> = [];
-    if (settings.payment.codDepositEnabled) {
-      options.push({
-        id: "COD_DEPOSIT",
-        label: `${copy.payment.COD_DEPOSIT.label} ${depositPercent}%`,
-        detail: copy.payment.COD_DEPOSIT.detail,
-        amount: formatPrice(Math.round(finalTotal * (depositPercent / 100))),
-      });
-    }
-    if (settings.payment.payosEnabled) {
-      options.push({
-        id: "PAYOS",
+    if (!settings?.payment.payosEnabled) return [];
+    return [
+      {
+        id: "PAYOS" as const,
         label: copy.payment.PAYOS.label,
         detail: copy.payment.PAYOS.detail,
         amount: formatPrice(finalTotal),
-      });
-    }
-    if (settings.payment.codEnabled && !settings.payment.codDepositEnabled) {
-      options.push({
-        id: "COD",
-        label: copy.payment.COD.label,
-        detail: copy.payment.COD.detail,
-        amount: copy.onDelivery,
-      });
-    }
-    return options;
-  }, [copy.onDelivery, copy.payment, depositPercent, finalTotal, settings]);
+      },
+    ];
+  }, [copy.payment.PAYOS, finalTotal, settings?.payment.payosEnabled]);
+  const fullPaymentOption = paymentOptions[0];
 
   const validateField = (
     key: FormFieldKey,
@@ -938,6 +924,9 @@ export default function ProfessionalCheckoutPage() {
           const frameOptionId = getCartItemFrameOptionId(item);
           const backgroundId = getCartItemBackgroundId(item);
           return {
+            ...(item.lineItemType ? { lineItemType: item.lineItemType } : {}),
+            ...(item.productType ? { productType: item.productType } : {}),
+            ...(item.customName ? { customName: item.customName } : {}),
             productName: item.productName,
             quantity: item.quantity,
             price: item.unitPrice,
@@ -988,20 +977,7 @@ export default function ProfessionalCheckoutPage() {
     }
   };
 
-  const toggleDetails = (itemId: string) => {
-    setExpandedItems((current) =>
-      current.includes(itemId)
-        ? current.filter((id) => id !== itemId)
-        : [...current, itemId],
-    );
-  };
-
-  const ctaLabel =
-    paymentMethod === "PAYOS"
-      ? copy.payWithPayos
-      : paymentMethod === "COD"
-        ? copy.placeOrder
-        : copy.createOrder;
+  const ctaLabel = copy.payWithPayos;
   const submitLabel =
     submitStatus === "checking"
       ? copy.checking
@@ -1021,17 +997,105 @@ export default function ProfessionalCheckoutPage() {
     (hasActivePriceChanges && !priceConfirmed) ||
     settingsError;
 
-  const renderOrderItems = () => (
-    <div className="divide-y divide-[#e7edf2]">
+  const compactSummaryItems = items.slice(0, 2);
+  const additionalLineItemCount = Math.max(
+    0,
+    items.length - compactSummaryItems.length,
+  );
+
+  const renderCompactOrderItems = () => (
+    <div className="px-5 py-2 sm:px-6">
+      <div className="divide-y divide-[#e7edf2]">
+        {compactSummaryItems.map((item) => {
+          const image = resolveCartItemImage(item);
+          const quoteItem = quoteItemById.get(item.id);
+          const invalid = quoteItem?.valid === false;
+          const valid = quoteItem?.valid === true;
+          const lineTotal = quoteItem?.valid
+            ? quoteItem.lineTotal
+            : item.totalPrice;
+
+          return (
+            <article key={item.id} className="py-3.5">
+              <div className="flex items-start gap-3">
+                <ProductImage
+                  image={image}
+                  alt={sanitizeCartText(item.productName)}
+                />
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <h3 className="break-words text-sm font-semibold leading-5 text-slate-950">
+                        {sanitizeCartText(item.productName)}
+                      </h3>
+                      <p className="mt-1 text-xs text-slate-500">
+                        {copy.quantity}: {item.quantity}
+                      </p>
+                    </div>
+                    <span className="shrink-0 text-sm font-semibold text-slate-950 tabular-nums">
+                      {formatPrice(lineTotal)}
+                    </span>
+                  </div>
+
+                  {invalid ? (
+                    <p className="mt-2 inline-flex items-center gap-1.5 text-[11px] font-semibold leading-4 text-amber-700">
+                      <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                      {copy.invalidItem}
+                    </p>
+                  ) : valid ? (
+                    <p className="mt-2 inline-flex items-center gap-1.5 text-[11px] font-semibold text-emerald-700">
+                      <Check className="h-3.5 w-3.5 shrink-0" />
+                      {copy.validItem}
+                    </p>
+                  ) : null}
+                </div>
+              </div>
+            </article>
+          );
+        })}
+      </div>
+
+      {additionalLineItemCount > 0 ? (
+        <p className="border-t border-[#e7edf2] py-3 text-center text-xs font-semibold text-slate-500">
+          {copy.otherProducts.replace(
+            "{count}",
+            String(additionalLineItemCount),
+          )}
+        </p>
+      ) : null}
+
+      <button
+        type="button"
+        onClick={() => setOrderDetailsOpen(true)}
+        className="group mb-2 flex min-h-11 w-full items-center justify-center gap-2 rounded-[13px] bg-[#eef8fd] px-4 text-sm font-semibold text-[#176b9f] outline-none transition-[background-color,color,transform] duration-200 hover:-translate-y-px hover:bg-[#dff1fa] hover:text-[#11658f] focus-visible:ring-3 focus-visible:ring-[#b9def3] active:translate-y-0 motion-reduce:transform-none motion-reduce:transition-none"
+      >
+        <ListChecks className="h-[18px] w-[18px]" aria-hidden="true" />
+        <span>
+          {copy.viewAllProducts.replace("{count}", String(itemCount))}
+        </span>
+        <ChevronRight
+          className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5 motion-reduce:transform-none"
+          aria-hidden="true"
+        />
+      </button>
+    </div>
+  );
+
+  const renderDetailedOrderItems = () => (
+    <div className="space-y-3">
       {items.map((item) => {
         const image = resolveCartItemImage(item);
         const quoteItem = quoteItemById.get(item.id);
         const priceChange = activePriceChanges[item.id];
-        const invalid = quoteItem && !quoteItem.valid;
-        const expanded = expandedItems.includes(item.id);
+        const invalid = quoteItem?.valid === false;
+        const valid = quoteItem?.valid === true;
         const parts = getCartItemParts(item);
         const templateName = getDesignTemplateName(item.designData);
         const characterCount = getDesignCharacterCount(item.designData);
+        const productTypeLabel = getCheckoutProductTypeLabel(item, copy);
+        const lineTotal = quoteItem?.valid
+          ? quoteItem.lineTotal
+          : item.totalPrice;
         const accessoryCount = item.accessories?.reduce(
           (sum, accessory) => sum + (accessory.quantity ?? 1),
           0,
@@ -1043,23 +1107,31 @@ export default function ProfessionalCheckoutPage() {
           characterCount > 0
             ? `${characterCount} ${copy.characterShort}`
             : null,
-          accessoryCount
-            ? `${accessoryCount} ${copy.accessoriesUnit}`
-            : null,
+          accessoryCount ? `${accessoryCount} ${copy.accessoriesUnit}` : null,
         ].filter((value): value is string => Boolean(value));
 
         return (
-          <article key={item.id} className="py-4 first:pt-0 last:pb-0">
+          <article
+            key={item.id}
+            className="rounded-[18px] border border-[#dce7ef] bg-white p-4"
+          >
             <div className="flex gap-3">
               <ProductImage
                 image={image}
                 alt={sanitizeCartText(item.productName)}
-                {...(image ? { onClick: () => setPreviewItem(item) } : {})}
+                {...(image
+                  ? {
+                      onClick: () => {
+                        setOrderDetailsOpen(false);
+                        setPreviewItem(item);
+                      },
+                    }
+                  : {})}
               />
               <div className="min-w-0 flex-1">
                 <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <h3 className="line-clamp-2 text-sm font-semibold leading-5 text-slate-950">
+                  <div className="min-w-0 flex-1">
+                    <h3 className="break-words text-sm font-semibold leading-5 text-slate-950">
                       {sanitizeCartText(item.productName)}
                     </h3>
                     <p className="mt-1 text-xs text-slate-500">
@@ -1075,10 +1147,33 @@ export default function ProfessionalCheckoutPage() {
                       </span>
                     ) : null}
                     <span className="block text-sm font-semibold text-slate-950 tabular-nums">
-                      {formatPrice(quoteItem?.lineTotal ?? 0)}
+                      {formatPrice(lineTotal)}
                     </span>
                   </div>
                 </div>
+
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  <span className="rounded-full border border-[#dce8f0] bg-[#f7fafc] px-2 py-0.5 text-[11px] font-semibold text-slate-600">
+                    {productTypeLabel}
+                  </span>
+                  {invalid || valid ? (
+                    <span
+                      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold ${
+                        invalid
+                          ? "bg-amber-50 text-amber-700 ring-1 ring-inset ring-amber-200"
+                          : "bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-200"
+                      }`}
+                    >
+                      {invalid ? (
+                        <AlertCircle className="h-3 w-3" />
+                      ) : (
+                        <Check className="h-3 w-3" />
+                      )}
+                      {invalid ? copy.invalidItem : copy.validItem}
+                    </span>
+                  ) : null}
+                </div>
+
                 {configurationParts.length > 0 ? (
                   <div className="mt-2 flex flex-wrap gap-1.5">
                     {configurationParts.map((part, index) => (
@@ -1091,97 +1186,67 @@ export default function ProfessionalCheckoutPage() {
                     ))}
                   </div>
                 ) : null}
-                <button
-                  type="button"
-                  aria-expanded={expanded}
-                  onClick={() => toggleDetails(item.id)}
-                  className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-[#247eB5] outline-none transition hover:text-[#176b9f] focus-visible:ring-2 focus-visible:ring-[#b9def3]"
-                >
-                  {expanded ? copy.hideDetails : copy.viewDetails}
-                  <ChevronDown
-                    className={`h-3.5 w-3.5 transition-transform ${expanded ? "rotate-180" : ""}`}
-                  />
-                </button>
               </div>
             </div>
 
             {invalid ? (
               <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs leading-5 text-amber-800">
                 <p className="font-semibold">{copy.invalidItem}</p>
-                <div className="mt-2 flex flex-wrap gap-3">
-                  {item.designData?.type === "CUSTOM_FRAME" ? (
-                    <Link
-                      href={getEditDesignHref(item)}
-                      className="inline-flex items-center gap-1 font-semibold text-[#176b9f]"
-                    >
-                      <Pencil className="h-3.5 w-3.5" /> {copy.editDesign}
-                    </Link>
-                  ) : null}
-                  <button
-                    type="button"
-                    onClick={() => removeItem(item.id)}
-                    className="inline-flex items-center gap-1 font-semibold text-red-600"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" /> {copy.removeItem}
-                  </button>
-                </div>
               </div>
             ) : null}
 
-            <AnimatePresence initial={false}>
-              {expanded ? (
-                <motion.div
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: "auto", opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  transition={{ duration: shouldReduceMotion ? 0 : 0.2 }}
-                  className="overflow-hidden"
-                >
-                  <div className="mt-3 space-y-3 rounded-[14px] bg-[#f6f9fb] p-3">
-                    {parts.length > 0 ? (
-                      <dl className="space-y-1.5 text-xs">
-                        {parts.slice(0, 8).map((part, index) => (
-                          <div
-                            key={`${part.type}-${part.id ?? index}`}
-                            className="flex justify-between gap-3"
-                          >
-                            <dt className="min-w-0 truncate text-slate-500">
-                              {sanitizeCartText(part.name)} × {part.quantity}
-                            </dt>
-                            <dd className="shrink-0 font-medium text-slate-800 tabular-nums">
-                              {formatPrice(part.totalPrice)}
-                            </dd>
-                          </div>
-                        ))}
-                      </dl>
-                    ) : null}
-                    <label className="block">
-                      <span className="mb-1.5 block text-xs font-semibold text-slate-600">
-                        {copy.itemNote}
-                      </span>
-                      <Textarea
-                        rows={2}
-                        value={item.note ?? ""}
-                        onChange={(event) =>
-                          updateItemNote(item.id, event.target.value)
-                        }
-                        placeholder={copy.itemNotePlaceholder}
-                        className="min-h-16 resize-none px-3 py-2 text-xs leading-5"
-                        containerClassName="space-y-0"
-                      />
-                    </label>
-                    {item.designData?.type === "CUSTOM_FRAME" ? (
-                      <Link
-                        href={getEditDesignHref(item)}
-                        className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#247eB5]"
-                      >
-                        <Pencil className="h-3.5 w-3.5" /> {copy.editDesign}
-                      </Link>
-                    ) : null}
-                  </div>
-                </motion.div>
+            <div className="mt-3 space-y-3 rounded-[14px] bg-[#f6f9fb] p-3">
+              {parts.length > 0 ? (
+                <dl className="space-y-2 text-xs">
+                  {parts.map((part, index) => (
+                    <div
+                      key={`${part.type}-${part.id ?? index}`}
+                      className="flex items-start justify-between gap-3"
+                    >
+                      <dt className="min-w-0 break-words text-slate-500">
+                        {sanitizeCartText(part.name)} × {part.quantity}
+                      </dt>
+                      <dd className="shrink-0 font-medium text-slate-800 tabular-nums">
+                        {formatPrice(part.totalPrice)}
+                      </dd>
+                    </div>
+                  ))}
+                </dl>
               ) : null}
-            </AnimatePresence>
+              <label className="block">
+                <span className="mb-1.5 block text-xs font-semibold text-slate-600">
+                  {copy.itemNote}
+                </span>
+                <Textarea
+                  rows={2}
+                  value={item.note ?? ""}
+                  onChange={(event) =>
+                    updateItemNote(item.id, event.target.value)
+                  }
+                  placeholder={copy.itemNotePlaceholder}
+                  className="min-h-16 resize-none px-3 py-2 text-xs leading-5"
+                  containerClassName="space-y-0"
+                />
+              </label>
+            </div>
+
+            <div className="mt-3 flex flex-wrap items-center gap-3">
+              {item.designData?.type === "CUSTOM_FRAME" ? (
+                <Link
+                  href={getEditDesignHref(item)}
+                  className="inline-flex min-h-10 items-center gap-1.5 rounded-xl bg-[#eef8fd] px-3 text-xs font-semibold text-[#176b9f] transition-colors hover:bg-[#dff1fa] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2f91d0]"
+                >
+                  <Pencil className="h-3.5 w-3.5" /> {copy.editDesign}
+                </Link>
+              ) : null}
+              <button
+                type="button"
+                onClick={() => removeItem(item.id)}
+                className="inline-flex min-h-10 items-center gap-1.5 rounded-xl bg-red-50 px-3 text-xs font-semibold text-red-600 transition-colors hover:bg-red-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-300"
+              >
+                <Trash2 className="h-3.5 w-3.5" /> {copy.removeItem}
+              </button>
+            </div>
           </article>
         );
       })}
@@ -1194,7 +1259,7 @@ export default function ProfessionalCheckoutPage() {
       form={CHECKOUT_FORM_ID}
       disabled={placeOrderDisabled}
       onClick={() => {
-        if (mobile) setSummaryOpen(false);
+        if (mobile) setOrderDetailsOpen(false);
       }}
       className="group relative mt-4 flex h-[52px] w-full items-center justify-center gap-2 overflow-hidden rounded-[15px] bg-[#2488c7] px-4 text-sm font-semibold text-white shadow-[0_12px_30px_-20px_rgba(37,143,206,0.95)] outline-none transition-all duration-300 before:absolute before:inset-y-0 before:left-[-45%] before:w-1/3 before:-skew-x-12 before:bg-gradient-to-r before:from-transparent before:via-white/35 before:to-transparent before:transition-transform before:duration-700 hover:-translate-y-0.5 hover:bg-[#1976ae] hover:shadow-[0_16px_30px_-16px_rgba(37,143,206,0.9)] hover:before:translate-x-[430%] focus-visible:ring-4 focus-visible:ring-[#b9def3] active:translate-y-0 active:scale-[0.99] disabled:cursor-not-allowed disabled:translate-y-0 disabled:bg-slate-300 disabled:shadow-none disabled:before:hidden disabled:hover:bg-slate-300"
     >
@@ -1233,7 +1298,7 @@ export default function ProfessionalCheckoutPage() {
             value={`−${formatPrice(discount)}`}
           />
         ) : null}
-        <SummaryRow label={copy.shippingFee} value={copy.shippingLater} />
+        <SummaryRow label={copy.shippingFee} value={formatPrice(shippingFee)} />
       </div>
       <div className="mt-4 flex items-end justify-between gap-4 border-t border-[#e2eaf0] pt-4">
         <span className="text-sm font-semibold text-slate-700">
@@ -1249,16 +1314,12 @@ export default function ProfessionalCheckoutPage() {
           <span>{copy.invalidOrderTotal}</span>
         </div>
       ) : null}
-      {paymentMethod === "COD_DEPOSIT" ? (
-        <div className="mt-2 flex justify-between gap-4 text-xs text-slate-500">
-          <span>
-            {copy.payNow} ({depositPercent}%)
-          </span>
-          <span className="font-semibold text-slate-800 tabular-nums">
-            {formatPrice(amountToPay)}
-          </span>
-        </div>
-      ) : null}
+      <div className="mt-2 flex justify-between gap-4 text-xs text-slate-500">
+        <span>{copy.payNow} (100%)</span>
+        <span className="font-semibold text-slate-800 tabular-nums">
+          {formatPrice(amountToPay)}
+        </span>
+      </div>
       {mobile ? (
         <>
           {submitError ? (
@@ -1397,7 +1458,7 @@ export default function ProfessionalCheckoutPage() {
               {copy.backToCollection}
             </Link>
             <Link
-              href={ROUTES.studio}
+              href={ROUTES.studioFrame}
               className="inline-flex h-12 items-center justify-center rounded-[14px] bg-[#2488c7] px-5 text-sm font-semibold text-white transition hover:bg-[#1976ae]"
             >
               {copy.startDesign}
@@ -1634,9 +1695,10 @@ export default function ProfessionalCheckoutPage() {
                 </legend>
                 <div
                   role="radiogroup"
-                  className="grid auto-rows-fr gap-3 md:grid-cols-2"
+                  className="grid auto-rows-fr gap-3 md:grid-cols-3"
                 >
-                  {(settings?.shippingMethods ?? []).map((id) => {
+                  {(settings?.shippingMethods ?? []).map((option) => {
+                    const { id } = option;
                     const active = shippingMethod === id;
                     return (
                       <button
@@ -1648,7 +1710,9 @@ export default function ProfessionalCheckoutPage() {
                         onKeyDown={(event) =>
                           handleRadioKeyDown(
                             event,
-                            settings?.shippingMethods ?? [],
+                            (settings?.shippingMethods ?? []).map(
+                              (item) => item.id,
+                            ),
                             id,
                             setShippingMethod,
                           )
@@ -1673,7 +1737,10 @@ export default function ProfessionalCheckoutPage() {
                             {copy.shipping[id].label}
                           </span>
                           <span className="mt-1 block text-xs leading-5 text-slate-500">
-                            {copy.shipping[id].detail}. {copy.shipping[id].note}
+                            {copy.shipping[id].detail}
+                          </span>
+                          <span className="mt-2 block text-xs font-semibold text-[#176b9f]">
+                            {copy.shippingEstimate(formatPrice(option.fee))}
                           </span>
                         </span>
                       </button>
@@ -1702,59 +1769,24 @@ export default function ProfessionalCheckoutPage() {
                   <div className="rounded-[14px] border border-red-200 bg-red-50 p-4 text-sm text-red-700">
                     {copy.quoteError}
                   </div>
-                ) : paymentOptions.length === 0 ? (
+                ) : !fullPaymentOption ? (
                   <div className="h-24 animate-pulse rounded-[16px] bg-slate-100" />
                 ) : (
-                  <div
-                    role="radiogroup"
-                    className="grid auto-rows-fr gap-3 md:grid-cols-2"
-                  >
-                    {paymentOptions.map((option) => {
-                      const active = paymentMethod === option.id;
-                      return (
-                        <button
-                          key={option.id}
-                          type="button"
-                          role="radio"
-                          aria-checked={active}
-                          onClick={() => setPaymentMethod(option.id)}
-                          onKeyDown={(event) =>
-                            handleRadioKeyDown(
-                              event,
-                              paymentOptions.map((item) => item.id),
-                              option.id,
-                              setPaymentMethod,
-                            )
-                          }
-                          className={`flex h-full items-start gap-3 rounded-[16px] border p-4 text-left outline-none transition-[border-color,background-color,box-shadow,transform] duration-200 hover:-translate-y-0.5 focus-visible:ring-3 focus-visible:ring-[#b9def3] motion-reduce:transform-none motion-reduce:transition-none sm:p-[18px] ${
-                            active
-                              ? "border-[#2f91d0] bg-[#f0f9fe] shadow-sm"
-                              : "border-[#dce6ed] bg-white hover:border-[#9bcbe8]"
-                          }`}
-                        >
-                          <span
-                            className={`mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full border ${
-                              active
-                                ? "border-[#2f91d0] bg-[#2f91d0] text-white"
-                                : "border-slate-300 bg-white"
-                            }`}
-                          >
-                            {active ? <Check className="h-3 w-3" /> : null}
-                          </span>
-                          <span className="min-w-0 flex-1">
-                            <span className="block text-sm font-semibold text-slate-900">
-                              {option.label}
-                            </span>
-                            <span className="mt-1 block text-xs leading-5 text-slate-500">
-                              {option.detail}
-                            </span>
-                            <span className="mt-2 block text-xs font-semibold text-[#176b9f]">
-                              {option.amount}
-                            </span>
-                          </span>
-                        </button>
-                      );
-                    })}
+                  <div className="flex items-start gap-3 rounded-[16px] border border-[#2f91d0] bg-[#f0f9fe] p-4 sm:p-[18px]">
+                    <span className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full border border-[#2f91d0] bg-[#2f91d0] text-white">
+                      <Check className="h-3 w-3" />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-sm font-semibold text-slate-900">
+                        {fullPaymentOption.label}
+                      </span>
+                      <span className="mt-1 block text-xs leading-5 text-slate-500">
+                        {fullPaymentOption.detail}
+                      </span>
+                      <span className="mt-2 block text-xs font-semibold text-[#176b9f]">
+                        {fullPaymentOption.amount}
+                      </span>
+                    </span>
                   </div>
                 )}
               </fieldset>
@@ -1881,18 +1913,16 @@ export default function ProfessionalCheckoutPage() {
             </SectionCard>
           </div>
 
-          <aside className="sticky top-[calc(var(--site-header-height)_+_16px)] hidden min-w-0 self-start min-[1120px]:block">
-            <section className="flex max-h-[calc(100dvh_-_var(--site-header-height)_-_var(--site-header-height)_-_32px)] min-h-[420px] flex-col overflow-hidden rounded-[24px] border border-[#dce6ed] bg-white shadow-[0_26px_70px_-44px_rgba(17,49,72,0.5)]">
+          <aside className="hidden min-w-0 self-start min-[1120px]:sticky min-[1120px]:top-[calc(var(--site-header-height)_+_10px)] min-[1120px]:block min-[1120px]:h-fit">
+            <section className="overflow-hidden rounded-[24px] border border-[#dce6ed] bg-white shadow-[0_26px_70px_-44px_rgba(17,49,72,0.5)]">
               {renderSummaryHeader()}
               {hasActivePriceChanges ? (
-                <div className="shrink-0 border-b border-amber-200 bg-amber-50 px-5 py-3 text-xs font-medium leading-5 text-amber-800 sm:px-6">
+                <div className="border-b border-amber-200 bg-amber-50 px-5 py-3 text-xs font-medium leading-5 text-amber-800 sm:px-6">
                   {copy.priceChangeDescription}
                 </div>
               ) : null}
-              <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-4 [mask-image:linear-gradient(to_bottom,transparent_0,black_12px,black_calc(100%_-_12px),transparent_100%)] sm:px-6">
-                {renderOrderItems()}
-              </div>
-              <div className="shrink-0 border-t border-[#e2eaf0] px-5 py-4 sm:px-6">
+              {renderCompactOrderItems()}
+              <div className="border-t border-[#e2eaf0] px-5 py-4 sm:px-6">
                 <label
                   htmlFor="checkout-voucher"
                   className="mb-2 block text-xs font-semibold text-slate-600"
@@ -1941,7 +1971,7 @@ export default function ProfessionalCheckoutPage() {
         <div className="mx-auto flex max-w-xl items-center gap-3">
           <button
             type="button"
-            onClick={() => setSummaryOpen(true)}
+            onClick={() => setOrderDetailsOpen(true)}
             className="min-w-0 flex-1 text-left outline-none focus-visible:ring-2 focus-visible:ring-[#b9def3]"
           >
             <span className="block text-[11px] text-slate-500">
@@ -1968,33 +1998,36 @@ export default function ProfessionalCheckoutPage() {
         </div>
       </div>
 
-      <Drawer
-        isOpen={summaryOpen}
-        onClose={() => setSummaryOpen(false)}
-        position="bottom"
-        size="xl"
-        aria-label={copy.summaryTitle}
-        className="h-[calc(100dvh-var(--site-header-height)-16px)] max-h-[calc(100dvh-var(--site-header-height)-16px)] rounded-t-[24px] bg-white"
-        contentClassName="h-full p-0"
+      <Modal
+        isOpen={orderDetailsOpen}
+        onClose={() => setOrderDetailsOpen(false)}
+        size="sm"
+        title={copy.orderDetailsTitle}
+        className="h-[calc(100dvh-32px)] max-h-[calc(100dvh-32px)] rounded-[22px] sm:h-auto sm:max-h-[calc(100dvh-40px)] sm:rounded-[24px]"
+        contentClassName="custom-scrollbar max-h-[calc(100dvh-96px)] bg-[#f3f7fa] p-4 sm:max-h-[calc(100dvh-108px)] sm:p-5"
       >
-        <div className="flex h-full min-h-0 flex-col">
-          <div className="relative">
-            {renderSummaryHeader(true)}
-            <button
-              type="button"
-              aria-label={copy.closeSummary}
-              onClick={() => setSummaryOpen(false)}
-              className="absolute right-4 top-4 grid h-9 w-9 place-items-center rounded-full bg-slate-100 text-slate-600 outline-none focus-visible:ring-2 focus-visible:ring-[#2f91d0]"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          </div>
-          <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
-            {renderOrderItems()}
-          </div>
-          {renderSummaryFooter(true)}
+        <button
+          type="button"
+          aria-label={copy.closeSummary}
+          onClick={() => setOrderDetailsOpen(false)}
+          className="absolute right-3 top-3 z-20 grid h-10 w-10 place-items-center rounded-[13px] bg-slate-100 text-slate-600 outline-none transition-colors hover:bg-red-50 hover:text-red-600 focus-visible:ring-2 focus-visible:ring-[#2f91d0] sm:right-4 sm:top-3"
+        >
+          <X className="h-5 w-5" />
+        </button>
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <p className="text-sm font-medium text-slate-500">
+            {copy.viewAllProducts.replace("{count}", String(itemCount))}
+          </p>
+          <Badge
+            variant="highlight"
+            size="sm"
+            className="h-8 shrink-0 px-3.5 text-xs font-semibold"
+          >
+            {itemCount} {copy.products}
+          </Badge>
         </div>
-      </Drawer>
+        {renderDetailedOrderItems()}
+      </Modal>
 
       <Modal
         isOpen={Boolean(previewItem)}

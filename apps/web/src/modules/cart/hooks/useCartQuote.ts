@@ -57,6 +57,9 @@ export function buildCartQuotePayload(
       const backgroundId = getBackgroundId(item);
       return {
         cartItemId: item.id,
+        ...(item.lineItemType ? { lineItemType: item.lineItemType } : {}),
+        ...(item.productType ? { productType: item.productType } : {}),
+        ...(item.customName ? { customName: item.customName } : {}),
         productName: item.productName,
         quantity: item.quantity,
         priceSnapshot: item.unitPrice,

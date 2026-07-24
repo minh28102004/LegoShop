@@ -65,9 +65,17 @@ export type Product = Timestamped & {
   name: string;
   slug: string;
   description: Nullable<string>;
+  shortDescription?: Nullable<string>;
   basePrice: PriceInVND;
+  compareAtPrice?: Nullable<PriceInVND>;
   images: URLString[];
+  thumbnailUrl?: Nullable<URLString>;
   productType: ProductType | string;
+  category?: Nullable<string>;
+  availability?: string;
+  inventory?: Nullable<number>;
+  published?: boolean;
+  characterPresetId?: Nullable<ID>;
   componentConfig: Nullable<ProductComponentConfig>;
   status: ProductStatus;
   featured: boolean;
@@ -78,6 +86,9 @@ export type Product = Timestamped & {
   characterCount?: number;
   accessoryCount?: number;
   charmCount?: number;
+  componentCount?: number;
+  isBuilderPreset?: boolean;
+  preset?: Nullable<CharacterPreset>;
   includedItemLabels?: string[];
   composition?: ProductCompositionSummary;
 };
@@ -89,6 +100,9 @@ export type PublicProductsQuery = {
   page?: number;
   pageSize?: number;
   search?: string;
+  category?: string;
+  availability?: string;
+  published?: boolean;
   collection?: string;
   collections?: string[];
   collectionIds?: string[];
@@ -101,6 +115,7 @@ export type PublicProductsQuery = {
   statuses?: ProductStatus[];
   sort?: PublicProductsSort;
   type?: string;
+  types?: string[];
   featured?: boolean;
   isNew?: boolean;
   includedGift?: boolean;
@@ -149,7 +164,7 @@ export type Template = Timestamped & {
 export type Accessory = Timestamped & {
   id: ID;
   name: string;
-  slug: Nullable<string>;
+  slug?: Nullable<string>;
   price: PriceInVND;
   imageUrl: Nullable<URLString>;
   iconUrl: Nullable<URLString>;
@@ -173,9 +188,15 @@ export type Character = Timestamped & {
 export type CharacterPart = Timestamped & {
   id: ID;
   name: string;
+  slug: Nullable<string>;
   type: CharacterPartType;
   imageUrl: URLString;
   priceAdjustment: PriceInVND;
+  compareAtPrice?: Nullable<PriceInVND>;
+  category?: Nullable<string>;
+  availability?: string;
+  isActive?: boolean;
+  compatibility?: Nullable<JsonValue>;
   sortOrder: number;
   tags: Nullable<JsonValue>;
   status: ProductStatus;
@@ -205,7 +226,7 @@ export type HomepageMedia = {
 export type FrameBackground = Timestamped & {
   id: ID;
   title: string;
-  slug: Nullable<string>;
+  slug?: Nullable<string>;
   category: Nullable<string>;
   description: Nullable<string>;
   instructions: Nullable<string>;
@@ -258,12 +279,32 @@ export type FrameOption = Timestamped & {
 export type CharacterPreset = Timestamped & {
   id: ID;
   name: string;
+  slug: Nullable<string>;
   description: Nullable<string>;
+  previewImageUrl?: Nullable<URLString>;
+  isBuilderPreset?: boolean;
+  isSellable?: boolean;
   faceHint: Nullable<string>;
   hairHint: Nullable<string>;
   torsoHint: Nullable<string>;
   legsHint: Nullable<string>;
   hatHint: Nullable<string>;
+  facePartId?: Nullable<ID>;
+  hairPartId?: Nullable<ID>;
+  torsoPartId?: Nullable<ID>;
+  legsPartId?: Nullable<ID>;
+  hatPartId?: Nullable<ID>;
+  facePart?: Nullable<CharacterPart>;
+  hairPart?: Nullable<CharacterPart>;
+  torsoPart?: Nullable<CharacterPart>;
+  legsPart?: Nullable<CharacterPart>;
+  hatPart?: Nullable<CharacterPart>;
+  accessories?: Array<{
+    partId: ID;
+    sortOrder: number;
+    quantity: number;
+    part: CharacterPart;
+  }>;
   sortOrder: number;
   status: ProductStatus;
 };

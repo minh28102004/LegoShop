@@ -1,17 +1,17 @@
+import type { CreateUserDesignRequestContract } from '@lego-shop/shared';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class UserDesignsService {
   constructor(private prisma: PrismaService) {}
 
-  async create(userId: string, data: { name?: string; designData: any; previewUrl?: string }) {
+  async create(userId: string, data: CreateUserDesignRequestContract) {
     return this.prisma.userDesign.create({
       data: {
         userId,
         name: data.name ?? 'My Design',
-        designData: data.designData as Prisma.InputJsonValue,
+        designData: data.designData,
         previewUrl: data.previewUrl,
       },
     });
@@ -32,13 +32,19 @@ export class UserDesignsService {
     return design;
   }
 
-  async update(userId: string, id: string, data: { name?: string; designData?: any; previewUrl?: string }) {
+  async update(
+    userId: string,
+    id: string,
+    data: Partial<CreateUserDesignRequestContract>,
+  ) {
     await this.findOne(userId, id); // check exist
     return this.prisma.userDesign.update({
       where: { id },
       data: {
         ...(data.name && { name: data.name }),
-        ...(data.designData && { designData: data.designData as Prisma.InputJsonValue }),
+        ...(data.designData && {
+          designData: data.designData,
+        }),
         ...(data.previewUrl !== undefined && { previewUrl: data.previewUrl }),
       },
     });

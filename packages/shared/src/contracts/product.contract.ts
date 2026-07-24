@@ -33,9 +33,17 @@ export type CreateProductRequestContract = {
   name: string;
   slug?: string;
   description?: string;
+  shortDescription?: string;
   basePrice: PriceInVND;
+  compareAtPrice?: PriceInVND | null;
   images?: URLString[];
+  thumbnailUrl?: URLString;
   productType?: ProductType;
+  category?: string;
+  availability?: string;
+  inventory?: number | null;
+  published?: boolean;
+  characterPresetId?: ID | null;
   componentConfig?: ProductComponentConfig;
   status?: ProductStatus;
   featured?: boolean;
@@ -77,9 +85,15 @@ export type UpdateCharacterRequestContract = Partial<CreateCharacterRequestContr
 
 export type CreateCharacterPartRequestContract = {
   name: string;
+  slug?: string;
   type: CharacterPartType;
   imageUrl: URLString;
   priceAdjustment?: PriceInVND;
+  compareAtPrice?: PriceInVND | null;
+  category?: string;
+  availability?: string;
+  isActive?: boolean;
+  compatibility?: JsonValue;
   sortOrder?: number;
   tags?: JsonValue;
   status?: ProductStatus;
@@ -150,14 +164,42 @@ export type UpdateFrameOptionRequestContract = Partial<CreateFrameOptionRequestC
 
 export type CreateCharacterPresetRequestContract = {
   name: string;
+  slug?: string;
   description?: string;
+  previewImageUrl?: URLString;
+  isBuilderPreset?: boolean;
+  isSellable?: boolean;
   faceHint?: string;
   hairHint?: string;
   torsoHint?: string;
   legsHint?: string;
   hatHint?: string;
+  facePartId?: ID | null;
+  hairPartId?: ID | null;
+  torsoPartId?: ID | null;
+  legsPartId?: ID | null;
+  hatPartId?: ID | null;
+  accessoryPartIds?: ID[];
   sortOrder?: number;
   status?: ProductStatus;
 };
 
 export type UpdateCharacterPresetRequestContract = Partial<CreateCharacterPresetRequestContract>;
+
+export type CharacterBuilderQuoteRequestContract = {
+  partIds: ID[];
+};
+
+export type CharacterBuilderQuoteResponseContract = {
+  valid: boolean;
+  basePrice: PriceInVND;
+  partsTotal: PriceInVND;
+  totalPrice: PriceInVND;
+  resolvedParts: Array<{
+    id: ID;
+    name: string;
+    type: CharacterPartType;
+    imageUrl: URLString;
+    priceAdjustment: PriceInVND;
+  }>;
+};

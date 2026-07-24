@@ -19,8 +19,8 @@ export function BusinessHero({ copy }: BusinessHeroProps) {
         sizes="100vw"
         className="-z-20 object-cover object-[center_48%]"
       />
-      <div className="absolute inset-0 -z-10 bg-[linear-gradient(90deg,rgba(255,255,255,0.97)_0%,rgba(247,252,255,0.92)_38%,rgba(235,247,255,0.68)_68%,rgba(187,225,247,0.42)_100%)]" />
-      <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_82%_20%,rgba(36,136,199,0.2),transparent_42%)]" />
+      <div className="absolute inset-0 -z-10 bg-[linear-gradient(90deg,rgba(235,247,255,0.96)_0%,rgba(241,250,255,0.9)_38%,rgba(227,243,253,0.76)_68%,rgba(211,236,250,0.72)_100%)]" />
+      <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_82%_20%,rgba(36,136,199,0.16),transparent_42%)]" />
 
       <Container
         size="default"

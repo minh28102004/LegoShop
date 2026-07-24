@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import type { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
@@ -7,21 +8,23 @@ export class FrameColorsService {
 
   async findAll() {
     return this.prisma.frameColor.findMany({
-      orderBy: { createdAt: 'asc' }
+      orderBy: { createdAt: 'asc' },
     });
   }
 
   async findOne(id: string) {
-    const frameColor = await this.prisma.frameColor.findUnique({ where: { id } });
+    const frameColor = await this.prisma.frameColor.findUnique({
+      where: { id },
+    });
     if (!frameColor) throw new NotFoundException();
     return frameColor;
   }
 
-  async create(data: any) {
+  async create(data: Prisma.FrameColorCreateInput) {
     return this.prisma.frameColor.create({ data });
   }
 
-  async update(id: string, data: any) {
+  async update(id: string, data: Prisma.FrameColorUpdateInput) {
     return this.prisma.frameColor.update({
       where: { id },
       data,

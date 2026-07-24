@@ -189,7 +189,7 @@ export function Dropdown({
             aria-hidden={false}
             style={portalStyle}
             className={cn(
-              "overflow-hidden rounded-[16px] border border-slate-200 bg-white shadow-[0_18px_44px_-30px_rgba(15,23,42,0.28)] transition-all duration-150 ease-out",
+              "overflow-hidden rounded-[16px] border border-slate-200 bg-white shadow-[0_18px_44px_-30px_rgba(15,23,42,0.28)] transition-[opacity,transform,box-shadow] duration-150 ease-out",
               "pointer-events-auto translate-y-0 scale-100 opacity-100 animate-zoom-in",
               panelClassName,
             )}
@@ -205,7 +205,7 @@ export function Dropdown({
           id={panelId}
           aria-hidden={!open}
           className={cn(
-            "absolute z-[90] overflow-hidden rounded-[16px] border border-slate-200 bg-white shadow-[0_18px_44px_-30px_rgba(15,23,42,0.28)] transition-all duration-150 ease-out",
+            "absolute z-[90] overflow-hidden rounded-[16px] border border-slate-200 bg-white shadow-[0_18px_44px_-30px_rgba(15,23,42,0.28)] transition-[opacity,transform,box-shadow] duration-150 ease-out",
             align === "right" ? "right-0" : "left-0",
             side === "top"
               ? "bottom-full mb-2 origin-bottom-right"

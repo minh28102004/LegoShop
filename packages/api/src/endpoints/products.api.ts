@@ -3,6 +3,8 @@ import type {
   Character,
   CharacterPart,
   CharacterPreset,
+  CharacterBuilderQuoteRequestContract,
+  CharacterBuilderQuoteResponseContract,
   Collection,
   FrameBackground,
   FrameColor,
@@ -75,6 +77,15 @@ export function createProductsApi(request: ApiRequester) {
 
     listCharacterParts(query?: QueryParams): Promise<CharacterPart[]> {
       return request("public/character-parts", { query });
+    },
+
+    quoteCharacterBuilder(
+      payload: CharacterBuilderQuoteRequestContract,
+    ): Promise<CharacterBuilderQuoteResponseContract> {
+      return request("public/character-parts/quote", {
+        method: "POST",
+        body: payload,
+      });
     },
 
     listCharacterPresets(query?: QueryParams): Promise<CharacterPreset[]> {

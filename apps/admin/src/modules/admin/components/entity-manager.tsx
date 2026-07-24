@@ -69,6 +69,7 @@ type FieldType =
   | 'textarea'
   | 'checkbox'
   | 'select'
+  | 'multi-select'
   | 'json'
   | 'tags'
   | 'content-fields'
@@ -183,6 +184,7 @@ function getFieldLayoutClass(field: EntityField, resource: ResourceKey) {
     if (normalizedKey === 'categoryid') return 'lg:col-span-4';
     return 'lg:col-span-4';
   }
+  if (field.type === 'multi-select') return 'lg:col-span-12';
 
   if (
     normalizedKey === 'name' ||
@@ -573,13 +575,10 @@ function TableThumbnail({
   onOpen?: (src: string) => void;
   zoomLabel?: string;
 }) {
-  const [failed, setFailed] = useState(false);
+  const [failedUrl, setFailedUrl] = useState<string | null>(null);
   const imageUrl = resolveApiAssetUrl(src);
+  const failed = Boolean(imageUrl && failedUrl === imageUrl);
   const canOpen = Boolean(imageUrl && !failed && onOpen);
-
-  useEffect(() => {
-    setFailed(false);
-  }, [imageUrl]);
 
   const content = imageUrl && !failed ? (
     <img
@@ -587,7 +586,7 @@ function TableThumbnail({
       alt={alt}
       loading='lazy'
       className='h-full w-full object-cover transition-opacity duration-150 group-hover:opacity-55'
-      onError={() => setFailed(true)}
+      onError={() => setFailedUrl(imageUrl)}
     />
   ) : (
     <ImagePlaceholderIcon />
@@ -661,6 +660,10 @@ function toInitialValues(fields: EntityField[]): Record<string, unknown> {
       return;
     }
     if (field.type === 'images') {
+      values[field.key] = [];
+      return;
+    }
+    if (field.type === 'multi-select') {
       values[field.key] = [];
       return;
     }
@@ -837,6 +840,11 @@ function serializeFormValue(field: EntityField, rawValue: unknown): unknown {
     return rawValue
       .map((value) => (typeof value === 'string' ? value.trim() : ''))
       .filter((value) => value.length > 0);
+  }
+  if (field.type === 'multi-select') {
+    return Array.isArray(rawValue)
+      ? rawValue.filter((value): value is string => typeof value === 'string' && value.length > 0)
+      : [];
   }
   if (field.type === 'json') {
     if (typeof rawValue !== 'string' || !rawValue.trim()) return undefined;
@@ -1249,7 +1257,10 @@ export default function EntityManager<K extends ResourceKey>({
   ]);
 
   useEffect(() => {
-    void loadItems();
+    const frame = window.requestAnimationFrame(() => {
+      void loadItems();
+    });
+    return () => window.cancelAnimationFrame(frame);
   }, [loadItems]);
 
   function resetForm() {
@@ -1281,6 +1292,30 @@ export default function EntityManager<K extends ResourceKey>({
         nextValues[field.key] = Boolean(value);
       } else if (field.type === 'images') {
         nextValues[field.key] = Array.isArray(value) ? [...value] : [];
+      } else if (field.type === 'multi-select') {
+        nextValues[field.key] = Array.isArray(value)
+          ? value
+              .map((entry) => {
+                if (typeof entry === 'string') return entry;
+                if (entry && typeof entry === 'object' && 'partId' in entry) {
+                  return String((entry as { partId: unknown }).partId);
+                }
+                return '';
+              })
+              .filter(Boolean)
+          : field.key === 'accessoryPartIds'
+            ? Array.isArray(
+                (item as unknown as { accessories?: unknown[] }).accessories,
+              )
+              ? (
+                  (item as unknown as {
+                    accessories: Array<{ partId?: unknown }>;
+                  }).accessories
+                )
+                  .map((entry) => String(entry.partId ?? ''))
+                  .filter(Boolean)
+              : []
+            : [];
       } else if (field.type === 'image') {
         nextValues[field.key] = typeof value === 'string' ? value : '';
       } else if (field.type === 'datetime') {
@@ -2520,6 +2555,46 @@ export default function EntityManager<K extends ResourceKey>({
                           </option>
                         ))}
                       </Select>
+                    ) : null}
+
+                    {field.type === 'multi-select' ? (
+                      <div className='grid gap-2 rounded-2xl border border-slate-200 bg-white p-3 sm:grid-cols-2 lg:grid-cols-3'>
+                        {(field.options ?? []).map((option) => {
+                          const selectedValues = Array.isArray(value)
+                            ? value.filter((entry): entry is string => typeof entry === 'string')
+                            : [];
+                          const selected = selectedValues.includes(option.value);
+
+                          return (
+                            <Checkbox
+                              key={option.value}
+                              checked={selected}
+                              onChange={(event) =>
+                                setFormValues((prev) => {
+                                  const current = Array.isArray(prev[field.key])
+                                    ? (prev[field.key] as unknown[]).filter(
+                                        (entry): entry is string => typeof entry === 'string',
+                                      )
+                                    : [];
+                                  return {
+                                    ...prev,
+                                    [field.key]: event.target.checked
+                                      ? [...new Set([...current, option.value])]
+                                      : current.filter((entry) => entry !== option.value),
+                                  };
+                                })
+                              }
+                              label={option.label}
+                              containerClassName='rounded-xl border-slate-200 bg-slate-50 px-3 py-2.5 shadow-none'
+                            />
+                          );
+                        })}
+                        {(field.options ?? []).length === 0 ? (
+                          <p className='px-1 py-2 text-sm font-medium text-slate-500'>
+                            Chưa có lựa chọn phù hợp.
+                          </p>
+                        ) : null}
+                      </div>
                     ) : null}
 
                     {field.type === 'checkbox' ? (

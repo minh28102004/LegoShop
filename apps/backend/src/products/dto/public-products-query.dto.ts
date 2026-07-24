@@ -31,8 +31,20 @@ function toOptionalBoolean({ value }: { value: unknown }): unknown {
 
 function toStringArray({ value }: { value: unknown }): string[] | undefined {
   if (value === undefined || value === null || value === '') return undefined;
-  const values = Array.isArray(value) ? value : String(value).split(',');
+  const values: unknown[] = Array.isArray(value)
+    ? value
+    : typeof value === 'string'
+      ? value.split(',')
+      : typeof value === 'number' || typeof value === 'boolean'
+        ? [value]
+        : [];
   const normalized = values
+    .filter(
+      (item): item is string | number | boolean =>
+        typeof item === 'string' ||
+        typeof item === 'number' ||
+        typeof item === 'boolean',
+    )
     .map((item) => String(item).trim())
     .filter(Boolean);
   return normalized.length ? Array.from(new Set(normalized)) : undefined;
@@ -73,6 +85,19 @@ export class PublicProductsQueryDto {
   @IsOptional()
   @IsString()
   search?: string;
+
+  @IsOptional()
+  @IsString()
+  category?: string;
+
+  @IsOptional()
+  @IsString()
+  availability?: string;
+
+  @IsOptional()
+  @Transform(toOptionalBoolean)
+  @IsBoolean()
+  published?: boolean;
 
   @IsOptional()
   @IsString()
@@ -141,6 +166,12 @@ export class PublicProductsQueryDto {
   @IsOptional()
   @IsString()
   type?: string;
+
+  @IsOptional()
+  @Transform(toStringArray)
+  @IsArray()
+  @IsString({ each: true })
+  types?: string[];
 
   @IsOptional()
   @Transform(toOptionalBoolean)

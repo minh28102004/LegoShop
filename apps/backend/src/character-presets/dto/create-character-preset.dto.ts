@@ -1,8 +1,21 @@
-import type { CreateCharacterPresetRequestContract, ProductStatus } from '@lego-shop/shared';
+import type {
+  CreateCharacterPresetRequestContract,
+  ProductStatus,
+} from '@lego-shop/shared';
 import { PRODUCT_STATUS } from '@lego-shop/shared';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
-import { IsEnum, IsInt, IsNotEmpty, IsOptional, IsString, Min } from 'class-validator';
+import {
+  IsArray,
+  IsBoolean,
+  IsEnum,
+  IsInt,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  IsUUID,
+  Min,
+} from 'class-validator';
 
 const trimString = ({ value }: { value: unknown }) =>
   typeof value === 'string' ? value.trim() : value;
@@ -20,11 +33,33 @@ export class CreateCharacterPresetDto implements CreateCharacterPresetRequestCon
   @IsNotEmpty()
   name: string;
 
+  @ApiPropertyOptional({ example: 'graduation-starter' })
+  @Transform(trimOptionalString)
+  @IsOptional()
+  @IsString()
+  slug?: string;
+
   @ApiPropertyOptional({ example: 'Tóc nam + mũ tốt nghiệp' })
   @Transform(trimOptionalString)
   @IsOptional()
   @IsString()
   description?: string;
+
+  @ApiPropertyOptional({ example: '/uploads/admin/preset-graduation.png' })
+  @Transform(trimOptionalString)
+  @IsOptional()
+  @IsString()
+  previewImageUrl?: string;
+
+  @ApiPropertyOptional({ example: true, default: true })
+  @IsOptional()
+  @IsBoolean()
+  isBuilderPreset?: boolean;
+
+  @ApiPropertyOptional({ example: false, default: false })
+  @IsOptional()
+  @IsBoolean()
+  isSellable?: boolean;
 
   @ApiPropertyOptional({ example: 'nam' })
   @Transform(trimOptionalString)
@@ -55,6 +90,37 @@ export class CreateCharacterPresetDto implements CreateCharacterPresetRequestCon
   @IsOptional()
   @IsString()
   hatHint?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsUUID()
+  facePartId?: string | null;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsUUID()
+  hairPartId?: string | null;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsUUID()
+  torsoPartId?: string | null;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsUUID()
+  legsPartId?: string | null;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsUUID()
+  hatPartId?: string | null;
+
+  @ApiPropertyOptional({ type: [String] })
+  @IsOptional()
+  @IsArray()
+  @IsUUID('4', { each: true })
+  accessoryPartIds?: string[];
 
   @ApiPropertyOptional({ example: 0, default: 0 })
   @Type(() => Number)

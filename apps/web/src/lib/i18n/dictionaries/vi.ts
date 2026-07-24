@@ -96,6 +96,23 @@ export const vi = {
       business: "Doanh nghiệp",
       lookup: "Tra cứu",
     },
+    studioMenu: {
+      open: "Mở lựa chọn Studio",
+      frame: {
+        title: "Thiết kế khung quà",
+        description: "Tạo một khung quà cá nhân hóa hoàn chỉnh.",
+      },
+      character: {
+        title: "Tạo nhân vật LEGO",
+        description: "Ghép khuôn mặt, tóc, trang phục và phụ kiện.",
+      },
+    },
+    collectionMenu: {
+      open: "Mở lựa chọn Bộ sưu tập",
+      templates: "Mẫu thiết kế",
+      characters: "Nhân vật LEGO",
+      parts: "Thành phần lẻ",
+    },
   },
   footer: {
     badge: "Quà tặng trưng bày cá nhân hóa",
@@ -276,11 +293,48 @@ export const vi = {
     name: "Tên nhân vật",
     defaultName: "Nhân vật của tôi",
     included: "Đã gồm trong giá",
+    components: "thành phần",
     noParts: "Chưa có thành phần trong nhóm này.",
     addToCart: "Thêm nhân vật vào giỏ",
+    updateCart: "Cập nhật nhân vật",
+    buyNow: "Mua ngay",
+    quoting: "Đang xác nhận giá...",
+    quoteError: "Không thể xác nhận giá. Vui lòng thử lại.",
+    verifiedPrice: "Giá đã được xác nhận từ hệ thống",
+    startTitle: "Chọn điểm bắt đầu",
+    startDescription: "Bắt đầu từ nhân vật trống hoặc một mẫu có sẵn.",
+    blankCharacter: "Nhân vật trống",
+    blankDescription: "Tự chọn từng bộ phận",
+    presetDescription: "Mẫu ráp sẵn để chỉnh sửa nhanh",
     customCharacter: "Nhân vật LEGO tự ráp",
     characterBody: "Thân nhân vật LEGO",
     customFrameLabel: "Nhân vật LEGO ráp riêng",
+    steps: [
+      "Bắt đầu",
+      "Khuôn mặt",
+      "Tóc và mũ",
+      "Trang phục",
+      "Phụ kiện",
+      "Hoàn tất",
+    ],
+    previousStep: "Quay lại",
+    nextStep: "Tiếp tục",
+    finishStep: "Hoàn tất nhân vật",
+    searchParts: "Tìm linh kiện...",
+    note: "Ghi chú cho Figure Lab",
+    notePlaceholder: "Màu sắc, phong cách hoặc yêu cầu cần lưu ý...",
+    quantity: "Số lượng",
+    zoomIn: "Phóng to",
+    zoomOut: "Thu nhỏ",
+    fitPreview: "Vừa khung",
+    hideTools: "Thu gọn bảng công cụ",
+    showTools: "Mở bảng công cụ",
+    cartSuccess: "Đã thêm nhân vật vào giỏ hàng",
+    updateSuccess: "Đã cập nhật nhân vật trong giỏ hàng",
+    availability: {
+      available: "Có sẵn",
+      unavailable: "Không khả dụng",
+    },
   },
   home: {
     hero: {
@@ -289,7 +343,7 @@ export const vi = {
         "Lưu giữ khoảnh khắc chuyển giao bằng một món quà chỉ thuộc về người ấy.",
       description:
         "Từ ảnh thật, ngành học, nghề nghiệp đến những sở thích rất riêng, Figure Lab biến câu chuyện của mỗi người thành một khung tranh minifigure được thiết kế riêng.",
-      primaryCta: { label: "Tạo khung của bạn", href: ROUTES.studio },
+      primaryCta: { label: "Tạo khung của bạn", href: ROUTES.studioFrame },
       secondaryCta: {
         label: "Khám phá mẫu quà",
         href: ROUTES.collection,
@@ -366,7 +420,7 @@ export const vi = {
           icon: "gift",
         },
       ],
-      cta: { label: "Thiết kế quà cho bạn thân", href: ROUTES.studio },
+      cta: { label: "Thiết kế quà cho bạn thân", href: ROUTES.studioFrame },
     },
     transformation: {
       eyebrow: "Từ câu chuyện đến thành phẩm",
@@ -397,7 +451,7 @@ export const vi = {
           icon: "message",
         },
       ],
-      primaryCta: { label: "Bắt đầu thiết kế", href: ROUTES.studio },
+      primaryCta: { label: "Bắt đầu thiết kế", href: ROUTES.studioFrame },
       secondaryCta: { label: "Xem quy trình", href: ROUTES.howToOrder },
       sourceBadge: "Ảnh thật",
       sourceTitle: "Ảnh chân dung của người nhận",
@@ -521,7 +575,7 @@ export const vi = {
       title: "Có một người xứng đáng nhận món quà chỉ dành riêng cho họ.",
       description:
         "Hãy kể Figure Lab nghe về người bạn muốn tặng. Chúng tôi sẽ giúp bạn biến câu chuyện ấy thành một khung tranh minifigure.",
-      primaryCta: { label: "Tạo thiết kế ngay", href: ROUTES.studio },
+      primaryCta: { label: "Tạo thiết kế ngay", href: ROUTES.studioFrame },
       secondaryCta: { label: "Nhận tư vấn", href: ROUTES.business },
     },
     media: {
@@ -583,11 +637,12 @@ export const vi = {
   collection: {
     eyebrow: "BỘ SƯU TẬP FIGURE LAB",
     title: "Bộ sưu tập",
+    brand: "Figure Lab",
     description:
       "Chọn mẫu thiết kế, tạo nhân vật hoặc mua từng thành phần riêng.",
     tabs: {
       templates: "Mẫu thiết kế",
-      characters: "Tạo nhân vật",
+      characters: "Nhân vật LEGO lẻ",
       parts: "Thành phần lẻ",
     },
     allCollections: "Tất cả",
@@ -653,6 +708,22 @@ export const vi = {
     next: "Trang sau",
     page: (page: number, total: number) => `Trang ${page} / ${total}`,
     consultationOpened: "Đã mở tư vấn cho mẫu",
+    characterProduct: {
+      typeBadge: "Nhân vật LEGO lẻ",
+      featured: "Nổi bật",
+      componentCount: (count: number) => `${count} bộ phận`,
+      accessoryCount: (count: number) => `${count} phụ kiện`,
+      viewDetails: "Xem chi tiết",
+      addToCart: "Thêm vào giỏ",
+      added: "Đã thêm vào giỏ hàng",
+      customize: "Tùy chỉnh nhân vật",
+      close: "Đóng chi tiết nhân vật",
+      fallbackDescription:
+        "Nhân vật LEGO đã ráp sẵn, có thể mua ngay hoặc tiếp tục tùy chỉnh.",
+      emptyTitle: "Chưa có nhân vật phù hợp",
+      emptyDescription:
+        "Hãy thử từ khóa hoặc bộ lọc khác để khám phá thêm nhân vật.",
+    },
     retail: {
       frame: "Khung tranh",
       background: "Nền ảnh",
@@ -678,6 +749,9 @@ export const vi = {
       "Shop sẽ liên hệ báo phí; khách thanh toán trực tiếp cho đơn vị vận chuyển.",
     customized: "Đã cá nhân hóa",
     finished: "Sản phẩm hoàn thiện",
+    standaloneCharacter: "Nhân vật LEGO lẻ",
+    customCharacter: "Nhân vật tùy chỉnh",
+    retailPart: "Thành phần LEGO lẻ",
     viewConfiguration: "Xem cấu hình",
     collapse: "Thu gọn",
     configurationTitle: "Chi tiết cấu hình",
@@ -733,6 +807,11 @@ export const vi = {
     reviewInvalid: "Xem sản phẩm cần xử lý",
     updateConfiguration: "Cập nhật cấu hình",
     quoteChecking: "Đang xác nhận giá mới nhất…",
+    quoteLoadingSteps: [
+      "Kiểm tra cấu hình",
+      "Đối chiếu ưu đãi",
+      "Tính tổng đơn hàng",
+    ],
     quoteError: "Chưa thể xác nhận giá với shop.",
     retry: "Thử lại",
     summaryTitle: "Tổng đơn hàng",
@@ -740,7 +819,7 @@ export const vi = {
     subtotal: "Tạm tính",
     discount: "Giảm giá",
     shipping: "Phí vận chuyển",
-    shippingValue: "Shop báo trước khi giao",
+    shippingValue: "Chọn khu vực khi thanh toán",
     addVoucher: "Thêm mã ưu đãi",
     voucherLabel: "Mã ưu đãi",
     voucherPlaceholder: "Nhập mã ưu đãi",
@@ -820,19 +899,22 @@ export const vi = {
         : "Chọn ngày phù hợp; shop sẽ xác nhận lại lịch sản xuất trước khi thực hiện.",
     shippingMethod: "Phương thức vận chuyển",
     paymentMethod: "Phương thức thanh toán",
-    shippingNoticeTitle: "Phí vận chuyển được xác nhận trước khi giao",
+    shippingNoticeTitle: "Phí vận chuyển đã được tạm tính",
     shippingNotice:
-      "Phí ship chưa được cộng vào tổng đơn hàng. Shop sẽ liên hệ báo phí trước khi giao.",
+      "Mức phí theo khu vực bạn chọn được cộng trực tiếp vào tổng đơn hàng.",
+    shippingEstimate: (amount: string) => `Phí dự kiến ${amount}`,
     shipping: {
-      shop_support: {
-        label: "Shop hỗ trợ đặt ship",
-        detail: "Báo phí trước khi giao",
-        note: "Khách thanh toán phí ship cho tài xế",
+      hcm_inner: {
+        label: "Nội thành TP.HCM",
+        detail: "Khu vực trung tâm và các quận nội thành",
       },
-      self: {
-        label: "Tự đặt ship / Đến lấy",
-        detail: "Kho FPT University, TP.HCM",
-        note: "Shop xác nhận thời gian trước khi lấy",
+      hcm_outer: {
+        label: "Ngoại thành TP.HCM",
+        detail: "TP. Thủ Đức, huyện và khu vực xa trung tâm",
+      },
+      nationwide: {
+        label: "Tỉnh / thành khác",
+        detail: "Giao hàng tiêu chuẩn toàn quốc",
       },
     },
     notePlaceholder:
@@ -849,6 +931,17 @@ export const vi = {
     polaroidOptions: { none: "Không thêm", "2": "2 ảnh", "4": "4 ảnh" },
     summaryTitle: "Đơn hàng của bạn",
     products: "sản phẩm",
+    orderDetailsTitle: "Chi tiết đơn hàng",
+    viewAllProducts: "Xem chi tiết {count} sản phẩm",
+    otherProducts: "+ {count} sản phẩm khác",
+    validItem: "Sẵn sàng đặt hàng",
+    productTypes: {
+      customFrame: "Khung quà tùy chỉnh",
+      customCharacter: "Nhân vật LEGO tùy chỉnh",
+      standaloneCharacter: "Nhân vật LEGO",
+      retailPart: "Thành phần lẻ",
+      finishedProduct: "Mẫu thiết kế hoàn chỉnh",
+    },
     editDesign: "Chỉnh sửa thiết kế",
     itemNote: "Nội dung cá nhân hóa",
     itemNotePlaceholder: "Tên, lời chúc hoặc nội dung cần shop điền...",
@@ -858,7 +951,7 @@ export const vi = {
     giftFee: "Gói quà",
     polaroidFee: "Ảnh Polaroid",
     shippingFee: "Phí vận chuyển",
-    shippingLater: "Shop báo trước khi giao",
+    shippingLater: "Đã tính theo khu vực",
     discountCode: "Mã giảm giá",
     discountPlaceholder: "Nhập mã",
     apply: "Áp dụng",
@@ -869,17 +962,9 @@ export const vi = {
     payNow: "Thanh toán ngay",
     paymentTitle: "Phương thức thanh toán",
     payment: {
-      COD_DEPOSIT: {
-        label: "Chuyển khoản đặt cọc",
-        detail: "Thanh toán phần còn lại khi nhận hàng",
-      },
       PAYOS: {
-        label: "Chuyển khoản toàn bộ",
-        detail: "Nhận liên kết thanh toán sau khi đặt hàng",
-      },
-      COD: {
-        label: "Thanh toán khi nhận hàng",
-        detail: "Shop xác nhận trước khi sản xuất",
+        label: "Chuyển khoản 100%",
+        detail: "Thanh toán toàn bộ đơn hàng qua liên kết PayOS an toàn",
       },
     },
     onDelivery: "Khi nhận hàng",
@@ -1136,6 +1221,9 @@ export const vi = {
       refunded: "Đã hoàn tiền",
     },
     shippingLabels: {
+      hcm_inner: "Nội thành TP.HCM",
+      hcm_outer: "Ngoại thành TP.HCM",
+      nationwide: "Tỉnh / thành khác",
       shop_support: "Figure Lab hỗ trợ giao",
       standard: "Giao tiêu chuẩn",
       fast: "Giao nhanh",
@@ -1617,6 +1705,72 @@ export const vi = {
     },
   },
   studio: {
+    modeSelection: {
+      eyebrow: "Figure Lab Studio",
+      landingTitle: "Một Studio, hai cách bắt đầu",
+      landingDescription:
+        "Chọn thiết kế một khung quà hoàn chỉnh hoặc tạo riêng nhân vật LEGO mang dấu ấn của bạn.",
+      openChooser: "Chọn chế độ Studio",
+      modalTitle: "Bạn muốn tạo gì hôm nay?",
+      modalDescription:
+        "Mỗi chế độ có quy trình riêng, nhưng đều không cần đăng nhập và có thể bắt đầu ngay.",
+      closeModal: "Đóng cửa sổ chọn chế độ Studio",
+      frame: {
+        title: "Thiết kế khung quà",
+        description:
+          "Tạo một khung quà hoàn chỉnh từ mẫu nền, nội dung, nhân vật và phụ kiện.",
+        steps: [
+          "Chọn kích thước khung",
+          "Chọn mẫu nền",
+          "Thêm nội dung",
+          "Thêm nhân vật và phụ kiện",
+          "Hoàn thiện và thêm vào giỏ hàng",
+        ],
+        cta: "Bắt đầu thiết kế khung",
+      },
+      character: {
+        title: "Tạo nhân vật LEGO",
+        description:
+          "Phối từng bộ phận để hoàn thiện một nhân vật LEGO riêng theo phong cách của bạn.",
+        steps: [
+          "Chọn khuôn mặt",
+          "Chọn tóc",
+          "Chọn thân áo",
+          "Chọn chân",
+          "Chọn mũ và phụ kiện",
+        ],
+        cta: "Tạo nhân vật LEGO",
+      },
+    },
+    characterShell: {
+      eyebrow: "Character Builder",
+      title: "Tạo nhân vật LEGO",
+      description:
+        "Không gian tạo nhân vật đang được chuẩn bị cho phase tiếp theo. Cấu trúc preview, công cụ, bước thực hiện, giá và CTA đã sẵn sàng.",
+      status: "Đang phát triển",
+      backToStudio: "Chọn chế độ khác",
+      previewLabel: "Khu vực xem trước",
+      previewTitle: "Nhân vật của bạn sẽ xuất hiện tại đây",
+      previewDescription:
+        "Preview sẽ cập nhật theo từng lựa chọn khuôn mặt, tóc, áo, chân, mũ và phụ kiện.",
+      toolsTitle: "Công cụ lựa chọn",
+      toolsDescription: "Các nhóm thành phần sẽ được mở ở phase tiếp theo.",
+      stepTitle: "Các bước tạo nhân vật",
+      steps: ["Khuôn mặt", "Tóc", "Thân áo", "Chân", "Phụ kiện"],
+      priceTitle: "Tóm tắt giá",
+      pricePending: "Đang cập nhật",
+      priceDescription:
+        "Giá sẽ được tính từ các bộ phận và phụ kiện thực tế đã chọn.",
+      ctaTitle: "Hoàn thiện nhân vật",
+      ctaDescription:
+        "CTA thêm vào giỏ hàng sẽ được kích hoạt khi Character Builder hoàn tất.",
+      cta: "Sắp ra mắt",
+    },
+    routeLoading: {
+      title: "Đang chuẩn bị Figure Lab Studio",
+      description: "Công cụ sáng tạo đang được đặt vào đúng vị trí.",
+      screenReader: "Studio đang tải, vui lòng chờ.",
+    },
     header: {
       saveDesign: "Lưu thiết kế",
       reviewDesign: "Xem lại thiết kế",

@@ -11,6 +11,7 @@ import {
   useState,
 } from "react";
 import { useSearchParams } from "next/navigation";
+import { ROUTES } from "@/config/routes";
 import { useCartStore, type SimpleCartItem } from "@/features/cart/store";
 import { isCustomFrameDesignData } from "../lib/design-data";
 import {
@@ -799,7 +800,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
         lastRestoreKeyRef.current = restoreKey;
         alert(text.toast.restoreMissing);
         setEditCartItemId(null);
-        window.history.replaceState(null, "", "/studio");
+        window.history.replaceState(null, "", ROUTES.studioFrame);
       });
     } else {
       queueMicrotask(() => {

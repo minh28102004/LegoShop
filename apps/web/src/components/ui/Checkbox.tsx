@@ -19,6 +19,7 @@ export interface CheckboxProps extends Omit<
   error?: string;
   fieldState?: FieldState;
   containerClassName?: string;
+  labelClassName?: string;
 }
 
 export const Checkbox = React.forwardRef<HTMLInputElement, CheckboxProps>(
@@ -31,6 +32,7 @@ export const Checkbox = React.forwardRef<HTMLInputElement, CheckboxProps>(
       fieldState,
       id,
       label,
+      labelClassName,
       name,
       required,
       ...props
@@ -52,7 +54,10 @@ export const Checkbox = React.forwardRef<HTMLInputElement, CheckboxProps>(
       <div className={cn("space-y-2", containerClassName)}>
         <label
           htmlFor={checkboxId}
-          className="grid min-h-11 cursor-pointer grid-cols-[auto_1fr] items-start gap-3 rounded-[var(--control-radius)]"
+          className={cn(
+            "grid min-h-11 cursor-pointer grid-cols-[auto_1fr] items-start gap-3 rounded-[var(--control-radius)]",
+            labelClassName,
+          )}
         >
           <span className="relative mt-0.5 grid size-5 shrink-0 place-items-center">
             <input

@@ -15,6 +15,7 @@ import { CharacterPartsService } from './character-parts.service';
 import { CharacterPartsQueryDto } from './dto/character-parts-query.dto';
 import { CreateCharacterPartDto } from './dto/create-character-part.dto';
 import { UpdateCharacterPartDto } from './dto/update-character-part.dto';
+import { QuoteCharacterBuilderDto } from './dto/quote-character-builder.dto';
 
 @ApiTags('Character Parts')
 @Controller()
@@ -24,6 +25,11 @@ export class CharacterPartsController {
   @Get('public/character-parts')
   findPublicCharacterParts(@Query() query: CharacterPartsQueryDto) {
     return this.characterPartsService.findPublicCharacterParts(query);
+  }
+
+  @Post('public/character-parts/quote')
+  quoteCharacterBuilder(@Body() dto: QuoteCharacterBuilderDto) {
+    return this.characterPartsService.quoteCharacterBuilder(dto.partIds);
   }
 
   @Get('admin/character-parts')

@@ -93,19 +93,29 @@ model Admin {
 }
 
 model Product {
-  id              String        @id @default(uuid())
-  name            String
-  slug            String        @unique
-  description     String?
-  basePrice       Int
-  images          String[]      @default([])
-  productType     String        @default("finished")
-  componentConfig Json?
-  status          ProductStatus @default(active)
-  featured        Boolean       @default(false)
+  id               String        @id @default(uuid())
+  name             String
+  slug             String        @unique
+  description      String?
+  shortDescription String?
+  basePrice        Int
+  compareAtPrice   Int?
+  images           String[]      @default([])
+  thumbnailUrl     String?
+  productType      String        @default("finished")
+  category         String?
+  availability     String        @default("available")
+  inventory        Int?
+  published        Boolean       @default(true)
+  componentConfig  Json?
+  status           ProductStatus @default(active)
+  featured         Boolean       @default(false)
 
   collectionId String?
   collection   Collection? @relation(fields: [collectionId], references: [id], onDelete: SetNull)
+
+  characterPresetId String?
+  characterPreset   CharacterPreset? @relation(fields: [characterPresetId], references: [id], onDelete: SetNull)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -114,6 +124,9 @@ model Product {
 
   @@index([productType, status])
   @@index([collectionId])
+  @@index([characterPresetId])
+  @@index([published, status])
+  @@index([category, status])
 }
 
 model TemplateCategory {
@@ -298,12 +311,25 @@ model Character {
 model CharacterPart {
   id              String            @id @default(uuid())
   name            String
+  slug            String?           @unique
   type            CharacterPartType
   imageUrl        String
   priceAdjustment Int               @default(0)
+  compareAtPrice  Int?
+  category        String?
+  availability    String            @default("available")
+  isActive        Boolean           @default(true)
+  compatibility   Json?
   status          ProductStatus     @default(active)
   sortOrder       Int               @default(0)
   tags            Json?
+
+  facePresets       CharacterPreset[]          @relation("CharacterPresetFace")
+  hairPresets       CharacterPreset[]          @relation("CharacterPresetHair")
+  torsoPresets      CharacterPreset[]          @relation("CharacterPresetTorso")
+  legsPresets       CharacterPreset[]          @relation("CharacterPresetLegs")
+  hatPresets        CharacterPreset[]          @relation("CharacterPresetHat")
+  presetAccessories CharacterPresetAccessory[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -313,21 +339,57 @@ model CharacterPart {
 }
 
 model CharacterPreset {
-  id          String        @id @default(uuid())
-  name        String
-  description String?
-  faceHint    String?
-  hairHint    String?
-  torsoHint   String?
-  legsHint    String?
-  hatHint     String?
-  sortOrder   Int           @default(0)
-  status      ProductStatus @default(active)
+  id              String        @id @default(uuid())
+  name            String
+  slug            String?       @unique
+  description     String?
+  previewImageUrl String?
+  isBuilderPreset Boolean       @default(true)
+  isSellable      Boolean       @default(false)
+  faceHint        String?
+  hairHint        String?
+  torsoHint       String?
+  legsHint        String?
+  hatHint         String?
+  facePartId      String?
+  hairPartId      String?
+  torsoPartId     String?
+  legsPartId      String?
+  hatPartId       String?
+  sortOrder       Int           @default(0)
+  status          ProductStatus @default(active)
+
+  facePart  CharacterPart? @relation("CharacterPresetFace", fields: [facePartId], references: [id], onDelete: SetNull)
+  hairPart  CharacterPart? @relation("CharacterPresetHair", fields: [hairPartId], references: [id], onDelete: SetNull)
+  torsoPart CharacterPart? @relation("CharacterPresetTorso", fields: [torsoPartId], references: [id], onDelete: SetNull)
+  legsPart  CharacterPart? @relation("CharacterPresetLegs", fields: [legsPartId], references: [id], onDelete: SetNull)
+  hatPart   CharacterPart? @relation("CharacterPresetHat", fields: [hatPartId], references: [id], onDelete: SetNull)
+
+  accessories CharacterPresetAccessory[]
+  products    Product[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([status, sortOrder])
+  @@index([isBuilderPreset, status, sortOrder])
+  @@index([isSellable, status, sortOrder])
+}
+
+model CharacterPresetAccessory {
+  presetId  String
+  preset    CharacterPreset @relation(fields: [presetId], references: [id], onDelete: Cascade)
+  partId    String
+  part      CharacterPart   @relation(fields: [partId], references: [id], onDelete: Cascade)
+  sortOrder Int             @default(0)
+  quantity  Int             @default(1)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@id([presetId, partId])
+  @@index([partId])
+  @@index([presetId, sortOrder])
 }
 
 model FrameSize {
@@ -446,19 +508,22 @@ model OrderItem {
   productId String?
   product   Product? @relation(fields: [productId], references: [id])
 
-  productName String
-  quantity    Int
-  price       Int
-  note        String?
+  productName  String
+  quantity     Int
+  price        Int
+  note         String?
+  lineItemType String?
+  customName   String?
 
-  frameOptionId  String?
-  backgroundId   String?
-  frameSizeId    String?
-  frameSizeLabel String?
-  frameColorName String?
-  accessories    Json?
-  designData     Json?
-  previewUrl     String?
+  frameOptionId     String?
+  backgroundId      String?
+  frameSizeId       String?
+  frameSizeLabel    String?
+  frameColorName    String?
+  accessories       Json?
+  designData        Json?
+  componentSnapshot Json?
+  previewUrl        String?
 
   createdAt DateTime @default(now())
 }

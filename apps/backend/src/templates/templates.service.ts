@@ -185,7 +185,7 @@ export class TemplatesService {
     if (dto.status !== undefined) data.status = dto.status;
     if (dto.categoryId !== undefined) data.categoryId = dto.categoryId;
     if (dto.configJson !== undefined) {
-      data.configJson = dto.configJson as Prisma.InputJsonValue;
+      data.configJson = dto.configJson;
     }
 
     return this.prisma.template.update({

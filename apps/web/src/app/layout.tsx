@@ -27,6 +27,11 @@ export const metadata: Metadata = {
   creator: SITE.name,
   publisher: SITE.name,
   applicationName: SITE.name,
+  icons: {
+    icon: "/brand/figure-lab-logo.png",
+    shortcut: "/brand/figure-lab-logo.png",
+    apple: "/brand/figure-lab-logo.png",
+  },
   alternates: {
     canonical: SITE.url,
   },
@@ -82,6 +87,7 @@ export default function RootLayout({
   return (
     <html
       lang="vi"
+      data-scroll-behavior="smooth"
       className={`${beVietnamPro.variable} h-full w-full scroll-smooth antialiased`}
     >
       <body className="h-dvh w-full overflow-hidden bg-background font-body text-text-primary antialiased">
@@ -98,9 +104,7 @@ export default function RootLayout({
               id="site-scroll-root"
               className="min-h-0 w-full min-w-0 flex-1 overflow-y-auto overflow-x-hidden scroll-pt-[84px] lg:scroll-pt-[78px]"
             >
-              <main className="w-full min-w-0 overflow-x-clip">
-                {children}
-              </main>
+              <main className="w-full min-w-0 overflow-x-clip">{children}</main>
 
               <Footer />
             </div>

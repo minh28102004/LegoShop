@@ -1,4 +1,13 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  UseGuards,
+} from '@nestjs/common';
 import { FrameColorsService } from './frame-colors.service';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -39,10 +48,7 @@ export class FrameColorsController {
   @Patch('admin/frame-colors/:id')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  update(
-    @Param('id') id: string,
-    @Body() updateDto: UpdateFrameColorDto,
-  ) {
+  update(@Param('id') id: string, @Body() updateDto: UpdateFrameColorDto) {
     return this.frameColorsService.update(id, updateDto);
   }
 

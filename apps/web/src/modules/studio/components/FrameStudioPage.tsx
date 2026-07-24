@@ -172,7 +172,7 @@ function StudioWorkspace() {
   );
 }
 
-export function StudioPage() {
+export function FrameStudioPage() {
   return (
     <Suspense fallback={null}>
       <StudioProvider>

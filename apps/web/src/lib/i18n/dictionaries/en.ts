@@ -95,6 +95,23 @@ export const en = {
       business: "Business",
       lookup: "Lookup",
     },
+    studioMenu: {
+      open: "Open Studio choices",
+      frame: {
+        title: "Design a gift frame",
+        description: "Create a complete personalized display gift.",
+      },
+      character: {
+        title: "Build a LEGO character",
+        description: "Combine a face, hair, outfit, and accessories.",
+      },
+    },
+    collectionMenu: {
+      open: "Open Collection choices",
+      templates: "Design templates",
+      characters: "LEGO characters",
+      parts: "Individual parts",
+    },
   },
   footer: {
     badge: "Personalized display gifts",
@@ -274,11 +291,41 @@ export const en = {
     name: "Character name",
     defaultName: "My character",
     included: "Included in price",
+    components: "components",
     noParts: "No parts are available in this group yet.",
     addToCart: "Add character to cart",
+    updateCart: "Update character",
+    buyNow: "Buy now",
+    quoting: "Verifying price...",
+    quoteError: "Price could not be verified. Please try again.",
+    verifiedPrice: "Price verified by the system",
+    startTitle: "Choose a starting point",
+    startDescription: "Start blank or customize a ready-made preset.",
+    blankCharacter: "Blank character",
+    blankDescription: "Choose every part yourself",
+    presetDescription: "A ready-made preset for quick customization",
     customCharacter: "Custom LEGO character",
     characterBody: "LEGO character body",
     customFrameLabel: "Custom-built LEGO character",
+    steps: ["Start", "Face", "Hair & hat", "Outfit", "Accessories", "Finish"],
+    previousStep: "Back",
+    nextStep: "Continue",
+    finishStep: "Finish character",
+    searchParts: "Search parts...",
+    note: "Note for Figure Lab",
+    notePlaceholder: "Add color, style, or production notes...",
+    quantity: "Quantity",
+    zoomIn: "Zoom in",
+    zoomOut: "Zoom out",
+    fitPreview: "Fit preview",
+    hideTools: "Collapse tools",
+    showTools: "Open tools",
+    cartSuccess: "Character added to cart",
+    updateSuccess: "Character updated in cart",
+    availability: {
+      available: "Available",
+      unavailable: "Unavailable",
+    },
   },
   home: {
     hero: {
@@ -287,7 +334,7 @@ export const en = {
         "Preserve a life-changing moment with a gift made for one person only.",
       description:
         "From a real photo, field of study and career to the details they love most, Figure Lab turns each story into a one-of-a-kind minifigure frame.",
-      primaryCta: { label: "Create your frame", href: ROUTES.studio },
+      primaryCta: { label: "Create your frame", href: ROUTES.studioFrame },
       secondaryCta: {
         label: "Explore gift designs",
         href: ROUTES.collection,
@@ -372,7 +419,7 @@ export const en = {
           icon: "gift",
         },
       ],
-      cta: { label: "Design a gift for a friend", href: ROUTES.studio },
+      cta: { label: "Design a gift for a friend", href: ROUTES.studioFrame },
     },
     transformation: {
       eyebrow: "From story to finished piece",
@@ -403,7 +450,7 @@ export const en = {
           icon: "message",
         },
       ],
-      primaryCta: { label: "Start designing", href: ROUTES.studio },
+      primaryCta: { label: "Start designing", href: ROUTES.studioFrame },
       secondaryCta: { label: "View the process", href: ROUTES.howToOrder },
       sourceBadge: "Original photo",
       sourceTitle: "A portrait of the recipient",
@@ -528,7 +575,7 @@ export const en = {
       title: "Someone deserves a gift created only for them.",
       description:
         "Tell Figure Lab about the person you want to celebrate. We will help turn their story into a personalized minifigure frame.",
-      primaryCta: { label: "Create a design", href: ROUTES.studio },
+      primaryCta: { label: "Create a design", href: ROUTES.studioFrame },
       secondaryCta: { label: "Talk to our team", href: ROUTES.business },
     },
     media: {
@@ -590,11 +637,12 @@ export const en = {
   collection: {
     eyebrow: "FIGURE LAB COLLECTION",
     title: "Collection",
+    brand: "Figure Lab",
     description:
       "Choose a design template, build a character, or shop individual parts.",
     tabs: {
       templates: "Design templates",
-      characters: "Character builder",
+      characters: "LEGO characters",
       parts: "Individual parts",
     },
     allCollections: "All",
@@ -661,6 +709,24 @@ export const en = {
     next: "Next page",
     page: (page: number, total: number) => `Page ${page} of ${total}`,
     consultationOpened: "Consultation opened for",
+    characterProduct: {
+      typeBadge: "Standalone LEGO character",
+      featured: "Featured",
+      componentCount: (count: number) =>
+        `${count} ${count === 1 ? "component" : "components"}`,
+      accessoryCount: (count: number) =>
+        `${count} ${count === 1 ? "accessory" : "accessories"}`,
+      viewDetails: "View details",
+      addToCart: "Add to cart",
+      added: "Added to cart",
+      customize: "Customize character",
+      close: "Close character details",
+      fallbackDescription:
+        "A ready-built LEGO character that you can buy now or customize further.",
+      emptyTitle: "No matching characters yet",
+      emptyDescription:
+        "Try another search term or filter to discover more characters.",
+    },
     retail: {
       frame: "Frame",
       background: "Background",
@@ -686,6 +752,9 @@ export const en = {
       "We will contact you with the fee; payment is made directly to the carrier.",
     customized: "Personalized",
     finished: "Finished product",
+    standaloneCharacter: "Standalone LEGO character",
+    customCharacter: "Custom LEGO character",
+    retailPart: "Individual LEGO part",
     viewConfiguration: "View configuration",
     collapse: "Collapse",
     configurationTitle: "Configuration details",
@@ -746,6 +815,11 @@ export const en = {
     reviewInvalid: "Review products needing attention",
     updateConfiguration: "Update configuration",
     quoteChecking: "Confirming the latest price…",
+    quoteLoadingSteps: [
+      "Checking items",
+      "Matching discounts",
+      "Calculating total",
+    ],
     quoteError: "We could not confirm pricing with the shop.",
     retry: "Try again",
     summaryTitle: "Order summary",
@@ -753,7 +827,7 @@ export const en = {
     subtotal: "Subtotal",
     discount: "Discount",
     shipping: "Shipping",
-    shippingValue: "Confirmed before delivery",
+    shippingValue: "Choose your delivery area at checkout",
     addVoucher: "Add a promo code",
     voucherLabel: "Promo code",
     voucherPlaceholder: "Enter promo code",
@@ -835,19 +909,22 @@ export const en = {
         : "Choose a suitable date; we will confirm the production schedule before starting.",
     shippingMethod: "Delivery method",
     paymentMethod: "Payment method",
-    shippingNoticeTitle: "Shipping is confirmed before delivery",
+    shippingNoticeTitle: "Estimated shipping is included",
     shippingNotice:
-      "Shipping is not included in the order total. Figure Lab will contact you with the fee before delivery.",
+      "The rate for your selected area is added directly to the order total.",
+    shippingEstimate: (amount: string) => `Estimated fee ${amount}`,
     shipping: {
-      shop_support: {
-        label: "Shop-arranged delivery",
-        detail: "Fee confirmed before delivery",
-        note: "Shipping is paid directly to the driver",
+      hcm_inner: {
+        label: "HCMC inner districts",
+        detail: "Central and inner-city districts",
       },
-      self: {
-        label: "Self-arranged / Pickup",
-        detail: "FPT University warehouse, HCMC",
-        note: "Please confirm pickup time with us",
+      hcm_outer: {
+        label: "HCMC outer districts",
+        detail: "Thu Duc City and areas farther from the centre",
+      },
+      nationwide: {
+        label: "Other provinces",
+        detail: "Standard nationwide delivery",
       },
     },
     notePlaceholder:
@@ -864,6 +941,17 @@ export const en = {
     polaroidOptions: { none: "No extras", "2": "2 prints", "4": "4 prints" },
     summaryTitle: "Your order",
     products: "items",
+    orderDetailsTitle: "Order details",
+    viewAllProducts: "View all {count} items",
+    otherProducts: "+ {count} more items",
+    validItem: "Ready to order",
+    productTypes: {
+      customFrame: "Custom gift frame",
+      customCharacter: "Custom LEGO character",
+      standaloneCharacter: "LEGO character",
+      retailPart: "Individual component",
+      finishedProduct: "Complete design",
+    },
     editDesign: "Edit design",
     itemNote: "Personalization details",
     itemNotePlaceholder:
@@ -874,7 +962,7 @@ export const en = {
     giftFee: "Gift wrapping",
     polaroidFee: "Polaroid prints",
     shippingFee: "Shipping",
-    shippingLater: "Confirmed before delivery",
+    shippingLater: "Included by area",
     discountCode: "Discount code",
     discountPlaceholder: "Enter code",
     apply: "Apply",
@@ -885,17 +973,9 @@ export const en = {
     payNow: "Pay now",
     paymentTitle: "Payment method",
     payment: {
-      COD_DEPOSIT: {
-        label: "Bank-transfer deposit",
-        detail: "Pay the balance on delivery",
-      },
       PAYOS: {
-        label: "Full bank transfer",
-        detail: "Receive a payment link after placing the order",
-      },
-      COD: {
-        label: "Cash on delivery",
-        detail: "We confirm the order before production",
+        label: "100% bank transfer",
+        detail: "Pay the full order securely through a PayOS payment link",
       },
     },
     onDelivery: "On delivery",
@@ -1149,6 +1229,9 @@ export const en = {
       refunded: "Refunded",
     },
     shippingLabels: {
+      hcm_inner: "HCMC inner districts",
+      hcm_outer: "HCMC outer districts",
+      nationwide: "Other provinces",
       shop_support: "Figure Lab arranged delivery",
       standard: "Standard delivery",
       fast: "Express delivery",
@@ -1634,6 +1717,73 @@ export const en = {
     },
   },
   studio: {
+    modeSelection: {
+      eyebrow: "Figure Lab Studio",
+      landingTitle: "One Studio, two ways to begin",
+      landingDescription:
+        "Design a complete gift frame or build a standalone LEGO character that feels uniquely yours.",
+      openChooser: "Choose a Studio mode",
+      modalTitle: "What would you like to create today?",
+      modalDescription:
+        "Each mode has its own workflow. No sign-in is required, so you can start right away.",
+      closeModal: "Close the Studio mode chooser",
+      frame: {
+        title: "Design a gift frame",
+        description:
+          "Create a complete gift frame with a background, content, characters, and accessories.",
+        steps: [
+          "Choose a frame size",
+          "Choose a background",
+          "Add content",
+          "Add characters and accessories",
+          "Finish and add to cart",
+        ],
+        cta: "Start designing a frame",
+      },
+      character: {
+        title: "Build a LEGO character",
+        description:
+          "Combine individual parts to create a LEGO character in your own style.",
+        steps: [
+          "Choose a face",
+          "Choose hair",
+          "Choose a torso",
+          "Choose legs",
+          "Choose a hat and accessories",
+        ],
+        cta: "Build a LEGO character",
+      },
+    },
+    characterShell: {
+      eyebrow: "Character Builder",
+      title: "Build a LEGO character",
+      description:
+        "The character workspace is being prepared for the next phase. Its preview, tools, steps, pricing, and CTA areas are ready for development.",
+      status: "In development",
+      backToStudio: "Choose another mode",
+      previewLabel: "Preview area",
+      previewTitle: "Your character will appear here",
+      previewDescription:
+        "The preview will update with every face, hair, torso, legs, hat, and accessory selection.",
+      toolsTitle: "Selection tools",
+      toolsDescription: "Component groups will be enabled in the next phase.",
+      stepTitle: "Character building steps",
+      steps: ["Face", "Hair", "Torso", "Legs", "Accessories"],
+      priceTitle: "Price summary",
+      pricePending: "Updating",
+      priceDescription:
+        "Pricing will be calculated from the actual parts and accessories selected.",
+      ctaTitle: "Complete your character",
+      ctaDescription:
+        "Add to cart will be enabled when the Character Builder is complete.",
+      cta: "Coming soon",
+    },
+    routeLoading: {
+      title: "Preparing Figure Lab Studio",
+      description:
+        "Your creative tools are being placed just where they belong.",
+      screenReader: "Studio is loading. Please wait.",
+    },
     header: {
       saveDesign: "Save design",
       reviewDesign: "Review design",

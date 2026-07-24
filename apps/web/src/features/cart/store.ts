@@ -1,5 +1,6 @@
 "use client";
 
+import type { CartLineItemType } from "@lego-shop/shared";
 import { create } from "zustand";
 import {
   createJSONStorage,
@@ -30,9 +31,13 @@ export interface CartItemPart {
 export interface SimpleCartItem {
   id: string;
   productId: string | null;
+  lineItemType?: CartLineItemType;
+  productType?: string;
+  customName?: string;
   productName: string;
   quantity: number;
   unitPrice: number;
+  serverValidatedPrice?: number;
   totalPrice: number;
   note?: string;
   frameOptionId?: string;
@@ -84,7 +89,7 @@ type CartStore = CartState & CartActions;
 
 const CART_STORAGE_KEY = "legoshop-cart-v2";
 const CART_BACKUP_STORAGE_KEY = `${CART_STORAGE_KEY}-backup`;
-const CART_STORAGE_VERSION = 3;
+const CART_STORAGE_VERSION = 4;
 const MAX_CART_QUANTITY = 10;
 let hydrationPromise: Promise<void> | null = null;
 
@@ -126,6 +131,42 @@ function readQuantity(value: unknown) {
       ? Math.round(value)
       : 1;
   return Math.min(MAX_CART_QUANTITY, Math.max(1, quantity));
+}
+
+const CART_LINE_ITEM_TYPES = new Set<CartLineItemType>([
+  "frame",
+  "standalone_character",
+  "custom_character",
+  "retail_part",
+]);
+
+function inferLineItemType(value: Record<string, unknown>): CartLineItemType {
+  const explicit = readString(value.lineItemType) as CartLineItemType;
+  if (CART_LINE_ITEM_TYPES.has(explicit)) return explicit;
+
+  const designData = isRecord(value.designData) ? value.designData : {};
+  const designType = readString(designData.type);
+  const productType =
+    readString(value.productType) || readString(designData.productType);
+  const retailType = readString(designData.retailType);
+
+  if (designType === "CUSTOM_CHARACTER") return "custom_character";
+  if (
+    productType === "lego_character" ||
+    productType === "premade_character" ||
+    retailType === "product"
+  ) {
+    return "standalone_character";
+  }
+  if (
+    productType === "loose_part" ||
+    retailType === "character_part" ||
+    retailType === "accessory" ||
+    retailType === "background"
+  ) {
+    return "retail_part";
+  }
+  return "frame";
 }
 
 function normalizeAccessory(value: unknown) {
@@ -186,6 +227,7 @@ function normalizeCartItem(value: unknown): SimpleCartItem | null {
       typeof value.productId === "string" && value.productId.trim()
         ? value.productId.trim()
         : null,
+    lineItemType: inferLineItemType(value),
     productName,
     quantity,
     unitPrice,
@@ -202,6 +244,21 @@ function normalizeCartItem(value: unknown): SimpleCartItem | null {
       readString(value.addedAt).trim() || new Date().toISOString(),
   };
 
+  const productType = readString(value.productType).trim();
+  if (productType) normalized.productType = productType;
+  else delete normalized.productType;
+  const customName = readString(value.customName).trim();
+  if (customName) normalized.customName = customName;
+  else delete normalized.customName;
+  if (
+    typeof value.serverValidatedPrice === "number" &&
+    Number.isFinite(value.serverValidatedPrice) &&
+    value.serverValidatedPrice >= 0
+  ) {
+    normalized.serverValidatedPrice = Math.round(value.serverValidatedPrice);
+  } else {
+    delete normalized.serverValidatedPrice;
+  }
   if (typeof value.note !== "string") delete normalized.note;
   if (typeof value.frameOptionId !== "string") {
     delete normalized.frameOptionId;
@@ -249,6 +306,9 @@ function getItemSignature(
   try {
     return JSON.stringify({
       productId: item.productId,
+      lineItemType: item.lineItemType,
+      productType: item.productType,
+      customName: item.customName,
       frameSizeId: item.frameSizeId,
       frameColorName: item.frameColorName,
       templateId: item.templateId,
@@ -399,8 +459,14 @@ export const useCartStore = create<CartStore>()(
               return;
             }
             const nextPrice = Math.round(price);
-            if (item.unitPrice === nextPrice) return;
+            if (
+              item.unitPrice === nextPrice &&
+              item.serverValidatedPrice === nextPrice
+            ) {
+              return;
+            }
             item.unitPrice = nextPrice;
+            item.serverValidatedPrice = nextPrice;
             item.totalPrice = item.unitPrice * item.quantity;
             changed = true;
           });

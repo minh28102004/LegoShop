@@ -4,6 +4,6 @@ import { AccessoriesService } from './accessories.service';
 
 @Module({
   controllers: [AccessoriesController],
-  providers: [AccessoriesService]
+  providers: [AccessoriesService],
 })
 export class AccessoriesModule {}

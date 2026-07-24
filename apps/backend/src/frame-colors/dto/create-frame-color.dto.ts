@@ -12,4 +12,3 @@ export class CreateFrameColorDto {
   @IsString()
   colorHex?: string;
 }
-

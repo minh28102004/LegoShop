@@ -4,6 +4,6 @@ import { AdminBusinessInquiriesService } from './admin-business-inquiries.servic
 
 @Module({
   controllers: [AdminBusinessInquiriesController],
-  providers: [AdminBusinessInquiriesService]
+  providers: [AdminBusinessInquiriesService],
 })
 export class AdminBusinessInquiriesModule {}

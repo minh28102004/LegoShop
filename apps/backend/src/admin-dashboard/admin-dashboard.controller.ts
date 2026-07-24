@@ -8,10 +8,10 @@ import { AdminDashboardService } from './admin-dashboard.service';
 @UseGuards(JwtAuthGuard)
 @Controller('admin-dashboard')
 export class AdminDashboardController {
-	constructor(private readonly adminDashboardService: AdminDashboardService) {}
+  constructor(private readonly adminDashboardService: AdminDashboardService) {}
 
-	@Get('stats')
-	getStats() {
-		return this.adminDashboardService.getStats();
-	}
+  @Get('stats')
+  getStats() {
+    return this.adminDashboardService.getStats();
+  }
 }

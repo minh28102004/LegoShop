@@ -171,7 +171,7 @@ function mapProducts(products: Product[]): HomeFeaturedProduct[] {
           includedItemLabels,
           badge: product.collection?.name ?? null,
           featured: product.featured,
-          href: ROUTES.studio,
+          href: ROUTES.studioFrame,
           imageUrl: withProductImageFallback(apiImageUrl, slug, productIndex),
         },
       ];

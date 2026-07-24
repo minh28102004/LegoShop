@@ -47,8 +47,18 @@ import {
 } from "@/modules/cart/lib/cart-display";
 import { resolveCartItemImage } from "@/modules/cart/lib/cart-image";
 import { publicApiClient } from "@/lib/api/public-client";
+import type { CartDictionary } from "@/lib/i18n/dictionaries";
 
 const EMOJI_PATH = "/assets/icons/fluent-emoji";
+const CART_ROLLING_DIGIT_SEQUENCES = [
+  "018529",
+  "274163",
+  "509271",
+  "831406",
+  "462918",
+  "195730",
+  "726405",
+] as const;
 
 function FluentEmoji({
   name,
@@ -593,8 +603,22 @@ function CartLineItem({
   const lineTotal = quoteItem?.valid
     ? quoteItem.lineTotal
     : unitPrice * item.quantity;
-  const isCustomized = item.designData?.type === "CUSTOM_FRAME";
-  const editHref = `${ROUTES.studio}?editCartItemId=${encodeURIComponent(item.id)}`;
+  const isCustomFrame = item.designData?.type === "CUSTOM_FRAME";
+  const isCustomCharacter =
+    item.lineItemType === "custom_character" ||
+    item.designData?.type === "CUSTOM_CHARACTER";
+  const itemBadge = isCustomCharacter
+    ? text.customCharacter
+    : item.lineItemType === "standalone_character"
+      ? text.standaloneCharacter
+      : item.lineItemType === "retail_part"
+        ? text.retailPart
+        : isCustomFrame
+          ? text.customized
+          : text.finished;
+  const editHref = isCustomCharacter
+    ? `${ROUTES.studioCharacter}?edit=${encodeURIComponent(item.id)}`
+    : `${ROUTES.studioFrame}?editCartItemId=${encodeURIComponent(item.id)}`;
 
   function remove() {
     setRemoving(true);
@@ -638,7 +662,7 @@ function CartLineItem({
               </h2>
               <span className="mt-1.5 inline-flex items-center gap-1 rounded-full bg-[#edf8f2] px-2.5 py-1 text-[10px] font-semibold text-[#267c55] ring-1 ring-inset ring-emerald-100">
                 <BadgeCheck className="h-3 w-3" aria-hidden="true" />
-                {isCustomized ? text.customized : text.finished}
+                {itemBadge}
               </span>
               <ConfigurationChips item={item} />
             </div>
@@ -670,7 +694,7 @@ function CartLineItem({
               />
               <span>{text.invalidItem}</span>
             </p>
-            {isCustomized ? (
+            {isCustomFrame || isCustomCharacter ? (
               <Link
                 href={editHref}
                 className="group/inline-cta mt-1.5 inline-flex min-h-9 items-center rounded-lg text-xs font-bold text-amber-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-600 focus-visible:ring-offset-2"
@@ -904,6 +928,124 @@ function VoucherAccordion({
   );
 }
 
+function CartRollingAmount({ large = false }: { large?: boolean }) {
+  const digitCount = large ? 7 : 6;
+  const separatorIndexes = large ? [1, 4] : [3];
+
+  return (
+    <span
+      aria-hidden="true"
+      className={`inline-flex items-baseline font-extrabold tabular-nums tracking-[-0.055em] ${
+        large
+          ? "text-[clamp(2rem,8vw,2.75rem)] text-white"
+          : "text-[28px] text-[#176fa5]"
+      }`}
+    >
+      {Array.from({ length: digitCount }, (_, index) => {
+        const sequence =
+          CART_ROLLING_DIGIT_SEQUENCES[index] ??
+          CART_ROLLING_DIGIT_SEQUENCES[0];
+
+        return (
+          <span key={index} className="contents">
+            {separatorIndexes.includes(index) ? <span>.</span> : null}
+            <span className="business-data-loader__digit">
+              <span
+                className="business-data-loader__digit-track"
+                style={{ animationDelay: `${index * -90}ms` }}
+              >
+                {sequence.split("").map((digit, digitIndex) => (
+                  <span key={`${digit}-${digitIndex}`}>{digit}</span>
+                ))}
+              </span>
+            </span>
+          </span>
+        );
+      })}
+      <span className="ml-1">₫</span>
+    </span>
+  );
+}
+
+function CartQuoteLoadingState({
+  text,
+  itemCount,
+  compact = false,
+}: {
+  text: CartDictionary;
+  itemCount: number;
+  compact?: boolean;
+}) {
+  const stepIcons = [BadgeCheck, TicketPercent, RefreshCw] as const;
+
+  return (
+    <div
+      role="status"
+      aria-live="polite"
+      aria-busy="true"
+      className={compact ? "pt-1" : "mt-5"}
+    >
+      <div className="business-data-loader__surface relative overflow-hidden rounded-[20px] border border-[#d9e8f1] bg-[#f8fbfd] px-4 py-4">
+        <span className="business-data-loader__scan" aria-hidden="true" />
+        <div className="relative flex items-center justify-between gap-4">
+          <div className="min-w-0">
+            <p className="text-xs font-bold text-[#10253f]">{text.subtotal}</p>
+            <p className="mt-1 text-[10px] font-medium text-slate-500">
+              {text.itemCount(itemCount)}
+            </p>
+          </div>
+          <CartRollingAmount />
+        </div>
+        <div className="relative mt-3 flex items-center justify-between gap-4 border-t border-[#e1ebf1] pt-3">
+          <span className="text-[11px] font-semibold text-slate-500">
+            {text.shipping}
+          </span>
+          <span className="business-data-loader__soft-value h-3 w-28 rounded-full bg-[#e5eef4]" />
+        </div>
+      </div>
+
+      <div className="relative mt-3 overflow-hidden rounded-[24px] bg-[#102a46] p-5 text-white">
+        <span
+          className="business-data-loader__scan business-data-loader__scan--dark"
+          aria-hidden="true"
+        />
+        <p className="relative text-[10px] font-extrabold uppercase tracking-[0.18em] text-sky-200/75">
+          {text.total}
+        </p>
+        <p className="relative mt-2 leading-none">
+          <CartRollingAmount large />
+        </p>
+
+        <ol className="relative mt-5 grid grid-cols-3 gap-2 border-t border-white/10 pt-4">
+          {text.quoteLoadingSteps.map((step, index) => {
+            const Icon = stepIcons[index] ?? RefreshCw;
+            return (
+              <li
+                key={step}
+                className="business-data-loader__step flex min-w-0 flex-col items-center gap-1.5 text-center text-[9px] font-bold leading-3 text-slate-300"
+                style={{ animationDelay: `${index * 320}ms` }}
+              >
+                <span className="grid size-7 place-items-center rounded-lg border border-white/10 bg-white/5 text-sky-300">
+                  <Icon className="size-3.5" aria-hidden="true" />
+                </span>
+                <span>{step}</span>
+              </li>
+            );
+          })}
+        </ol>
+      </div>
+
+      <div className="mt-3 flex h-12 items-center justify-center gap-2.5 rounded-2xl bg-[#dcecf6] text-sm font-bold text-[#176fa5]">
+        <RefreshCw
+          className="size-4 animate-spin motion-reduce:animate-none"
+          aria-hidden="true"
+        />
+        <span>{text.quoteChecking}</span>
+      </div>
+    </div>
+  );
+}
+
 function OrderSummary({
   total,
   itemCount,
@@ -977,121 +1119,121 @@ function OrderSummary({
           </div>
         ) : null}
 
-        <div className={`${hideHeader ? "" : "mt-5"} space-y-3.5 text-sm`}>
-          <div className="flex items-center justify-between gap-5 text-slate-600">
-            <span>{text.subtotal}</span>
-            <span className="font-semibold tabular-nums text-[#10253f]">
-              {formatCartCurrency(subtotal)}
-            </span>
-          </div>
-          <div className="flex items-center justify-between gap-5 text-slate-600">
-            <span>{text.quantity}</span>
-            <span className="font-semibold tabular-nums text-[#10253f]">
-              {text.itemCount(itemCount)}
-            </span>
-          </div>
-          {discount > 0 ? (
-            <div className="flex items-center justify-between gap-5 text-emerald-700">
-              <span>{text.discount}</span>
-              <span className="font-semibold tabular-nums">
-                −{formatCartCurrency(discount)}
-              </span>
-            </div>
-          ) : null}
-          <div className="flex items-start justify-between gap-5 text-slate-600">
-            <span>{text.shipping}</span>
-            <span className="max-w-[190px] text-right text-xs font-semibold leading-5 text-slate-600">
-              {text.shippingValue}
-            </span>
-          </div>
-        </div>
-
         {quoteStatus === "loading" ? (
-          <p
-            role="status"
-            className="mt-4 flex items-center gap-2 rounded-xl bg-[#eef7fd] px-3 py-2.5 text-xs text-[#176fa5]"
-          >
-            <RefreshCw
-              className="h-4 w-4 animate-spin motion-reduce:animate-none"
-              aria-hidden="true"
+          <CartQuoteLoadingState
+            text={text}
+            itemCount={itemCount}
+            compact={hideHeader}
+          />
+        ) : (
+          <>
+            <div className={`${hideHeader ? "" : "mt-5"} space-y-3.5 text-sm`}>
+              <div className="flex items-center justify-between gap-5 text-slate-600">
+                <span>{text.subtotal}</span>
+                <span className="font-semibold tabular-nums text-[#10253f]">
+                  {formatCartCurrency(subtotal)}
+                </span>
+              </div>
+              <div className="flex items-center justify-between gap-5 text-slate-600">
+                <span>{text.quantity}</span>
+                <span className="font-semibold tabular-nums text-[#10253f]">
+                  {text.itemCount(itemCount)}
+                </span>
+              </div>
+              {discount > 0 ? (
+                <div className="flex items-center justify-between gap-5 text-emerald-700">
+                  <span>{text.discount}</span>
+                  <span className="font-semibold tabular-nums">
+                    −{formatCartCurrency(discount)}
+                  </span>
+                </div>
+              ) : null}
+              <div className="flex items-start justify-between gap-5 text-slate-600">
+                <span>{text.shipping}</span>
+                <span className="max-w-[190px] text-right text-xs font-semibold leading-5 text-slate-600">
+                  {text.shippingValue}
+                </span>
+              </div>
+            </div>
+
+            {quoteStatus === "error" ? (
+              <div
+                role="alert"
+                className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs text-amber-900"
+              >
+                <p className="flex items-start gap-2 leading-5">
+                  <TriangleAlert
+                    className="mt-0.5 h-4 w-4 shrink-0"
+                    aria-hidden="true"
+                  />
+                  {text.quoteError}
+                </p>
+                <button
+                  type="button"
+                  onClick={onRetry}
+                  className="mt-1.5 rounded-md font-bold underline underline-offset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-700 focus-visible:ring-offset-2"
+                >
+                  {text.retry}
+                </button>
+              </div>
+            ) : null}
+
+            {invalidCount > 0 && quoteStatus === "success" ? (
+              <div
+                role="alert"
+                className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-3.5 py-3 text-amber-900"
+              >
+                <p className="flex items-start gap-2 text-xs font-bold leading-5">
+                  <TriangleAlert
+                    className="mt-0.5 h-4 w-4 shrink-0"
+                    aria-hidden="true"
+                  />
+                  {text.invalidItems(invalidCount)}
+                </p>
+                <p className="mt-1.5 text-[11px] leading-4 text-amber-800">
+                  {text.subtotalPending}
+                </p>
+                <button
+                  type="button"
+                  onClick={onReviewInvalid}
+                  className="group/inline-cta mt-2 inline-flex min-h-9 items-center rounded-lg text-xs font-bold text-amber-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-600 focus-visible:ring-offset-2"
+                >
+                  <span className="relative pb-0.5">
+                    {text.reviewInvalid}
+                    <span className="pointer-events-none absolute inset-x-0 bottom-0 h-px origin-left scale-x-0 bg-current transition-transform duration-300 ease-out group-hover/inline-cta:scale-x-100 group-focus-visible/inline-cta:scale-x-100" />
+                  </span>
+                  <span className="ml-0 grid w-0 -translate-x-1 overflow-hidden opacity-0 transition-[width,margin,opacity,transform] duration-300 ease-out group-hover/inline-cta:ml-1 group-hover/inline-cta:w-3.5 group-hover/inline-cta:translate-x-0 group-hover/inline-cta:opacity-100 group-focus-visible/inline-cta:ml-1 group-focus-visible/inline-cta:w-3.5 group-focus-visible/inline-cta:translate-x-0 group-focus-visible/inline-cta:opacity-100">
+                    <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
+                  </span>
+                </button>
+              </div>
+            ) : null}
+
+            <VoucherAccordion
+              appliedCode={voucherCode}
+              loading={voucherLoading}
+              error={voucherError}
+              onApply={onApplyVoucher}
+              onRemove={onRemoveVoucher}
             />
-            {text.quoteChecking}
-          </p>
-        ) : null}
-        {quoteStatus === "error" ? (
-          <div
-            role="alert"
-            className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs text-amber-900"
-          >
-            <p className="flex items-start gap-2 leading-5">
-              <TriangleAlert
-                className="mt-0.5 h-4 w-4 shrink-0"
-                aria-hidden="true"
-              />
-              {text.quoteError}
-            </p>
-            <button
-              type="button"
-              onClick={onRetry}
-              className="mt-1.5 rounded-md font-bold underline underline-offset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-700 focus-visible:ring-offset-2"
-            >
-              {text.retry}
-            </button>
-          </div>
-        ) : null}
 
-        {invalidCount > 0 && quoteStatus === "success" ? (
-          <div
-            role="alert"
-            className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-3.5 py-3 text-amber-900"
-          >
-            <p className="flex items-start gap-2 text-xs font-bold leading-5">
-              <TriangleAlert
-                className="mt-0.5 h-4 w-4 shrink-0"
-                aria-hidden="true"
-              />
-              {text.invalidItems(invalidCount)}
-            </p>
-            <p className="mt-1.5 text-[11px] leading-4 text-amber-800">
-              {text.subtotalPending}
-            </p>
-            <button
-              type="button"
-              onClick={onReviewInvalid}
-              className="group/inline-cta mt-2 inline-flex min-h-9 items-center rounded-lg text-xs font-bold text-amber-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-600 focus-visible:ring-offset-2"
-            >
-              <span className="relative pb-0.5">
-                {text.reviewInvalid}
-                <span className="pointer-events-none absolute inset-x-0 bottom-0 h-px origin-left scale-x-0 bg-current transition-transform duration-300 ease-out group-hover/inline-cta:scale-x-100 group-focus-visible/inline-cta:scale-x-100" />
+            <div className="mb-5 mt-5 flex items-end justify-between gap-5">
+              <span className="text-sm font-bold text-[#10253f]">
+                {text.total}
               </span>
-              <span className="ml-0 grid w-0 -translate-x-1 overflow-hidden opacity-0 transition-[width,margin,opacity,transform] duration-300 ease-out group-hover/inline-cta:ml-1 group-hover/inline-cta:w-3.5 group-hover/inline-cta:translate-x-0 group-hover/inline-cta:opacity-100 group-focus-visible/inline-cta:ml-1 group-focus-visible/inline-cta:w-3.5 group-focus-visible/inline-cta:translate-x-0 group-focus-visible/inline-cta:opacity-100">
-                <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
-              </span>
-            </button>
-          </div>
-        ) : null}
+              <strong className="text-[25px] font-bold tabular-nums tracking-[-0.035em] text-[#10253f]">
+                {formatCartCurrency(finalTotal)}
+              </strong>
+            </div>
 
-        <VoucherAccordion
-          appliedCode={voucherCode}
-          loading={voucherLoading}
-          error={voucherError}
-          onApply={onApplyVoucher}
-          onRemove={onRemoveVoucher}
-        />
-
-        <div className="mb-5 mt-5 flex items-end justify-between gap-5">
-          <span className="text-sm font-bold text-[#10253f]">{text.total}</span>
-          <strong className="text-[25px] font-bold tabular-nums tracking-[-0.035em] text-[#10253f]">
-            {formatCartCurrency(finalTotal)}
-          </strong>
-        </div>
-
-        <CheckoutAction ready={checkoutReady} voucherCode={voucherCode} />
-        {!checkoutReady && quoteStatus === "success" ? (
-          <p className="mt-2 text-center text-[11px] leading-4 text-amber-700">
-            {text.checkoutBlocked}
-          </p>
-        ) : null}
+            <CheckoutAction ready={checkoutReady} voucherCode={voucherCode} />
+            {!checkoutReady && quoteStatus === "success" ? (
+              <p className="mt-2 text-center text-[11px] leading-4 text-amber-700">
+                {text.checkoutBlocked}
+              </p>
+            ) : null}
+          </>
+        )}
         <Link
           href={ROUTES.collection}
           className="group mt-2.5 flex h-11 w-full items-center justify-center gap-2 rounded-xl text-sm font-semibold text-slate-600 transition-[background-color,color,transform] duration-200 hover:-translate-y-px hover:bg-[#f4f8fb] hover:text-[#258fce] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#258fce] focus-visible:ring-offset-2 active:translate-y-0 active:scale-[0.99] motion-reduce:transform-none motion-reduce:transition-none"
@@ -1102,7 +1244,6 @@ function OrderSummary({
           />
           {text.continueShopping}
         </Link>
-
       </div>
     </section>
   );
@@ -1134,7 +1275,7 @@ function EmptyCart() {
           <ArrowRight className="h-4 w-4" aria-hidden="true" />
         </Link>
         <Link
-          href={ROUTES.studio}
+              href={ROUTES.studioFrame}
           className="inline-flex h-12 items-center justify-center rounded-2xl border border-[#bfd8e7] bg-white px-6 text-sm font-bold text-[#176fa5] transition hover:bg-[#eef7fd] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#258fce] focus-visible:ring-offset-2"
         >
           {text.createDesign}

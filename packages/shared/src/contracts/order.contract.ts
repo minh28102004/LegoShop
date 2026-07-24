@@ -12,9 +12,14 @@ import type {
   URLString,
 } from "../types/common";
 import type { Order } from "../types/order";
+import type { CartLineItemType } from "../types/cart";
+import type { CheckoutShippingMethod } from "./cart.contract";
 
 export type CreateOrderItemRequest = {
   productId?: ID;
+  lineItemType?: CartLineItemType;
+  productType?: string;
+  customName?: string;
   productName: string;
   quantity: number;
   price: PriceInVND;
@@ -50,11 +55,11 @@ export type CreateOrderRequest = {
   ward?: string;
   receiveDate?: ISODateString;
   note?: string;
-  shippingMethod?: "shop_support" | "self" | "standard" | "fast";
+  shippingMethod: CheckoutShippingMethod;
   voucherCode?: string;
   giftPackage?: boolean;
   polaroidOption?: "none" | "2" | "4";
-  paymentMethod: PaymentMethod;
+  paymentMethod: Extract<PaymentMethod, "PAYOS">;
   items: CreateOrderItemRequest[];
 };
 
@@ -92,6 +97,8 @@ export type TrackOrderRequestContract = {
 };
 
 export type TrackOrderItemSummaryContract = {
+  lineItemType?: CartLineItemType | null;
+  customName?: string | null;
   productName: string;
   quantity: number;
   price: PriceInVND;
@@ -100,6 +107,7 @@ export type TrackOrderItemSummaryContract = {
   frameColorName?: string | null;
   accessories?: Array<{ id: ID; name: string; quantity?: number }>;
   designData?: JsonObject | null;
+  componentSnapshot?: JsonObject | null;
   previewUrl?: URLString | null;
 };
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { cn, Dropdown } from "@lego-shop/ui";
-import { Check, ChevronDown, Minus, Search, X } from "lucide-react";
+import { Check, ChevronDown, Search, X } from "lucide-react";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import {
   FORM_OPTION_CLASS,
@@ -73,8 +73,8 @@ export function SearchableMultiSelect({
 
   const visibleLabels = selected.slice(0, maxVisibleLabels);
   const remaining = Math.max(0, selected.length - visibleLabels.length);
-  const allSelected = options.length > 0 && selected.length === options.length;
-  const partiallySelected = selected.length > 0 && !allSelected;
+  // An empty selection means no category restriction, so "All" is active.
+  const allActive = selected.length === 0;
 
   return (
     <Dropdown
@@ -86,10 +86,7 @@ export function SearchableMultiSelect({
       panelId={listboxId}
       onOpenChange={handleOpenChange}
       className={cn("min-w-0", className)}
-      panelClassName={cn(
-        FORM_POPOVER_CLASS,
-        "min-w-[300px] max-w-[340px] p-2.5",
-      )}
+      panelClassName={cn(FORM_POPOVER_CLASS, "w-full min-w-0 max-w-none p-2")}
       trigger={
         <button
           type="button"
@@ -151,35 +148,31 @@ export function SearchableMultiSelect({
           {selectAllLabel && options.length > 0 ? (
             <button
               type="button"
+              aria-pressed={allActive}
               className={cn(
                 FORM_OPTION_CLASS,
-                "mt-2 w-full gap-2 border border-border px-2.5 py-2 text-left text-sm font-semibold focus-visible:ring-2 focus-visible:ring-primary/20",
+                "mt-1.5 min-h-9 w-full gap-2 border border-border px-2.5 py-1.5 text-left text-sm font-semibold focus-visible:ring-2 focus-visible:ring-primary/20",
+                allActive
+                  ? "bg-primary-light/70 text-primary-dark"
+                  : "bg-white text-slate-700 hover:bg-primary-light/35 hover:text-primary-dark",
               )}
-              onClick={() =>
-                onChange(
-                  allSelected ? [] : options.map((option) => option.value),
-                )
-              }
+              onClick={() => onChange([])}
             >
               <span
                 className={cn(
-                  "grid h-5 w-5 shrink-0 place-items-center rounded-md border",
-                  allSelected || partiallySelected
+                  "grid h-5 w-5 shrink-0 place-items-center rounded-full border",
+                  allActive
                     ? "border-primary bg-primary text-white"
                     : "border-slate-300 bg-white",
                 )}
               >
-                {allSelected ? (
-                  <Check className="h-3.5 w-3.5" />
-                ) : partiallySelected ? (
-                  <Minus className="h-3.5 w-3.5" />
-                ) : null}
+                {allActive ? <Check className="h-3.5 w-3.5" /> : null}
               </span>
               <span className="min-w-0 flex-1 truncate">{selectAllLabel}</span>
             </button>
           ) : null}
 
-          <div className="mt-2 max-h-[340px] space-y-1 overflow-y-auto pr-0.5">
+          <div className="mt-1.5 max-h-[190px] space-y-0.5 overflow-y-auto pr-0.5">
             {filtered.length > 0 ? (
               filtered.map((option, index) => {
                 const active = values.includes(option.value);
@@ -192,18 +185,20 @@ export function SearchableMultiSelect({
                     data-multiselect-option
                     className={cn(
                       FORM_OPTION_CLASS,
-                      "w-full gap-2 px-2.5 py-2 text-left text-sm font-medium focus-visible:ring-2 focus-visible:ring-primary/20",
+                      "min-h-9 w-full gap-2 px-2.5 py-1.5 text-left text-sm font-medium focus-visible:ring-2 focus-visible:ring-primary/20",
                       active
                         ? "bg-primary-light/70 text-primary-dark"
                         : "bg-white text-slate-700 hover:bg-primary-light/35 hover:text-primary-dark",
                     )}
-                    onClick={() =>
+                    onClick={() => {
+                      const nextValues = active
+                        ? values.filter((value) => value !== option.value)
+                        : [...values, option.value];
+
                       onChange(
-                        active
-                          ? values.filter((value) => value !== option.value)
-                          : [...values, option.value],
-                      )
-                    }
+                        nextValues.length === options.length ? [] : nextValues,
+                      );
+                    }}
                     onKeyDown={(event) => {
                       if (event.key !== "ArrowDown" && event.key !== "ArrowUp")
                         return;
@@ -222,7 +217,7 @@ export function SearchableMultiSelect({
                   >
                     <span
                       className={cn(
-                        "grid h-5 w-5 shrink-0 place-items-center rounded-md border",
+                        "grid h-5 w-5 shrink-0 place-items-center rounded-[5px] border",
                         active
                           ? "border-primary bg-primary text-white"
                           : "border-slate-300 bg-white",

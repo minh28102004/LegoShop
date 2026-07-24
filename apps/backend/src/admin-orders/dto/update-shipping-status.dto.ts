@@ -1,4 +1,7 @@
-import type { ShippingStatus, UpdateShippingStatusRequestContract } from '@lego-shop/shared';
+import type {
+  ShippingStatus,
+  UpdateShippingStatusRequestContract,
+} from '@lego-shop/shared';
 import { SHIPPING_STATUS } from '@lego-shop/shared';
 import { ApiProperty } from '@nestjs/swagger';
 import { IsEnum } from 'class-validator';

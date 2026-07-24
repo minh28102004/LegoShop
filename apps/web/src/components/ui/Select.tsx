@@ -1,11 +1,10 @@
 "use client";
 
 import * as React from "react";
-import * as SelectPrimitive from "@radix-ui/react-select";
 import { cva, type VariantProps } from "class-variance-authority";
 import { Check, ChevronDown, LoaderCircle } from "lucide-react";
 
-import { cn, type FieldState } from "@lego-shop/ui";
+import { cn, Dropdown, type FieldState } from "@lego-shop/ui";
 import { useI18n } from "@/lib/i18n/useI18n";
 import {
   FORM_ERROR_CLASS,
@@ -18,7 +17,7 @@ import {
 } from "./form-control";
 
 const selectTriggerVariants = cva(
-  "flex w-full items-center justify-between px-4 text-left text-sm font-medium data-[placeholder]:text-text-muted",
+  "group flex w-full items-center justify-between px-4 text-left text-sm font-semibold data-[placeholder]:text-text-muted",
   {
     variants: {
       state: {
@@ -41,8 +40,8 @@ export interface SelectOption {
 export interface SelectProps
   extends
     Omit<
-      React.ComponentPropsWithoutRef<typeof SelectPrimitive.Trigger>,
-      "defaultValue" | "dir" | "onValueChange" | "value"
+      React.ButtonHTMLAttributes<HTMLButtonElement>,
+      "defaultValue" | "name" | "onChange" | "value"
     >,
     VariantProps<typeof selectTriggerVariants> {
   options: SelectOption[];
@@ -94,6 +93,8 @@ export const Select = React.forwardRef<HTMLButtonElement, SelectProps>(
     const resolvedPlaceholder =
       placeholder ?? dictionary.common.selectPlaceholder;
     const generatedId = React.useId();
+    const generatedListboxId = React.useId();
+    const [open, setOpen] = React.useState(false);
     const [uncontrolledValue, setUncontrolledValue] = React.useState(
       defaultValue ?? "",
     );
@@ -101,23 +102,58 @@ export const Select = React.forwardRef<HTMLButtonElement, SelectProps>(
     const hintId = `${selectId}-hint`;
     const errorId = `${selectId}-error`;
     const describedBy = error ? errorId : hint ? hintId : undefined;
+    const listboxId = `${selectId}-${generatedListboxId}-listbox`;
     const visualState = error || fieldState === "error" ? "error" : state;
     const selectedValue = value ?? uncontrolledValue;
     const selectedOption = options.find(
       (option) => option.value === selectedValue,
     );
-    const rootProps: React.ComponentPropsWithoutRef<
-      typeof SelectPrimitive.Root
-    > = {};
+    const triggerRef = React.useRef<HTMLButtonElement | null>(null);
 
-    if (value !== undefined) rootProps.value = value;
-    if (defaultValue !== undefined) rootProps.defaultValue = defaultValue;
-    rootProps.onValueChange = (nextValue) => {
+    React.useImperativeHandle(ref, () => triggerRef.current!, []);
+
+    React.useEffect(() => {
+      if (!open) return;
+
+      const frame = window.requestAnimationFrame(() => {
+        const listbox = document.getElementById(listboxId);
+        const selectedItem =
+          listbox?.querySelector<HTMLElement>(
+            '[data-select-option][aria-selected="true"]',
+          ) ??
+          listbox?.querySelector<HTMLElement>(
+            "[data-select-option]:not([aria-disabled='true'])",
+          );
+
+        selectedItem?.focus({ preventScroll: true });
+      });
+
+      return () => window.cancelAnimationFrame(frame);
+    }, [listboxId, open]);
+
+    const handleValueChange = (nextValue: string) => {
       if (value === undefined) setUncontrolledValue(nextValue);
       onValueChange?.(nextValue);
     };
-    if (name !== undefined) rootProps.name = name;
-    if (required !== undefined) rootProps.required = required;
+
+    const focusSiblingOption = (
+      currentTarget: HTMLElement,
+      direction: 1 | -1,
+    ) => {
+      const listbox = document.getElementById(listboxId);
+      const items = Array.from(
+        listbox?.querySelectorAll<HTMLElement>(
+          "[data-select-option]:not([aria-disabled='true'])",
+        ) ?? [],
+      );
+      const currentIndex = items.indexOf(currentTarget);
+      const nextIndex =
+        currentIndex < 0
+          ? 0
+          : (currentIndex + direction + items.length) % items.length;
+
+      items[nextIndex]?.focus({ preventScroll: true });
+    };
 
     return (
       <div className={cn("w-full space-y-2", containerClassName)}>
@@ -127,80 +163,148 @@ export const Select = React.forwardRef<HTMLButtonElement, SelectProps>(
             {required ? <span className="text-error"> *</span> : null}
           </label>
         ) : null}
-        <SelectPrimitive.Root {...rootProps}>
-          <SelectPrimitive.Trigger
-            ref={ref}
-            id={selectId}
-            aria-invalid={visualState === "error" || undefined}
-            aria-busy={loading || undefined}
-            aria-describedby={describedBy}
-            disabled={loading || disabled}
-            className={formControlClassName({
-              className: cn(
-                selectTriggerVariants({ state: visualState }),
-                className,
-              ),
-              fieldState: visualState === "error" ? "error" : fieldState,
-              size: controlSize,
-            })}
-            {...props}
-          >
-            <SelectPrimitive.Value placeholder={resolvedPlaceholder}>
-              {selectedOption?.label}
-            </SelectPrimitive.Value>
-            <SelectPrimitive.Icon className="ml-2 text-text-muted">
-              {loading ? (
-                <LoaderCircle
-                  className="size-4 animate-spin motion-reduce:animate-none"
-                  aria-hidden="true"
-                />
-              ) : (
-                <ChevronDown className="size-4" aria-hidden="true" />
-              )}
-            </SelectPrimitive.Icon>
-          </SelectPrimitive.Trigger>
-          <SelectPrimitive.Portal>
-            <SelectPrimitive.Content
-              position="popper"
-              sideOffset={6}
-              className={cn(
-                "z-z-popover",
-                FORM_POPOVER_CLASS,
-                contentClassName,
-              )}
+        <Dropdown
+          align="left"
+          portal
+          matchTriggerWidth
+          offset={6}
+          panelRole="listbox"
+          panelId={listboxId}
+          onOpenChange={setOpen}
+          className="w-full"
+          panelClassName={cn(
+            FORM_POPOVER_CLASS,
+            "w-full min-w-0 max-w-none p-2 !animate-none",
+            contentClassName,
+          )}
+          trigger={
+            <button
+              ref={triggerRef}
+              id={selectId}
+              type="button"
+              role="combobox"
+              aria-controls={listboxId}
+              aria-expanded={open}
+              aria-haspopup="listbox"
+              aria-invalid={visualState === "error" || undefined}
+              aria-busy={loading || undefined}
+              aria-describedby={describedBy}
+              disabled={loading || disabled}
+              className={formControlClassName({
+                className: cn(
+                  selectTriggerVariants({ state: visualState }),
+                  className,
+                ),
+                fieldState: visualState === "error" ? "error" : fieldState,
+                size: controlSize,
+              })}
+              {...props}
             >
-              <SelectPrimitive.Viewport className="p-1">
-                {options.map((option) => {
-                  const itemProps: React.ComponentPropsWithoutRef<
-                    typeof SelectPrimitive.Item
-                  > = {
-                    value: option.value,
-                    className: cn(
+              <span
+                className={cn(
+                  "min-w-0 flex-1 truncate",
+                  !selectedOption && "text-text-muted",
+                )}
+              >
+                {selectedOption?.label ?? resolvedPlaceholder}
+              </span>
+              <span className="ml-2 shrink-0 text-text-muted transition-colors duration-200 group-data-[state=open]:text-primary-dark">
+                {loading ? (
+                  <LoaderCircle
+                    className="size-4 animate-spin motion-reduce:animate-none"
+                    aria-hidden="true"
+                  />
+                ) : (
+                  <ChevronDown
+                    className={cn(
+                      "size-4 transition-transform duration-200 ease-out motion-reduce:transition-none",
+                      open && "rotate-180 text-primary-dark",
+                    )}
+                    aria-hidden="true"
+                  />
+                )}
+              </span>
+            </button>
+          }
+        >
+          {({ close }) => (
+            <div className="space-y-0.5">
+              {options.map((option) => {
+                const active = option.value === selectedValue;
+
+                return (
+                  <button
+                    key={option.value}
+                    type="button"
+                    role="option"
+                    data-select-option
+                    aria-selected={active}
+                    aria-disabled={option.disabled || undefined}
+                    disabled={option.disabled}
+                    className={cn(
                       FORM_OPTION_CLASS,
-                      "relative cursor-pointer select-none px-3 py-2 pr-8 text-sm outline-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
+                      "relative min-h-9 w-full cursor-pointer select-none px-2.5 py-1.5 pr-9 text-left text-sm font-semibold outline-none transition-colors duration-150 ease-out focus-visible:ring-2 focus-visible:ring-primary/20 disabled:pointer-events-none disabled:opacity-50",
+                      active && "bg-primary-light font-bold text-primary-dark",
                       itemClassName,
-                    ),
-                  };
-
-                  if (option.disabled !== undefined) {
-                    itemProps.disabled = option.disabled;
-                  }
-
-                  return (
-                    <SelectPrimitive.Item key={option.value} {...itemProps}>
-                      <SelectPrimitive.ItemText>
-                        {option.label}
-                      </SelectPrimitive.ItemText>
-                      <SelectPrimitive.ItemIndicator className="absolute right-3 text-primary">
-                        <Check className="size-4" aria-hidden="true" />
-                      </SelectPrimitive.ItemIndicator>
-                    </SelectPrimitive.Item>
-                  );
-                })}
-              </SelectPrimitive.Viewport>
-            </SelectPrimitive.Content>
-          </SelectPrimitive.Portal>
-        </SelectPrimitive.Root>
+                    )}
+                    onClick={() => {
+                      if (option.disabled) return;
+                      handleValueChange(option.value);
+                      close();
+                    }}
+                    onKeyDown={(event) => {
+                      if (event.key === "ArrowDown") {
+                        event.preventDefault();
+                        focusSiblingOption(event.currentTarget, 1);
+                      } else if (event.key === "ArrowUp") {
+                        event.preventDefault();
+                        focusSiblingOption(event.currentTarget, -1);
+                      } else if (event.key === "Home") {
+                        event.preventDefault();
+                        document
+                          .getElementById(listboxId)
+                          ?.querySelector<HTMLElement>(
+                            "[data-select-option]:not([aria-disabled='true'])",
+                          )
+                          ?.focus({ preventScroll: true });
+                      } else if (event.key === "End") {
+                        event.preventDefault();
+                        const items = document
+                          .getElementById(listboxId)
+                          ?.querySelectorAll<HTMLElement>(
+                            "[data-select-option]:not([aria-disabled='true'])",
+                          );
+                        items?.[items.length - 1]?.focus({
+                          preventScroll: true,
+                        });
+                      }
+                    }}
+                  >
+                    <span className="min-w-0 flex-1 truncate">
+                      {option.label}
+                    </span>
+                    {active ? (
+                      <span className="absolute right-2 grid size-6 place-items-center rounded-full bg-primary-light text-primary-dark">
+                        <Check
+                          className="size-3.5 stroke-[2.5]"
+                          aria-hidden="true"
+                        />
+                      </span>
+                    ) : null}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </Dropdown>
+        {name ? (
+          <input
+            type="hidden"
+            name={name}
+            value={selectedValue}
+            required={required}
+          />
+        ) : null}
         {error ? (
           <p id={errorId} className={FORM_ERROR_CLASS} role="alert">
             {error}

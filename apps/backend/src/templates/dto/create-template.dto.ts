@@ -1,4 +1,8 @@
-import type { CreateTemplateRequestContract, JsonObject, ProductStatus } from '@lego-shop/shared';
+import type {
+  CreateTemplateRequestContract,
+  JsonObject,
+  ProductStatus,
+} from '@lego-shop/shared';
 import { PRODUCT_STATUS } from '@lego-shop/shared';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';

@@ -7,11 +7,14 @@ import type {
 } from '../constants/status';
 import type { ID, ISODateString, JsonObject, Nullable, PriceInVND, Timestamped, URLString } from './common';
 import type { Payment } from './payment';
+import type { CartLineItemType } from './cart';
 
 export type OrderItem = {
   id: ID;
   orderId?: ID;
   productId: Nullable<ID>;
+  lineItemType?: Nullable<CartLineItemType>;
+  customName?: Nullable<string>;
   productName: string;
   quantity: number;
   price: PriceInVND;
@@ -23,6 +26,7 @@ export type OrderItem = {
   frameColorName: Nullable<string>;
   accessories: Nullable<Array<{ id: ID; name: string; price: PriceInVND; quantity?: number }>>;
   designData: Nullable<JsonObject>;
+  componentSnapshot?: Nullable<JsonObject>;
   previewUrl: Nullable<URLString>;
   createdAt?: ISODateString;
 };

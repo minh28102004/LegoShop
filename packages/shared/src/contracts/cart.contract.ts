@@ -1,9 +1,12 @@
 import type { Cart, CartItem, CartLineItem } from "../types/cart";
+import type { CartLineItemType } from "../types/cart";
 import type { JsonObject, PriceInVND } from "../types/common";
 
 export type CartContract = Cart;
 export type CartItemContract = CartItem;
 export type CartLineItemContract = CartLineItem;
+
+export type CheckoutShippingMethod = "hcm_inner" | "hcm_outer" | "nationwide";
 
 export type AddCartItemRequestContract = Omit<
   CartLineItem,
@@ -17,6 +20,9 @@ export type UpdateCartItemQuantityRequestContract = {
 export type CartQuoteItemRequestContract = {
   cartItemId: string;
   productId?: string;
+  lineItemType?: CartLineItemType;
+  productType?: string;
+  customName?: string;
   productName: string;
   quantity: number;
   priceSnapshot: PriceInVND;
@@ -37,8 +43,8 @@ export type CartQuoteItemRequestContract = {
 
 export type CartQuoteRequestContract = {
   items: CartQuoteItemRequestContract[];
-  shippingMethod?: "shop_support" | "self";
-  paymentMethod?: "COD" | "PAYOS";
+  shippingMethod?: CheckoutShippingMethod;
+  paymentMethod?: "PAYOS";
   giftPackage?: boolean;
   polaroidOption?: "none" | "2" | "4";
   voucherCode?: string;
@@ -54,6 +60,9 @@ export type CartQuoteWarningContract = {
 
 export type CartQuoteItemResponseContract = {
   cartItemId: string;
+  lineItemType?: CartLineItemType;
+  productType?: string;
+  customName?: string;
   valid: boolean;
   unitPrice: PriceInVND;
   previousUnitPrice: PriceInVND;
@@ -83,7 +92,10 @@ export type CheckoutSettingsContract = {
     codDepositEnabled: boolean;
     codDepositPercent: number;
   };
-  shippingMethods: Array<"shop_support" | "self">;
+  shippingMethods: Array<{
+    id: CheckoutShippingMethod;
+    fee: PriceInVND;
+  }>;
   giftPackage: {
     enabled: boolean;
     pricePerItem: PriceInVND;

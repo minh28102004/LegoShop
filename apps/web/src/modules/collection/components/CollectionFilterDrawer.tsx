@@ -58,6 +58,20 @@ function countActiveFilters(filters: CollectionFilters) {
   ].filter(Boolean).length;
 }
 
+function normalizeSingleCountFilters(
+  filters: CollectionFilters,
+): CollectionFilters {
+  const characterCount = filters.characterCounts?.[0];
+  const charmCount = filters.charmCounts?.[0];
+
+  return {
+    ...filters,
+    characterCounts:
+      characterCount !== undefined ? [characterCount] : undefined,
+    charmCounts: charmCount !== undefined ? [charmCount] : undefined,
+  };
+}
+
 export function CollectionFilterDrawer({
   filters,
   frameSizes,
@@ -67,28 +81,23 @@ export function CollectionFilterDrawer({
   onClose,
   onReset,
 }: CollectionFilterDrawerProps) {
-  const [draft, setDraft] = useState<CollectionFilters>(filters);
+  const [draft, setDraft] = useState<CollectionFilters>(() =>
+    normalizeSingleCountFilters(filters),
+  );
 
   function handleClose() {
-    setDraft(filters);
+    setDraft(normalizeSingleCountFilters(filters));
     onClose();
   }
 
-  function toggleCount(
+  function selectCount(
     key: "characterCounts" | "charmCounts",
     count: (typeof COUNT_OPTIONS)[number],
   ) {
-    setDraft((current) => {
-      const values = current[key] ?? [];
-      const nextValues = values.includes(count)
-        ? values.filter((value) => value !== count)
-        : [...values, count].sort((left, right) => left - right);
-
-      return {
-        ...current,
-        [key]: nextValues.length > 0 ? nextValues : undefined,
-      };
-    });
+    setDraft((current) => ({
+      ...current,
+      [key]: current[key]?.[0] === count ? undefined : [count],
+    }));
   }
 
   const countLabel = (count: (typeof COUNT_OPTIONS)[number]) =>
@@ -156,7 +165,7 @@ export function CollectionFilterDrawer({
             whileHover={{ rotate: 90 }}
             whileTap={{ scale: 0.96 }}
             transition={{ type: "spring", stiffness: 500, damping: 18 }}
-            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-md text-slate-800 transition-colors duration-200 hover:bg-red-50 hover:text-red-600 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#ffe16a]/45"
+            className="inline-flex h-10 w-10 shrink-0 items-center justify-center self-center rounded-md bg-transparent p-2 text-slate-800 transition-colors duration-200 hover:bg-red-50 hover:text-red-600 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#ffe16a]/45"
             onClick={handleClose}
           >
             <X className="h-[22px] w-[22px]" aria-hidden="true" />
@@ -194,8 +203,9 @@ export function CollectionFilterDrawer({
                     minPrice: parsePrice(event.target.value),
                   }))
                 }
+                controlSize="compact"
                 containerClassName="space-y-1.5"
-                className="h-11 rounded-xl border-border/80 bg-white shadow-none focus-visible:ring-2 focus-visible:ring-primary/20"
+                className="[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
               />
               <Input
                 type="number"
@@ -211,8 +221,9 @@ export function CollectionFilterDrawer({
                     maxPrice: parsePrice(event.target.value),
                   }))
                 }
+                controlSize="compact"
                 containerClassName="space-y-1.5"
-                className="h-11 rounded-xl border-border/80 bg-white shadow-none focus-visible:ring-2 focus-visible:ring-primary/20"
+                className="[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
               />
             </div>
           </fieldset>
@@ -231,20 +242,20 @@ export function CollectionFilterDrawer({
                 </span>
                 <h3 className="text-[15px] font-bold text-navy">{title}</h3>
               </div>
-              <div className="grid grid-cols-3 gap-2.5 rounded-2xl bg-slate-50 p-1.5 ring-1 ring-inset ring-[#e2ebf2]">
+              <div className="grid grid-cols-3 gap-2 rounded-[15px] border border-[#dce8f1] bg-white p-1">
                 {COUNT_OPTIONS.map((count) => {
-                  const active = draft[key]?.includes(count) ?? false;
+                  const active = draft[key]?.[0] === count;
                   return (
                     <button
                       key={count}
                       type="button"
                       aria-pressed={active}
-                      className={`group relative flex h-11 items-center justify-center gap-1.5 rounded-xl border text-sm font-bold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 motion-reduce:transform-none ${
+                      className={`group relative flex h-9 items-center justify-center gap-1.5 rounded-[11px] border text-sm font-bold transition-[border-color,background-color,color,transform] duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 motion-reduce:transform-none ${
                         active
-                          ? "border-[#91cdeb] bg-white text-[#167bb5] shadow-[0_8px_18px_-14px_rgba(37,143,206,0.75)]"
-                          : "border-transparent bg-transparent text-slate-600 hover:-translate-y-px hover:bg-white hover:text-navy"
+                          ? "border-[#258fce] bg-[#eaf5fc] text-[#167bb5]"
+                          : "border-transparent bg-white text-slate-600 hover:-translate-y-px hover:border-[#b9dced] hover:bg-[#f4faff] hover:text-[#176fa5]"
                       }`}
-                      onClick={() => toggleCount(key, count)}
+                      onClick={() => selectCount(key, count)}
                     >
                       {active ? (
                         <Check className="h-3.5 w-3.5" aria-hidden="true" />
@@ -306,7 +317,7 @@ export function CollectionFilterDrawer({
                 {labels.filters.flags}
               </h3>
             </div>
-            <div className="space-y-1.5">
+            <div className="space-y-2">
               {(
                 [
                   ["featured", labels.filters.featured],
@@ -324,7 +335,8 @@ export function CollectionFilterDrawer({
                       [key]: event.target.checked || undefined,
                     }))
                   }
-                  containerClassName="rounded-2xl bg-slate-50 px-3 py-2 ring-1 ring-inset ring-[#e2ebf2] transition-colors hover:bg-[#f4faff]"
+                  containerClassName="h-11 rounded-[15px] bg-slate-50 px-3 ring-1 ring-inset ring-[#e2ebf2] transition-colors hover:bg-[#f4faff]"
+                  labelClassName="h-full min-h-0 items-center gap-2.5 rounded-[11px] [&>span:first-child]:mt-0"
                   className="shadow-none"
                 />
               ))}
@@ -333,7 +345,7 @@ export function CollectionFilterDrawer({
         </div>
 
         <footer className="shrink-0 border-t border-[#dce8f1] bg-white/95 px-4 pb-[max(16px,env(safe-area-inset-bottom))] pt-4 shadow-[0_-4px_12px_-10px_rgba(7,29,58,0.15)] backdrop-blur-xl sm:px-6">
-          <div className="grid grid-cols-[minmax(0,0.9fr)_minmax(0,1.35fr)] gap-2.5">
+          <div className="grid grid-cols-2 gap-2.5">
             <button
               type="button"
               className="group flex h-12 items-center justify-center gap-2 rounded-2xl bg-white text-[13px] font-semibold text-[#17334f] ring-1 ring-inset ring-[#cfdde8] transition-all duration-300 hover:-translate-y-0.5 hover:bg-[#f4faff] hover:text-[#258fce] hover:ring-[#9fcbe5] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#82c5ec] active:translate-y-0 motion-reduce:transform-none"

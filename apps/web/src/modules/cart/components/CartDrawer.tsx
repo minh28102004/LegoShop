@@ -288,6 +288,15 @@ function CartItemRow({
   const hiddenPartCount = detailParts.length - visibleParts.length;
   const frameLabel = safeText(item.frameSizeLabel, "");
   const frameColor = safeText(item.frameColorName, "");
+  const lineItemBadge =
+    item.lineItemType === "custom_character" ||
+    item.designData.type === "CUSTOM_CHARACTER"
+      ? text.customCharacter
+      : item.lineItemType === "standalone_character"
+        ? text.standaloneCharacter
+        : item.lineItemType === "retail_part"
+          ? text.retailPart
+          : null;
 
   React.useEffect(
     () => () => {
@@ -322,6 +331,7 @@ function CartItemRow({
               </h3>
 
               <div className="mt-2 flex flex-wrap gap-1.5">
+                {lineItemBadge ? <OptionChip>{lineItemBadge}</OptionChip> : null}
                 {frameLabel ? <OptionChip>{frameLabel}</OptionChip> : null}
                 {frameColor ? <OptionChip>{frameColor}</OptionChip> : null}
                 {summary.characters > 0 ? (

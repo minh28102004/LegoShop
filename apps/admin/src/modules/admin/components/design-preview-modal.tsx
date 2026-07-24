@@ -1,7 +1,7 @@
 'use client';
 
 import { PackageCheck, X } from 'lucide-react';
-import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from 'react';
+import { useMemo, type CSSProperties, type ReactNode } from 'react';
 import type { CustomFrameDesignData, JsonObject } from '@lego-shop/shared';
 import { resolveApiAssetUrl } from '@/lib/api';
 import type { Accessory, CharacterPart } from '@/modules/admin/types/admin.types';
@@ -260,7 +260,6 @@ export default function DesignPreviewModal({
   characterParts = [],
   accessories = [],
 }: Props) {
-  const [mounted, setMounted] = useState(false);
   const previewData = parseDesignData(designData);
   const accessoryImageById = useMemo(
     () => new Map(
@@ -271,11 +270,7 @@ export default function DesignPreviewModal({
     [accessories],
   );
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  if (!isOpen || !mounted) return null;
+  if (!isOpen) return null;
 
   return (
     <div className='fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm'>

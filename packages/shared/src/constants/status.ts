@@ -8,6 +8,11 @@ export const PRODUCT_TYPE = {
   FINISHED: 'finished',
   PREMADE_CHARACTER: 'premade_character',
   DIY_KIT: 'diy_kit',
+  FRAME_TEMPLATE: 'frame_template',
+  LEGO_CHARACTER: 'lego_character',
+  LOOSE_PART: 'loose_part',
+  CUSTOM_FRAME: 'custom_frame',
+  CUSTOM_CHARACTER: 'custom_character',
 } as const;
 
 export const FRAME_OPTION_TYPE = {

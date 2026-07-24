@@ -10,7 +10,6 @@ import {
   ArrayMinSize,
   IsArray,
   IsBoolean,
-  IsEnum,
   IsIn,
   IsInt,
   IsNotEmpty,
@@ -23,7 +22,7 @@ import {
 } from 'class-validator';
 import { PaymentMethod } from '@prisma/client';
 
-const SHIPPING_METHODS = ['shop_support', 'self'] as const;
+const SHIPPING_METHODS = ['hcm_inner', 'hcm_outer', 'nationwide'] as const;
 const POLAROID_OPTIONS = ['none', '2', '4'] as const;
 
 export class CartQuoteItemDto implements CartQuoteItemRequestContract {
@@ -36,6 +35,27 @@ export class CartQuoteItemDto implements CartQuoteItemRequestContract {
   @IsOptional()
   @IsString()
   productId?: string;
+
+  @ApiPropertyOptional({
+    enum: ['frame', 'standalone_character', 'custom_character', 'retail_part'],
+  })
+  @IsOptional()
+  @IsIn(['frame', 'standalone_character', 'custom_character', 'retail_part'])
+  lineItemType?:
+    | 'frame'
+    | 'standalone_character'
+    | 'custom_character'
+    | 'retail_part';
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  productType?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  customName?: string;
 
   @ApiProperty()
   @Transform(({ value }: { value: unknown }) =>
@@ -118,10 +138,10 @@ export class CartQuoteDto implements CartQuoteRequestContract {
   @IsIn(SHIPPING_METHODS)
   shippingMethod?: (typeof SHIPPING_METHODS)[number];
 
-  @ApiPropertyOptional({ enum: [PaymentMethod.COD, PaymentMethod.PAYOS] })
+  @ApiPropertyOptional({ enum: [PaymentMethod.PAYOS] })
   @IsOptional()
-  @IsEnum(PaymentMethod)
-  paymentMethod?: PaymentMethod;
+  @IsIn([PaymentMethod.PAYOS])
+  paymentMethod?: typeof PaymentMethod.PAYOS;
 
   @ApiPropertyOptional()
   @IsOptional()

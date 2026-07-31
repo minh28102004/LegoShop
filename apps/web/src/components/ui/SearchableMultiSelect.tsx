@@ -27,6 +27,7 @@ type SearchableMultiSelectProps = {
   onChange: (values: string[]) => void;
   className?: string;
   maxVisibleLabels?: number;
+  showSearch?: boolean;
 };
 
 export function SearchableMultiSelect({
@@ -41,6 +42,7 @@ export function SearchableMultiSelect({
   onChange,
   className,
   maxVisibleLabels = 1,
+  showSearch = true,
 }: SearchableMultiSelectProps) {
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
@@ -61,10 +63,10 @@ export function SearchableMultiSelect({
   }, [options, query]);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open || !showSearch) return;
     const timer = window.setTimeout(() => searchRef.current?.focus(), 0);
     return () => window.clearTimeout(timer);
-  }, [open]);
+  }, [open, showSearch]);
 
   const handleOpenChange = (nextOpen: boolean) => {
     setOpen(nextOpen);
@@ -122,28 +124,30 @@ export function SearchableMultiSelect({
     >
       {() => (
         <div>
-          <div className="relative">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-            <input
-              ref={searchRef}
-              type="search"
-              value={query}
-              placeholder={searchPlaceholder}
-              className={formControlClassName({
-                className: "pl-10 pr-3 text-sm",
-                size: "compact",
-              })}
-              onChange={(event) => setQuery(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === "ArrowDown") {
-                  event.preventDefault();
-                  document
-                    .querySelector<HTMLElement>("[data-multiselect-option]")
-                    ?.focus();
-                }
-              }}
-            />
-          </div>
+          {showSearch ? (
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <input
+                ref={searchRef}
+                type="search"
+                value={query}
+                placeholder={searchPlaceholder}
+                className={formControlClassName({
+                  className: "pl-10 pr-3 text-sm",
+                  size: "compact",
+                })}
+                onChange={(event) => setQuery(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "ArrowDown") {
+                    event.preventDefault();
+                    document
+                      .querySelector<HTMLElement>("[data-multiselect-option]")
+                      ?.focus();
+                  }
+                }}
+              />
+            </div>
+          ) : null}
 
           {selectAllLabel && options.length > 0 ? (
             <button

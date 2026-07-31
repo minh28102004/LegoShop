@@ -76,7 +76,7 @@ export default function AdminHeader({
             <MenuIcon />
           </Button>
 
-          <nav className='min-w-0' aria-label='Breadcrumb'>
+          <nav className='hidden min-w-0 sm:block' aria-label={t('header.breadcrumb')}>
             <ol className='flex min-w-0 items-center gap-1 text-sm font-semibold text-slate-500'>
               {breadcrumbs.map((item, index) => {
                 const isLast = index === breadcrumbs.length - 1;
@@ -116,8 +116,8 @@ export default function AdminHeader({
             </span>
           </a>
 
-          <div className='hidden md:block'>
-            <LanguageSwitcher />
+          <div className='block'>
+            <LanguageSwitcher compact />
           </div>
 
           <AdminNotificationDropdown />

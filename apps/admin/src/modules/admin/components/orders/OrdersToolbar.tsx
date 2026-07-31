@@ -12,6 +12,8 @@ import AdminToolbar, {
   adminToolbarButtonClass,
   adminToolbarInputClass,
 } from '@/modules/admin/components/AdminToolbar';
+import { useI18n } from '@/lib/i18n/useI18n';
+import { formatNumber } from '@/lib/i18n/format';
 
 type OrdersToolbarProps = {
   activeFilterCount: number;
@@ -57,6 +59,9 @@ export default function OrdersToolbar({
   title,
   total,
 }: OrdersToolbarProps) {
+  const { t, locale } = useI18n();
+  const formattedTotal = formatNumber(total, locale);
+
   return (
     <AdminToolbar
       icon={<AdminNavIcon name='orders' className='h-6 w-6' />}
@@ -64,7 +69,7 @@ export default function OrdersToolbar({
       description={description}
       badge={
         <Badge tone='info' className='rounded-full px-4 py-2 text-sm font-bold'>
-          {total} đơn hàng
+          {t(total === 1 ? 'orders.countOne' : 'orders.countOther', { count: formattedTotal })}
         </Badge>
       }
     >
@@ -72,25 +77,25 @@ export default function OrdersToolbar({
         hideLabel
         wide
         icon={<AdminToolbarIcon name='search' />}
-        label='Tìm kiếm'
+        label={t('orders.search')}
         className='sm:w-[300px]'
       >
         <Input
           value={searchValue}
-          aria-label='Tìm kiếm đơn hàng'
+          aria-label={t('orders.search')}
           onChange={(event) => onSearchChange(event.target.value)}
-          placeholder='Tìm mã đơn, khách hàng, SĐT, email...'
+          placeholder={t('orders.searchPlaceholder')}
           className={adminToolbarInputClass}
         />
       </AdminToolbarField>
 
       <AdminToolbarDateRangeField
-        fromLabel='Từ ngày'
+        fromLabel={t('orders.dateFrom')}
         fromValue={dateFrom}
-        label='Khoảng ngày'
+        label={t('orders.dateRange')}
         onFromChange={onDateFromChange}
         onToChange={onDateToChange}
-        toLabel='Đến ngày'
+        toLabel={t('orders.dateTo')}
         toValue={dateTo}
         className='sm:w-[250px]'
       />
@@ -102,7 +107,7 @@ export default function OrdersToolbar({
         onClick={onOpenFilters}
         className={cn(adminToolbarButtonClass, 'px-4')}
       >
-        Bộ lọc
+        {t('orders.filters')}
       </Button>
 
       {showReset ? (
@@ -113,7 +118,7 @@ export default function OrdersToolbar({
           onClick={onReset}
           className={adminToolbarButtonClass}
         >
-          Đặt lại
+          {t('orders.reset')}
         </Button>
       ) : null}
     </AdminToolbar>

@@ -56,6 +56,8 @@
 
 html {
   background: var(--background);
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
 body {
@@ -67,6 +69,15 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   min-height: 100vh;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+img,
+svg,
+video,
+canvas {
+  max-width: 100%;
 }
 
 ::selection {
@@ -275,7 +286,7 @@ body {
 }
 
 .admin-table-cell {
-  height: 3.75rem;
+  height: 4.25rem;
   padding: 0.8125rem 1rem;
   color: var(--admin-text-soft);
   font-size: 0.875rem;
@@ -284,14 +295,21 @@ body {
 }
 
 @media (max-width: 767px) {
+  button,
+  [role='button'],
+  input,
+  select {
+    touch-action: manipulation;
+  }
+
   .admin-table-head-cell {
-    height: 2.75rem;
+    height: 3rem;
     padding: 0.6875rem 0.875rem;
     font-size: 0.78125rem;
   }
 
   .admin-table-cell {
-    height: 3.35rem;
+    height: 4rem;
     padding: 0.6875rem 0.875rem;
     font-size: 0.8125rem;
   }

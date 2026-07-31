@@ -5,9 +5,10 @@ import EntityManager, { type EntityField } from '@/modules/admin/components/enti
 import { useI18n } from '@/lib/i18n/useI18n';
 import { listResource } from '@/modules/admin/services/adminApi';
 import type { CharacterPart } from '@/modules/admin/types/admin.types';
+import { formatVnd } from '@/lib/i18n/format';
 
 export default function CharacterPresetsPage() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const [parts, setParts] = useState<CharacterPart[]>([]);
 
   useEffect(() => {
@@ -21,85 +22,85 @@ export default function CharacterPresetsPage() {
       parts
         .filter((part) => part.type === type && part.status === 'active' && part.isActive !== false)
         .map((part) => ({
-          label: `${part.name} · ${part.priceAdjustment.toLocaleString('vi-VN')}đ`,
+          label: `${part.name} · ${formatVnd(part.priceAdjustment, locale)}`,
           value: part.id,
         }));
 
     return [
       {
         key: 'name',
-        label: 'Tên preset',
+        label: t('characterPresetsPage.name'),
         type: 'text',
         required: true,
-        placeholder: 'VD: Nam tốt nghiệp',
+        placeholder: t('characterPresetsPage.namePlaceholder'),
       },
       {
         key: 'slug',
-        label: 'Slug',
+        label: t('entity.slug'),
         type: 'text',
-        placeholder: 'VD: nam-tot-nghiep',
+        placeholder: t('characterPresetsPage.slugPlaceholder'),
       },
       {
         key: 'description',
-        label: 'Mô tả ngắn',
+        label: t('characterPresetsPage.descriptionField'),
         type: 'textarea',
-        placeholder: 'Mô tả phong cách và các thành phần chính.',
+        placeholder: t('characterPresetsPage.descriptionPlaceholder'),
       },
       {
         key: 'previewImageUrl',
-        label: 'Ảnh xem trước',
+        label: t('characterPresetsPage.previewImage'),
         type: 'image',
       },
       {
         key: 'facePartId',
-        label: 'Khuôn mặt',
+        label: t('characterPresetsPage.face'),
         type: 'select',
         required: true,
         options: optionsFor('FACE'),
       },
       {
         key: 'hairPartId',
-        label: 'Tóc',
+        label: t('characterPresetsPage.hair'),
         type: 'select',
         required: true,
         options: optionsFor('HAIR'),
       },
       {
         key: 'torsoPartId',
-        label: 'Thân áo',
+        label: t('characterPresetsPage.torso'),
         type: 'select',
         required: true,
         options: optionsFor('TORSO'),
       },
       {
         key: 'legsPartId',
-        label: 'Chân',
+        label: t('characterPresetsPage.legs'),
         type: 'select',
         required: true,
         options: optionsFor('LEGS'),
       },
       {
         key: 'hatPartId',
-        label: 'Mũ (không bắt buộc)',
+        label: t('characterPresetsPage.optionalHat'),
         type: 'select',
         options: optionsFor('HAT'),
       },
       {
         key: 'accessoryPartIds',
-        label: 'Phụ kiện đi kèm',
+        label: t('characterPresetsPage.accessories'),
         type: 'multi-select',
         options: optionsFor('ACCESSORY'),
-        helpText: 'Có thể chọn nhiều phụ kiện. Giá preset được tính từ các linh kiện thực tế.',
+        helpText: t('characterPresetsPage.accessoriesHelp'),
       },
-      { key: 'sortOrder', label: 'Thứ tự hiển thị', type: 'number' },
+      { key: 'sortOrder', label: t('characterPresetsPage.sortOrder'), type: 'number' },
       {
         key: 'isBuilderPreset',
-        label: 'Hiển thị trong Character Builder',
+        label: t('characterPresetsPage.builderVisible'),
         type: 'checkbox',
       },
       {
         key: 'isSellable',
-        label: 'Cho phép bán như sản phẩm',
+        label: t('characterPresetsPage.sellable'),
         type: 'checkbox',
       },
       {
@@ -112,23 +113,21 @@ export default function CharacterPresetsPage() {
         ],
       },
     ];
-  }, [parts, t]);
+  }, [locale, parts, t]);
 
-  const tableFields = fields.filter((field) =>
-    ['name', 'previewImageUrl', 'sortOrder', 'isBuilderPreset', 'isSellable', 'status'].includes(
-      field.key,
-    ),
+  const tableFields = ['name', 'previewImageUrl', 'sortOrder', 'isBuilderPreset', 'isSellable', 'status'].flatMap(
+    (key) => fields.filter((field) => field.key === key),
   );
 
   return (
     <EntityManager
-      title='preset nhân vật'
+      title={t('characterPresetsPage.singular')}
       resource='character-presets'
       fields={fields}
       tableFields={tableFields}
-      pageTitle='Quản lý preset nhân vật'
-      pageDescription='Ghép trực tiếp linh kiện thật thành preset để dùng trong Character Builder và liên kết với sản phẩm nhân vật.'
-      createButtonLabel='Thêm preset nhân vật'
+      pageTitle={t('characterPresetsPage.title')}
+      pageDescription={t('characterPresetsPage.description')}
+      createButtonLabel={t('characterPresetsPage.create')}
     />
   );
 }

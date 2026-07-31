@@ -1,0 +1,43 @@
+{
+  "mode": "apply",
+  "startedAt": "2026-07-28T08:35:02.285Z",
+  "catalogPath": "D:\\Freelance_Job\\LegoShop\\data\\minifigs-catalog-clean.json",
+  "bucket": "figure-lab-media",
+  "sourceProducts": 636,
+  "targetParts": 466,
+  "targetPartsWithMainImage": 465,
+  "targetReverseImages": 205,
+  "skipped": {
+    "giftDisplay": 169,
+    "noMainImage": 1,
+    "noSelectionAction": 1
+  },
+  "images": {
+    "planned": 670,
+    "uploaded": 445,
+    "reused": 225,
+    "failed": 0
+  },
+  "records": {
+    "created": 340,
+    "updated": 0,
+    "reused": 125,
+    "failed": 0
+  },
+  "partsByType": {
+    "HAIR": 86,
+    "HAT": 10,
+    "TORSO": 144,
+    "LEGS": 105,
+    "ACCESSORY": 121
+  },
+  "publicUrlSamples": [
+    "https://akgcqvirfqumhaxyzenr.supabase.co/storage/v1/object/public/figure-lab-media/uploads/minifig-parts/hat/7092293566638-bcb594f07a/front.webp",
+    "https://akgcqvirfqumhaxyzenr.supabase.co/storage/v1/object/public/figure-lab-media/uploads/minifig-parts/hair/7950356480174-dd561e3ffd/front.webp",
+    "https://akgcqvirfqumhaxyzenr.supabase.co/storage/v1/object/public/figure-lab-media/uploads/minifig-parts/hair/7950350844078-73a7676572/front.webp",
+    "https://akgcqvirfqumhaxyzenr.supabase.co/storage/v1/object/public/figure-lab-media/uploads/minifig-parts/hair/8762897793198-f6c7b5fd00/front.webp",
+    "https://akgcqvirfqumhaxyzenr.supabase.co/storage/v1/object/public/figure-lab-media/uploads/minifig-parts/hair/6348539592878-9179aae3c0/front.webp"
+  ],
+  "errors": [],
+  "finishedAt": "2026-07-28T08:36:46.680Z"
+}

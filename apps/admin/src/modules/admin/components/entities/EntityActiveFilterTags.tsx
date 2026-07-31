@@ -1,5 +1,7 @@
 import Badge from '@/common/components/ui/Badge';
 import { cn } from '@/common/utils/cn';
+import { formatVnd } from '@/lib/i18n/format';
+import { useI18n } from '@/lib/i18n/useI18n';
 
 type EntityActiveFilterTagsLabels = {
   ascending: string;
@@ -19,10 +21,6 @@ type EntityActiveFilterTagsProps = {
   statusLabels: Array<{ label: string; value: string }>;
 };
 
-const NUMBER_FORMAT = new Intl.NumberFormat('vi-VN', {
-  maximumFractionDigits: 0,
-});
-
 function CloseIcon() {
   return (
     <svg viewBox='0 0 20 20' fill='none' className='h-3.5 w-3.5' aria-hidden='true'>
@@ -36,10 +34,10 @@ function CloseIcon() {
   );
 }
 
-function formatPrice(value: string) {
+function formatPrice(value: string, locale: 'vi' | 'en') {
   const parsed = Number(value);
   if (!Number.isFinite(parsed)) return value;
-  return `${NUMBER_FORMAT.format(parsed)} đ`;
+  return formatVnd(parsed, locale);
 }
 
 export default function EntityActiveFilterTags({
@@ -54,6 +52,7 @@ export default function EntityActiveFilterTags({
   sortDir,
   statusLabels,
 }: EntityActiveFilterTagsProps) {
+  const { locale, t } = useI18n();
   const chips: Array<{
     id: string;
     label: string;
@@ -77,8 +76,8 @@ export default function EntityActiveFilterTags({
   });
 
   if (priceMin || priceMax) {
-    const min = priceMin ? formatPrice(priceMin) : '';
-    const max = priceMax ? formatPrice(priceMax) : '';
+    const min = priceMin ? formatPrice(priceMin, locale) : '';
+    const max = priceMax ? formatPrice(priceMax, locale) : '';
     const label = min && max ? `${min} - ${max}` : min ? `>= ${min}` : `<= ${max}`;
 
     chips.push({
@@ -110,7 +109,7 @@ export default function EntityActiveFilterTags({
           <button
             type='button'
             onClick={chip.onRemove}
-            aria-label={`Remove ${chip.label}`}
+            aria-label={`${t('common.removeFilter')}: ${chip.label}`}
             className={cn(
               'inline-flex h-4 w-4 items-center justify-center rounded-full text-slate-400',
               'transition-colors duration-150 hover:bg-slate-100 hover:text-slate-700',

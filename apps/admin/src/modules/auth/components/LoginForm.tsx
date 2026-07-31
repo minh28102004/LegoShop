@@ -16,6 +16,7 @@ import Button from '@/common/components/ui/Button';
 import { ADMIN_ROUTES } from '@/common/constants/routes';
 import { cn } from '@/common/utils/cn';
 import { useI18n } from '@/lib/i18n/useI18n';
+import { getLocalizedApiError } from '@/lib/i18n/errors';
 import LanguageSwitcher from '@/modules/admin/components/LanguageSwitcher';
 import BannerCarousel from '@/modules/auth/components/BannerCarousel';
 import { login } from '@/modules/auth/services/authApi';
@@ -163,7 +164,7 @@ export default function LoginForm() {
       setAccessToken(response.accessToken);
       router.replace(ADMIN_ROUTES.dashboard);
     } catch (err) {
-      const message = err instanceof Error ? err.message : t('auth.loginFailed');
+      const message = getLocalizedApiError(err, t, 'auth.loginFailed');
       setErrorPulse((current) => current + 1);
       toast.error(message, { id: 'admin-login-error' });
     } finally {
@@ -221,6 +222,7 @@ export default function LoginForm() {
                       alt='Birthday figure template preview'
                       width={1000}
                       height={1000}
+                      priority
                       sizes='(min-width: 1024px) 150px, 40vw'
                       className='h-full w-full object-cover object-[50%_34%]'
                     />

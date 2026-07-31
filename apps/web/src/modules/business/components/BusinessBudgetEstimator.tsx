@@ -5,6 +5,7 @@ import type {
   FrameSize,
 } from "@lego-shop/shared";
 import { formatCurrency } from "@lego-shop/shared";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
   ArrowRight,
   BadgeCheck,
@@ -24,7 +25,7 @@ import Image from "next/image";
 import { Badge } from "@/components/ui/Badge";
 import { Checkbox } from "@/components/ui/Checkbox";
 import { Input } from "@/components/ui/Input";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { Container } from "@/components/layout/Container";
 import { publicApiClient } from "@/lib/api/public-client";
@@ -50,6 +51,65 @@ type BusinessBudgetEstimatorProps = {
 const CHARACTER_OPTIONS = [1, 2, 3, 4] as const;
 const CHARM_OPTIONS = [0, 1, 2, 3, 4, 5] as const;
 const QUANTITY_OPTIONS = [10, 30, 50, 100] as const;
+const BUSINESS_FRAME_CACHE_TTL_MS = 5 * 60_000;
+const BUSINESS_QUOTE_CACHE_TTL_MS = 30_000;
+const BUSINESS_QUOTE_INTERACTION_DELAY_MS = 80;
+const BUSINESS_CUSTOM_QUANTITY_DELAY_MS = 160;
+const BUSINESS_QUOTE_MIN_FEEDBACK_MS = 420;
+const BUSINESS_QUOTE_CACHE_LIMIT = 20;
+const BUSINESS_ROLLING_DIGIT_OFFSETS = [0, 3, 7, 1, 8, 4] as const;
+
+let businessFrameCache:
+  { frameSizes: EstimatorFrameSize[]; cachedAt: number } | undefined;
+let businessFrameRequest: Promise<EstimatorFrameSize[]> | null = null;
+const businessQuoteCache = new Map<
+  string,
+  { quote: BusinessEstimateSummary; cachedAt: number }
+>();
+
+function loadBusinessFrameSizes() {
+  if (
+    businessFrameCache &&
+    Date.now() - businessFrameCache.cachedAt < BUSINESS_FRAME_CACHE_TTL_MS
+  ) {
+    return Promise.resolve(businessFrameCache.frameSizes);
+  }
+  if (businessFrameRequest) return businessFrameRequest;
+
+  businessFrameRequest = publicApiClient.products
+    .listFrameSizes()
+    .then((response) => {
+      const frameSizes = response
+        .filter((item) => item.status === "active" && Number(item.price) > 0)
+        .sort((left, right) => Number(left.price) - Number(right.price))
+        .slice(0, 5);
+      businessFrameCache = { frameSizes, cachedAt: Date.now() };
+      return frameSizes;
+    })
+    .finally(() => {
+      businessFrameRequest = null;
+    });
+
+  return businessFrameRequest;
+}
+
+function getCachedBusinessQuote(key: string) {
+  const cached = businessQuoteCache.get(key);
+  if (!cached) return null;
+  if (Date.now() - cached.cachedAt > BUSINESS_QUOTE_CACHE_TTL_MS) {
+    businessQuoteCache.delete(key);
+    return null;
+  }
+  return cached.quote;
+}
+
+function cacheBusinessQuote(key: string, quote: BusinessEstimateSummary) {
+  businessQuoteCache.delete(key);
+  businessQuoteCache.set(key, { quote, cachedAt: Date.now() });
+  if (businessQuoteCache.size <= BUSINESS_QUOTE_CACHE_LIMIT) return;
+  const oldestKey = businessQuoteCache.keys().next().value;
+  if (typeof oldestKey === "string") businessQuoteCache.delete(oldestKey);
+}
 
 function ChoiceButton({
   active,
@@ -124,6 +184,89 @@ function RollingDataAmount({ large = false }: { large?: boolean }) {
   );
 }
 
+function RollingMetricVisual({ value }: { value: string }) {
+  return (
+    <span className="inline-flex items-baseline">
+      {Array.from(value).map((character, index) => {
+        const isDigit = character >= "0" && character <= "9";
+
+        if (!isDigit) {
+          return (
+            <span key={`${character}-${index}`} className="whitespace-pre">
+              {character}
+            </span>
+          );
+        }
+
+        return (
+          <span
+            key={`${character}-${index}`}
+            className="cart-summary-rolling__digit"
+          >
+            <span
+              className="cart-summary-rolling__track"
+              style={{ animationDelay: `${index * -85}ms` }}
+            >
+              {BUSINESS_ROLLING_DIGIT_OFFSETS.map((offset) => (
+                <span key={offset}>{(Number(character) + offset) % 10}</span>
+              ))}
+            </span>
+          </span>
+        );
+      })}
+    </span>
+  );
+}
+
+function LiveQuoteMetric({
+  value,
+  loading,
+  reduceMotion,
+  className = "",
+}: {
+  value: string;
+  loading: boolean;
+  reduceMotion: boolean;
+  className?: string;
+}) {
+  return (
+    <span
+      aria-live="polite"
+      aria-atomic="true"
+      data-updating={loading ? "true" : "false"}
+      className={`relative inline-grid max-w-full overflow-hidden tabular-nums ${className}`}
+    >
+      <span className="sr-only">{value}</span>
+      <AnimatePresence initial={false} mode="popLayout">
+        <motion.span
+          key={`${loading ? "updating" : "ready"}-${value}`}
+          aria-hidden="true"
+          initial={
+            reduceMotion
+              ? false
+              : { opacity: 0, y: loading ? 0 : 8, scale: 0.985 }
+          }
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={
+            reduceMotion ? { opacity: 0 } : { opacity: 0, y: -6, scale: 0.985 }
+          }
+          transition={{
+            duration: reduceMotion ? 0 : 0.22,
+            ease: [0.22, 1, 0.36, 1],
+          }}
+          className="col-start-1 row-start-1 inline-flex max-w-full items-baseline justify-end"
+        >
+          {loading && !reduceMotion ? (
+            <RollingMetricVisual value={value} />
+          ) : (
+            value
+          )}
+        </motion.span>
+      </AnimatePresence>
+    </span>
+  );
+}
+
 function QuoteLoadingState({
   copy,
 }: {
@@ -132,12 +275,7 @@ function QuoteLoadingState({
   const stepIcons = [Database, Percent, Calculator] as const;
 
   return (
-    <div
-      role="status"
-      aria-live="polite"
-      aria-busy="true"
-      className="py-5"
-    >
+    <div role="status" aria-live="polite" aria-busy="true" className="py-5">
       <div className="business-data-loader__surface relative overflow-hidden rounded-[20px] border border-border-soft bg-white px-4 py-4">
         <span className="business-data-loader__scan" aria-hidden="true" />
         <div className="relative flex items-center justify-between gap-4 text-xs text-slate-500">
@@ -153,7 +291,10 @@ function QuoteLoadingState({
       </div>
 
       <div className="relative mt-4 overflow-hidden rounded-[26px] bg-navy p-5 text-white sm:p-6">
-        <span className="business-data-loader__scan business-data-loader__scan--dark" aria-hidden="true" />
+        <span
+          className="business-data-loader__scan business-data-loader__scan--dark"
+          aria-hidden="true"
+        />
         <p className="relative text-[10px] font-extrabold uppercase tracking-[0.2em] text-slate-400">
           {copy.totalLabel}
         </p>
@@ -190,6 +331,7 @@ export function BusinessBudgetEstimator({
   onEstimateChange,
   onOpenInquiry,
 }: BusinessBudgetEstimatorProps) {
+  const reduceMotion = useReducedMotion() ?? false;
   const [frameSizes, setFrameSizes] = useState<EstimatorFrameSize[]>([]);
   const [selectedFrameId, setSelectedFrameId] = useState("");
   const [characterCount, setCharacterCount] = useState(1);
@@ -211,17 +353,14 @@ export function BusinessBudgetEstimator({
   >("idle");
   const [quote, setQuote] = useState<BusinessEstimateSummary | null>(null);
   const [quoteRevision, setQuoteRevision] = useState(0);
+  const hasSettledQuote = useRef(false);
 
   useEffect(() => {
     let active = true;
 
     async function loadFrameSizes() {
       try {
-        const response = await publicApiClient.products.listFrameSizes();
-        const available = response
-          .filter((item) => item.status === "active" && Number(item.price) > 0)
-          .sort((left, right) => Number(left.price) - Number(right.price))
-          .slice(0, 5);
+        const available = await loadBusinessFrameSizes();
 
         if (!active) return;
         if (available.length === 0) {
@@ -273,6 +412,7 @@ export function BusinessBudgetEstimator({
 
   useEffect(() => {
     let active = true;
+    let settleTimeout: number | null = null;
     if (!quotePayload) {
       window.queueMicrotask(() => {
         if (!active) return;
@@ -285,22 +425,50 @@ export function BusinessBudgetEstimator({
       };
     }
 
+    const quoteKey = JSON.stringify(quotePayload);
+    const cachedQuote = getCachedBusinessQuote(quoteKey);
+    if (cachedQuote) {
+      window.queueMicrotask(() => {
+        if (!active) return;
+        setQuote(cachedQuote);
+        setQuoteStatus("ready");
+        hasSettledQuote.current = true;
+        onEstimateChange(cachedQuote);
+      });
+      return () => {
+        active = false;
+      };
+    }
+
     window.queueMicrotask(() => {
       if (!active) return;
       setQuoteStatus("loading");
-      setQuote(null);
-      onEstimateChange(null);
     });
 
     const timeout = window.setTimeout(
       () => {
+        const requestStartedAt = window.performance.now();
         void publicApiClient.inquiries
           .quoteBusinessGift(quotePayload)
           .then((response) => {
-            if (!active) return;
-            setQuote(response);
-            setQuoteStatus("ready");
-            onEstimateChange(response);
+            const settleQuote = () => {
+              if (!active) return;
+              setQuote(response);
+              setQuoteStatus("ready");
+              hasSettledQuote.current = true;
+              cacheBusinessQuote(quoteKey, response);
+              onEstimateChange(response);
+            };
+            const feedbackRemaining =
+              BUSINESS_QUOTE_MIN_FEEDBACK_MS -
+              (window.performance.now() - requestStartedAt);
+
+            if (hasSettledQuote.current && feedbackRemaining > 0) {
+              settleTimeout = window.setTimeout(settleQuote, feedbackRemaining);
+              return;
+            }
+
+            settleQuote();
           })
           .catch((error) => {
             console.error(
@@ -309,17 +477,30 @@ export function BusinessBudgetEstimator({
             );
             if (!active) return;
             setQuoteStatus("error");
+            hasSettledQuote.current = true;
             onEstimateChange(null);
           });
       },
-      quantityChoice === "custom" ? 450 : 260,
+      hasSettledQuote.current
+        ? quantityChoice === "custom"
+          ? BUSINESS_CUSTOM_QUANTITY_DELAY_MS
+          : BUSINESS_QUOTE_INTERACTION_DELAY_MS
+        : 0,
     );
 
     return () => {
       active = false;
       window.clearTimeout(timeout);
+      if (settleTimeout !== null) window.clearTimeout(settleTimeout);
     };
   }, [onEstimateChange, quantityChoice, quotePayload, quoteRevision]);
+
+  function retryQuote() {
+    if (quotePayload) {
+      businessQuoteCache.delete(JSON.stringify(quotePayload));
+    }
+    setQuoteRevision((value) => value + 1);
+  }
 
   function toggleOption(key: ConfigOptionKey) {
     setOptions((current) => ({ ...current, [key]: !current[key] }));
@@ -572,20 +753,39 @@ export function BusinessBudgetEstimator({
                     {copy.estimator.liveLabel}
                   </p>
                 </div>
-                {quote ? (
-                  <Badge
-                    variant="highlight"
-                    className="gap-1.5 px-3.5 py-1.5 text-[11px] font-extrabold"
-                  >
-                    <BadgeCheck className="size-3.5" aria-hidden="true" />-
-                    {quote.discountPercent}%
-                  </Badge>
-                ) : null}
+                <div className="flex items-center gap-2">
+                  {quoteStatus === "loading" && quote ? (
+                    <span
+                      role="status"
+                      aria-label={copy.estimator.loading}
+                      className="grid size-7 place-items-center rounded-full bg-primary-light text-primary"
+                    >
+                      <LoaderCircle
+                        className="size-3.5 animate-spin"
+                        aria-hidden="true"
+                      />
+                    </span>
+                  ) : null}
+                  {quote ? (
+                    <Badge
+                      variant="highlight"
+                      className="gap-1.5 px-3.5 py-1.5 text-[11px] font-extrabold"
+                    >
+                      <BadgeCheck className="size-3.5" aria-hidden="true" />
+                      <LiveQuoteMetric
+                        value={`-${quote.discountPercent}%`}
+                        loading={quoteStatus === "loading"}
+                        reduceMotion={reduceMotion}
+                      />
+                    </Badge>
+                  ) : null}
+                </div>
               </div>
 
-              {quoteStatus === "loading" || quoteStatus === "idle" ? (
+              {(quoteStatus === "loading" || quoteStatus === "idle") &&
+              !quote ? (
                 <QuoteLoadingState copy={copy.estimator} />
-              ) : quoteStatus === "error" ? (
+              ) : quoteStatus === "error" && !quote ? (
                 <div
                   role="alert"
                   className="my-6 rounded-[22px] border border-red-100 bg-red-50 p-5 text-center"
@@ -595,7 +795,7 @@ export function BusinessBudgetEstimator({
                   </p>
                   <button
                     type="button"
-                    onClick={() => setQuoteRevision((value) => value + 1)}
+                    onClick={retryQuote}
                     className="mt-3 inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2 text-xs font-extrabold text-red-600 shadow-sm"
                   >
                     <RefreshCcw className="size-3.5" aria-hidden="true" />
@@ -604,39 +804,88 @@ export function BusinessBudgetEstimator({
                 </div>
               ) : quote ? (
                 <>
+                  {quoteStatus === "error" ? (
+                    <button
+                      type="button"
+                      onClick={retryQuote}
+                      className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-red-100 bg-red-50 px-3 py-2 text-xs font-bold text-red-600"
+                    >
+                      <RefreshCcw className="size-3.5" aria-hidden="true" />
+                      {copy.estimator.retry}
+                    </button>
+                  ) : null}
                   <dl className="space-y-3 py-5 text-sm">
                     <div className="flex items-center justify-between gap-4 text-slate-500">
                       <dt className="font-bold">
                         {copy.estimator.retailUnitLabel}
                       </dt>
-                      <dd className="font-bold line-through">
-                        {formatCurrency(quote.retailUnitPrice)}
+                      <dd>
+                        <LiveQuoteMetric
+                          value={formatCurrency(quote.retailUnitPrice)}
+                          loading={quoteStatus === "loading"}
+                          reduceMotion={reduceMotion}
+                          className="font-bold line-through"
+                        />
                       </dd>
                     </div>
                     <div className="flex items-end justify-between gap-4 border-t border-border-soft pt-4">
                       <dt className="pb-1 text-xs font-extrabold uppercase tracking-wide text-slate-500">
                         {copy.estimator.estimatedUnitLabel}
                       </dt>
-                      <dd className="text-3xl font-bold tracking-[-0.05em] text-primary-dark">
-                        {formatCurrency(quote.estimatedUnitPrice)}
+                      <dd>
+                        <LiveQuoteMetric
+                          value={formatCurrency(quote.estimatedUnitPrice)}
+                          loading={quoteStatus === "loading"}
+                          reduceMotion={reduceMotion}
+                          className="text-3xl font-bold tracking-[-0.05em] text-primary-dark"
+                        />
                       </dd>
                     </div>
                   </dl>
 
-                  <div className="rounded-[26px] bg-navy p-5 text-white shadow-[0_22px_38px_-26px_rgba(9,20,38,0.9)] sm:p-6">
+                  <motion.div
+                    animate={{
+                      scale:
+                        !reduceMotion && quoteStatus === "loading" ? 0.995 : 1,
+                    }}
+                    transition={{
+                      duration: reduceMotion ? 0 : 0.2,
+                      ease: "easeOut",
+                    }}
+                    className={`rounded-[26px] bg-navy p-5 text-white transition-shadow duration-300 sm:p-6 ${
+                      quoteStatus === "loading"
+                        ? "shadow-[0_26px_48px_-24px_rgba(41,154,218,0.72)]"
+                        : "shadow-[0_22px_38px_-26px_rgba(9,20,38,0.9)]"
+                    }`}
+                  >
                     <p className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-slate-400">
-                      {copy.estimator.totalLabel} ({quote.quantity}{" "}
-                      {copy.estimator.quantitySummary})
+                      {copy.estimator.totalLabel} (
+                      <LiveQuoteMetric
+                        value={`${quote.quantity} ${copy.estimator.quantitySummary}`}
+                        loading={quoteStatus === "loading"}
+                        reduceMotion={reduceMotion}
+                      />
+                      )
                     </p>
-                    <p className="mt-2 text-[clamp(2rem,5vw,2.8rem)] font-extrabold leading-none tracking-[-0.055em]">
-                      {formatCurrency(quote.totalPrice)}
+                    <p className="mt-2 leading-none">
+                      <LiveQuoteMetric
+                        value={formatCurrency(quote.totalPrice)}
+                        loading={quoteStatus === "loading"}
+                        reduceMotion={reduceMotion}
+                        className="text-[clamp(2rem,5vw,2.8rem)] font-extrabold tracking-[-0.055em]"
+                      />
                     </p>
                     <div className="mt-5 rounded-2xl border border-primary/30 bg-primary/15 p-4 text-center">
                       <p className="text-[9px] font-extrabold uppercase tracking-[0.14em] text-sky-300">
                         {copy.estimator.savingsLabel}
                       </p>
-                      <p className="mt-1 text-xl font-extrabold text-sky-200">
-                        {formatCurrency(quote.savings)}
+                      <p className="mt-1">
+                        <LiveQuoteMetric
+                          value={formatCurrency(quote.savings)}
+                          loading={quoteStatus === "loading"}
+                          reduceMotion={reduceMotion}
+                          className="text-xl font-extrabold text-sky-200"
+                        />
                       </p>
                     </div>
                     <ul className="mt-5 space-y-2.5 text-[11px] font-extrabold text-slate-200">
@@ -662,7 +911,7 @@ export function BusinessBudgetEstimator({
                         </li>
                       ))}
                     </ul>
-                  </div>
+                  </motion.div>
                 </>
               ) : null}
 

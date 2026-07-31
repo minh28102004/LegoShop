@@ -33,6 +33,70 @@ export const en = {
       en: "English",
     },
   },
+  apiErrors: {
+    unauthorized: "Your session has expired. Please sign in again.",
+    forbidden: "You do not have permission to perform this action.",
+    notFound: "The requested data could not be found.",
+    validation: "Some information is invalid. Please review the highlighted fields.",
+    conflict: "This data was changed elsewhere. Refresh and try again.",
+    rateLimited: "Too many requests. Please wait a moment and try again.",
+    server: "The server is temporarily unavailable. Please try again.",
+    network: "Unable to connect. Check your connection and try again.",
+  },
+  privacyPolicy: {
+    title: "Privacy Policy",
+    description:
+      "This policy explains how Figure Lab receives, uses, and protects information when you visit the website or order a product.",
+    updatedAt: "Last updated: July 24, 2026",
+    contactTitle: "Privacy contact",
+    backHome: "Back to home",
+    sections: {
+      collection: {
+        title: "1. Information we collect",
+        paragraph1:
+          "When you use Figure Lab, we may receive contact and delivery information such as your name, phone number, email, address, order details, and content you intentionally submit while designing a product.",
+        paragraph2:
+          "The website may also store technical data required for your session, cart, and display preferences on your device.",
+      },
+      purposes: {
+        title: "2. How we use information",
+        paragraph1:
+          "We use information to create and process orders, confirm designs, support delivery and payment, provide customer care, prevent fraud, and improve service quality.",
+        paragraph2: "Figure Lab does not sell customers' personal information to third parties.",
+      },
+      providers: {
+        title: "3. Service providers",
+        paragraph1:
+          "Where necessary to operate the service, data may be processed by infrastructure, storage, payment, or delivery partners. They receive only the information required for their work.",
+        paragraph2:
+          "Online payments are handed off to the payment provider shown at checkout. Figure Lab does not store your complete bank card details.",
+      },
+      designs: {
+        title: "4. Images and design content",
+        paragraph1:
+          "Images you upload are used to create previews, complete products, and support your order. You must have the right to use any content you provide.",
+        paragraph2:
+          "Do not upload identity documents, financial details, passwords, or sensitive content that is not required for the design.",
+      },
+      retention: {
+        title: "5. Data storage and protection",
+        paragraph1:
+          "We apply appropriate technical and organizational safeguards to reduce unauthorized access, loss, or misuse. Data is retained only as long as needed to process orders, support customers, and meet related legal obligations.",
+      },
+      rights: {
+        title: "6. Your rights",
+        paragraph1:
+          "You may ask to access, update, or delete personal information you provided, subject to applicable law and order-retention obligations.",
+        paragraph2:
+          "To submit a request, contact {email}. We may need to verify your identity before processing it.",
+      },
+      changes: {
+        title: "7. Changes to this policy",
+        paragraph1:
+          "This policy may be updated when our products, operating processes, or legal requirements change. The latest version and update date will be published on this page.",
+      },
+    },
+  },
   metadata: {
     site: {
       tagline: "Thoughtful personalized gifts for life’s memorable moments",
@@ -56,12 +120,12 @@ export const en = {
         "Personalized corporate gift solutions with proof approval and support for larger quantities from Figure Lab.",
     },
     collection: {
-      title: "Collection | Figure Lab",
+      title: "Collection",
       description:
         "Explore personalized gifts, build characters, and choose components at Figure Lab.",
     },
     orderTracking: {
-      title: "Order tracking | Figure Lab",
+      title: "Order tracking",
       description: "Follow the status and journey of your Figure Lab gift.",
     },
     studio: {
@@ -270,30 +334,59 @@ export const en = {
     },
   },
   characterBuilder: {
+    selectedCatalogParts: "Selected real parts",
+    catalogPreviewNotice:
+      "Parts are fitted into their character slots automatically; the original product images remain below for reference.",
+    noSelection: "No selection",
+    noSelectionDescription: "Remove the selected part from this category.",
     tabs: {
       FACE: "Face",
-      HAIR: "Hair",
+      HAIR: "Hair & Hats",
       TORSO: "Torso",
       LEGS: "Legs",
       HAT: "Hat",
       ACCESSORY: "Accessories",
     },
-    previewEmpty: "Choose parts to preview your character",
+    presetsTab: "Ready-made",
+    previewEyebrow: "Your character",
+    previewTitle: "Build it your way",
+    previewEmpty: "Choose a part to start building",
+    progressTitle: "Complete your character",
+    progressSummary: (count: number) => `${count} / 5 main parts`,
+    toolsEyebrow: "Parts library",
+    categoryNavigation: "Character part categories",
+    filterLabel: "Part filters",
+    subcategoryAll: "All",
     emptyTitle: "No character parts are available yet",
     emptyDescription:
       "Figure Lab is updating faces, hair, torsos, and legs for the character builder.",
+    emptyCategoryTitle: "No parts in this category yet",
+    emptyCategoryDescription:
+      "Try another category or return to the ready-made starting points.",
+    backToPresets: "Back to ready-made",
+    loadError: "Unable to load parts. Please try again.",
+    retry: "Try again",
+    cancel: "Cancel",
     price: "Character price",
     reset: "Start over",
+    resetConfirm: "Select again to reset",
     eyebrow: "Character builder",
     title: "Build a LEGO character of your own",
     description:
       "Choose each character layer. Individual pieces are also available in the Individual parts tab.",
     name: "Character name",
-    defaultName: "My character",
-    included: "Included in price",
+    defaultName: "Character 1",
+    included: "Free",
     components: "components",
     noParts: "No parts are available in this group yet.",
+    selectedParts: "Selected parts",
+    selectedCount: (count: number) =>
+      `${count} ${count === 1 ? "part" : "parts"}`,
+    partsEstimate: "Parts estimate",
+    finalTotal: "Total",
+    priceCompletesWhenReady: "Full price appears when main parts are complete",
     addToCart: "Add character to cart",
+    addToCartShort: "Add to cart",
     updateCart: "Update character",
     buyNow: "Buy now",
     quoting: "Verifying price...",
@@ -304,6 +397,9 @@ export const en = {
     blankCharacter: "Blank character",
     blankDescription: "Choose every part yourself",
     presetDescription: "A ready-made preset for quick customization",
+    randomize: "Randomize",
+    randomizing: "Building...",
+    missingParts: "Choose a face, torso, and legs before adding to cart.",
     customCharacter: "Custom LEGO character",
     characterBody: "LEGO character body",
     customFrameLabel: "Custom-built LEGO character",
@@ -318,6 +414,9 @@ export const en = {
     zoomIn: "Zoom in",
     zoomOut: "Zoom out",
     fitPreview: "Fit preview",
+    flipCharacter: "Rotate character",
+    decreaseQuantity: "Decrease quantity",
+    increaseQuantity: "Increase quantity",
     hideTools: "Collapse tools",
     showTools: "Open tools",
     cartSuccess: "Character added to cart",
@@ -623,6 +722,9 @@ export const en = {
     accessorySection: "Template charms / accessories",
     accessoryEmpty: "This template has no default accessory.",
     addAccessory: "Add accessory",
+    otherAccessories: "Add more accessories",
+    searchAccessories: "Search accessories...",
+    noAccessoryMatches: "No matching accessories found.",
     removeAccessory: "Remove accessory",
     orderNote: "Order note",
     notePlaceholder: "For example: change the name, date, colors or message...",
@@ -1033,58 +1135,55 @@ export const en = {
   orderTracking: {
     hero: {
       eyebrow: "Order tracking",
-      title: "Follow your gift on every step of its journey",
+      title: "View every order linked to your phone number",
       description:
-        "From the first story we receive to the moment your gift arrives, every important update is right here.",
+        "Use the phone number entered at checkout to securely find your latest orders and follow each gift.",
       trust: ["Clear updates", "Phone-protected lookup", "Support when needed"],
-      visualCode: "FL-2026-0719",
+      visualCode: "090****567",
       visualStatus: "Finishing your gift",
       visualHint: "Estimated delivery in 2–3 days",
     },
     lookup: {
       eyebrow: "Check in seconds",
-      title: "Where is your gift now?",
-      description: "Enter the order code and phone number used at checkout.",
-      orderCodeLabel: "Order code",
-      orderCodePlaceholder: "Example: LS202607190001",
+      title: "Find your orders by phone number",
+      description:
+        "Enter the phone number used at checkout to view all matching orders.",
       phoneLabel: "Phone number",
       phonePlaceholder: "Example: 0901 234 567",
       submit: "Track",
       submitting: "Looking up...",
-      codeHint: "Find the code in your confirmation email or message.",
-      phoneHint: "Use the checkout phone number to protect order details.",
-      forgotCode: "Forgot the code?",
+      phoneHint: "Both 090... and +8490... formats are accepted.",
+      privacyNote: "Only masked contact details are displayed.",
       needSupport: "Need support?",
-      requiredError: "Please enter both the order code and phone number.",
-      phoneError: "The phone number must contain at least 8 digits.",
-      notFoundError: "No order matched the information you provided.",
+      requiredError: "Please enter the phone number used at checkout.",
+      phoneError: "Please enter a valid Vietnamese phone number.",
       networkError:
         "We cannot connect right now. Please try again in a few minutes.",
-      success: "Order found. Taking you to the result now.",
-      clearOrderCode: "Clear order code",
+      success: "Your matching orders are ready.",
       clearPhone: "Clear phone number",
     },
     guide: {
       eyebrow: "Simple lookup",
       title: "Three steps to follow your gift",
-      description: "No account required, just your confirmation details.",
+      description: "No account or order code required.",
       expand: "View tracking guide",
       collapse: "Hide tracking guide",
       summary:
-        "Learn how tracking works, view processing steps, and find your order code.",
+        "Learn how phone lookup works and how to view each order's progress.",
       items: [
         {
-          title: "Enter details",
-          description: "Use the order code and checkout phone number.",
+          title: "Enter your phone",
+          description: "Use the phone number entered when placing the order.",
         },
         {
-          title: "View status",
+          title: "Choose an order",
           description:
-            "See whether the gift is in design, production or delivery.",
+            "If several orders match, choose the one you want to inspect.",
         },
         {
-          title: "Follow next steps",
-          description: "Review estimated milestones and the latest updates.",
+          title: "Follow its journey",
+          description:
+            "Review the current status, products and next milestone.",
         },
       ],
     },
@@ -1134,39 +1233,40 @@ export const en = {
     },
     where: {
       eyebrow: "Helpful information",
-      title: "Where can you find the order code?",
+      title: "Why is a phone number enough?",
       description:
-        "It usually starts with “LS” and is sent right after checkout.",
+        "Your checkout phone number securely groups every matching order in one place.",
       items: [
         {
-          title: "Confirmation email",
-          description: "Check your inbox and spam folder.",
+          title: "One lookup, every order",
+          description:
+            "See all orders for the same phone number, newest first.",
         },
         {
-          title: "Message or Zalo",
-          description: "Review the confirmation chat from Figure Lab.",
+          title: "Protected information",
+          description: "Contact and delivery details remain masked.",
         },
         {
-          title: "Receipt & history",
-          description: "Find it at the top of your receipt or success page.",
+          title: "Email stays unchanged",
+          description: "Email is still used for confirmations, not for lookup.",
         },
       ],
-      sampleLabel: "Sample code",
-      sampleCode: "LS202607190001",
+      sampleLabel: "Protected phone number",
+      sampleCode: "090****567",
     },
     faq: {
       eyebrow: "Frequently asked questions",
       title: "Need a little more information?",
       items: [
         {
-          question: "What if I forgot the order code?",
+          question: "Do I need the order code?",
           answer:
-            "Check your confirmation email or message, or contact us using the checkout phone number.",
+            "No. Enter the phone number used at checkout and all matching orders will be shown.",
         },
         {
           question: "Why can’t I find my order?",
           answer:
-            "Check both fields and remove accidental spaces before trying again.",
+            "Check that you are using the same phone number as checkout. Both 0 and +84 formats are supported.",
         },
         {
           question: "How often is the status updated?",
@@ -1184,8 +1284,19 @@ export const en = {
       eyebrow: "Figure Lab is here",
       title: "Still looking for an answer?",
       description:
-        "Share your code and phone number and our team will help check the order.",
+        "Share the phone number used at checkout and our team will help check the order.",
       button: "Contact support",
+    },
+    list: {
+      eyebrow: "Lookup results",
+      title: "Your recent orders",
+      description:
+        "Orders are sorted from newest to oldest. Choose one to view its full journey.",
+      viewDetails: "View details",
+      viewing: "Viewing",
+      emptyTitle: "No orders found",
+      emptyDescription:
+        "We could not find an order for this phone number. Check the number or contact Figure Lab for help.",
     },
     result: {
       eyebrow: "Tracking result",
@@ -1758,7 +1869,7 @@ export const en = {
       eyebrow: "Character Builder",
       title: "Build a LEGO character",
       description:
-        "The character workspace is being prepared for the next phase. Its preview, tools, steps, pricing, and CTA areas are ready for development.",
+        "Build a LEGO character by hand in a style that is entirely your own.",
       status: "In development",
       backToStudio: "Choose another mode",
       previewLabel: "Preview area",
@@ -1835,7 +1946,7 @@ export const en = {
         image: "Image",
         templates: "Templates",
         uploads: "Upload",
-        text: "Text",
+        text: "Content",
         assets: "Accessories",
         characters: "Characters",
         accessories: "Accessories",
@@ -2067,6 +2178,8 @@ export const en = {
       previewError: "Could not prepare the preview image. Please try again.",
       restoreMissing:
         "The cart design could not be found. You can start a new design instead.",
+      cartAdded: "Design added to your cart.",
+      cartUpdated: "Cart design updated.",
     },
     partColors: [
       { key: "đen", label: "Black", hex: "#1f1f21" },

@@ -14,6 +14,7 @@ import type {
   PublicProductsSort,
 } from "@lego-shop/shared";
 import { PRODUCT_TYPE } from "@lego-shop/shared";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
   Boxes,
   LayoutGrid,
@@ -32,6 +33,7 @@ import { Input } from "@/components/ui/Input";
 import { SearchableMultiSelect } from "@/components/ui/SearchableMultiSelect";
 import { Select } from "@/components/ui/Select";
 import { useI18n } from "@/lib/i18n/useI18n";
+import { getLocalizedApiError } from "@/lib/i18n/errors";
 import { resolveApiAssetUrl } from "@/lib/api/assets";
 import { publicApiClient } from "@/lib/api/public-client";
 import { withProductImageFallback } from "@/lib/product-image-fallback";
@@ -286,7 +288,7 @@ function ProductSkeleton() {
         <div className="h-5 w-3/4 animate-pulse rounded bg-slate-100" />
         <div className="h-4 w-1/2 animate-pulse rounded bg-slate-100" />
         <div className="h-7 w-2/5 animate-pulse rounded bg-slate-100" />
-        <div className="h-11 animate-pulse rounded-xl bg-slate-100" />
+        <div className="h-10 animate-pulse rounded-xl bg-slate-100" />
       </div>
     </div>
   );
@@ -337,13 +339,16 @@ function CollectionSearch({
 }
 
 export function CollectionPage() {
-  const { dictionary, locale } = useI18n();
+  const { dictionary, locale, t } = useI18n();
+  const shouldReduceMotion = useReducedMotion();
   const labels: CollectionDictionary = dictionary.collection;
   const detailLabels = dictionary.productDetail;
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const tab = resolveTab(searchParams.get("type") ?? searchParams.get("tab"));
+  const tabIndex = TABS.findIndex((item) => item.value === tab);
+  const [tabSlideDirection, setTabSlideDirection] = useState(1);
   const page = positiveInteger(searchParams.get("page"), 1);
   const pageSize = resolvePageSize(searchParams.get("pageSize"));
   const sort = resolveSort(searchParams.get("sort"));
@@ -387,6 +392,7 @@ export function CollectionPage() {
     }),
     [searchParams],
   );
+
   const [products, setProducts] = useState<HomeFeaturedProduct[]>([]);
   const [characterProducts, setCharacterProducts] = useState<Product[]>([]);
   const [meta, setMeta] = useState<PublicProductsMeta>(DEFAULT_META);
@@ -640,7 +646,7 @@ export function CollectionPage() {
       if (tab === "characters") setCharacterProducts([]);
       else setProducts([]);
       setMeta({ ...DEFAULT_META, pageSize });
-      setLoadError(error instanceof Error ? error.message : labels.loadError);
+      setLoadError(getLocalizedApiError(error, t, "collection.loadError"));
     } finally {
       if (templateAbortController.current === controller) {
         templateAbortController.current = null;
@@ -649,12 +655,12 @@ export function CollectionPage() {
     }
   }, [
     filters,
-    labels.loadError,
     page,
     pageSize,
     selectedCollections,
     sort,
     tab,
+    t,
     urlSearch,
   ]);
 
@@ -695,16 +701,14 @@ export function CollectionPage() {
         .catch((error: unknown) => {
           if (currentRequest !== requestId.current) return;
           setRetailCatalog([]);
-          setLoadError(
-            error instanceof Error ? error.message : labels.loadError,
-          );
+          setLoadError(getLocalizedApiError(error, t, "collection.loadError"));
         })
         .finally(() => {
           if (currentRequest === requestId.current) setIsLoading(false);
         });
     }, 0);
     return () => window.clearTimeout(timer);
-  }, [labels.loadError, tab]);
+  }, [t, tab]);
 
   const filteredRetail = useMemo(() => {
     const normalized = urlSearch.toLocaleLowerCase(locale);
@@ -859,20 +863,44 @@ export function CollectionPage() {
                       key={value}
                       type="button"
                       aria-pressed={active}
-                      className={`inline-flex h-10 min-w-0 flex-1 items-center justify-center gap-1 rounded-xl border px-2 text-[11px] font-bold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 sm:flex-none sm:gap-2 sm:px-5 sm:text-sm ${
+                      className={`relative isolate inline-flex h-10 min-w-0 flex-1 items-center justify-center gap-1 overflow-hidden rounded-xl px-2 text-[11px] font-bold transition-colors duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 active:scale-[0.98] motion-reduce:transition-none sm:flex-none sm:gap-2 sm:px-5 sm:text-sm ${
                         active
-                          ? "border-primary bg-primary text-white shadow-sm"
-                          : "border-transparent bg-white text-slate-600 hover:border-primary/20 hover:bg-primary-light/30 hover:text-primary-dark"
+                          ? "text-white"
+                          : "text-slate-600 hover:bg-primary-light/30 hover:text-primary-dark"
                       }`}
-                      onClick={() =>
+                      onClick={() => {
+                        const nextTabIndex = TABS.findIndex(
+                          (item) => item.value === value,
+                        );
+                        setTabSlideDirection(nextTabIndex >= tabIndex ? 1 : -1);
                         replaceQuery({
                           type: value === "templates" ? undefined : value,
                           page: undefined,
-                        })
-                      }
+                        });
+                      }}
                     >
-                      <Icon className="h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4" />
-                      <span className="min-w-0 truncate">
+                      {active ? (
+                        <motion.span
+                          layoutId="collection-active-tab"
+                          className="absolute inset-0 -z-10 rounded-xl border border-primary bg-primary shadow-[0_8px_18px_-12px_rgba(37,143,206,0.85)]"
+                          transition={{
+                            ...(shouldReduceMotion
+                              ? { duration: 0 }
+                              : {
+                                  type: "spring",
+                                  stiffness: 430,
+                                  damping: 34,
+                                  mass: 0.72,
+                                }),
+                          }}
+                        />
+                      ) : null}
+                      <Icon
+                        className={`relative z-10 h-3.5 w-3.5 shrink-0 transition-transform duration-300 motion-reduce:transform-none motion-reduce:transition-none sm:h-4 sm:w-4 ${
+                          active ? "scale-105" : "scale-100"
+                        }`}
+                      />
+                      <span className="relative z-10 min-w-0 truncate">
                         {labels.tabs[value]}
                       </span>
                     </button>
@@ -1033,178 +1061,203 @@ export function CollectionPage() {
           </p>
         </div>
 
-        {loadError ? (
-          <div className="min-w-0 max-w-full overflow-hidden rounded-[26px] border border-amber-200/70 bg-amber-50/80 px-5 py-12 text-center sm:px-6">
-            <PackageSearch className="mx-auto h-10 w-10 text-amber-600" />
-            <h2 className="mt-4 max-w-full break-words text-xl font-bold text-navy">
-              {labels.loadError}
-            </h2>
-            <p className="mx-auto mt-2 max-w-full break-words text-sm leading-6 text-text-muted sm:max-w-lg">
-              {loadError}
-            </p>
-            <button
-              type="button"
-              className="mt-5 h-11 rounded-xl bg-navy px-5 text-sm font-bold text-white transition-colors hover:bg-primary-dark"
-              onClick={() => {
-                if (tab === "templates" || tab === "characters")
-                  void loadCatalog();
-                else router.refresh();
-              }}
-            >
-              {labels.retry}
-            </button>
-          </div>
-        ) : isLoading ? (
-          <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3 min-[1200px]:grid-cols-4 xl:grid-cols-4 xl:gap-6">
-            {Array.from({ length: 8 }).map(
-              (_, index) => (
-                <ProductSkeleton key={index} />
-              ),
+        <AnimatePresence initial={false} mode="wait">
+          <motion.div
+            key={tab}
+            initial={
+              shouldReduceMotion
+                ? { opacity: 1, x: 0 }
+                : { opacity: 0, x: tabSlideDirection * 18 }
+            }
+            animate={{ opacity: 1, x: 0 }}
+            exit={
+              shouldReduceMotion
+                ? { opacity: 1, x: 0 }
+                : { opacity: 0, x: tabSlideDirection * -12 }
+            }
+            transition={
+              shouldReduceMotion
+                ? { duration: 0 }
+                : { duration: 0.24, ease: [0.22, 1, 0.36, 1] }
+            }
+            className="min-w-0"
+          >
+            {loadError ? (
+              <div className="min-w-0 max-w-full overflow-hidden rounded-[26px] border border-amber-200/70 bg-amber-50/80 px-5 py-12 text-center sm:px-6">
+                <PackageSearch className="mx-auto h-10 w-10 text-amber-600" />
+                <h2 className="mt-4 max-w-full break-words text-xl font-bold text-navy">
+                  {labels.loadError}
+                </h2>
+                <p className="mx-auto mt-2 max-w-full break-words text-sm leading-6 text-text-muted sm:max-w-lg">
+                  {loadError}
+                </p>
+                <button
+                  type="button"
+                  className="mt-5 h-11 rounded-xl bg-navy px-5 text-sm font-bold text-white transition-colors hover:bg-primary-dark"
+                  onClick={() => {
+                    if (tab === "templates" || tab === "characters")
+                      void loadCatalog();
+                    else router.refresh();
+                  }}
+                >
+                  {labels.retry}
+                </button>
+              </div>
+            ) : isLoading ? (
+              <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3 min-[1200px]:grid-cols-4 xl:grid-cols-4 xl:gap-6">
+                {Array.from({ length: 8 }).map((_, index) => (
+                  <ProductSkeleton key={index} />
+                ))}
+              </div>
+            ) : tab === "templates" ? (
+              products.length > 0 ? (
+                <>
+                  <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3 min-[1200px]:grid-cols-4 xl:grid-cols-4 xl:gap-6">
+                    {products.map((product) => (
+                      <ProductCard
+                        key={product.id}
+                        {...product}
+                        detailLabels={detailLabels}
+                        onConsult={(selected) => {
+                          const subject = detailLabels.consultationMessage(
+                            selected.title,
+                          );
+                          window.location.href = `mailto:hello@figurelab.vn?subject=${encodeURIComponent(subject)}`;
+                          toast.success(
+                            `${labels.consultationOpened}: ${selected.title}`,
+                          );
+                        }}
+                        onSelect={(selected) => {
+                          if (!selected.slug?.trim()) {
+                            toast.error(detailLabels.loadError);
+                            return;
+                          }
+                          setSelectedSlug(selected.slug);
+                        }}
+                      />
+                    ))}
+                  </div>
+                  <CollectionPagination
+                    labels={labels}
+                    page={meta.page}
+                    totalPages={meta.totalPages}
+                    onChange={(nextPage) => {
+                      replaceQuery({
+                        page: nextPage === 1 ? undefined : nextPage,
+                      });
+                      document
+                        .getElementById("collection-results")
+                        ?.scrollIntoView({
+                          behavior: "smooth",
+                          block: "start",
+                        });
+                    }}
+                  />
+                </>
+              ) : (
+                <div className="min-w-0 max-w-full overflow-hidden rounded-[28px] border border-dashed border-border bg-white px-5 py-16 text-center sm:px-6">
+                  <PackageSearch className="mx-auto h-10 w-10 text-primary/55" />
+                  <h2 className="mt-4 max-w-full break-words text-xl font-bold text-navy">
+                    {labels.emptyTitle}
+                  </h2>
+                  <p className="mx-auto mt-2 max-w-full break-words text-sm leading-6 text-text-muted sm:max-w-lg">
+                    {labels.emptyDescription}
+                  </p>
+                  <button
+                    type="button"
+                    className="mt-5 h-11 rounded-xl bg-primary px-5 text-sm font-bold text-white transition-colors hover:bg-primary-dark"
+                    onClick={() => {
+                      replaceQuery({
+                        search: undefined,
+                        page: undefined,
+                        categoryIds: undefined,
+                        minPrice: undefined,
+                        maxPrice: undefined,
+                        characterCounts: undefined,
+                        charmCounts: undefined,
+                        statuses: undefined,
+                        featured: undefined,
+                        isNew: undefined,
+                        includedGift: undefined,
+                        frameSize: undefined,
+                      });
+                    }}
+                  >
+                    {labels.emptyAction}
+                  </button>
+                </div>
+              )
+            ) : tab === "characters" ? (
+              characterProducts.length > 0 ? (
+                <>
+                  <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3 min-[1200px]:grid-cols-4 xl:grid-cols-4 xl:gap-6">
+                    {characterProducts.map((product, index) => (
+                      <CollectionCharacterCard
+                        key={product.id}
+                        labels={labels.characterProduct}
+                        product={product}
+                        productIndex={index}
+                        selected={selectedCharacterId === product.id}
+                        onOpen={() => setSelectedCharacterId(product.id)}
+                        onClose={() => setSelectedCharacterId(null)}
+                      />
+                    ))}
+                  </div>
+                  <CollectionPagination
+                    labels={labels}
+                    page={meta.page}
+                    totalPages={meta.totalPages}
+                    onChange={(nextPage) => {
+                      replaceQuery({
+                        page: nextPage === 1 ? undefined : nextPage,
+                      });
+                      document
+                        .getElementById("collection-results")
+                        ?.scrollIntoView({
+                          behavior: "smooth",
+                          block: "start",
+                        });
+                    }}
+                  />
+                </>
+              ) : (
+                <div className="min-w-0 max-w-full overflow-hidden rounded-[28px] border border-dashed border-border bg-white px-5 py-16 text-center sm:px-6">
+                  <PackageSearch className="mx-auto h-10 w-10 text-primary/55" />
+                  <h2 className="mt-4 text-xl font-bold text-navy">
+                    {labels.characterProduct.emptyTitle}
+                  </h2>
+                  <p className="mx-auto mt-2 max-w-lg text-sm font-medium leading-6 text-text-muted">
+                    {labels.characterProduct.emptyDescription}
+                  </p>
+                  <button
+                    type="button"
+                    className="mt-5 h-11 rounded-xl bg-primary px-5 text-sm font-bold text-white transition-colors hover:bg-primary-dark"
+                    onClick={() => {
+                      replaceQuery({
+                        search: undefined,
+                        page: undefined,
+                        categoryIds: undefined,
+                        minPrice: undefined,
+                        maxPrice: undefined,
+                        characterCounts: undefined,
+                        charmCounts: undefined,
+                        statuses: undefined,
+                        featured: undefined,
+                        isNew: undefined,
+                        includedGift: undefined,
+                        frameSize: undefined,
+                      });
+                    }}
+                  >
+                    {labels.emptyAction}
+                  </button>
+                </div>
+              )
+            ) : (
+              <CollectionRetailGrid items={filteredRetail} labels={labels} />
             )}
-          </div>
-        ) : tab === "templates" ? (
-          products.length > 0 ? (
-            <>
-              <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3 min-[1200px]:grid-cols-4 xl:grid-cols-4 xl:gap-6">
-                {products.map((product) => (
-                  <ProductCard
-                    key={product.id}
-                    {...product}
-                    detailLabels={detailLabels}
-                    onConsult={(selected) => {
-                      const subject = detailLabels.consultationMessage(
-                        selected.title,
-                      );
-                      window.location.href = `mailto:hello@figurelab.vn?subject=${encodeURIComponent(subject)}`;
-                      toast.success(
-                        `${labels.consultationOpened}: ${selected.title}`,
-                      );
-                    }}
-                    onSelect={(selected) => {
-                      if (!selected.slug?.trim()) {
-                        toast.error(detailLabels.loadError);
-                        return;
-                      }
-                      setSelectedSlug(selected.slug);
-                    }}
-                  />
-                ))}
-              </div>
-              <CollectionPagination
-                labels={labels}
-                page={meta.page}
-                totalPages={meta.totalPages}
-                onChange={(nextPage) => {
-                  replaceQuery({ page: nextPage === 1 ? undefined : nextPage });
-                  document
-                    .getElementById("collection-results")
-                    ?.scrollIntoView({
-                      behavior: "smooth",
-                      block: "start",
-                    });
-                }}
-              />
-            </>
-          ) : (
-            <div className="min-w-0 max-w-full overflow-hidden rounded-[28px] border border-dashed border-border bg-white px-5 py-16 text-center sm:px-6">
-              <PackageSearch className="mx-auto h-10 w-10 text-primary/55" />
-              <h2 className="mt-4 max-w-full break-words text-xl font-bold text-navy">
-                {labels.emptyTitle}
-              </h2>
-              <p className="mx-auto mt-2 max-w-full break-words text-sm leading-6 text-text-muted sm:max-w-lg">
-                {labels.emptyDescription}
-              </p>
-              <button
-                type="button"
-                className="mt-5 h-11 rounded-xl bg-primary px-5 text-sm font-bold text-white transition-colors hover:bg-primary-dark"
-                onClick={() => {
-                  replaceQuery({
-                    search: undefined,
-                    page: undefined,
-                    categoryIds: undefined,
-                    minPrice: undefined,
-                    maxPrice: undefined,
-                    characterCounts: undefined,
-                    charmCounts: undefined,
-                    statuses: undefined,
-                    featured: undefined,
-                    isNew: undefined,
-                    includedGift: undefined,
-                    frameSize: undefined,
-                  });
-                }}
-              >
-                {labels.emptyAction}
-              </button>
-            </div>
-          )
-        ) : tab === "characters" ? (
-          characterProducts.length > 0 ? (
-            <>
-              <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3 min-[1200px]:grid-cols-4 xl:grid-cols-4 xl:gap-6">
-                {characterProducts.map((product, index) => (
-                  <CollectionCharacterCard
-                    key={product.id}
-                    labels={labels.characterProduct}
-                    product={product}
-                    productIndex={index}
-                    selected={selectedCharacterId === product.id}
-                    onOpen={() => setSelectedCharacterId(product.id)}
-                    onClose={() => setSelectedCharacterId(null)}
-                  />
-                ))}
-              </div>
-              <CollectionPagination
-                labels={labels}
-                page={meta.page}
-                totalPages={meta.totalPages}
-                onChange={(nextPage) => {
-                  replaceQuery({ page: nextPage === 1 ? undefined : nextPage });
-                  document
-                    .getElementById("collection-results")
-                    ?.scrollIntoView({
-                      behavior: "smooth",
-                      block: "start",
-                    });
-                }}
-              />
-            </>
-          ) : (
-            <div className="min-w-0 max-w-full overflow-hidden rounded-[28px] border border-dashed border-border bg-white px-5 py-16 text-center sm:px-6">
-              <PackageSearch className="mx-auto h-10 w-10 text-primary/55" />
-              <h2 className="mt-4 text-xl font-bold text-navy">
-                {labels.characterProduct.emptyTitle}
-              </h2>
-              <p className="mx-auto mt-2 max-w-lg text-sm font-medium leading-6 text-text-muted">
-                {labels.characterProduct.emptyDescription}
-              </p>
-              <button
-                type="button"
-                className="mt-5 h-11 rounded-xl bg-primary px-5 text-sm font-bold text-white transition-colors hover:bg-primary-dark"
-                onClick={() => {
-                  replaceQuery({
-                    search: undefined,
-                    page: undefined,
-                    categoryIds: undefined,
-                    minPrice: undefined,
-                    maxPrice: undefined,
-                    characterCounts: undefined,
-                    charmCounts: undefined,
-                    statuses: undefined,
-                    featured: undefined,
-                    isNew: undefined,
-                    includedGift: undefined,
-                    frameSize: undefined,
-                  });
-                }}
-              >
-                {labels.emptyAction}
-              </button>
-            </div>
-          )
-        ) : (
-          <CollectionRetailGrid items={filteredRetail} labels={labels} />
-        )}
+          </motion.div>
+        </AnimatePresence>
       </Container>
 
       <CollectionFilterDrawer

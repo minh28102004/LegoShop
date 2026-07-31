@@ -92,8 +92,11 @@ export type CreateOrderResponse = {
 };
 
 export type TrackOrderRequestContract = {
-  orderCode: string;
   phone: string;
+};
+
+export type TrackOrdersResponseContract = {
+  orders: TrackOrderResponseContract[];
 };
 
 export type TrackOrderItemSummaryContract = {

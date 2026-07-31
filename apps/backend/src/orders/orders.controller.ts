@@ -1,5 +1,15 @@
-import { Body, Controller, Get, Param, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
+import { ThrottlerGuard } from '@nestjs/throttler';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { CartQuoteDto } from './dto/cart-quote.dto';
 import { TrackOrderDto } from './dto/track-order.dto';
@@ -31,11 +41,10 @@ export class OrdersController {
   }
 
   @Post('orders/track')
-  trackOrderByPhone(@Body() trackOrderDto: TrackOrderDto) {
-    return this.ordersService.trackOrderByPhone(
-      trackOrderDto.orderCode,
-      trackOrderDto.phone,
-    );
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(ThrottlerGuard)
+  trackOrdersByPhone(@Body() trackOrderDto: TrackOrderDto) {
+    return this.ordersService.trackOrdersByPhone(trackOrderDto.phone);
   }
 
   @Post('orders/:orderCode/create-payment-link')

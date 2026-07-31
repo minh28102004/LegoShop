@@ -1,40 +1,41 @@
 'use client';
 
 import EntityManager, { type EntityField } from '@/modules/admin/components/entity-manager';
+import { useI18n } from '@/lib/i18n/useI18n';
 
 export default function FrameOptionsPage() {
+  const { t } = useI18n();
   const fields: EntityField[] = [
-    { key: 'imageUrl', label: 'Hình ảnh', type: 'image' },
-    { key: 'widthCm', label: 'Chiều rộng', type: 'number', required: true },
-    { key: 'heightCm', label: 'Chiều cao', type: 'number', required: true },
-    { key: 'price', label: 'Giá', type: 'number', required: true },
-    { key: 'stock', label: 'Tồn kho (trống = không quản)', type: 'number' },
-    { key: 'colorHex', label: 'Màu sắc', type: 'text', placeholder: '#ffffff' },
+    { key: 'imageUrl', label: t('frameFields.image'), type: 'image' },
+    { key: 'widthCm', label: t('frameFields.width'), type: 'number', required: true },
+    { key: 'heightCm', label: t('frameFields.height'), type: 'number', required: true },
+    { key: 'price', label: t('frameFields.price'), type: 'number', required: true },
+    { key: 'stock', label: t('frameFields.stockOptional'), type: 'number' },
+    { key: 'colorHex', label: t('frameFields.color'), type: 'text', placeholder: '#ffffff' },
     {
       key: 'colorVariantsText',
-      label: 'Danh sách màu',
+      label: t('frameFields.colorList'),
       type: 'textarea',
-      placeholder: 'Đen #111111\nTrắng #ffffff',
+      placeholder: 'Black #111111\nWhite #ffffff',
     },
   ];
-
   const tableFields: EntityField[] = [
-    { key: 'imageUrl', label: 'Hình ảnh', type: 'image' },
-    { key: 'frameSize', label: 'Kích thước', type: 'text' },
-    { key: 'price', label: 'Giá', type: 'number' },
-    { key: 'stock', label: 'Tồn kho', type: 'number' },
-    { key: 'colorHex', label: 'Màu sắc', type: 'text' },
+    { key: 'imageUrl', label: t('frameFields.image'), type: 'image' },
+    { key: 'frameSize', label: t('frameFields.frameSize'), type: 'text' },
+    { key: 'price', label: t('frameFields.price'), type: 'number' },
+    { key: 'stock', label: t('frameFields.stock'), type: 'number' },
+    { key: 'colorHex', label: t('frameFields.color'), type: 'text' },
   ];
 
   return (
     <EntityManager
-      title='khung'
+      title={t('frameFields.frameSingular')}
       resource='frame-options'
       fields={fields}
       tableFields={tableFields}
-      pageTitle='Quản lý khung'
-      pageDescription='Quản lý hình ảnh, kích thước, giá, số lượng và màu sắc của khung. Tạo nhiều khung cùng kích thước để gán nhiều màu cho khách chọn.'
-      createButtonLabel='Thêm khung'
+      pageTitle={t('frameFields.framesTitle')}
+      pageDescription={t('frameFields.framesDescription')}
+      createButtonLabel={t('frameFields.createFrame')}
     />
   );
 }

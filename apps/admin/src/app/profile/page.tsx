@@ -10,6 +10,7 @@ import LoadingSpinner from '@/common/components/ui/LoadingSpinner';
 import Modal, { ModalBody, ModalFooter, ModalHeader } from '@/common/components/ui/Modal';
 import { ADMIN_ROUTES } from '@/common/constants/routes';
 import { useI18n } from '@/lib/i18n/useI18n';
+import { getLocalizedApiError } from '@/lib/i18n/errors';
 import AdminAvatar from '@/modules/admin/components/AdminAvatar';
 import { me, updateAdminProfile } from '@/modules/admin/services/adminApi';
 import type { AdminProfile } from '@/modules/admin/types/admin.types';
@@ -105,7 +106,7 @@ export default function AccountProfilePage() {
       setModalOpen(false);
       toast.success(t('account.updateProfileSuccess'));
     } catch (err) {
-      const message = err instanceof Error ? err.message : t('account.updateProfileFailed');
+      const message = getLocalizedApiError(err, t, 'account.updateProfileFailed');
       toast.error(message);
     } finally {
       setSaving(false);
@@ -196,7 +197,7 @@ export default function AccountProfilePage() {
 
             <div className='bg-slate-50/40 px-6 py-6 md:px-10 md:py-8'>
               <div className='grid grid-cols-1 gap-3 md:grid-cols-2'>
-                <InfoRow icon={Mail} label='Email' value={profile.email} />
+                <InfoRow icon={Mail} label={t('common.email')} value={profile.email} />
                 <InfoRow icon={User2} label={t('account.fullName')} value={profile.name ?? '-'} />
                 <InfoRow icon={Shield} label={t('account.roleStatus')} value={`${roleLabel} • ${t('account.active')}`} />
               </div>

@@ -6,7 +6,6 @@ import Badge, { getStatusBadgeLabel, StatusBadge } from '@/common/components/ui/
 import Button from '@/common/components/ui/Button';
 import Input from '@/common/components/ui/Input';
 import PageShell from '@/common/components/ui/PageShell';
-import Select from '@/common/components/ui/Select';
 import Table, {
   DEFAULT_TABLE_SORTS,
   SortableTableHead,
@@ -24,8 +23,10 @@ import Table, {
   type TableSort,
 } from '@/common/components/ui/Table';
 import Tooltip from '@/common/components/ui/Tooltip';
-import { listBusinessInquiries, updateBusinessInquiryStatus } from '@/modules/admin/services/adminApi';
+import { listBusinessInquiries } from '@/modules/admin/services/adminApi';
 import { useI18n } from '@/lib/i18n/useI18n';
+import { getLocalizedApiError } from '@/lib/i18n/errors';
+import { formatNumber } from '@/lib/i18n/format';
 import AdminToolbar, {
   AdminToolbarField,
   AdminToolbarIcon,
@@ -50,43 +51,8 @@ const INQUIRY_STATUSES: Array<InquiryStatus | ''> = [
 ];
 
 const INQUIRY_PAGE_SIZE = 20;
-const NUMBER_FORMAT = new Intl.NumberFormat('vi-VN');
 
 type InquiryPayload = PaginatedResourceResponse<BusinessInquiry>;
-
-function getInquiryUiText(locale: string, key: string) {
-  const vi: Record<string, string> = {
-    searchPlaceholder: 'Tìm công ty, email, SĐT...',
-    allStatuses: 'Tất cả trạng thái',
-    reset: 'Đặt lại',
-    inquiries: 'liên hệ',
-    page: 'Trang',
-  };
-  const en: Record<string, string> = {
-    searchPlaceholder: 'Search company, email, phone...',
-    allStatuses: 'All statuses',
-    reset: 'Reset',
-    inquiries: 'inquiries',
-    page: 'Page',
-  };
-
-  return locale === 'vi' ? vi[key] : en[key];
-}
-
-function getInquiryPaginationRangeLabel(
-  locale: string,
-  from: number,
-  to: number,
-  total: number,
-  itemLabel: string,
-) {
-  const formattedRange = `${NUMBER_FORMAT.format(from)}–${NUMBER_FORMAT.format(to)}`;
-  const formattedTotal = `${NUMBER_FORMAT.format(total)}${itemLabel ? ` ${itemLabel}` : ''}`;
-
-  return locale === 'vi'
-    ? `Hiển thị ${formattedRange} trên ${formattedTotal}`
-    : `Showing ${formattedRange} of ${formattedTotal}`;
-}
 
 function FilterIconWithBadge({ count }: { count: number }) {
   return (
@@ -117,10 +83,6 @@ export default function InquiriesManager() {
   const requestSeq = useRef(0);
   const inquiries = payload?.data ?? [];
 
-  function statusLabel(value: string) {
-    return getStatusBadgeLabel(value, t);
-  }
-
   function EyeIcon() {
     return (
       <svg viewBox='0 0 24 24' fill='none' className='h-4 w-4' aria-hidden='true'>
@@ -140,7 +102,7 @@ export default function InquiriesManager() {
       INQUIRY_STATUSES.filter((status): status is InquiryStatus => Boolean(status)).map(
         (status) => ({
           value: status,
-          label: statusLabel(status),
+          label: getStatusBadgeLabel(status, t),
         }),
       ),
     [t],
@@ -170,7 +132,7 @@ export default function InquiriesManager() {
       setPayload(data);
     } catch (err) {
       if (requestSeq.current !== requestId) return;
-      setError(err instanceof Error ? err.message : t('inquiries.loadFailed'));
+      setError(getLocalizedApiError(err, t, 'inquiries.loadFailed'));
     } finally {
       if (requestSeq.current === requestId) {
         setLoading(false);
@@ -195,15 +157,6 @@ export default function InquiriesManager() {
     });
     return () => window.cancelAnimationFrame(frame);
   }, [load]);
-
-  async function updateStatus(id: string, status: InquiryStatus) {
-    try {
-      await updateBusinessInquiryStatus(id, status);
-      await load();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : t('inquiries.updateFailed'));
-    }
-  }
 
   function applyInquiryFilters(nextFilters: EntityFilterDraft) {
     setStatusFilter(nextFilters.status as InquiryStatus[]);
@@ -233,7 +186,7 @@ export default function InquiriesManager() {
           description={t('sidebarDesc.businessInquiries')}
           badge={
             <Badge tone='info' className='rounded-full px-4 py-2 text-sm font-bold !text-slate-950'>
-              {payload?.meta.total ?? 0} {getInquiryUiText(locale, 'inquiries')}
+              {formatNumber(payload?.meta.total ?? 0, locale)} {t('inquiries.countLabel')}
             </Badge>
           }
         >
@@ -246,9 +199,9 @@ export default function InquiriesManager() {
         >
           <Input
             value={search}
-            aria-label={getInquiryUiText(locale, 'searchPlaceholder')}
+            aria-label={t('inquiries.searchPlaceholder')}
             onChange={(event) => setSearch(event.target.value)}
-            placeholder={getInquiryUiText(locale, 'searchPlaceholder')}
+            placeholder={t('inquiries.searchPlaceholder')}
             className={adminToolbarInputClass}
           />
         </AdminToolbarField>
@@ -271,7 +224,7 @@ export default function InquiriesManager() {
             leftIcon={<AdminToolbarIcon name='reset' />}
             className={adminToolbarButtonClass}
           >
-            {getInquiryUiText(locale, 'reset')}
+            {t('inquiries.reset')}
           </Button>
         ) : null}
       </AdminToolbar>
@@ -288,7 +241,7 @@ export default function InquiriesManager() {
         onApply={applyInquiryFilters}
         labels={{
           allCategories: '',
-          allStatuses: getInquiryUiText(locale, 'allStatuses'),
+          allStatuses: t('inquiries.allStatuses'),
           apply: locale === 'vi' ? 'Áp dụng' : 'Apply filters',
           category: '',
           dateFrom: locale === 'vi' ? 'Tá»« ngÃ y' : 'From date',
@@ -298,13 +251,13 @@ export default function InquiriesManager() {
           priceMax: '',
           priceMin: '',
           priceRange: '',
-          reset: getInquiryUiText(locale, 'reset'),
+          reset: t('inquiries.reset'),
           selectedCount: (count) => `${count} ${locale === 'vi' ? 'mục đã chọn' : 'selected'}`,
           status: t('common.status'),
         }}
       />
 
-      <Table containerClassName='min-h-0' minWidth='980px'>
+      <Table containerClassName='min-h-0' minWidth='1040px'>
         <TableHeader>
           <tr>
             <SortableTableHead
@@ -313,6 +266,7 @@ export default function InquiriesManager() {
               sorts={sorts}
               defaultDirection='asc'
               onSortChange={handleTableSort}
+              className='min-w-[240px] text-left'
             >
               {t('inquiries.company')}
             </SortableTableHead>
@@ -322,6 +276,7 @@ export default function InquiriesManager() {
               sorts={sorts}
               defaultDirection='asc'
               onSortChange={handleTableSort}
+              className='w-[180px] min-w-[180px] max-w-[180px] text-left'
             >
               {t('inquiries.contact')}
             </SortableTableHead>
@@ -331,6 +286,7 @@ export default function InquiriesManager() {
               sorts={sorts}
               defaultDirection='asc'
               onSortChange={handleTableSort}
+              className='w-[220px] min-w-[220px] max-w-[220px] text-left'
             >
               {t('inquiries.email')}
             </SortableTableHead>
@@ -340,6 +296,7 @@ export default function InquiriesManager() {
               sorts={sorts}
               defaultDirection='asc'
               onSortChange={handleTableSort}
+              className='w-[150px] min-w-[150px] max-w-[150px] text-left'
             >
               {t('inquiries.phone')}
             </SortableTableHead>
@@ -349,10 +306,11 @@ export default function InquiriesManager() {
               sorts={sorts}
               defaultDirection='asc'
               onSortChange={handleTableSort}
+              className='w-[140px] min-w-[140px] max-w-[140px] text-center'
             >
               {t('common.status')}
             </SortableTableHead>
-            <TableHead className='text-center'>{t('inquiries.action')}</TableHead>
+            <TableHead className='w-[110px] min-w-[110px] max-w-[110px] px-2 text-center'>{t('inquiries.action')}</TableHead>
           </tr>
         </TableHeader>
 
@@ -368,39 +326,26 @@ export default function InquiriesManager() {
           ) : (
             inquiries.map((item) => (
               <TableRow key={item.id} hoverable>
-                <TableCell className='font-medium text-slate-800'>
-                  <span className='block max-w-[220px] truncate font-semibold text-slate-900'>
+                <TableCell className='min-w-[240px] font-medium text-slate-800'>
+                  <span title={item.companyName} className='block truncate font-semibold text-slate-900'>
                     {item.companyName}
                   </span>
                 </TableCell>
-                <TableCell>
-                  <span className='block max-w-[180px] truncate font-medium text-slate-700'>
+                <TableCell className='w-[180px] min-w-[180px] max-w-[180px]'>
+                  <span title={item.contactName} className='block truncate font-medium text-slate-700'>
                     {item.contactName}
                   </span>
                 </TableCell>
-                <TableCell>
-                  <span className='block max-w-[220px] truncate text-[13px] font-medium text-slate-500'>
+                <TableCell className='w-[220px] min-w-[220px] max-w-[220px]'>
+                  <span title={item.email} className='block truncate text-[13px] font-medium text-slate-500'>
                     {item.email}
                   </span>
                 </TableCell>
-                <TableCell className='font-medium tabular-nums text-slate-600'>{item.phone}</TableCell>
-                <TableCell>
-                  <div className='min-w-[190px] space-y-2'>
-                    <StatusBadge value={item.status} t={t} />
-                    <Select
-                      value={item.status}
-                      aria-label={t('common.status')}
-                      onChange={(e) => updateStatus(item.id, e.target.value as InquiryStatus)}
-                    >
-                      {INQUIRY_STATUSES.filter(Boolean).map((status) => (
-                        <option key={status} value={status}>
-                          {statusLabel(status)}
-                        </option>
-                      ))}
-                    </Select>
-                  </div>
+                <TableCell className='w-[150px] min-w-[150px] max-w-[150px] whitespace-nowrap font-medium tabular-nums text-slate-600'>{item.phone}</TableCell>
+                <TableCell className='w-[140px] min-w-[140px] max-w-[140px] text-center'>
+                  <StatusBadge value={item.status} t={t} />
                 </TableCell>
-                <TableCell className='text-center'>
+                <TableCell className='w-[110px] min-w-[110px] max-w-[110px] px-2 text-center'>
                   <TableActions>
                     <Tooltip content={t('inquiries.detail')}>
                       <Link
@@ -423,18 +368,15 @@ export default function InquiriesManager() {
         page={payload?.meta.page ?? page}
         totalPages={payload?.meta.totalPages ?? payload?.meta.total_pages ?? 1}
         total={payload?.meta.total ?? 0}
-        itemLabel={getInquiryUiText(locale, 'inquiries')}
-        pageLabel={getInquiryUiText(locale, 'page')}
+        itemLabel={t('inquiries.countLabel')}
+        pageLabel={t('inquiries.page')}
         pageSize={payload?.meta.limit ?? pageSize}
-        pageSizeLabel={locale === 'vi' ? 'Mỗi trang' : 'Per page'}
+        pageSizeLabel={t('common.perPage')}
         totalLabel={t('common.total')}
         previousLabel={t('common.previous')}
         nextLabel={t('common.next')}
         previousDisabled={page <= 1}
         nextDisabled={page >= (payload?.meta.totalPages ?? payload?.meta.total_pages ?? 1)}
-        rangeLabel={(from, to, total, itemLabel) =>
-          getInquiryPaginationRangeLabel(locale, from, to, total, itemLabel)
-        }
         onPrevious={() => setPage((prev) => Math.max(1, prev - 1))}
         onNext={() => setPage((prev) => prev + 1)}
         onPageChange={setPage}

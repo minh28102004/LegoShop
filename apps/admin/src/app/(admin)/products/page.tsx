@@ -7,22 +7,45 @@ import EntityManager, {
 import { useI18n } from '@/lib/i18n/useI18n';
 import { listResource } from '@/modules/admin/services/adminApi';
 import type {
+  Accessory,
+  Character,
   CharacterPreset,
   Collection,
+  FrameBackground,
+  FrameOption,
 } from '@/modules/admin/types/admin.types';
 
 export default function ProductsPage() {
   const { t } = useI18n();
   const [collections, setCollections] = useState<Collection[]>([]);
   const [characterPresets, setCharacterPresets] = useState<CharacterPreset[]>([]);
+  const [characters, setCharacters] = useState<Character[]>([]);
+  const [frameOptions, setFrameOptions] = useState<FrameOption[]>([]);
+  const [frameBackgrounds, setFrameBackgrounds] = useState<FrameBackground[]>([]);
+  const [accessories, setAccessories] = useState<Accessory[]>([]);
 
   useEffect(() => {
     Promise.all([
       listResource('collections').catch(() => [] as Collection[]),
       listResource('character-presets').catch(() => [] as CharacterPreset[]),
-    ]).then(([nextCollections, nextPresets]) => {
+      listResource('characters').catch(() => [] as Character[]),
+      listResource('frame-options').catch(() => [] as FrameOption[]),
+      listResource('frame-backgrounds').catch(() => [] as FrameBackground[]),
+      listResource('accessories').catch(() => [] as Accessory[]),
+    ]).then(([
+      nextCollections,
+      nextPresets,
+      nextCharacters,
+      nextFrames,
+      nextBackgrounds,
+      nextAccessories,
+    ]) => {
       setCollections(nextCollections);
       setCharacterPresets(nextPresets);
+      setCharacters(nextCharacters);
+      setFrameOptions(nextFrames);
+      setFrameBackgrounds(nextBackgrounds);
+      setAccessories(nextAccessories);
     });
   }, []);
 
@@ -41,24 +64,24 @@ export default function ProductsPage() {
       },
       {
         key: 'productType',
-        label: 'Loại sản phẩm',
+        label: t('productFields.productType'),
         type: 'select',
         required: true,
         options: [
-          { label: 'Mẫu khung quà', value: 'frame_template' },
-          { label: 'Nhân vật LEGO hoàn chỉnh', value: 'lego_character' },
-          { label: 'Linh kiện bán lẻ', value: 'loose_part' },
-          { label: 'Khung tùy chỉnh', value: 'custom_frame' },
-          { label: 'Nhân vật tùy chỉnh', value: 'custom_character' },
-          { label: 'Sản phẩm hoàn thiện (cũ)', value: 'finished' },
-          { label: 'Nhân vật ráp sẵn (cũ)', value: 'premade_character' },
-          { label: 'Bộ linh kiện DIY', value: 'diy_kit' },
-          { label: 'Sản phẩm bán lẻ (cũ)', value: 'retail' },
+          { label: t('productFields.types.frameTemplate'), value: 'frame_template' },
+          { label: t('productFields.types.legoCharacter'), value: 'lego_character' },
+          { label: t('productFields.types.loosePart'), value: 'loose_part' },
+          { label: t('productFields.types.customFrame'), value: 'custom_frame' },
+          { label: t('productFields.types.customCharacter'), value: 'custom_character' },
+          { label: t('productFields.types.legacyFinished'), value: 'finished' },
+          { label: t('productFields.types.legacyPremade'), value: 'premade_character' },
+          { label: t('productFields.types.diyKit'), value: 'diy_kit' },
+          { label: t('productFields.types.legacyRetail'), value: 'retail' },
         ],
       },
       {
         key: 'collectionId',
-        label: 'Bộ sưu tập',
+        label: t('productFields.collection'),
         type: 'select',
         options: collections.map((collection) => ({
           label: collection.name,
@@ -67,7 +90,7 @@ export default function ProductsPage() {
       },
       {
         key: 'characterPresetId',
-        label: 'Preset nhân vật',
+        label: t('productFields.characterPreset'),
         type: 'select',
         options: characterPresets
           .filter((preset) => preset.status === 'active')
@@ -75,7 +98,7 @@ export default function ProductsPage() {
             label: preset.name,
             value: preset.id,
           })),
-        helpText: 'Bắt buộc với sản phẩm “Nhân vật LEGO hoàn chỉnh”.',
+        helpText: t('productFields.presetHelp'),
       },
       {
         key: 'basePrice',
@@ -85,30 +108,30 @@ export default function ProductsPage() {
       },
       {
         key: 'compareAtPrice',
-        label: 'Giá gốc trước giảm (VND)',
+        label: t('productFields.comparePrice'),
         type: 'number',
       },
       {
         key: 'category',
-        label: 'Danh mục',
+        label: t('productFields.category'),
         type: 'text',
         placeholder: 'VD: graduation, birthday',
       },
       {
         key: 'availability',
-        label: 'Tình trạng bán',
+        label: t('productFields.availability'),
         type: 'select',
         options: [
-          { label: 'Có sẵn', value: 'available' },
-          { label: 'Tạm hết', value: 'out_of_stock' },
-          { label: 'Ngừng bán', value: 'unavailable' },
+          { label: t('productFields.available'), value: 'available' },
+          { label: t('productFields.outOfStock'), value: 'out_of_stock' },
+          { label: t('productFields.unavailable'), value: 'unavailable' },
         ],
       },
       {
         key: 'inventory',
-        label: 'Tồn kho',
+        label: t('productFields.inventory'),
         type: 'number',
-        helpText: 'Để trống nếu không giới hạn tồn kho.',
+        helpText: t('productFields.inventoryHelp'),
       },
       {
         key: 'status',
@@ -121,9 +144,9 @@ export default function ProductsPage() {
       },
       {
         key: 'shortDescription',
-        label: 'Mô tả ngắn',
+        label: t('productFields.shortDescription'),
         type: 'textarea',
-        placeholder: 'Nội dung ngắn hiển thị trên card sản phẩm.',
+        placeholder: t('productFields.shortDescriptionPlaceholder'),
       },
       {
         key: 'description',
@@ -133,7 +156,7 @@ export default function ProductsPage() {
       },
       {
         key: 'thumbnailUrl',
-        label: 'Ảnh đại diện',
+        label: t('productFields.thumbnail'),
         type: 'image',
       },
       {
@@ -144,8 +167,36 @@ export default function ProductsPage() {
       },
       {
         key: 'componentConfig',
-        label: 'Cấu hình thành phần sản phẩm khung',
-        type: 'json',
+        label: t('productFields.componentConfig'),
+        type: 'product-config',
+        productConfigOptions: {
+          frames: frameOptions.map((option) => ({
+            id: option.id,
+            name:
+              option.label?.trim() ||
+              option.name ||
+              `${option.widthCm ?? '?'} × ${option.heightCm ?? '?'}`,
+            imageUrl: option.imageUrl,
+            price: option.price,
+          })),
+          backgrounds: frameBackgrounds.map((background) => ({
+            id: background.id,
+            name: background.title,
+            imageUrl: background.thumbnailUrl || background.imageUrl,
+          })),
+          characters: characters.map((character) => ({
+            id: character.id,
+            name: character.name,
+            imageUrl: character.imageUrl,
+            price: character.price,
+          })),
+          accessories: accessories.map((accessory) => ({
+            id: accessory.id,
+            name: accessory.name,
+            imageUrl: accessory.imageUrl || accessory.iconUrl,
+            price: accessory.price,
+          })),
+        },
         placeholder:
           '{\n' +
           '  "frame": { "id": "frame-option-id", "type": "frame", "name": "30x30", "quantity": 1 },\n' +
@@ -154,26 +205,24 @@ export default function ProductsPage() {
           '  "accessories": [{ "id": "accessory-id", "type": "accessory", "name": "Charm trái tim", "quantity": 1 }],\n' +
           '  "includedItems": [{ "id": "gift-box", "name": "Hộp quà", "quantity": 1, "icon": "gift" }]\n' +
           '}',
-        helpText:
-          'Dùng cho sản phẩm khung. Sản phẩm nhân vật lấy composition trực tiếp từ preset đã chọn.',
+        helpText: t('productFields.componentConfigHelp'),
       },
-      { key: 'published', label: 'Công khai trên Web', type: 'checkbox' },
+      { key: 'published', label: t('productFields.published'), type: 'checkbox' },
       { key: 'featured', label: t('productsPage.featured'), type: 'checkbox' },
     ],
-    [characterPresets, collections, t],
+    [
+      accessories,
+      characterPresets,
+      characters,
+      collections,
+      frameBackgrounds,
+      frameOptions,
+      t,
+    ],
   );
 
-  const tableFields = fields.filter((field) =>
-    [
-      'name',
-      'productType',
-      'basePrice',
-      'compareAtPrice',
-      'thumbnailUrl',
-      'availability',
-      'published',
-      'status',
-    ].includes(field.key),
+  const tableFields = ['name', 'basePrice', 'thumbnailUrl', 'published'].flatMap(
+    (key) => fields.filter((field) => field.key === key),
   );
 
   return (
@@ -183,7 +232,7 @@ export default function ProductsPage() {
       fields={fields}
       tableFields={tableFields}
       pageTitle={t('productsPage.title')}
-      pageDescription='Quản lý mẫu khung, sản phẩm nhân vật, linh kiện bán lẻ và liên kết composition thật từ preset.'
+      pageDescription={t('productFields.pageDescription')}
       createButtonLabel={t('productsPage.createProduct')}
     />
   );

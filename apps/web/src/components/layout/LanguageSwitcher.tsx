@@ -47,10 +47,7 @@ export function LanguageSwitcher({
 
   if (!selected) return null;
 
-  function handleLocaleChange(
-    nextLocale: Locale,
-    close: () => void,
-  ) {
+  function handleLocaleChange(nextLocale: Locale, close: () => void) {
     close();
 
     if (nextLocale === locale) return;
@@ -73,8 +70,6 @@ export function LanguageSwitcher({
         className,
       )}
     >
-
-
       <Dropdown
         align="right"
         portal={portal}
@@ -84,14 +79,14 @@ export function LanguageSwitcher({
         panelRole="listbox"
         onOpenChange={setOpen}
         className={cn(
-          "w-[92px] min-w-[92px]",
-          compact && "w-[104px] min-w-[104px]",
+          "w-[88px] min-w-[88px]",
+          compact && "w-[92px] min-w-[92px]",
         )}
         panelClassName="p-1.5"
         trigger={
           <button
             type="button"
-            className="inline-flex h-11 w-full items-center gap-1.5 rounded-button border border-border bg-white px-2.5 text-left text-[14px] font-semibold text-text-primary shadow-control transition-all duration-fast ease-smooth hover:border-primary/40 hover:bg-surface-soft"
+            className="inline-flex h-11 w-full items-center gap-1.5 rounded-button border border-border bg-white px-2 text-left text-[14px] font-semibold text-text-primary shadow-control transition-all duration-fast ease-smooth hover:border-primary/40 hover:bg-surface-soft"
             aria-label={dictionary.common.language}
           >
             <Image
@@ -127,7 +122,7 @@ export function LanguageSwitcher({
                   role="option"
                   aria-selected={active}
                   className={cn(
-                    "flex min-h-10 w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-[14px] font-semibold transition-colors duration-fast",
+                    "flex min-h-10 w-full items-center gap-2 rounded-md px-2 py-2 text-left text-[14px] font-semibold transition-colors duration-fast",
                     active
                       ? "bg-primary-light text-primary-dark"
                       : "text-text-primary hover:bg-primary-light hover:text-primary-dark",

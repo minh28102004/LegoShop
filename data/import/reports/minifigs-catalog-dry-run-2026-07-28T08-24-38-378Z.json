@@ -1,0 +1,37 @@
+{
+  "mode": "dry-run",
+  "startedAt": "2026-07-28T08:24:37.640Z",
+  "catalogPath": "D:\\Freelance_Job\\LegoShop\\data\\minifigs-catalog-clean.json",
+  "bucket": "figure-lab-media",
+  "sourceProducts": 636,
+  "targetParts": 466,
+  "targetPartsWithMainImage": 465,
+  "targetReverseImages": 205,
+  "skipped": {
+    "giftDisplay": 169,
+    "noMainImage": 1,
+    "noSelectionAction": 1
+  },
+  "images": {
+    "planned": 670,
+    "uploaded": 0,
+    "reused": 0,
+    "failed": 0
+  },
+  "records": {
+    "created": 0,
+    "updated": 0,
+    "reused": 0,
+    "failed": 0
+  },
+  "partsByType": {
+    "HAIR": 86,
+    "HAT": 10,
+    "TORSO": 144,
+    "LEGS": 105,
+    "ACCESSORY": 121
+  },
+  "publicUrlSamples": [],
+  "errors": [],
+  "finishedAt": "2026-07-28T08:24:38.378Z"
+}

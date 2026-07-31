@@ -6,6 +6,7 @@ import type {
 } from "@lego-shop/shared";
 import { formatCurrency } from "@lego-shop/shared";
 import { cn } from "@lego-shop/ui";
+import { motion } from "framer-motion";
 import {
   Check,
   ChevronLeft,
@@ -14,15 +15,18 @@ import {
   Minus,
   Plus,
   RotateCcw,
+  Search,
   ShoppingBag,
   X,
   Zap,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import {
+  startTransition,
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -277,6 +281,14 @@ function accessoryImage(accessory: ProductTemplateAccessory) {
   return resolveApiAssetUrl(accessory.imageUrl ?? accessory.iconUrl);
 }
 
+function normalizeAccessorySearch(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .trim()
+    .toLocaleLowerCase();
+}
+
 function buildQuantityMap(detail: ProductDetail) {
   return Object.fromEntries(
     detail.accessories.map((accessory) => [accessory.id, accessory.quantity]),
@@ -302,12 +314,29 @@ export function ProductTemplateDetailModal({
   >({});
   const [note, setNote] = useState("");
   const [activeImageIndex, setActiveImageIndex] = useState(0);
+  const [accessorySearch, setAccessorySearch] = useState("");
+  const [contentReady, setContentReady] = useState(false);
+  const [accessoryCatalogReady, setAccessoryCatalogReady] = useState(false);
+  const accessoryCatalogRef = useRef<HTMLDivElement | null>(null);
 
   const closeModal = useCallback(() => {
+    setContentReady(false);
+    setAccessoryCatalogReady(false);
     setActiveImageIndex(0);
+    setAccessorySearch("");
     setNote("");
     onClose();
   }, [onClose]);
+
+  useEffect(() => {
+    if (!isOpen) return undefined;
+
+    const revealTimer = window.setTimeout(() => {
+      startTransition(() => setContentReady(true));
+    }, 220);
+
+    return () => window.clearTimeout(revealTimer);
+  }, [isOpen, slug]);
 
   useEffect(() => {
     const requestedSlug = slug?.trim() ?? "";
@@ -320,38 +349,38 @@ export function ProductTemplateDetailModal({
       setSelectedFrameSizeId(getInitialFrameSizeId(product));
       setAccessoryQuantities(buildQuantityMap(product));
       setActiveImageIndex(0);
+      setAccessorySearch("");
       setNote("");
       setError(null);
       setIsLoading(false);
     }
 
     async function loadDetail() {
-      await Promise.resolve();
-      if (cancelled) return;
-
-      setIsLoading(true);
-      setError(null);
-      setDetail(null);
-      setSelectedFrameSizeId("");
-      setAccessoryQuantities({});
-      setActiveImageIndex(0);
-      setNote("");
-
       try {
         const cached = detailCache.get(requestedSlug);
         if (cached) {
           const normalizedCached = normalizeProductDetail(cached);
           detailCache.set(requestedSlug, normalizedCached);
-          applyLoadedDetail(normalizedCached);
+          startTransition(() => applyLoadedDetail(normalizedCached));
           return;
         }
+
+        setIsLoading(true);
+        setError(null);
+        setDetail(null);
+        setSelectedFrameSizeId("");
+        setAccessoryQuantities({});
+        setActiveImageIndex(0);
+        setAccessorySearch("");
+        setAccessoryCatalogReady(false);
+        setNote("");
 
         const product =
           await publicApiClient.products.getProductBySlug(requestedSlug);
         if (cancelled) return;
         const normalizedProduct = normalizeProductDetail(product);
         detailCache.set(requestedSlug, normalizedProduct);
-        applyLoadedDetail(normalizedProduct);
+        startTransition(() => applyLoadedDetail(normalizedProduct));
       } catch (loadError: unknown) {
         if (cancelled) return;
         console.error("[product-detail] Failed to load product", loadError);
@@ -388,6 +417,42 @@ export function ProductTemplateDetailModal({
       return accessory && quantity > 0 ? [{ accessory, quantity }] : [];
     });
   }, [accessoryQuantities, detail]);
+  const hasAvailableAccessories = Boolean(
+    detail?.availableAccessories.some(
+      (item) => (accessoryQuantities[item.id] ?? 0) === 0,
+    ),
+  );
+  const availableAccessories = useMemo(() => {
+    if (!detail) return [];
+    const query = normalizeAccessorySearch(accessorySearch);
+
+    return detail.availableAccessories.filter((item) => {
+      if ((accessoryQuantities[item.id] ?? 0) > 0) return false;
+      return !query || normalizeAccessorySearch(item.name).includes(query);
+    });
+  }, [accessoryQuantities, accessorySearch, detail]);
+
+  useEffect(() => {
+    if (!isOpen || !contentReady || !detail || !hasAvailableAccessories) {
+      return undefined;
+    }
+
+    const catalog = accessoryCatalogRef.current;
+    if (!catalog) return undefined;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry?.isIntersecting) return;
+        startTransition(() => setAccessoryCatalogReady(true));
+        observer.disconnect();
+      },
+      { rootMargin: "280px 0px" },
+    );
+
+    observer.observe(catalog);
+    return () => observer.disconnect();
+  }, [contentReady, detail, hasAvailableAccessories, isOpen]);
+
   const charactersTotal =
     detail?.characters.reduce(
       (total, character) => total + character.price * character.quantity,
@@ -533,7 +598,9 @@ export function ProductTemplateDetailModal({
       className="h-[calc(100dvh-16px)] max-h-[920px] max-w-[1320px] rounded-[28px] border border-white/70 bg-white shadow-[0_32px_90px_-35px_rgba(3,18,38,0.5)] sm:h-[calc(100dvh-32px)]"
       contentClassName="h-full overflow-hidden p-0"
     >
-      {isLoading || (isOpen && slug && !detail && !error) ? (
+      {!contentReady ||
+      isLoading ||
+      (isOpen && slug && !detail && !error) ? (
         <div className="grid h-full place-items-center bg-white px-6 text-center">
           <div>
             <span className="mx-auto block h-10 w-10 animate-spin rounded-full border-2 border-primary/20 border-t-primary motion-reduce:animate-none" />
@@ -603,7 +670,7 @@ export function ProductTemplateDetailModal({
           </div>
 
           <div className="flex min-h-0 flex-col">
-            <header className="flex h-[72px] shrink-0 items-center justify-between border-b border-border/70 bg-white/95 px-5 backdrop-blur sm:px-7">
+            <header className="flex h-[72px] shrink-0 items-center justify-between border-b border-border/70 bg-white px-5 sm:px-7">
               <div className="min-w-0 pr-4">
                 <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-primary">
                   {labels.customBadge}
@@ -612,14 +679,21 @@ export function ProductTemplateDetailModal({
                   {detail.name}
                 </h2>
               </div>
-              <button
+              <motion.button
                 type="button"
                 aria-label={labels.close}
-                className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-surface-soft text-text-secondary transition hover:bg-primary-light hover:text-primary-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
                 onClick={closeModal}
+                whileHover={{ rotate: 90 }}
+                whileTap={{ scale: 0.96 }}
+                transition={{
+                  type: "spring",
+                  stiffness: 500,
+                  damping: 18,
+                }}
+                className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-transparent p-2 text-slate-800 transition-colors duration-200 hover:bg-red-50 hover:text-red-600 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#ffe16a]/45"
               >
-                <X className="h-5 w-5" />
-              </button>
+                <X className="h-[22px] w-[22px]" aria-hidden="true" />
+              </motion.button>
             </header>
 
             <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5 sm:px-7 sm:py-6">
@@ -795,48 +869,72 @@ export function ProductTemplateDetailModal({
                   </p>
                 )}
 
-                {detail.availableAccessories.some(
-                  (item) => (accessoryQuantities[item.id] ?? 0) === 0,
-                ) ? (
-                  <div className="mt-4">
-                    <p className="mb-2 text-xs font-semibold uppercase tracking-[0.12em] text-text-muted">
-                      {labels.addAccessory}
-                    </p>
-                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                      {detail.availableAccessories
-                        .filter(
-                          (item) => (accessoryQuantities[item.id] ?? 0) === 0,
-                        )
-                        .slice(0, 9)
-                        .map((accessory) => (
-                          <button
-                            key={accessory.id}
-                            type="button"
-                            className="group flex min-w-0 items-center gap-2 rounded-[14px] border border-border/80 bg-white p-2 text-left transition hover:border-primary/30 hover:shadow-sm"
-                            onClick={() =>
-                              updateAccessoryQuantity(accessory, 1)
-                            }
-                          >
-                            <ProductImage
-                              src={accessoryImage(accessory)}
-                              alt={accessory.name}
-                              fill
-                              sizes="40px"
-                              compactFallback
-                              wrapperClassName="h-10 w-10 shrink-0 rounded-[10px] bg-surface-soft"
-                              className="object-contain p-1"
-                            />
-                            <span className="min-w-0">
-                              <span className="block truncate text-xs font-semibold text-navy">
-                                {accessory.name}
-                              </span>
-                              <span className="text-[11px] text-primary-dark">
-                                +{formatCurrency(accessory.price)}
-                              </span>
-                            </span>
-                          </button>
-                        ))}
+                {hasAvailableAccessories ? (
+                  <div ref={accessoryCatalogRef} className="mt-4">
+                    <div className="mb-2.5 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                      <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted">
+                        {labels.otherAccessories}
+                      </p>
+                      <label className="relative block w-full sm:w-[270px]">
+                        <Search
+                          className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
+                          aria-hidden="true"
+                        />
+                        <input
+                          type="search"
+                          value={accessorySearch}
+                          onChange={(event) =>
+                            setAccessorySearch(event.target.value)
+                          }
+                          placeholder={labels.searchAccessories}
+                          aria-label={labels.searchAccessories}
+                          className="form-control form-control--compact pl-10 pr-4 text-sm font-medium"
+                        />
+                      </label>
                     </div>
+                    {!accessoryCatalogReady ? (
+                      <div
+                        aria-hidden="true"
+                        className="h-[152px] animate-pulse rounded-[14px] bg-surface-soft motion-reduce:animate-none"
+                      />
+                    ) : availableAccessories.length > 0 ? (
+                      <div className="custom-scrollbar max-h-[316px] overflow-y-auto overscroll-contain pr-1">
+                        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                          {availableAccessories.map((accessory) => (
+                            <button
+                              key={accessory.id}
+                              type="button"
+                              className="group flex min-w-0 items-center gap-2 rounded-[14px] border border-border/80 bg-white p-2 text-left transition hover:border-primary/30 hover:shadow-sm"
+                              onClick={() =>
+                                updateAccessoryQuantity(accessory, 1)
+                              }
+                            >
+                              <ProductImage
+                                src={accessoryImage(accessory)}
+                                alt={accessory.name}
+                                fill
+                                sizes="40px"
+                                compactFallback
+                                wrapperClassName="h-10 w-10 shrink-0 rounded-[10px] bg-surface-soft"
+                                className="object-contain p-1"
+                              />
+                              <span className="min-w-0">
+                                <span className="block truncate text-xs font-semibold text-navy">
+                                  {accessory.name}
+                                </span>
+                                <span className="text-[11px] text-primary-dark">
+                                  +{formatCurrency(accessory.price)}
+                                </span>
+                              </span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="rounded-[14px] border border-dashed border-border bg-surface-soft/60 px-4 py-5 text-center text-sm text-text-secondary">
+                        {labels.noAccessoryMatches}
+                      </p>
+                    )}
                   </div>
                 ) : null}
               </section>
@@ -863,7 +961,7 @@ export function ProductTemplateDetailModal({
               </section>
             </div>
 
-            <footer className="shrink-0 border-t border-border/70 bg-white/95 px-5 py-4 shadow-[0_-14px_28px_-26px_rgba(15,23,42,0.35)] backdrop-blur sm:px-7">
+            <footer className="shrink-0 border-t border-border/70 bg-white px-5 py-4 shadow-[0_-14px_28px_-26px_rgba(15,23,42,0.35)] sm:px-7">
               <div className="mb-3 flex items-end justify-between gap-4">
                 <div>
                   <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-text-muted">
@@ -959,27 +1057,31 @@ function AccessoryRow({
           </p>
         </div>
         <div
-          className="flex items-center rounded-full border border-border"
+          className="inline-flex h-9 shrink-0 items-center rounded-full bg-[#f1f6fa] p-1 ring-1 ring-inset ring-[#dce8f1]"
           aria-label={`${labels.quantity}: ${quantity}`}
         >
           <button
             type="button"
             aria-label={labels.removeAccessory}
-            className="grid h-8 w-8 place-items-center text-text-secondary transition hover:text-primary-dark"
+            className="grid h-7 w-7 place-items-center rounded-full bg-white text-slate-600 transition-all duration-200 hover:bg-[#ffd33d] hover:text-[#10253f] hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d6a900] motion-reduce:transition-none"
             onClick={() => onChange(quantity - 1)}
           >
-            <Minus className="h-3.5 w-3.5" />
+            <Minus className="h-3.5 w-3.5" aria-hidden="true" />
           </button>
-          <span className="min-w-6 text-center text-xs font-bold text-navy">
+          <output
+            aria-live="polite"
+            className="min-w-8 px-1 text-center text-[13px] font-semibold tabular-nums text-slate-900"
+          >
             {quantity}
-          </span>
+          </output>
           <button
             type="button"
             aria-label={labels.addAccessory}
-            className="grid h-8 w-8 place-items-center text-text-secondary transition hover:text-primary-dark"
+            disabled={quantity >= accessory.maxQuantity}
+            className="grid h-7 w-7 place-items-center rounded-full bg-white text-slate-600 transition-all duration-200 hover:bg-amber-300 hover:text-slate-800 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#82c5ec] disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:bg-transparent disabled:hover:shadow-none motion-reduce:transition-none"
             onClick={() => onChange(quantity + 1)}
           >
-            <Plus className="h-3.5 w-3.5" />
+            <Plus className="h-3.5 w-3.5" aria-hidden="true" />
           </button>
         </div>
       </div>

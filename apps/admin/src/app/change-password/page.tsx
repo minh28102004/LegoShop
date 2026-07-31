@@ -16,6 +16,7 @@ import LoadingSpinner from '@/common/components/ui/LoadingSpinner';
 import { ADMIN_ROUTES } from '@/common/constants/routes';
 import { cn } from '@/common/utils/cn';
 import { useI18n } from '@/lib/i18n/useI18n';
+import { getLocalizedApiError } from '@/lib/i18n/errors';
 import { changeAdminPassword } from '@/modules/admin/services/adminApi';
 import { clearAccessToken, getAccessToken } from '@/modules/auth/services/authStorage';
 
@@ -307,7 +308,7 @@ export default function ChangePasswordPage() {
         router.replace(ADMIN_ROUTES.login);
       }, 650);
     } catch (err) {
-      const message = err instanceof Error ? err.message : t('account.changePasswordFailed');
+      const message = getLocalizedApiError(err, t, 'account.changePasswordFailed');
       toast.error(message);
     } finally {
       setLoading(false);

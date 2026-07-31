@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   Logger,
   NotFoundException,
@@ -379,9 +380,21 @@ export class CharacterPresetsService {
   async deleteCharacterPreset(id: string) {
     const existing = await this.prisma.characterPreset.findUnique({
       where: { id },
-      select: { id: true },
+      select: {
+        id: true,
+        _count: {
+          select: {
+            products: true,
+          },
+        },
+      },
     });
     if (!existing) throw new NotFoundException('Character preset not found');
+    if (existing._count.products > 0) {
+      throw new ConflictException(
+        `Character preset is used by ${existing._count.products} product(s). Disable it instead of deleting it.`,
+      );
+    }
 
     await this.prisma.characterPreset.delete({ where: { id } });
     return { success: true, message: 'Character preset deleted successfully' };

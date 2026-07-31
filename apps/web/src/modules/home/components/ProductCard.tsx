@@ -59,7 +59,7 @@ export function ProductCard(props: ProductCardProps) {
           fill
           sizes="(min-width: 1024px) 25vw, (min-width: 768px) 50vw, calc(100vw - 40px)"
           wrapperClassName="pointer-events-none aspect-[4/3] w-full rounded-none bg-[#edf3f8]"
-          className="object-cover"
+          className="object-cover transition-transform duration-500 ease-out group-hover:scale-[1.035] motion-reduce:transform-none motion-reduce:transition-none"
         />
       </button>
 

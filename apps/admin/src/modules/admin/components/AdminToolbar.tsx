@@ -404,6 +404,11 @@ export default function AdminToolbar({
                 </h2>
                 {badge ? <div className='max-w-full shrink-0'>{badge}</div> : null}
               </div>
+              {description ? (
+                <p className='mt-1 line-clamp-2 text-sm font-medium leading-5 text-slate-500'>
+                  {description}
+                </p>
+              ) : null}
             </div>
           </div>
         </div>

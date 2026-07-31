@@ -1,6 +1,10 @@
+'use client';
+
 import type { ReactNode } from 'react';
 import Dropdown from '@/common/components/ui/Dropdown';
 import { cn } from '@/common/utils/cn';
+import { formatNumber as formatLocaleNumber } from '@/lib/i18n/format';
+import { useI18n } from '@/lib/i18n/useI18n';
 
 type PaginationItem = number | 'ellipsis-start' | 'ellipsis-end';
 
@@ -26,15 +30,10 @@ export type TablePaginationProps = {
   onPageSizeChange?: (pageSize: number) => void;
 };
 
-const NUMBER_FORMAT = new Intl.NumberFormat('vi-VN');
 const DEFAULT_PAGE_SIZE_OPTIONS = [10, 20, 50, 100] as const;
 
 function clampPage(page: number, totalPages: number) {
   return Math.min(Math.max(page, 1), Math.max(totalPages, 1));
-}
-
-function formatNumber(value: number) {
-  return NUMBER_FORMAT.format(value);
 }
 
 function getPaginationItems(page: number, totalPages: number): PaginationItem[] {
@@ -211,11 +210,12 @@ export function TablePagination({
   className,
   itemLabel = '',
   pageSize,
-  pageSizeLabel = 'Mỗi trang',
+  pageSizeLabel,
   pageSizeOptions = DEFAULT_PAGE_SIZE_OPTIONS,
   rangeLabel,
   onPageSizeChange,
 }: TablePaginationProps) {
+  const { locale, t } = useI18n();
   const safeTotalPages = Math.max(totalPages, 1);
   const safePage = clampPage(page, safeTotalPages);
   const hasMultiplePages = safeTotalPages > 1;
@@ -224,10 +224,14 @@ export function TablePagination({
   const from = total <= 0 ? 0 : (safePage - 1) * safePageSize + 1;
   const to = total <= 0 ? 0 : Math.min(total, safePage * safePageSize);
   const itemText = itemLabel.trim();
-  const totalText = `${formatNumber(total)}${itemText ? ` ${itemText}` : ''}`;
+  const totalText = `${formatLocaleNumber(total, locale)}${itemText ? ` ${itemText}` : ''}`;
   const summary =
     rangeLabel?.(from, to, total, itemText) ??
-    `Hiển thị ${formatNumber(from)}-${formatNumber(to)} trên ${totalText}`;
+    t('tablePagination.range', {
+      from: formatLocaleNumber(from, locale),
+      to: formatLocaleNumber(to, locale),
+      total: totalText,
+    });
   const paginationItems = getPaginationItems(safePage, safeTotalPages);
   const canChangePageSize = Boolean(pageSize && onPageSizeChange);
 
@@ -238,7 +242,7 @@ export function TablePagination({
   const pageSizeControl =
     canChangePageSize && onPageSizeChange ? (
       <PageSizeSelect
-        label={pageSizeLabel}
+        label={pageSizeLabel ?? t('common.perPage')}
         value={pageSizeValue}
         options={pageSizeOptions}
         onChange={onPageSizeChange}
@@ -269,7 +273,7 @@ export function TablePagination({
 
   return (
     <nav
-      aria-label='Table pagination'
+      aria-label={t('common.tablePagination')}
       className={cn(
         'admin-surface -mt-2 min-h-[64px] rounded-[18px] bg-white px-3 py-4 text-sm text-slate-600 md:flex md:items-center md:justify-between md:gap-x-4 md:gap-y-3 md:px-5 lg:px-5',
         className,

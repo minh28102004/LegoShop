@@ -100,12 +100,6 @@ export const ADMIN_NAV_SECTIONS: AdminNavSection[] = [
         icon: 'characters',
       },
       {
-        id: 'banners',
-        href: ADMIN_ROUTES.banners,
-        labelKey: 'sidebar.banners',
-        icon: 'banners',
-      },
-      {
         id: 'frameBackgrounds',
         href: ADMIN_ROUTES.frameBackgrounds,
         labelKey: 'sidebar.frameBackgrounds',
@@ -116,6 +110,18 @@ export const ADMIN_NAV_SECTIONS: AdminNavSection[] = [
         href: ADMIN_ROUTES.collections,
         labelKey: 'sidebar.collections',
         icon: 'collections',
+      },
+    ],
+  },
+  {
+    id: 'websiteContent',
+    labelKey: 'sidebar.websiteContent',
+    items: [
+      {
+        id: 'banners',
+        href: ADMIN_ROUTES.banners,
+        labelKey: 'sidebar.banners',
+        icon: 'banners',
       },
     ],
   },

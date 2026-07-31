@@ -66,6 +66,9 @@ export function Header() {
   const [hasMounted, setHasMounted] = useState(false);
   const [isStudioMenuOpen, setIsStudioMenuOpen] = useState(false);
   const [isCollectionMenuOpen, setIsCollectionMenuOpen] = useState(false);
+  const [activeDesktopMenuItem, setActiveDesktopMenuItem] = useState<
+    string | null
+  >(null);
   const [isMobileStudioOpen, setIsMobileStudioOpen] = useState(false);
   const [isMobileCollectionOpen, setIsMobileCollectionOpen] = useState(false);
 
@@ -87,6 +90,7 @@ export function Header() {
       closeMobileMenu();
       setIsStudioMenuOpen(false);
       setIsCollectionMenuOpen(false);
+      setActiveDesktopMenuItem(null);
       setIsMobileStudioOpen(false);
       setIsMobileCollectionOpen(false);
     });
@@ -100,11 +104,13 @@ export function Header() {
     const closeStudioMenu = (event: PointerEvent) => {
       if (!studioMenuRef.current?.contains(event.target as Node)) {
         setIsStudioMenuOpen(false);
+        setActiveDesktopMenuItem(null);
       }
     };
     const handleStudioKeys = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         setIsStudioMenuOpen(false);
+        setActiveDesktopMenuItem(null);
         studioToggleRef.current?.focus();
       }
     };
@@ -123,11 +129,13 @@ export function Header() {
     const closeCollectionMenu = (event: PointerEvent) => {
       if (!collectionMenuRef.current?.contains(event.target as Node)) {
         setIsCollectionMenuOpen(false);
+        setActiveDesktopMenuItem(null);
       }
     };
     const handleCollectionKeys = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         setIsCollectionMenuOpen(false);
+        setActiveDesktopMenuItem(null);
         collectionToggleRef.current?.focus();
       }
     };
@@ -531,6 +539,15 @@ export function Header() {
                         key={item.href}
                         ref={studioMenuRef}
                         className="relative flex items-center"
+                        onMouseEnter={() => {
+                          setIsCollectionMenuOpen(false);
+                          setIsStudioMenuOpen(true);
+                          setActiveDesktopMenuItem(null);
+                        }}
+                        onMouseLeave={() => {
+                          setIsStudioMenuOpen(false);
+                          setActiveDesktopMenuItem(null);
+                        }}
                       >
                         <button
                           ref={studioToggleRef}
@@ -538,8 +555,10 @@ export function Header() {
                           aria-label={t("header.studioMenu.open")}
                           aria-haspopup="menu"
                           aria-expanded={isStudioMenuOpen}
+                          onMouseEnter={() => setActiveDesktopMenuItem(null)}
                           onClick={() => {
                             setIsCollectionMenuOpen(false);
+                            setActiveDesktopMenuItem(null);
                             setIsStudioMenuOpen((current) => !current);
                           }}
                           onKeyDown={(event) => {
@@ -558,6 +577,7 @@ export function Header() {
                           className={cn(
                             "group relative inline-flex items-center justify-center gap-1.5 rounded-md px-2 py-2 text-[15px] font-[550] tracking-normal text-slate-800 transition-colors duration-fast hover:text-primary xl:px-3.5 xl:text-[15.5px]",
                             (isActive || isStudioMenuOpen) &&
+                              activeDesktopMenuItem === null &&
                               "font-semibold text-[#2f91d0]",
                           )}
                         >
@@ -572,7 +592,8 @@ export function Header() {
                           <span
                             className={cn(
                               "pointer-events-none absolute inset-x-2 -bottom-px h-[2px] origin-center rounded-full bg-linear-to-r from-[#7bc7f0] via-[#2f91d0] to-[#7bc7f0] transition-transform duration-300 ease-out xl:inset-x-4",
-                              isActive || isStudioMenuOpen
+                              (isActive || isStudioMenuOpen) &&
+                                activeDesktopMenuItem === null
                                 ? "scale-x-100"
                                 : "scale-x-0 group-hover:scale-x-100",
                             )}
@@ -580,30 +601,68 @@ export function Header() {
                         </button>
 
                         <div
-                          role="menu"
-                          aria-label={t("header.nav.studio")}
                           className={cn(
-                            "absolute left-1/2 top-[calc(100%+9px)] z-80 w-[220px] -translate-x-1/2 rounded-[16px] border border-[#d7e5ee] bg-white p-2 shadow-[0_18px_42px_-28px_rgba(18,45,78,0.34)] transition-[opacity,visibility] duration-150 ease-out motion-reduce:transition-none",
+                            "absolute left-0 top-full z-80 w-max min-w-full pt-[9px] transition-[opacity,visibility] duration-150 ease-out motion-reduce:transition-none",
                             isStudioMenuOpen
                               ? "visible opacity-100"
                               : "invisible opacity-0",
                           )}
                         >
-                          {STUDIO_NAV_ITEMS.map(({ key: studioMode, href }) => (
-                            <Link
-                              key={studioMode}
-                              role="menuitem"
-                              href={href}
-                              onClick={() => setIsStudioMenuOpen(false)}
-                              className={cn(
-                                "flex min-h-11 items-center rounded-[11px] px-4 py-2.5 text-[14.5px] font-semibold text-slate-700 outline-none transition-colors hover:bg-[#eef7ff] hover:text-primary focus-visible:bg-[#eef7ff] focus-visible:text-primary",
-                                isNavItemActive(pathname, href) &&
-                                  "bg-[#eef7ff] text-primary",
-                              )}
-                            >
-                              {t(`header.studioMenu.${studioMode}.title`)}
-                            </Link>
-                          ))}
+                          <div
+                            role="menu"
+                            aria-label={t("header.nav.studio")}
+                            className="rounded-[16px] border border-[#d7e5ee] bg-white p-2 shadow-[0_18px_42px_-28px_rgba(18,45,78,0.34)]"
+                          >
+                            {STUDIO_NAV_ITEMS.map(
+                              ({ key: studioMode, href }) => {
+                                const menuItemKey = `studio-${studioMode}`;
+                                const isMenuItemActive =
+                                  activeDesktopMenuItem === menuItemKey;
+
+                                return (
+                                  <Link
+                                    key={studioMode}
+                                    role="menuitem"
+                                    href={href}
+                                    onMouseEnter={() =>
+                                      setActiveDesktopMenuItem(menuItemKey)
+                                    }
+                                    onMouseLeave={() =>
+                                      setActiveDesktopMenuItem(null)
+                                    }
+                                    onFocus={() =>
+                                      setActiveDesktopMenuItem(menuItemKey)
+                                    }
+                                    onBlur={() =>
+                                      setActiveDesktopMenuItem(null)
+                                    }
+                                    onClick={() => {
+                                      setIsStudioMenuOpen(false);
+                                      setActiveDesktopMenuItem(null);
+                                    }}
+                                    className={cn(
+                                      "flex min-h-11 items-center whitespace-nowrap rounded-[11px] px-3 py-2.5 text-[14.5px] font-semibold text-slate-700 outline-none transition-colors hover:text-primary focus-visible:text-primary",
+                                      isMenuItemActive && "text-primary",
+                                    )}
+                                  >
+                                    <span className="relative">
+                                      {t(
+                                        `header.studioMenu.${studioMode}.title`,
+                                      )}
+                                      <span
+                                        className={cn(
+                                          "pointer-events-none absolute inset-x-0 -bottom-1 h-[2px] origin-center rounded-full bg-linear-to-r from-[#7bc7f0] via-[#2f91d0] to-[#7bc7f0] transition-transform duration-300 ease-out",
+                                          isMenuItemActive
+                                            ? "scale-x-100"
+                                            : "scale-x-0",
+                                        )}
+                                      />
+                                    </span>
+                                  </Link>
+                                );
+                              },
+                            )}
+                          </div>
                         </div>
                       </div>
                     );
@@ -615,6 +674,15 @@ export function Header() {
                         key={item.href}
                         ref={collectionMenuRef}
                         className="relative flex items-center"
+                        onMouseEnter={() => {
+                          setIsStudioMenuOpen(false);
+                          setIsCollectionMenuOpen(true);
+                          setActiveDesktopMenuItem(null);
+                        }}
+                        onMouseLeave={() => {
+                          setIsCollectionMenuOpen(false);
+                          setActiveDesktopMenuItem(null);
+                        }}
                       >
                         <button
                           ref={collectionToggleRef}
@@ -622,8 +690,10 @@ export function Header() {
                           aria-label={t("header.collectionMenu.open")}
                           aria-haspopup="menu"
                           aria-expanded={isCollectionMenuOpen}
+                          onMouseEnter={() => setActiveDesktopMenuItem(null)}
                           onClick={() => {
                             setIsStudioMenuOpen(false);
+                            setActiveDesktopMenuItem(null);
                             setIsCollectionMenuOpen((current) => !current);
                           }}
                           onKeyDown={(event) => {
@@ -640,9 +710,10 @@ export function Header() {
                             }
                           }}
                           className={cn(
-                            "group relative inline-flex min-h-10 items-center justify-center gap-1.5 rounded-[12px] px-3 py-2 text-[15px] font-[550] text-slate-800 transition-colors duration-fast hover:bg-[#f4faff] hover:text-primary xl:px-3.5 xl:text-[15.5px]",
+                            "group relative inline-flex items-center justify-center gap-1.5 rounded-md px-2 py-2 text-[15px] font-[550] tracking-normal text-slate-800 transition-colors duration-fast hover:text-primary xl:px-3.5 xl:text-[15.5px]",
                             (isActive || isCollectionMenuOpen) &&
-                              "bg-[#f2f9fd] font-semibold text-[#2f91d0]",
+                              activeDesktopMenuItem === null &&
+                              "font-semibold text-[#2f91d0]",
                           )}
                         >
                           <span>{t("header.nav.legoFrame")}</span>
@@ -655,8 +726,9 @@ export function Header() {
                           />
                           <span
                             className={cn(
-                              "pointer-events-none absolute inset-x-3 -bottom-[4px] h-[2px] origin-center rounded-full bg-linear-to-r from-[#7bc7f0] via-[#2f91d0] to-[#7bc7f0] transition-transform duration-300",
-                              isActive || isCollectionMenuOpen
+                              "pointer-events-none absolute inset-x-2 -bottom-px h-[2px] origin-center rounded-full bg-linear-to-r from-[#7bc7f0] via-[#2f91d0] to-[#7bc7f0] transition-transform duration-300 ease-out xl:inset-x-4",
+                              (isActive || isCollectionMenuOpen) &&
+                                activeDesktopMenuItem === null
                                 ? "scale-x-100"
                                 : "scale-x-0 group-hover:scale-x-100",
                             )}
@@ -664,28 +736,68 @@ export function Header() {
                         </button>
 
                         <div
-                          role="menu"
-                          aria-label={t("header.nav.legoFrame")}
                           className={cn(
-                            "absolute left-1/2 top-[calc(100%+9px)] z-80 w-[224px] -translate-x-1/2 rounded-[18px] border border-[#d7e5ee] bg-white p-2 shadow-[0_20px_48px_-28px_rgba(18,45,78,0.38)] transition-[opacity,visibility] duration-150 ease-out motion-reduce:transition-none",
+                            "absolute left-0 top-full z-80 w-max min-w-full pt-[9px] transition-[opacity,visibility] duration-150 ease-out motion-reduce:transition-none",
                             isCollectionMenuOpen
                               ? "visible opacity-100"
                               : "invisible opacity-0",
                           )}
                         >
-                          {COLLECTION_NAV_ITEMS.map(
-                            ({ key: collectionMode, href }) => (
-                              <Link
-                                key={collectionMode}
-                                role="menuitem"
-                                href={href}
-                                onClick={() => setIsCollectionMenuOpen(false)}
-                                className="flex min-h-11 items-center rounded-[12px] px-4 py-2.5 text-sm font-semibold text-slate-700 outline-none transition-colors hover:bg-[#eef7ff] hover:text-primary focus-visible:bg-[#eef7ff] focus-visible:text-primary"
-                              >
-                                {t(`header.collectionMenu.${collectionMode}`)}
-                              </Link>
-                            ),
-                          )}
+                          <div
+                            role="menu"
+                            aria-label={t("header.nav.legoFrame")}
+                            className="rounded-[16px] border border-[#d7e5ee] bg-white p-2 shadow-[0_20px_48px_-28px_rgba(18,45,78,0.38)]"
+                          >
+                            {COLLECTION_NAV_ITEMS.map(
+                              ({ key: collectionMode, href }) => {
+                                const menuItemKey = `collection-${collectionMode}`;
+                                const isMenuItemActive =
+                                  activeDesktopMenuItem === menuItemKey;
+
+                                return (
+                                  <Link
+                                    key={collectionMode}
+                                    role="menuitem"
+                                    href={href}
+                                    onMouseEnter={() =>
+                                      setActiveDesktopMenuItem(menuItemKey)
+                                    }
+                                    onMouseLeave={() =>
+                                      setActiveDesktopMenuItem(null)
+                                    }
+                                    onFocus={() =>
+                                      setActiveDesktopMenuItem(menuItemKey)
+                                    }
+                                    onBlur={() =>
+                                      setActiveDesktopMenuItem(null)
+                                    }
+                                    onClick={() => {
+                                      setIsCollectionMenuOpen(false);
+                                      setActiveDesktopMenuItem(null);
+                                    }}
+                                    className={cn(
+                                      "flex min-h-11 items-center whitespace-nowrap rounded-[11px] px-3 py-2.5 text-sm font-semibold text-slate-700 outline-none transition-colors hover:text-primary focus-visible:text-primary",
+                                      isMenuItemActive && "text-primary",
+                                    )}
+                                  >
+                                    <span className="relative">
+                                      {t(
+                                        `header.collectionMenu.${collectionMode}`,
+                                      )}
+                                      <span
+                                        className={cn(
+                                          "pointer-events-none absolute inset-x-0 -bottom-1 h-[2px] origin-center rounded-full bg-linear-to-r from-[#7bc7f0] via-[#2f91d0] to-[#7bc7f0] transition-transform duration-300 ease-out",
+                                          isMenuItemActive
+                                            ? "scale-x-100"
+                                            : "scale-x-0",
+                                        )}
+                                      />
+                                    </span>
+                                  </Link>
+                                );
+                              },
+                            )}
+                          </div>
                         </div>
                       </div>
                     );

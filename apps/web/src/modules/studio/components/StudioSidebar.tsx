@@ -7,7 +7,6 @@ import {
   AlertCircle,
   Check,
   LayoutTemplate,
-  Plus,
   Puzzle,
   Search,
   Trash2,
@@ -20,7 +19,9 @@ import { formatCurrency as formatPrice } from "@lego-shop/shared";
 import { DECORATIVE_ICON_PATHS } from "@/config/icons";
 import { uploadCustomerImage } from "@/lib/api/uploads";
 import { useStudioI18n } from "../hooks/useStudioI18n";
+import type { StudioPanelTab } from "../state/studio.types";
 import { useStudio, type StudioElement } from "./StudioContext";
+import { StudioAddContentRow } from "./StudioAddContentRow";
 import { StudioSearchableMultiSelect } from "./StudioSearchableMultiSelect";
 
 type StudioTab = "templates" | "uploads" | "text" | "assets" | "layers";
@@ -178,46 +179,6 @@ function TemplateCard({
   );
 }
 
-function AddContentRow({
-  title,
-  subtitle,
-  emphasis,
-  onClick,
-}: {
-  title: string;
-  subtitle: string;
-  emphasis: "title" | "body" | "caption";
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="group flex min-h-[84px] w-full items-center justify-between rounded-[20px] border border-[#e4edf5] bg-white px-4 py-3.5 text-left transition-all duration-200 ease-out hover:-translate-y-0.5 hover:border-[#bddaf0] hover:bg-[#fbfdff] hover:shadow-sm"
-    >
-      <div className="min-w-0">
-        <p
-          className={
-            emphasis === "title"
-              ? "text-lg font-bold tracking-[-0.02em] text-slate-950"
-              : emphasis === "caption"
-                ? "text-xs font-bold uppercase tracking-wide text-slate-950"
-                : "text-base font-bold tracking-[-0.02em] text-slate-950"
-          }
-        >
-          {title}
-        </p>
-
-        <p className="mt-0.5 text-xs font-medium text-slate-500">{subtitle}</p>
-      </div>
-
-      <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-[#eef7ff] text-[#2f91d0] transition-all duration-200 group-hover:bg-[#2f91d0] group-hover:text-white">
-        <Plus className="h-4 w-4" />
-      </span>
-    </button>
-  );
-}
-
 function LayerItemRow({
   active,
   label,
@@ -335,12 +296,16 @@ function LayerItemRow({
 
 type StudioSidebarProps = {
   embedded?: boolean;
+  panelTab: StudioPanelTab;
 };
 
 const TEMPLATE_PAGE_SIZE = 12;
 const ACCESSORY_PAGE_SIZE = 24;
 
-export function StudioSidebar({ embedded = false }: StudioSidebarProps) {
+export function StudioSidebar({
+  embedded = false,
+  panelTab,
+}: StudioSidebarProps) {
   const { text } = useStudioI18n();
   const [query, setQuery] = useState("");
   const [activeTemplateCategoryIds, setActiveTemplateCategoryIds] = useState<
@@ -392,19 +357,18 @@ export function StudioSidebar({ embedded = false }: StudioSidebarProps) {
     accessoriesError,
     isAccessoryCategoriesLoading,
     accessoryCategoriesError,
-    activePanelTab,
   } = useStudio();
 
   const activeTab: StudioTab =
-    activePanelTab === "uploads"
+    panelTab === "uploads"
       ? "uploads"
-      : activePanelTab === "information" ||
-          activePanelTab === "add-text" ||
-          activePanelTab === "formatting"
+      : panelTab === "information" ||
+          panelTab === "add-text" ||
+          panelTab === "formatting"
         ? "text"
-        : activePanelTab === "accessories"
+        : panelTab === "accessories"
           ? "assets"
-          : activePanelTab === "layers"
+          : panelTab === "layers"
             ? "layers"
             : "templates";
 
@@ -505,9 +469,9 @@ export function StudioSidebar({ embedded = false }: StudioSidebarProps) {
       setCustomBackgroundOriginalName(uploaded.originalName);
       setActiveTemplate(null);
       clearContentValues();
-    } catch (error) {
+    } catch {
       setUploadError(
-        error instanceof Error ? error.message : text.sidebar.uploadError,
+        text.sidebar.uploadError,
       );
     } finally {
       setUploading(false);
@@ -544,46 +508,45 @@ export function StudioSidebar({ embedded = false }: StudioSidebarProps) {
 
   return (
     <div className="flex min-h-0 w-full flex-col bg-white">
-      <div
-        className={[
-          "border-b border-[#edf3f8] px-4 py-3.5",
-          embedded ? "bg-[#fbfdff]" : "bg-white",
-        ].join(" ")}
-      >
-        {!embedded ? (
-          <p className="text-lg font-bold leading-none tracking-[-0.025em] text-slate-950">
-            {text.sidebar.tabs[activeTab]}
-          </p>
-        ) : null}
+      {!embedded || showSearch ? (
+        <div
+          className={[
+            "border-b border-[#edf3f8] px-4 py-3",
+            embedded ? "sticky top-0 z-20 bg-[#fbfdff]" : "bg-white",
+          ].join(" ")}
+        >
+          {!embedded ? (
+            <p className="text-lg font-bold leading-none tracking-[-0.025em] text-slate-950">
+              {text.sidebar.tabs[activeTab]}
+            </p>
+          ) : null}
 
-        {showSearch ? (
-          <div
-            className={`${embedded ? "" : "mt-3.5"} form-control form-control--compact flex items-center gap-2.5 px-3.5 focus-within:border-primary focus-within:ring-[3px] focus-within:ring-primary/15`}
-          >
-            <Search className="h-4 w-4 shrink-0 text-slate-400" />
+          {showSearch ? (
+            <div
+              className={`${embedded ? "" : "mt-3.5"} form-control form-control--compact flex items-center gap-2.5 px-3.5 focus-within:border-primary focus-within:ring-[3px] focus-within:ring-primary/15`}
+            >
+              <Search className="h-4 w-4 shrink-0 text-slate-400" />
 
-            <input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder={
-                activeTab === "templates"
-                  ? text.sidebar.searchTemplates
-                  : text.sidebar.searchAccessories
-              }
-              className="min-w-0 flex-1 appearance-none border-0 bg-transparent p-0 text-sm font-medium text-slate-700 shadow-none outline-none ring-0 placeholder:text-text-muted focus:border-0 focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0"
-              style={{
-                boxShadow: "none",
-                WebkitBoxShadow: "none",
-              }}
-            />
-          </div>
-        ) : null}
-      </div>
+              <input
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder={
+                  activeTab === "templates"
+                    ? text.sidebar.searchTemplates
+                    : text.sidebar.searchAccessories
+                }
+                className="min-w-0 flex-1 appearance-none border-0 bg-transparent p-0 text-sm font-medium text-slate-700 shadow-none outline-none ring-0 placeholder:text-text-muted focus:border-0 focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0"
+                style={{
+                  boxShadow: "none",
+                  WebkitBoxShadow: "none",
+                  outline: "none",
+                }}
+              />
+            </div>
+          ) : null}
 
-      <div className="px-4 py-4">
-        {activeTab === "templates" && (
-          <div className="space-y-3">
-            {templateCategories.length > 0 ? (
+          {activeTab === "templates" && templateCategories.length > 0 ? (
+            <div className="mt-2.5">
               <StudioSearchableMultiSelect
                 label={text.common.all}
                 options={templateCategories.map((category) => ({
@@ -596,8 +559,14 @@ export function StudioSidebar({ embedded = false }: StudioSidebarProps) {
                 emptyLabel={text.sidebar.noTemplateMatches}
                 clearLabel={text.common.remove}
               />
-            ) : null}
+            </div>
+          ) : null}
+        </div>
+      ) : null}
 
+      <div className="px-4 py-4">
+        {activeTab === "templates" && (
+          <div className="space-y-3">
             {backgroundsError ? (
               <div className="flex items-start gap-2 rounded-[16px] border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs font-semibold leading-relaxed text-amber-800">
                 <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
@@ -716,22 +685,22 @@ export function StudioSidebar({ embedded = false }: StudioSidebarProps) {
         )}
 
         {activeTab === "text" && (
-          <div className="space-y-3">
-            <AddContentRow
+          <div className="space-y-3 rounded-[26px] border border-[#e2ebf3] bg-[#f3f6f9] p-3.5">
+            <StudioAddContentRow
               title={text.sidebar.titleText}
               subtitle={text.sidebar.titleTextHint}
               emphasis="title"
               onClick={() => addText("title")}
             />
 
-            <AddContentRow
+            <StudioAddContentRow
               title={text.sidebar.bodyText}
               subtitle={text.sidebar.bodyTextHint}
               emphasis="body"
               onClick={() => addText("body")}
             />
 
-            <AddContentRow
+            <StudioAddContentRow
               title={text.sidebar.captionText}
               subtitle={text.sidebar.captionTextHint}
               emphasis="caption"

@@ -19,12 +19,14 @@ import {
   ProductStatus,
   ShippingStatus,
 } from '@prisma/client';
+import { normalizeVietnamesePhone } from '@lego-shop/shared';
 import { PaymentSettingsService } from '../payment-settings/payment-settings.service';
 import {
   PayosPaymentItem,
   PayosPaymentLinkResult,
   PaymentsService,
 } from '../payments/payments.service';
+import { stagedSampleMediaSeedTag } from '../common/sample-media-preview';
 import { PrismaService } from '../prisma/prisma.service';
 import { VouchersService } from '../vouchers/vouchers.service';
 import { CreateOrderDto } from './dto/create-order.dto';
@@ -332,9 +334,11 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
   }
 
   async quoteCart(dto: CartQuoteDto) {
-    const paymentSettings = await this.paymentSettingsService.getSettings();
-    if (dto.paymentMethod && !paymentSettings.payosEnabled) {
-      throw new BadRequestException('PAYOS payment is disabled');
+    if (dto.paymentMethod) {
+      const paymentSettings = await this.paymentSettingsService.getSettings();
+      if (!paymentSettings.payosEnabled) {
+        throw new BadRequestException('PAYOS payment is disabled');
+      }
     }
 
     const itemResults = await Promise.all(
@@ -560,7 +564,9 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
     const province = dto.province || dto.city;
     const addressLine = dto.addressLine || dto.address;
 
-    if (!phone?.trim()) {
+    const normalizedPhone = phone ? normalizeVietnamesePhone(phone) : '';
+
+    if (!normalizedPhone) {
       throw new BadRequestException('Customer phone is required');
     }
 
@@ -577,7 +583,7 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
 
     return {
       name: dto.customerName,
-      phone: phone.trim(),
+      phone: normalizedPhone,
       ...(email?.trim() ? { email: email.trim() } : {}),
       ...(dto.customerZalo?.trim() ? { zalo: dto.customerZalo.trim() } : {}),
       addressLine: addressLine.trim(),
@@ -596,14 +602,32 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
     return this.toPublicTrackingSummary(order);
   }
 
-  async trackOrderByPhone(orderCode: string, phone: string) {
-    const order = await this.findOrderForPublicTracking(orderCode);
-
-    if (this.normalizePhone(order.phone) !== this.normalizePhone(phone)) {
-      throw new NotFoundException('Order not found');
+  async trackOrdersByPhone(phone: string) {
+    const normalizedPhone = normalizeVietnamesePhone(phone);
+    if (!normalizedPhone) {
+      throw new BadRequestException('A valid phone number is required');
     }
 
-    return this.toPublicTrackingSummary(order, true);
+    const orders = await this.prisma.order.findMany({
+      where: {
+        phone: normalizedPhone,
+      },
+      include: {
+        items: true,
+        statusHistories: {
+          orderBy: {
+            createdAt: 'asc',
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    return {
+      orders: orders.map((order) => this.toPublicTrackingSummary(order)),
+    };
   }
 
   private async findOrderForPublicTracking(orderCode: string) {
@@ -813,16 +837,19 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
       characterParts,
       productFrameSizes,
       productCharacters,
-    ] = await this.prisma.$transaction([
+    ] = await Promise.all([
       this.prisma.product.findMany({
         where: {
           id: {
             in: uniqueProductIds,
           },
-          status: ProductStatus.active,
-          published: true,
           availability: 'available',
-          OR: [{ inventory: null }, { inventory: { gt: 0 } }],
+          AND: [
+            this.orderableProductVisibility(),
+            {
+              OR: [{ inventory: null }, { inventory: { gt: 0 } }],
+            },
+          ],
         },
         select: {
           id: true,
@@ -938,7 +965,7 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
           id: {
             in: accessoryIds,
           },
-          status: ProductStatus.active,
+          AND: [this.orderableAccessoryVisibility()],
         },
         select: {
           id: true,
@@ -1320,7 +1347,6 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
 
     const requiredTypes: CharacterPartType[] = [
       CharacterPartType.FACE,
-      CharacterPartType.HAIR,
       CharacterPartType.TORSO,
       CharacterPartType.LEGS,
     ];
@@ -1917,6 +1943,55 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
     return item.designData?.source === 'product-template';
   }
 
+  private orderableProductVisibility(): Prisma.ProductWhereInput {
+    const previewSeedTag = stagedSampleMediaSeedTag();
+
+    if (!previewSeedTag) {
+      return {
+        status: ProductStatus.active,
+        published: true,
+      };
+    }
+
+    return {
+      OR: [
+        {
+          status: ProductStatus.active,
+          published: true,
+        },
+        {
+          status: ProductStatus.inactive,
+          componentConfig: {
+            path: ['sampleMedia', 'seedTag'],
+            equals: previewSeedTag,
+          },
+        },
+      ],
+    };
+  }
+
+  private orderableAccessoryVisibility(): Prisma.AccessoryWhereInput {
+    const previewSeedTag = stagedSampleMediaSeedTag();
+
+    if (!previewSeedTag) {
+      return {
+        status: ProductStatus.active,
+      };
+    }
+
+    return {
+      OR: [
+        {
+          status: ProductStatus.active,
+        },
+        {
+          status: ProductStatus.inactive,
+          seedTag: previewSeedTag,
+        },
+      ],
+    };
+  }
+
   private resolveProductTemplatePrice(
     product: {
       id: string;
@@ -1985,8 +2060,10 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
       const character = characterId
         ? charactersById.get(characterId)
         : undefined;
+      const configuredPrice = this.readNumber(configured.price);
+      const unitPrice = configuredPrice ?? character?.price;
 
-      if (!characterId || !character) {
+      if (!characterId || unitPrice === undefined) {
         throw new BadRequestException(
           `A configured character is not available for product ${product.id}`,
         );
@@ -1996,8 +2073,7 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
         10,
         this.readPositiveInt(configured.quantity) ?? 1,
       );
-      const configuredPrice = this.readNumber(configured.price);
-      return total + (configuredPrice ?? character.price) * quantity;
+      return total + unitPrice * quantity;
     }, 0);
 
     const configuredAccessoryLimits = new Map(

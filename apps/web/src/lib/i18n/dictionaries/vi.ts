@@ -33,6 +33,70 @@ export const vi = {
       en: "Tiếng Anh (English)",
     },
   },
+  apiErrors: {
+    unauthorized: "Phiên làm việc đã hết hạn. Vui lòng đăng nhập lại.",
+    forbidden: "Bạn không có quyền thực hiện thao tác này.",
+    notFound: "Không tìm thấy dữ liệu được yêu cầu.",
+    validation: "Một số thông tin chưa hợp lệ. Vui lòng kiểm tra lại.",
+    conflict: "Dữ liệu đã được cập nhật ở nơi khác. Hãy tải lại và thử lại.",
+    rateLimited: "Bạn thao tác quá nhanh. Vui lòng chờ một chút rồi thử lại.",
+    server: "Máy chủ đang tạm thời gián đoạn. Vui lòng thử lại.",
+    network: "Không thể kết nối. Hãy kiểm tra mạng và thử lại.",
+  },
+  privacyPolicy: {
+    title: "Chính sách bảo mật",
+    description:
+      "Chính sách này giải thích cách Figure Lab tiếp nhận, sử dụng và bảo vệ thông tin khi bạn truy cập website hoặc đặt sản phẩm.",
+    updatedAt: "Cập nhật lần cuối: 24/07/2026",
+    contactTitle: "Liên hệ về quyền riêng tư",
+    backHome: "Về trang chủ",
+    sections: {
+      collection: {
+        title: "1. Thông tin chúng tôi thu thập",
+        paragraph1:
+          "Khi bạn sử dụng Figure Lab, chúng tôi có thể nhận thông tin liên hệ và giao hàng như họ tên, số điện thoại, email, địa chỉ, thông tin đơn hàng và nội dung bạn chủ động gửi trong quá trình thiết kế sản phẩm.",
+        paragraph2:
+          "Website cũng có thể lưu dữ liệu kỹ thuật cần thiết cho phiên làm việc, giỏ hàng và tùy chọn hiển thị trên thiết bị của bạn.",
+      },
+      purposes: {
+        title: "2. Mục đích sử dụng thông tin",
+        paragraph1:
+          "Thông tin được sử dụng để tạo và xử lý đơn hàng, xác nhận thiết kế, hỗ trợ giao hàng, thanh toán, chăm sóc khách hàng, phòng chống gian lận và cải thiện chất lượng dịch vụ.",
+        paragraph2: "Figure Lab không bán thông tin cá nhân của khách hàng cho bên thứ ba.",
+      },
+      providers: {
+        title: "3. Chia sẻ với đơn vị cung cấp dịch vụ",
+        paragraph1:
+          "Trong phạm vi cần thiết để vận hành dịch vụ, dữ liệu có thể được xử lý bởi các đối tác hạ tầng, lưu trữ, thanh toán hoặc giao nhận. Các đối tác này chỉ nhận thông tin cần thiết để thực hiện phần việc tương ứng.",
+        paragraph2:
+          "Giao dịch thanh toán trực tuyến được chuyển đến cổng thanh toán hiển thị tại bước thanh toán; Figure Lab không lưu toàn bộ thông tin thẻ ngân hàng của bạn.",
+      },
+      designs: {
+        title: "4. Hình ảnh và nội dung thiết kế",
+        paragraph1:
+          "Hình ảnh bạn tải lên được dùng để tạo bản xem trước, hoàn thiện sản phẩm và hỗ trợ đơn hàng. Bạn cần bảo đảm mình có quyền sử dụng nội dung đã cung cấp.",
+        paragraph2:
+          "Không tải lên giấy tờ định danh, thông tin tài chính, mật khẩu hoặc nội dung nhạy cảm không cần thiết cho thiết kế.",
+      },
+      retention: {
+        title: "5. Lưu trữ và bảo vệ dữ liệu",
+        paragraph1:
+          "Chúng tôi áp dụng các biện pháp kỹ thuật và tổ chức phù hợp để hạn chế truy cập trái phép, thất thoát hoặc sử dụng sai mục đích. Dữ liệu được lưu trong thời gian cần thiết để xử lý đơn hàng, hỗ trợ khách hàng và đáp ứng nghĩa vụ pháp lý liên quan.",
+      },
+      rights: {
+        title: "6. Quyền của bạn",
+        paragraph1:
+          "Bạn có thể yêu cầu xem, cập nhật hoặc đề nghị xóa thông tin cá nhân do mình cung cấp, trong giới hạn pháp luật và nghĩa vụ lưu trữ đơn hàng cho phép.",
+        paragraph2:
+          "Để gửi yêu cầu, vui lòng liên hệ {email}. Chúng tôi có thể cần xác minh danh tính trước khi xử lý yêu cầu.",
+      },
+      changes: {
+        title: "7. Thay đổi chính sách",
+        paragraph1:
+          "Chính sách có thể được cập nhật khi sản phẩm, quy trình vận hành hoặc yêu cầu pháp lý thay đổi. Phiên bản mới nhất cùng ngày cập nhật sẽ được công bố tại trang này.",
+      },
+    },
+  },
   metadata: {
     site: {
       tagline: "Quà tặng cá nhân hóa tinh tế cho những khoảnh khắc đáng nhớ",
@@ -56,12 +120,12 @@ export const vi = {
         "Giải pháp quà tặng doanh nghiệp cá nhân hóa, duyệt mẫu trước và hỗ trợ số lượng lớn từ Figure Lab.",
     },
     collection: {
-      title: "Bộ sưu tập | Figure Lab",
+      title: "Bộ sưu tập",
       description:
         "Khám phá mẫu quà cá nhân hóa, tạo nhân vật và chọn thành phần tại Figure Lab.",
     },
     orderTracking: {
-      title: "Tra cứu đơn hàng | Figure Lab",
+      title: "Tra cứu đơn hàng",
       description:
         "Theo dõi trạng thái và hành trình món quà Figure Lab của bạn.",
     },
@@ -272,30 +336,58 @@ export const vi = {
     },
   },
   characterBuilder: {
+    selectedCatalogParts: "Linh kiện thật đã chọn",
+    catalogPreviewNotice:
+      "Linh kiện được tự động căn vào đúng vùng trên nhân vật; ảnh gốc vẫn được giữ bên dưới để bạn đối chiếu.",
+    noSelection: "Không chọn",
+    noSelectionDescription: "Bỏ linh kiện đang chọn trong danh mục này.",
     tabs: {
       FACE: "Khuôn mặt",
-      HAIR: "Tóc",
+      HAIR: "Tóc & Mũ",
       TORSO: "Áo",
-      LEGS: "Chân",
+      LEGS: "Quần",
       HAT: "Mũ",
       ACCESSORY: "Phụ kiện",
     },
-    previewEmpty: "Chọn các bộ phận để xem nhân vật",
+    presetsTab: "Mẫu có sẵn",
+    previewEyebrow: "Nhân vật của bạn",
+    previewTitle: "Lắp ráp theo cách của riêng bạn",
+    previewEmpty: "Chọn một linh kiện để bắt đầu lắp ráp",
+    progressTitle: "Hoàn thiện nhân vật",
+    progressSummary: (count: number) => `${count} / 5 bộ phận chính`,
+    toolsEyebrow: "Kho linh kiện",
+    categoryNavigation: "Danh mục linh kiện nhân vật",
+    filterLabel: "Bộ lọc linh kiện",
+    subcategoryAll: "Tất cả",
     emptyTitle: "Chưa có bộ phận nhân vật để ráp",
     emptyDescription:
       "Figure Lab đang cập nhật khuôn mặt, tóc, áo và chân cho bộ tạo nhân vật.",
+    emptyCategoryTitle: "Chưa có linh kiện trong danh mục này",
+    emptyCategoryDescription:
+      "Hãy thử một danh mục khác hoặc quay lại chọn mẫu có sẵn.",
+    backToPresets: "Quay lại mẫu có sẵn",
+    loadError: "Không thể tải linh kiện. Vui lòng thử lại.",
+    retry: "Thử lại",
+    cancel: "Hủy",
     price: "Giá nhân vật",
-    reset: "Ráp lại từ đầu",
+    reset: "Làm lại",
+    resetConfirm: "Nhấn lần nữa để làm lại",
     eyebrow: "Tạo nhân vật",
     title: "Ráp một nhân vật LEGO của riêng bạn",
     description:
       "Chọn từng lớp của nhân vật. Bạn cũng có thể mua riêng từng thành phần trong tab Thành phần lẻ.",
     name: "Tên nhân vật",
-    defaultName: "Nhân vật của tôi",
-    included: "Đã gồm trong giá",
+    defaultName: "NV 1",
+    included: "Miễn phí",
     components: "thành phần",
     noParts: "Chưa có thành phần trong nhóm này.",
+    selectedParts: "Bộ phận đã chọn",
+    selectedCount: (count: number) => `${count} bộ phận`,
+    partsEstimate: "Tạm tính linh kiện",
+    finalTotal: "Tổng",
+    priceCompletesWhenReady: "Giá hoàn chỉnh khi đủ bộ phận chính",
     addToCart: "Thêm nhân vật vào giỏ",
+    addToCartShort: "Thêm vào giỏ",
     updateCart: "Cập nhật nhân vật",
     buyNow: "Mua ngay",
     quoting: "Đang xác nhận giá...",
@@ -306,6 +398,9 @@ export const vi = {
     blankCharacter: "Nhân vật trống",
     blankDescription: "Tự chọn từng bộ phận",
     presetDescription: "Mẫu ráp sẵn để chỉnh sửa nhanh",
+    randomize: "Ngẫu nhiên",
+    randomizing: "Đang lắp...",
+    missingParts: "Hãy chọn đủ khuôn mặt, áo và quần trước khi thêm vào giỏ.",
     customCharacter: "Nhân vật LEGO tự ráp",
     characterBody: "Thân nhân vật LEGO",
     customFrameLabel: "Nhân vật LEGO ráp riêng",
@@ -327,6 +422,9 @@ export const vi = {
     zoomIn: "Phóng to",
     zoomOut: "Thu nhỏ",
     fitPreview: "Vừa khung",
+    flipCharacter: "Xoay nhân vật",
+    decreaseQuantity: "Giảm số lượng",
+    increaseQuantity: "Tăng số lượng",
     hideTools: "Thu gọn bảng công cụ",
     showTools: "Mở bảng công cụ",
     cartSuccess: "Đã thêm nhân vật vào giỏ hàng",
@@ -623,6 +721,9 @@ export const vi = {
     accessorySection: "Charm / phụ kiện theo mẫu",
     accessoryEmpty: "Mẫu chưa có phụ kiện mặc định.",
     addAccessory: "Thêm phụ kiện",
+    otherAccessories: "Thêm phụ kiện khác",
+    searchAccessories: "Tìm phụ kiện...",
+    noAccessoryMatches: "Không tìm thấy phụ kiện phù hợp.",
     removeAccessory: "Bỏ phụ kiện",
     orderNote: "Ghi chú đơn hàng",
     notePlaceholder: "Ví dụ: đổi tên, ngày, màu sắc hoặc lời nhắn...",
@@ -642,7 +743,7 @@ export const vi = {
       "Chọn mẫu thiết kế, tạo nhân vật hoặc mua từng thành phần riêng.",
     tabs: {
       templates: "Mẫu thiết kế",
-      characters: "Nhân vật LEGO lẻ",
+      characters: "Nhân vật LEGO",
       parts: "Thành phần lẻ",
     },
     allCollections: "Tất cả",
@@ -709,7 +810,7 @@ export const vi = {
     page: (page: number, total: number) => `Trang ${page} / ${total}`,
     consultationOpened: "Đã mở tư vấn cho mẫu",
     characterProduct: {
-      typeBadge: "Nhân vật LEGO lẻ",
+      typeBadge: "Nhân vật LEGO",
       featured: "Nổi bật",
       componentCount: (count: number) => `${count} bộ phận`,
       accessoryCount: (count: number) => `${count} phụ kiện`,
@@ -749,7 +850,7 @@ export const vi = {
       "Shop sẽ liên hệ báo phí; khách thanh toán trực tiếp cho đơn vị vận chuyển.",
     customized: "Đã cá nhân hóa",
     finished: "Sản phẩm hoàn thiện",
-    standaloneCharacter: "Nhân vật LEGO lẻ",
+    standaloneCharacter: "Nhân vật LEGO",
     customCharacter: "Nhân vật tùy chỉnh",
     retailPart: "Thành phần LEGO lẻ",
     viewConfiguration: "Xem cấu hình",
@@ -1022,60 +1123,56 @@ export const vi = {
   orderTracking: {
     hero: {
       eyebrow: "Tra cứu đơn hàng",
-      title: "Theo dõi hành trình món quà của bạn",
+      title: "Xem mọi đơn hàng theo số điện thoại",
       description:
-        "Từ lúc tiếp nhận câu chuyện đến khi món quà được giao tận tay, mọi cập nhật quan trọng đều có ở đây.",
+        "Dùng số điện thoại đã nhập khi đặt hàng để tìm các đơn gần nhất và theo dõi hành trình từng món quà.",
       trust: [
         "Cập nhật rõ ràng",
         "Bảo mật bằng số điện thoại",
         "Hỗ trợ khi bạn cần",
       ],
-      visualCode: "FL-2026-0719",
+      visualCode: "090****567",
       visualStatus: "Đang hoàn thiện món quà",
       visualHint: "Dự kiến giao trong 2–3 ngày",
     },
     lookup: {
       eyebrow: "Kiểm tra trong vài giây",
-      title: "Món quà của bạn đang ở đâu?",
-      description: "Nhập đúng mã đơn và số điện thoại đã dùng khi đặt hàng.",
-      orderCodeLabel: "Mã đơn hàng",
-      orderCodePlaceholder: "Ví dụ: LS202607190001",
+      title: "Tìm đơn hàng bằng số điện thoại",
+      description:
+        "Nhập số điện thoại đã dùng khi đặt hàng để xem tất cả đơn phù hợp.",
       phoneLabel: "Số điện thoại",
       phonePlaceholder: "Ví dụ: 0901 234 567",
       submit: "Tra cứu",
       submitting: "Đang tra cứu...",
-      codeHint: "Mã đơn có trong email hoặc tin nhắn xác nhận.",
-      phoneHint: "Dùng số điện thoại đã đặt hàng để bảo vệ thông tin đơn.",
-      forgotCode: "Không nhớ mã đơn?",
+      phoneHint: "Chấp nhận cả định dạng 090... và +8490...",
+      privacyNote: "Thông tin liên hệ chỉ hiển thị ở dạng đã che.",
       needSupport: "Cần hỗ trợ?",
-      requiredError: "Vui lòng nhập đầy đủ mã đơn hàng và số điện thoại.",
-      phoneError: "Số điện thoại cần có ít nhất 8 chữ số.",
-      notFoundError: "Không tìm thấy đơn hàng khớp với thông tin bạn cung cấp.",
+      requiredError: "Vui lòng nhập số điện thoại đã dùng khi đặt hàng.",
+      phoneError: "Vui lòng nhập đúng định dạng số điện thoại Việt Nam.",
       networkError: "Chưa thể kết nối hệ thống. Vui lòng thử lại sau ít phút.",
-      success: "Đã tìm thấy đơn hàng. Đang đưa bạn đến phần kết quả.",
-      clearOrderCode: "Xóa mã đơn hàng",
+      success: "Đã tải các đơn hàng phù hợp.",
       clearPhone: "Xóa số điện thoại",
     },
     guide: {
       eyebrow: "Tra cứu thật đơn giản",
       title: "Ba bước để theo dõi món quà",
-      description: "Không cần đăng nhập, chỉ cần thông tin xác nhận đơn.",
+      description: "Không cần đăng nhập hay nhớ mã đơn hàng.",
       expand: "Xem hướng dẫn tra cứu",
       collapse: "Thu gọn hướng dẫn",
-      summary: "Tìm hiểu cách tra cứu, các bước xử lý và nơi tìm mã đơn.",
+      summary:
+        "Tìm hiểu cách tra cứu bằng số điện thoại và xem tiến độ từng đơn.",
       items: [
         {
-          title: "Nhập thông tin",
-          description: "Điền mã đơn và số điện thoại đã dùng khi đặt hàng.",
+          title: "Nhập số điện thoại",
+          description: "Dùng đúng số điện thoại đã nhập khi đặt hàng.",
         },
         {
-          title: "Xem trạng thái",
-          description:
-            "Biết món quà đang ở bước thiết kế, sản xuất hay giao hàng.",
+          title: "Chọn đơn hàng",
+          description: "Nếu có nhiều đơn, chọn đơn bạn muốn xem chi tiết.",
         },
         {
-          title: "Theo dõi tiếp theo",
-          description: "Xem mốc dự kiến và cập nhật mới nhất của đơn.",
+          title: "Theo dõi hành trình",
+          description: "Xem trạng thái, sản phẩm và mốc xử lý tiếp theo.",
         },
       ],
     },
@@ -1125,40 +1222,41 @@ export const vi = {
     },
     where: {
       eyebrow: "Thông tin hữu ích",
-      title: "Tìm mã đơn hàng ở đâu?",
+      title: "Vì sao chỉ cần số điện thoại?",
       description:
-        "Mã đơn thường bắt đầu bằng “LS” và được gửi ngay sau khi đặt hàng.",
+        "Số điện thoại lúc đặt hàng giúp hệ thống gom các đơn phù hợp vào một nơi.",
       items: [
         {
-          title: "Email xác nhận",
-          description: "Kiểm tra hộp thư chính và cả mục thư rác.",
-        },
-        {
-          title: "Tin nhắn hoặc Zalo",
-          description: "Xem lại cuộc trò chuyện xác nhận từ Figure Lab.",
-        },
-        {
-          title: "Hóa đơn & lịch sử",
+          title: "Một lần tra cứu, mọi đơn hàng",
           description:
-            "Mã đơn nằm ở đầu hóa đơn hoặc trang đặt hàng thành công.",
+            "Xem tất cả đơn cùng số điện thoại, đơn mới nhất ở trên.",
+        },
+        {
+          title: "Thông tin được bảo vệ",
+          description: "Thông tin liên hệ và địa chỉ luôn được che bớt.",
+        },
+        {
+          title: "Email vẫn giữ nguyên vai trò",
+          description:
+            "Email vẫn dùng để gửi xác nhận, không dùng làm điều kiện tra cứu.",
         },
       ],
-      sampleLabel: "Mã đơn mẫu",
-      sampleCode: "LS202607190001",
+      sampleLabel: "Số điện thoại được bảo vệ",
+      sampleCode: "090****567",
     },
     faq: {
       eyebrow: "Câu hỏi thường gặp",
       title: "Bạn cần thêm thông tin?",
       items: [
         {
-          question: "Không nhớ mã đơn phải làm gì?",
+          question: "Có cần nhớ mã đơn không?",
           answer:
-            "Kiểm tra email, tin nhắn xác nhận hoặc liên hệ Figure Lab bằng số điện thoại đã đặt hàng.",
+            "Không. Chỉ cần nhập số điện thoại đã dùng khi đặt hàng, hệ thống sẽ hiển thị tất cả đơn phù hợp.",
         },
         {
           question: "Vì sao không tìm thấy đơn hàng?",
           answer:
-            "Hãy kiểm tra đúng mã đơn, số điện thoại và thử lại không có khoảng trắng ở đầu hoặc cuối.",
+            "Hãy kiểm tra đúng số điện thoại đã đặt hàng. Hệ thống chấp nhận cả định dạng 0 và +84.",
         },
         {
           question: "Bao lâu trạng thái được cập nhật?",
@@ -1176,8 +1274,19 @@ export const vi = {
       eyebrow: "Figure Lab luôn đồng hành",
       title: "Chưa tìm thấy thông tin bạn cần?",
       description:
-        "Gửi mã đơn và số điện thoại, đội ngũ Figure Lab sẽ hỗ trợ kiểm tra nhanh nhất.",
+        "Gửi số điện thoại đã dùng khi đặt hàng, đội ngũ Figure Lab sẽ hỗ trợ kiểm tra nhanh nhất.",
       button: "Liên hệ tư vấn",
+    },
+    list: {
+      eyebrow: "Kết quả tra cứu",
+      title: "Các đơn hàng gần đây của bạn",
+      description:
+        "Đơn hàng được xếp từ mới nhất đến cũ nhất. Chọn một đơn để xem toàn bộ hành trình.",
+      viewDetails: "Xem chi tiết",
+      viewing: "Đang xem",
+      emptyTitle: "Không tìm thấy đơn hàng",
+      emptyDescription:
+        "Chưa có đơn hàng nào khớp với số điện thoại này. Hãy kiểm tra lại số hoặc liên hệ Figure Lab để được hỗ trợ.",
     },
     result: {
       eyebrow: "Kết quả tra cứu",
@@ -1746,7 +1855,7 @@ export const vi = {
       eyebrow: "Character Builder",
       title: "Tạo nhân vật LEGO",
       description:
-        "Không gian tạo nhân vật đang được chuẩn bị cho phase tiếp theo. Cấu trúc preview, công cụ, bước thực hiện, giá và CTA đã sẵn sàng.",
+        "Tự tay lắp ráp nhân vật LEGO theo phong cách của riêng bạn.",
       status: "Đang phát triển",
       backToStudio: "Chọn chế độ khác",
       previewLabel: "Khu vực xem trước",
@@ -1818,11 +1927,11 @@ export const vi = {
     sidebar: {
       tabs: {
         frame: "Khung",
-        background: "Mẫu nền",
+        background: "Ảnh nền",
         image: "Hình ảnh",
         templates: "Mẫu thiết kế",
         uploads: "Tải ảnh lên",
-        text: "Văn bản",
+        text: "Nội dung",
         assets: "Phụ kiện",
         characters: "Nhân vật",
         accessories: "Phụ kiện",
@@ -2051,6 +2160,8 @@ export const vi = {
       previewError: "Không thể chuẩn bị ảnh xem trước. Vui lòng thử lại.",
       restoreMissing:
         "Không tìm thấy thiết kế trong giỏ hàng. Bạn có thể bắt đầu thiết kế mới.",
+      cartAdded: "Đã thêm thiết kế vào giỏ hàng.",
+      cartUpdated: "Đã cập nhật thiết kế trong giỏ hàng.",
     },
     partColors: [
       { key: "đen", label: "Đen", hex: "#1f1f21" },

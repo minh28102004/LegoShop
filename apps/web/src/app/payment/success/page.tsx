@@ -81,7 +81,7 @@ function PaymentSuccessContent() {
 
       <div className="flex flex-col sm:flex-row gap-4">
         <Link 
-          href={`/order-tracking${displayOrderCode ? `?code=${displayOrderCode}` : ""}`}
+          href="/order-tracking"
           className="px-8 py-3 bg-red-400 hover:bg-red-500 text-white font-medium rounded-full transition-colors flex items-center justify-center gap-2"
         >
           <Search className="w-4 h-4" /> {copy.trackProgress}

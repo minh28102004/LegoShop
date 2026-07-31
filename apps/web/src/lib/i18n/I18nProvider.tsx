@@ -1,6 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { usePathname } from "next/navigation";
 import {
   createContext,
   useCallback,
@@ -62,6 +63,7 @@ function applyReplacements(
 
 export function I18nProvider({ children }: { children: ReactNode }) {
   const [locale, setLocaleState] = useState<Locale>(DEFAULT_LOCALE);
+  const pathname = usePathname();
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -95,6 +97,62 @@ export function I18nProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const dictionary = useMemo(() => getDictionary(locale), [locale]);
+
+  useEffect(() => {
+    const routeTitle =
+      pathname === "/business"
+        ? dictionary.metadata.business.title
+        : pathname === "/collection"
+          ? dictionary.metadata.collection.title
+          : pathname === "/order-tracking"
+            ? dictionary.metadata.orderTracking.title
+            : pathname.startsWith("/studio")
+              ? dictionary.metadata.studio.title
+              : pathname === "/cart"
+                ? dictionary.cart.title
+                : pathname === "/checkout"
+                  ? dictionary.checkout.title
+                  : pathname === "/login"
+                    ? dictionary.auth.login.title
+                    : pathname === "/register"
+                      ? dictionary.auth.register.title
+                      : pathname === "/order-success"
+                        ? dictionary.orderSuccess.title
+                        : pathname === "/payment/cancel"
+                          ? dictionary.payment.cancel.title
+                          : pathname === "/payment/success"
+                            ? dictionary.payment.success.paidTitle
+                            : pathname === "/privacy-policy"
+                              ? dictionary.privacyPolicy.title
+                              : pathname === "/loading-lab"
+                                ? dictionary.loadingLab.metadataTitle
+                                : null;
+
+    const localizedTitle = routeTitle
+      ? routeTitle.includes("Figure Lab")
+        ? routeTitle
+        : `${routeTitle} | Figure Lab`
+      : dictionary.metadata.site.defaultTitle;
+
+    const syncDocumentTitle = () => {
+      if (document.title !== localizedTitle) {
+        document.title = localizedTitle;
+      }
+    };
+
+    syncDocumentTitle();
+
+    // Next.js can stream route metadata after client effects. Keep the active
+    // locale authoritative so a late head update cannot restore the VI title.
+    const observer = new MutationObserver(syncDocumentTitle);
+    observer.observe(document.head, {
+      childList: true,
+      subtree: true,
+      characterData: true,
+    });
+
+    return () => observer.disconnect();
+  }, [dictionary, pathname]);
 
   const t = useCallback(
     (key: string, replacements?: Record<string, string>) => {

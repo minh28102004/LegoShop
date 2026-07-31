@@ -21,12 +21,16 @@ export default function CollectionsPage() {
     { key: 'description', label: t('collectionsPage.descriptionField'), type: 'textarea' },
     { key: 'imageUrl', label: t('collectionsPage.image'), type: 'image' },
   ];
+  const tableFields = ['name', 'imageUrl', 'slug', 'status'].flatMap((key) =>
+    fields.filter((field) => field.key === key),
+  );
 
   return (
     <EntityManager
       title={t('collectionsPage.singularTitle')}
       resource='collections'
       fields={fields}
+      tableFields={tableFields}
       pageTitle={t('collectionsPage.title')}
       pageDescription={t('collectionsPage.description')}
       createButtonLabel={t('collectionsPage.createCollection')}

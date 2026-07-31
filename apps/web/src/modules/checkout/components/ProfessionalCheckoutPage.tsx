@@ -8,13 +8,17 @@ import type {
   CreateOrderRequestContract,
   JsonObject,
 } from "@lego-shop/shared";
-import { formatCurrency as formatPrice } from "@lego-shop/shared";
-import { motion, useReducedMotion } from "framer-motion";
+import {
+  formatCurrency as formatPrice,
+  normalizeVietnamesePhone,
+} from "@lego-shop/shared";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
   AlertCircle,
   ArrowLeft,
   ArrowRight,
   Check,
+  ChevronDown,
   ChevronRight,
   ListChecks,
   LoaderCircle,
@@ -45,6 +49,7 @@ import { useCart } from "@/features/cart/hooks/useCart";
 import type { SimpleCartItem } from "@/features/cart/store";
 import { publicApiClient } from "@/lib/api/public-client";
 import { useI18n } from "@/lib/i18n/useI18n";
+import { getLocalizedApiError } from "@/lib/i18n/errors";
 import type { CheckoutDictionary } from "@/lib/i18n/dictionaries";
 import {
   getDesignCharacterCount,
@@ -143,19 +148,6 @@ function FluentEmoji({
       className={`${className} shrink-0 object-contain`}
     />
   );
-}
-
-function normalizeVietnamesePhone(value: string) {
-  const trimmed = value.trim();
-  if (!trimmed) return "";
-  const hasInternationalPrefix = trimmed.startsWith("+84");
-  const digits = trimmed.replace(/\D/g, "");
-  const normalized = hasInternationalPrefix
-    ? `0${digits.slice(2)}`
-    : digits.startsWith("84")
-      ? `0${digits.slice(2)}`
-      : digits;
-  return /^(?:0[35789]\d{8}|02\d{8,9})$/.test(normalized) ? normalized : "";
 }
 
 function readString(value: unknown) {
@@ -416,10 +408,53 @@ function SummaryRow({
       }`}
     >
       <span>{label}</span>
-      <span className="shrink-0 text-right font-semibold text-slate-950 tabular-nums">
-        {value}
-      </span>
+      <FastMetric
+        value={value}
+        className="shrink-0 text-right font-semibold text-slate-950 tabular-nums"
+      />
     </div>
+  );
+}
+
+function FastMetric({
+  value,
+  className = "",
+}: {
+  value: string;
+  className?: string;
+}) {
+  const shouldReduceMotion = useReducedMotion() ?? false;
+
+  return (
+    <span
+      aria-live="polite"
+      aria-atomic="true"
+      className={`relative inline-grid max-w-full overflow-hidden ${className}`}
+    >
+      <span className="sr-only">{value}</span>
+      <AnimatePresence initial={!shouldReduceMotion} mode="popLayout">
+        <motion.span
+          key={value}
+          aria-hidden="true"
+          initial={
+            shouldReduceMotion ? false : { opacity: 0.45, y: 5, scale: 0.99 }
+          }
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={
+            shouldReduceMotion
+              ? { opacity: 0 }
+              : { opacity: 0, y: -4, scale: 0.99 }
+          }
+          transition={{
+            duration: shouldReduceMotion ? 0 : 0.18,
+            ease: [0.22, 1, 0.36, 1],
+          }}
+          className="col-start-1 row-start-1 inline-flex items-baseline justify-end"
+        >
+          {value}
+        </motion.span>
+      </AnimatePresence>
+    </span>
   );
 }
 
@@ -432,11 +467,11 @@ export default function ProfessionalCheckoutPage() {
     isEmpty,
     clearCart,
     removeItem,
-    updateItemNote,
     updateQuotedPrices,
   } = useCart();
-  const { dictionary } = useI18n();
+  const { dictionary, t } = useI18n();
   const copy = dictionary.checkout;
+  const cartCopy = dictionary.cart;
   const router = useRouter();
   const shouldReduceMotion = useReducedMotion();
   const submitLockRef = useRef(false);
@@ -464,6 +499,9 @@ export default function ProfessionalCheckoutPage() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [orderDetailsOpen, setOrderDetailsOpen] = useState(false);
   const [previewItem, setPreviewItem] = useState<SimpleCartItem | null>(null);
+  const [expandedConfigurationIds, setExpandedConfigurationIds] = useState(
+    () => new Set<string>(),
+  );
   const [confirmedPriceSignature, setConfirmedPriceSignature] = useState("");
   const [manualPriceChanges, setManualPriceChanges] = useState<
     Record<string, CartQuoteItemResponseContract>
@@ -799,9 +837,7 @@ export default function ProfessionalCheckoutPage() {
       setDiscountCode(voucher.code);
     } catch (error) {
       setAppliedVoucher(null);
-      setVoucherError(
-        error instanceof Error ? error.message : copy.validation.submitFailed,
-      );
+      setVoucherError(getLocalizedApiError(error, t, "checkout.validation.submitFailed"));
     } finally {
       setVoucherLoading(false);
     }
@@ -967,7 +1003,7 @@ export default function ProfessionalCheckoutPage() {
       );
     } catch (error) {
       setSubmitError(
-        error instanceof Error ? error.message : copy.validation.submitFailed,
+        getLocalizedApiError(error, t, "checkout.validation.submitFailed"),
       );
     } finally {
       submitLockRef.current = false;
@@ -1032,9 +1068,10 @@ export default function ProfessionalCheckoutPage() {
                         {copy.quantity}: {item.quantity}
                       </p>
                     </div>
-                    <span className="shrink-0 text-sm font-semibold text-slate-950 tabular-nums">
-                      {formatPrice(lineTotal)}
-                    </span>
+                    <FastMetric
+                      value={formatPrice(lineTotal)}
+                      className="shrink-0 text-sm font-semibold text-slate-950 tabular-nums"
+                    />
                   </div>
 
                   {invalid ? (
@@ -1090,6 +1127,9 @@ export default function ProfessionalCheckoutPage() {
         const invalid = quoteItem?.valid === false;
         const valid = quoteItem?.valid === true;
         const parts = getCartItemParts(item);
+        const configurationExpanded = expandedConfigurationIds.has(item.id);
+        const visibleParts = configurationExpanded ? parts : parts.slice(0, 2);
+        const hiddenPartCount = Math.max(0, parts.length - visibleParts.length);
         const templateName = getDesignTemplateName(item.designData);
         const characterCount = getDesignCharacterCount(item.designData);
         const productTypeLabel = getCheckoutProductTypeLabel(item, copy);
@@ -1146,9 +1186,10 @@ export default function ProfessionalCheckoutPage() {
                         )}
                       </span>
                     ) : null}
-                    <span className="block text-sm font-semibold text-slate-950 tabular-nums">
-                      {formatPrice(lineTotal)}
-                    </span>
+                    <FastMetric
+                      value={formatPrice(lineTotal)}
+                      className="text-sm font-semibold text-slate-950 tabular-nums"
+                    />
                   </div>
                 </div>
 
@@ -1195,40 +1236,64 @@ export default function ProfessionalCheckoutPage() {
               </div>
             ) : null}
 
-            <div className="mt-3 space-y-3 rounded-[14px] bg-[#f6f9fb] p-3">
-              {parts.length > 0 ? (
-                <dl className="space-y-2 text-xs">
-                  {parts.map((part, index) => (
+            {parts.length > 0 ? (
+              <div className="mt-3 rounded-[14px] bg-[#f7fafc] px-3 py-2.5">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#536b89]">
+                    {cartCopy.configurationTitle}
+                  </span>
+                  <span className="text-[10px] font-semibold text-slate-400">
+                    {cartCopy.configurationItemCount(parts.length)}
+                  </span>
+                </div>
+                <dl className="mt-1.5 space-y-0.5">
+                  {visibleParts.map((part, index) => (
                     <div
                       key={`${part.type}-${part.id ?? index}`}
-                      className="flex items-start justify-between gap-3"
+                      className="flex min-w-0 items-center justify-between gap-3 py-1.5"
                     >
-                      <dt className="min-w-0 break-words text-slate-500">
-                        {sanitizeCartText(part.name)} × {part.quantity}
+                      <dt className="min-w-0 truncate text-xs font-medium text-[#536b89]">
+                        {sanitizeCartText(part.name)}
+                        <span className="ml-1 whitespace-nowrap font-semibold text-[#247fb8]">
+                          ×{part.quantity}
+                        </span>
                       </dt>
-                      <dd className="shrink-0 font-medium text-slate-800 tabular-nums">
+                      <dd className="whitespace-nowrap text-xs font-bold tabular-nums text-slate-700">
                         {formatPrice(part.totalPrice)}
                       </dd>
                     </div>
                   ))}
                 </dl>
-              ) : null}
-              <label className="block">
-                <span className="mb-1.5 block text-xs font-semibold text-slate-600">
-                  {copy.itemNote}
-                </span>
-                <Textarea
-                  rows={2}
-                  value={item.note ?? ""}
-                  onChange={(event) =>
-                    updateItemNote(item.id, event.target.value)
-                  }
-                  placeholder={copy.itemNotePlaceholder}
-                  className="min-h-16 resize-none px-3 py-2 text-xs leading-5"
-                  containerClassName="space-y-0"
-                />
-              </label>
-            </div>
+                {parts.length > 2 ? (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setExpandedConfigurationIds((current) => {
+                        const next = new Set(current);
+                        if (next.has(item.id)) {
+                          next.delete(item.id);
+                        } else {
+                          next.add(item.id);
+                        }
+                        return next;
+                      })
+                    }
+                    aria-expanded={configurationExpanded}
+                    className="group mt-1.5 flex w-full items-center justify-center gap-1.5 border-t border-[#e2ebf2] pt-2 text-[11px] font-semibold text-[#2588c8] transition-colors hover:text-[#176995] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#82c5ec]"
+                  >
+                    {configurationExpanded
+                      ? cartCopy.collapseOptions
+                      : cartCopy.showMoreOptions(hiddenPartCount)}
+                    <ChevronDown
+                      className={`h-3.5 w-3.5 transition-transform duration-200 ${
+                        configurationExpanded ? "rotate-180" : ""
+                      }`}
+                      aria-hidden="true"
+                    />
+                  </button>
+                ) : null}
+              </div>
+            ) : null}
 
             <div className="mt-3 flex flex-wrap items-center gap-3">
               {item.designData?.type === "CUSTOM_FRAME" ? (
@@ -1261,7 +1326,7 @@ export default function ProfessionalCheckoutPage() {
       onClick={() => {
         if (mobile) setOrderDetailsOpen(false);
       }}
-      className="group relative mt-4 flex h-[52px] w-full items-center justify-center gap-2 overflow-hidden rounded-[15px] bg-[#2488c7] px-4 text-sm font-semibold text-white shadow-[0_12px_30px_-20px_rgba(37,143,206,0.95)] outline-none transition-all duration-300 before:absolute before:inset-y-0 before:left-[-45%] before:w-1/3 before:-skew-x-12 before:bg-gradient-to-r before:from-transparent before:via-white/35 before:to-transparent before:transition-transform before:duration-700 hover:-translate-y-0.5 hover:bg-[#1976ae] hover:shadow-[0_16px_30px_-16px_rgba(37,143,206,0.9)] hover:before:translate-x-[430%] focus-visible:ring-4 focus-visible:ring-[#b9def3] active:translate-y-0 active:scale-[0.99] disabled:cursor-not-allowed disabled:translate-y-0 disabled:bg-slate-300 disabled:shadow-none disabled:before:hidden disabled:hover:bg-slate-300"
+      className="group relative mt-4 flex h-[52px] w-full items-center justify-center gap-2 overflow-hidden rounded-[15px] bg-[#2488c7] px-4 text-sm font-semibold text-white outline-none transition-all duration-300 before:absolute before:inset-y-0 before:left-[-45%] before:w-1/3 before:-skew-x-12 before:bg-gradient-to-r before:from-transparent before:via-white/35 before:to-transparent before:transition-transform before:duration-700 hover:-translate-y-0.5 hover:bg-[#1976ae] hover:before:translate-x-[430%] focus-visible:ring-4 focus-visible:ring-[#b9def3] active:translate-y-0 active:scale-[0.99] disabled:cursor-not-allowed disabled:translate-y-0 disabled:bg-slate-300 disabled:before:hidden disabled:hover:bg-slate-300"
     >
       {submitStatus !== "idle" ? (
         <LoaderCircle className="relative z-10 h-4 w-4 animate-spin" />
@@ -1304,9 +1369,10 @@ export default function ProfessionalCheckoutPage() {
         <span className="text-sm font-semibold text-slate-700">
           {copy.total}
         </span>
-        <span className="text-2xl font-semibold tracking-tight text-[#10253f] tabular-nums">
-          {formatPrice(finalTotal)}
-        </span>
+        <FastMetric
+          value={formatPrice(finalTotal)}
+          className="text-2xl font-semibold tracking-tight text-[#10253f] tabular-nums"
+        />
       </div>
       {hasInvalidOrderTotal ? (
         <div className="mt-3 flex gap-2 rounded-[14px] border border-amber-200 bg-amber-50 p-3 text-xs leading-5 text-amber-800">
@@ -1316,9 +1382,10 @@ export default function ProfessionalCheckoutPage() {
       ) : null}
       <div className="mt-2 flex justify-between gap-4 text-xs text-slate-500">
         <span>{copy.payNow} (100%)</span>
-        <span className="font-semibold text-slate-800 tabular-nums">
-          {formatPrice(amountToPay)}
-        </span>
+        <FastMetric
+          value={formatPrice(amountToPay)}
+          className="font-semibold text-slate-800 tabular-nums"
+        />
       </div>
       {mobile ? (
         <>
@@ -1334,17 +1401,6 @@ export default function ProfessionalCheckoutPage() {
         </>
       ) : (
         <>
-          <div className="mt-4 flex items-start gap-2.5 rounded-[14px] bg-[#eef8fd] p-3">
-            <FluentEmoji name="shield" className="h-8 w-8" />
-            <div>
-              <p className="text-xs font-semibold text-slate-800">
-                {copy.trustTitle}
-              </p>
-              <p className="mt-0.5 text-[11px] leading-4 text-slate-500">
-                {copy.trustDescription}
-              </p>
-            </div>
-          </div>
           {submitError ? (
             <div
               role="alert"
@@ -1391,7 +1447,7 @@ export default function ProfessionalCheckoutPage() {
           size="sm"
           className="h-8 px-3.5 text-xs font-semibold"
         >
-          {itemCount} {copy.products}
+          <FastMetric value={`${itemCount} ${copy.products}`} />
         </Badge>
       </div>
       {quoteStatus === "loading" ? (
@@ -1717,7 +1773,7 @@ export default function ProfessionalCheckoutPage() {
                             setShippingMethod,
                           )
                         }
-                        className={`flex h-full items-start gap-3 rounded-[16px] border p-4 text-left outline-none transition-[border-color,background-color,box-shadow,transform] duration-200 hover:-translate-y-0.5 focus-visible:ring-3 focus-visible:ring-[#b9def3] motion-reduce:transform-none motion-reduce:transition-none sm:p-[18px] ${
+                        className={`business-hover-lift flex h-full items-start gap-3 rounded-[16px] border p-4 text-left outline-none hover:shadow-[0_10px_22px_-20px_rgba(18,45,78,0.28)] focus-visible:ring-3 focus-visible:ring-[#b9def3] sm:p-[18px] ${
                           active
                             ? "border-[#2f91d0] bg-[#f0f9fe] shadow-sm"
                             : "border-[#dce6ed] bg-white hover:border-[#9bcbe8]"
@@ -1913,7 +1969,7 @@ export default function ProfessionalCheckoutPage() {
             </SectionCard>
           </div>
 
-          <aside className="hidden min-w-0 self-start min-[1120px]:sticky min-[1120px]:top-[calc(var(--site-header-height)_+_10px)] min-[1120px]:block min-[1120px]:h-fit">
+          <aside className="hidden min-w-0 self-start min-[1120px]:sticky min-[1120px]:top-2.5 min-[1120px]:block min-[1120px]:h-fit">
             <section className="overflow-hidden rounded-[24px] border border-[#dce6ed] bg-white shadow-[0_26px_70px_-44px_rgba(17,49,72,0.5)]">
               {renderSummaryHeader()}
               {hasActivePriceChanges ? (
@@ -1977,9 +2033,10 @@ export default function ProfessionalCheckoutPage() {
             <span className="block text-[11px] text-slate-500">
               {copy.total}
             </span>
-            <span className="block truncate text-lg font-semibold text-[#10253f] tabular-nums">
-              {formatPrice(finalTotal)}
-            </span>
+            <FastMetric
+              value={formatPrice(finalTotal)}
+              className="block truncate text-lg font-semibold text-[#10253f] tabular-nums"
+            />
             <span className="block text-[11px] font-medium text-[#247eb5]">
               {copy.mobileSummary}
             </span>
@@ -1988,7 +2045,7 @@ export default function ProfessionalCheckoutPage() {
             type="submit"
             form={CHECKOUT_FORM_ID}
             disabled={placeOrderDisabled}
-            className="flex h-12 min-w-[148px] items-center justify-center gap-2 rounded-[14px] bg-[#2488c7] px-4 text-sm font-semibold text-white shadow-sm outline-none transition active:scale-[0.99] disabled:cursor-not-allowed disabled:bg-slate-300"
+            className="flex h-12 min-w-[148px] items-center justify-center gap-2 rounded-[14px] bg-[#2488c7] px-4 text-sm font-semibold text-white outline-none transition active:scale-[0.99] disabled:cursor-not-allowed disabled:bg-slate-300"
           >
             {submitStatus !== "idle" ? (
               <LoaderCircle className="h-4 w-4 animate-spin" />
@@ -2003,29 +2060,31 @@ export default function ProfessionalCheckoutPage() {
         onClose={() => setOrderDetailsOpen(false)}
         size="sm"
         title={copy.orderDetailsTitle}
-        className="h-[calc(100dvh-32px)] max-h-[calc(100dvh-32px)] rounded-[22px] sm:h-auto sm:max-h-[calc(100dvh-40px)] sm:rounded-[24px]"
-        contentClassName="custom-scrollbar max-h-[calc(100dvh-96px)] bg-[#f3f7fa] p-4 sm:max-h-[calc(100dvh-108px)] sm:p-5"
-      >
-        <button
-          type="button"
-          aria-label={copy.closeSummary}
-          onClick={() => setOrderDetailsOpen(false)}
-          className="absolute right-3 top-3 z-20 grid h-10 w-10 place-items-center rounded-[13px] bg-slate-100 text-slate-600 outline-none transition-colors hover:bg-red-50 hover:text-red-600 focus-visible:ring-2 focus-visible:ring-[#2f91d0] sm:right-4 sm:top-3"
-        >
-          <X className="h-5 w-5" />
-        </button>
-        <div className="mb-4 flex items-center justify-between gap-3">
-          <p className="text-sm font-medium text-slate-500">
-            {copy.viewAllProducts.replace("{count}", String(itemCount))}
-          </p>
+        titleClassName="truncate text-xl sm:text-2xl"
+        headerClassName="gap-2 pl-4 pr-14 [&>div:last-child]:ml-0 sm:gap-3 sm:pl-6 sm:pr-[72px]"
+        headerAccessory={
           <Badge
             variant="highlight"
             size="sm"
-            className="h-8 shrink-0 px-3.5 text-xs font-semibold"
+            className="h-8 px-3 text-xs font-semibold"
           >
-            {itemCount} {copy.products}
+            <FastMetric value={`${itemCount} ${copy.products}`} />
           </Badge>
-        </div>
+        }
+        className="h-[calc(100dvh-32px)] max-h-[calc(100dvh-32px)] rounded-[22px] sm:h-auto sm:max-h-[calc(100dvh-40px)] sm:rounded-[24px]"
+        contentClassName="custom-scrollbar max-h-[calc(100dvh-96px)] bg-[#f3f7fa] p-4 sm:max-h-[calc(100dvh-108px)] sm:p-5"
+      >
+        <motion.button
+          type="button"
+          aria-label={copy.closeSummary}
+          onClick={() => setOrderDetailsOpen(false)}
+          whileHover={{ rotate: 90 }}
+          whileTap={{ scale: 0.96 }}
+          transition={{ type: "spring", stiffness: 500, damping: 18 }}
+          className="absolute right-3 top-3 z-20 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-transparent p-2 text-slate-800 transition-colors duration-200 hover:bg-red-50 hover:text-red-600 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#ffe16a]/45 sm:right-4 sm:top-3"
+        >
+          <X className="h-[22px] w-[22px]" aria-hidden="true" />
+        </motion.button>
         {renderDetailedOrderItems()}
       </Modal>
 

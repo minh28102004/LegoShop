@@ -48,6 +48,9 @@ import {
   uploadImage,
 } from '@/modules/admin/services/adminApi';
 import { useI18n } from '@/lib/i18n/useI18n';
+import { getLocalizedApiError } from '@/lib/i18n/errors';
+import { formatDateTime, formatNumber, formatVnd } from '@/lib/i18n/format';
+import type { Locale } from '@/lib/i18n/config';
 import AdminToolbar, {
   AdminToolbarField,
   AdminToolbarIcon,
@@ -56,6 +59,9 @@ import AdminToolbar, {
 } from '@/modules/admin/components/AdminToolbar';
 import AdminNavIcon from '@/modules/admin/components/AdminNavIcon';
 import EntityFilterDrawer from '@/modules/admin/components/entities/EntityFilterDrawer';
+import ProductComponentConfigField, {
+  type ProductConfigOptions,
+} from '@/modules/admin/components/entities/ProductComponentConfigField';
 import {
   EMPTY_ENTITY_FILTER_DRAFT,
   type EntityFilterDraft,
@@ -73,6 +79,7 @@ type FieldType =
   | 'json'
   | 'tags'
   | 'content-fields'
+  | 'product-config'
   | 'image'
   | 'images';
 type ImageInputMode = 'file' | 'url';
@@ -95,6 +102,8 @@ export type EntityField = {
   options?: Array<{ label: string; value: string }>;
   placeholder?: string;
   helpText?: string;
+  productConfigOptions?: ProductConfigOptions;
+  advanced?: boolean;
 };
 
 type EntityManagerProps<K extends ResourceKey> = {
@@ -111,21 +120,24 @@ type EntityTableColumn = {
   id: string;
   label: string;
   field: EntityField;
+  className?: string;
+  sortable?: boolean;
+};
+
+type EntityTableColumnPolicy = {
+  key: string;
+  className: string;
+  sortable?: boolean;
+};
+
+type EntityTablePolicy = {
+  minWidth: string;
+  columns: EntityTableColumnPolicy[];
 };
 
 const fieldCardClass = 'min-w-0 space-y-2';
-const NUMBER_FORMAT = new Intl.NumberFormat('vi-VN');
-const CURRENCY_FORMAT = new Intl.NumberFormat('vi-VN', {
-  style: 'currency',
-  currency: 'VND',
-  maximumFractionDigits: 0,
-});
 const ENTITY_PAGE_SIZE = 20;
-const PAGE_SIZE_LABEL = {
-  vi: 'Mỗi trang',
-  en: 'Per page',
-} as const;
-const ENTITY_ACTION_COLUMN_CLASS = 'w-[9%] min-w-[112px] max-w-[124px] px-2 text-center';
+const ENTITY_ACTION_COLUMN_CLASS = 'w-[110px] min-w-[110px] max-w-[110px] px-2 text-center';
 const ENTITY_DATE_FILTER_RESOURCES = new Set<ResourceKey>([
   'products',
   'templates',
@@ -141,23 +153,6 @@ const ENTITY_DATE_FILTER_RESOURCES = new Set<ResourceKey>([
   'collections',
   'vouchers',
 ]);
-const DATE_TIME_FORMATTERS = {
-  vi: new Intl.DateTimeFormat('vi-VN', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  }),
-  en: new Intl.DateTimeFormat('en-US', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  }),
-} as const;
-
 type SortDirection = 'asc' | 'desc';
 type EntityListMeta = PaginatedResourceResponse<unknown>['meta'];
 
@@ -170,7 +165,12 @@ function getFieldLayoutClass(field: EntityField, resource: ResourceKey) {
   const normalizedKey = field.key.toLowerCase();
 
   if (field.type === 'textarea') return 'lg:col-span-12';
-  if (field.type === 'json' || field.type === 'tags' || field.type === 'content-fields') return 'lg:col-span-12';
+  if (
+    field.type === 'json' ||
+    field.type === 'tags' ||
+    field.type === 'content-fields' ||
+    field.type === 'product-config'
+  ) return 'lg:col-span-12';
   if (field.type === 'image' || field.type === 'images') return 'lg:col-span-12';
   if (field.type === 'checkbox') return 'lg:col-span-4 xl:col-span-3 max-w-[320px]';
   if (field.type === 'number') return 'lg:col-span-3';
@@ -227,6 +227,8 @@ function getEntityPrimaryColumnClass(resource: ResourceKey) {
 }
 
 function getEntityTableColumnClass(column: EntityTableColumn, resource: ResourceKey) {
+  if (column.className) return column.className;
+
   const field = column.field;
   const normalizedKey = field.key.toLowerCase();
 
@@ -279,7 +281,7 @@ function getSyntheticEntityTableField(key: string, locale: string): EntityField 
   };
 }
 
-function formatEntityDateTime(value: unknown, locale: string) {
+function formatEntityDateTime(value: unknown, locale: Locale) {
   const date =
     typeof value === 'string' || typeof value === 'number'
       ? new Date(value)
@@ -289,7 +291,7 @@ function formatEntityDateTime(value: unknown, locale: string) {
 
   if (!date || Number.isNaN(date.getTime())) return '-';
 
-  return DATE_TIME_FORMATTERS[locale === 'vi' ? 'vi' : 'en'].format(date);
+  return formatDateTime(date, locale);
 }
 
 function getEntityUiText(locale: string, key: string) {
@@ -329,44 +331,182 @@ function getEntityUiText(locale: string, key: string) {
   return locale === 'vi' ? vi[key] : en[key];
 }
 
+const ENTITY_TABLE_POLICIES: Partial<Record<ResourceKey, EntityTablePolicy>> = {
+  products: {
+    minWidth: '860px',
+    columns: [
+      { key: 'name', className: 'min-w-[240px] text-left', sortable: true },
+      { key: 'basePrice', className: 'w-[120px] min-w-[120px] max-w-[120px] text-right', sortable: true },
+      { key: 'thumbnailUrl', className: 'w-[100px] min-w-[100px] max-w-[100px] text-center' },
+      { key: 'published', className: 'w-[130px] min-w-[130px] max-w-[130px] text-center' },
+      { key: 'updatedAt', className: 'w-[170px] min-w-[170px] max-w-[170px] whitespace-nowrap text-center', sortable: true },
+    ],
+  },
+  accessories: {
+    minWidth: '920px',
+    columns: [
+      { key: 'name', className: 'min-w-[220px] text-left', sortable: true },
+      { key: 'imageUrl', className: 'w-[100px] min-w-[100px] max-w-[100px] text-center' },
+      { key: 'categoryId', className: 'w-[180px] min-w-[180px] max-w-[180px] text-left', sortable: true },
+      { key: 'price', className: 'w-[120px] min-w-[120px] max-w-[120px] text-right' },
+      { key: 'updatedAt', className: 'w-[170px] min-w-[170px] max-w-[170px] whitespace-nowrap text-center', sortable: true },
+    ],
+  },
+  'frame-options': {
+    minWidth: '780px',
+    columns: [
+      { key: 'frameSize', className: 'min-w-[160px] text-left' },
+      { key: 'imageUrl', className: 'w-[100px] min-w-[100px] max-w-[100px] text-center' },
+      { key: 'price', className: 'w-[120px] min-w-[120px] max-w-[120px] text-right', sortable: true },
+      { key: 'stock', className: 'w-[100px] min-w-[100px] max-w-[100px] text-center', sortable: true },
+      { key: 'updatedAt', className: 'w-[170px] min-w-[170px] max-w-[170px] whitespace-nowrap text-center', sortable: true },
+    ],
+  },
+  'character-parts': {
+    minWidth: '980px',
+    columns: [
+      { key: 'name', className: 'min-w-[220px] text-left', sortable: true },
+      { key: 'imageUrl', className: 'w-[100px] min-w-[100px] max-w-[100px] text-center' },
+      { key: 'type', className: 'w-[160px] min-w-[160px] max-w-[160px] text-left', sortable: true },
+      { key: 'priceAdjustment', className: 'w-[130px] min-w-[130px] max-w-[130px] text-right' },
+      { key: 'status', className: 'w-[130px] min-w-[130px] max-w-[130px] text-center', sortable: true },
+      { key: 'updatedAt', className: 'w-[170px] min-w-[170px] max-w-[170px] whitespace-nowrap text-center', sortable: true },
+    ],
+  },
+  'character-presets': {
+    minWidth: '1020px',
+    columns: [
+      { key: 'name', className: 'min-w-[220px] text-left', sortable: true },
+      { key: 'previewImageUrl', className: 'w-[100px] min-w-[100px] max-w-[100px] text-center' },
+      { key: 'isBuilderPreset', className: 'w-[135px] min-w-[135px] max-w-[135px] text-center' },
+      { key: 'isSellable', className: 'w-[125px] min-w-[125px] max-w-[125px] text-center' },
+      { key: 'status', className: 'w-[130px] min-w-[130px] max-w-[130px] text-center', sortable: true },
+      { key: 'updatedAt', className: 'w-[170px] min-w-[170px] max-w-[170px] whitespace-nowrap text-center', sortable: true },
+    ],
+  },
+  'frame-backgrounds': {
+    minWidth: '880px',
+    columns: [
+      { key: 'title', className: 'min-w-[260px] text-left', sortable: true },
+      { key: 'imageUrl', className: 'w-[100px] min-w-[100px] max-w-[100px] text-center' },
+      { key: 'sortOrder', className: 'w-[105px] min-w-[105px] max-w-[105px] text-center', sortable: true },
+      { key: 'status', className: 'w-[130px] min-w-[130px] max-w-[130px] text-center', sortable: true },
+      { key: 'updatedAt', className: 'w-[170px] min-w-[170px] max-w-[170px] whitespace-nowrap text-center', sortable: true },
+    ],
+  },
+  collections: {
+    minWidth: '940px',
+    columns: [
+      { key: 'name', className: 'min-w-[220px] text-left', sortable: true },
+      { key: 'imageUrl', className: 'w-[100px] min-w-[100px] max-w-[100px] text-center' },
+      { key: 'slug', className: 'w-[190px] min-w-[190px] max-w-[190px] text-left', sortable: true },
+      { key: 'status', className: 'w-[130px] min-w-[130px] max-w-[130px] text-center', sortable: true },
+      { key: 'updatedAt', className: 'w-[170px] min-w-[170px] max-w-[170px] whitespace-nowrap text-center', sortable: true },
+    ],
+  },
+  banners: {
+    minWidth: '880px',
+    columns: [
+      { key: 'title', className: 'min-w-[240px] text-left', sortable: true },
+      { key: 'imageUrl', className: 'w-[100px] min-w-[100px] max-w-[100px] text-center' },
+      { key: 'sortOrder', className: 'w-[105px] min-w-[105px] max-w-[105px] text-center', sortable: true },
+      { key: 'status', className: 'w-[130px] min-w-[130px] max-w-[130px] text-center', sortable: true },
+      { key: 'updatedAt', className: 'w-[170px] min-w-[170px] max-w-[170px] whitespace-nowrap text-center', sortable: true },
+    ],
+  },
+  vouchers: {
+    minWidth: '1050px',
+    columns: [
+      { key: 'code', className: 'min-w-[180px] text-left', sortable: true },
+      { key: 'discountType', className: 'w-[150px] min-w-[150px] max-w-[150px] text-left', sortable: true },
+      { key: 'discountValue', className: 'w-[130px] min-w-[130px] max-w-[130px] text-right', sortable: true },
+      { key: 'usedCount', className: 'w-[105px] min-w-[105px] max-w-[105px] text-center' },
+      { key: 'status', className: 'w-[130px] min-w-[130px] max-w-[130px] text-center', sortable: true },
+      { key: 'expiresAt', className: 'w-[170px] min-w-[170px] max-w-[170px] whitespace-nowrap text-center', sortable: true },
+    ],
+  },
+  templates: {
+    minWidth: '940px',
+    columns: [
+      { key: 'name', className: 'min-w-[220px] text-left', sortable: true },
+      { key: 'imageUrl', className: 'w-[100px] min-w-[100px] max-w-[100px] text-center' },
+      { key: 'categoryId', className: 'w-[180px] min-w-[180px] max-w-[180px] text-left', sortable: true },
+      { key: 'status', className: 'w-[130px] min-w-[130px] max-w-[130px] text-center', sortable: true },
+      { key: 'updatedAt', className: 'w-[170px] min-w-[170px] max-w-[170px] whitespace-nowrap text-center', sortable: true },
+    ],
+  },
+  'template-categories': {
+    minWidth: '650px',
+    columns: [
+      { key: 'name', className: 'min-w-[240px] text-left', sortable: true },
+      { key: 'slug', className: 'min-w-[200px] text-left', sortable: true },
+      { key: 'updatedAt', className: 'w-[170px] min-w-[170px] max-w-[170px] whitespace-nowrap text-center', sortable: true },
+    ],
+  },
+  'accessory-categories': {
+    minWidth: '650px',
+    columns: [
+      { key: 'name', className: 'min-w-[240px] text-left', sortable: true },
+      { key: 'slug', className: 'min-w-[200px] text-left', sortable: true },
+      { key: 'updatedAt', className: 'w-[170px] min-w-[170px] max-w-[170px] whitespace-nowrap text-center', sortable: true },
+    ],
+  },
+  'frame-sizes': {
+    minWidth: '620px',
+    columns: [
+      { key: 'label', className: 'min-w-[240px] text-left' },
+      { key: 'price', className: 'w-[130px] min-w-[130px] max-w-[130px] text-right' },
+      { key: 'updatedAt', className: 'w-[170px] min-w-[170px] max-w-[170px] whitespace-nowrap text-center', sortable: true },
+    ],
+  },
+  'frame-colors': {
+    minWidth: '620px',
+    columns: [
+      { key: 'name', className: 'min-w-[240px] text-left' },
+      { key: 'colorHex', className: 'w-[130px] min-w-[130px] max-w-[130px] text-center' },
+      { key: 'updatedAt', className: 'w-[170px] min-w-[170px] max-w-[170px] whitespace-nowrap text-center', sortable: true },
+    ],
+  },
+};
+
 function getEntityTableColumns(fields: EntityField[], resource: ResourceKey, locale: string): EntityTableColumn[] {
   const columns: EntityTableColumn[] = [];
   const usedKeys = new Set<string>();
+  const policy = ENTITY_TABLE_POLICIES[resource];
 
-  const orderByResource: Partial<Record<ResourceKey, string[]>> = {
-    products: ['name', 'images', 'basePrice', 'status', 'createdAt', 'updatedAt'],
-    templates: ['name', 'imageUrl', 'categoryId', 'status', 'createdAt', 'updatedAt'],
-    'frame-options': ['frameSize', 'imageUrl', 'price', 'stock', 'createdAt', 'updatedAt'],
-    accessories: ['name', 'imageUrl', 'categoryId', 'status', 'createdAt', 'updatedAt'],
-    characters: ['name', 'imageUrl', 'price', 'sortOrder', 'status', 'updatedAt'],
-    'character-parts': ['name', 'type', 'imageUrl', 'sortOrder', 'status', 'updatedAt'],
-    'character-presets': ['name', 'description', 'sortOrder', 'status', 'updatedAt'],
-    banners: ['title', 'imageUrl', 'sortOrder', 'status', 'createdAt', 'updatedAt'],
-    'frame-backgrounds': ['title', 'description', 'imageUrl', 'sortOrder', 'status', 'updatedAt'],
-    collections: ['name', 'imageUrl', 'slug', 'status', 'createdAt', 'updatedAt'],
-    'template-categories': ['name', 'slug', 'createdAt', 'updatedAt'],
-    'accessory-categories': ['name', 'slug', 'createdAt', 'updatedAt'],
-    'frame-sizes': ['label', 'price', 'createdAt', 'updatedAt'],
-    'frame-colors': ['name', 'colorHex', 'createdAt', 'updatedAt'],
-    vouchers: ['code', 'discountType', 'discountValue', 'minOrderAmount', 'usedCount', 'status', 'expiresAt'],
-  };
-
-  const addField = (field?: EntityField) => {
-    if (!field || usedKeys.has(field.key) || field.type === 'checkbox') return;
+  const addField = (field?: EntityField, columnPolicy?: EntityTableColumnPolicy) => {
+    if (!field || usedKeys.has(field.key)) return;
     columns.push({
       id: field.key,
       label: field.label,
       field,
+      className: columnPolicy?.className,
+      sortable: columnPolicy?.sortable,
     });
     usedKeys.add(field.key);
   };
 
-  (orderByResource[resource] ?? []).forEach((key) =>
-    addField(fields.find((field) => field.key === key) ?? getSyntheticEntityTableField(key, locale)),
-  );
-  fields.forEach(addField);
+  if (policy) {
+    policy.columns.forEach((columnPolicy) => {
+      addField(
+        fields.find((field) => field.key === columnPolicy.key) ??
+          getSyntheticEntityTableField(columnPolicy.key, locale),
+        columnPolicy,
+      );
+    });
+    return columns;
+  }
 
-  return columns.slice(0, 6);
+  fields
+    .filter((field) => field.type !== 'checkbox')
+    .slice(0, 6)
+    .forEach((field) => addField(field));
+
+  return columns;
+}
+
+function getEntityTableMinWidth(resource: ResourceKey) {
+  return ENTITY_TABLE_POLICIES[resource]?.minWidth ?? '760px';
 }
 
 const ENTITY_SORT_FIELDS = {
@@ -388,6 +528,7 @@ const ENTITY_SORT_FIELDS = {
 } satisfies Partial<Record<ResourceKey, string[]>>;
 
 function isEntityColumnSortable(column: EntityTableColumn, resource: ResourceKey) {
+  if (column.sortable !== true) return false;
   return ENTITY_SORT_FIELDS[resource]?.includes(column.field.key) ?? false;
 }
 
@@ -581,11 +722,12 @@ function TableThumbnail({
   const canOpen = Boolean(imageUrl && !failed && onOpen);
 
   const content = imageUrl && !failed ? (
+    // eslint-disable-next-line @next/next/no-img-element
     <img
       src={imageUrl}
       alt={alt}
       loading='lazy'
-      className='h-full w-full object-cover transition-opacity duration-150 group-hover:opacity-55'
+      className='h-full w-full object-contain p-0.5 transition-opacity duration-150 group-hover:opacity-55'
       onError={() => setFailedUrl(imageUrl)}
     />
   ) : (
@@ -655,6 +797,10 @@ function getInitialImageInputModes(
 function toInitialValues(fields: EntityField[]): Record<string, unknown> {
   const values: Record<string, unknown> = {};
   fields.forEach((field) => {
+    if (field.type === 'product-config') {
+      values[field.key] = {};
+      return;
+    }
     if (field.type === 'content-fields') {
       values[field.key] = [];
       return;
@@ -698,12 +844,14 @@ function toDatetimeLocalValue(value: unknown) {
   return new Date(date.getTime() - offsetMs).toISOString().slice(0, 16);
 }
 
-const CONTENT_FIELD_TYPE_OPTIONS: Array<{ value: ContentFieldInputType; label: string }> = [
-  { value: 'text', label: 'Văn bản ngắn' },
-  { value: 'textarea', label: 'Lời nhắn dài' },
-  { value: 'date', label: 'Ngày tháng' },
-  { value: 'image', label: 'Ảnh tải lên' },
-];
+function getContentFieldTypeOptions(t: (key: string) => string) {
+  return [
+    { value: 'text', label: t('entity.contentFieldText') },
+    { value: 'textarea', label: t('entity.contentFieldTextarea') },
+    { value: 'date', label: t('entity.contentFieldDate') },
+    { value: 'image', label: t('entity.contentFieldImage') },
+  ] satisfies Array<{ value: ContentFieldInputType; label: string }>;
+}
 
 function createContentFieldFormValue(index: number): ContentFieldFormValue {
   return {
@@ -856,6 +1004,11 @@ function serializeFormValue(field: EntityField, rawValue: unknown): unknown {
   if (field.type === 'content-fields') {
     return serializeContentFieldFormValues(rawValue);
   }
+  if (field.type === 'product-config') {
+    return rawValue && typeof rawValue === 'object' && !Array.isArray(rawValue)
+      ? rawValue
+      : undefined;
+  }
   if (field.type === 'text' || field.type === 'textarea' || field.type === 'select') {
     if (typeof rawValue !== 'string') return '';
     return rawValue;
@@ -956,23 +1109,8 @@ function getEntityNoun(resource: ResourceKey, locale: string, count?: number) {
   return locale === 'vi' ? nouns.vi[resource] : nouns.en[resource];
 }
 
-function getEntityCountLabel(resource: ResourceKey, count: number, locale: string) {
-  return `${NUMBER_FORMAT.format(count)} ${getEntityNoun(resource, locale, count)}`;
-}
-
-function getEntityPaginationRangeLabel(
-  locale: string,
-  from: number,
-  to: number,
-  total: number,
-  itemLabel: string,
-) {
-  const formattedRange = `${NUMBER_FORMAT.format(from)}–${NUMBER_FORMAT.format(to)}`;
-  const formattedTotal = `${NUMBER_FORMAT.format(total)}${itemLabel ? ` ${itemLabel}` : ''}`;
-
-  return locale === 'vi'
-    ? `Hiển thị ${formattedRange} trên ${formattedTotal}`
-    : `Showing ${formattedRange} of ${formattedTotal}`;
+function getEntityCountLabel(resource: ResourceKey, count: number, locale: Locale) {
+  return `${formatNumber(count, locale)} ${getEntityNoun(resource, locale, count)}`;
 }
 
 function getEntityLoadingLabel(resource: ResourceKey, locale: string) {
@@ -1126,6 +1264,7 @@ export default function EntityManager<K extends ResourceKey>({
   const [draftFilters, setDraftFilters] = useState<EntityFilterDraft>(EMPTY_ENTITY_FILTER_DRAFT);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [showAdvancedFields, setShowAdvancedFields] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -1233,7 +1372,7 @@ export default function EntityManager<K extends ResourceKey>({
       }
     } catch (err) {
       if (requestSeq.current !== requestId) return;
-      setError(err instanceof Error ? err.message : t('entity.loadFailed'));
+      setError(getLocalizedApiError(err, t, 'entity.loadFailed'));
     } finally {
       if (requestSeq.current === requestId) {
         setLoading(false);
@@ -1270,6 +1409,7 @@ export default function EntityManager<K extends ResourceKey>({
     setImageFileNames({});
     setImageLoadErrors({});
     setEditingId(null);
+    setShowAdvancedFields(false);
   }
 
   function openCreateModal() {
@@ -1288,6 +1428,9 @@ export default function EntityManager<K extends ResourceKey>({
         nextValues[field.key] = formatTagsInputValue(value);
       } else if (field.type === 'content-fields') {
         nextValues[field.key] = normalizeContentFieldFormValues(value);
+      } else if (field.type === 'product-config') {
+        nextValues[field.key] =
+          value && typeof value === 'object' && !Array.isArray(value) ? value : {};
       } else if (field.type === 'checkbox') {
         nextValues[field.key] = Boolean(value);
       } else if (field.type === 'images') {
@@ -1401,7 +1544,12 @@ export default function EntityManager<K extends ResourceKey>({
               ...payload,
               images: Array.isArray(payload.images) ? payload.images : [],
             }
-          : payload;
+          : resource === 'character-parts' && typeof payload.status === 'string'
+            ? {
+                ...payload,
+                isActive: payload.status === 'active',
+              }
+            : payload;
 
       if (editingId) {
         await updateResource(resource, editingId, finalPayload as Partial<ResourceDataMap[K]>);
@@ -1416,7 +1564,7 @@ export default function EntityManager<K extends ResourceKey>({
         { id: toastId },
       );
     } catch (err) {
-      const message = err instanceof Error ? err.message : t('entity.saveFailed');
+      const message = getLocalizedApiError(err, t, 'entity.saveFailed');
       setError(message);
       toast.error(message, { id: toastId });
     } finally {
@@ -1452,7 +1600,7 @@ export default function EntityManager<K extends ResourceKey>({
       setDeleteTarget(null);
       toast.success(getEntityActionToastLabel(resource, locale, 'deleted'), { id: toastId });
     } catch (err) {
-      const message = err instanceof Error ? err.message : t('entity.deleteFailed');
+      const message = getLocalizedApiError(err, t, 'entity.deleteFailed');
       setError(message);
       toast.error(message, { id: toastId });
     } finally {
@@ -1470,7 +1618,7 @@ export default function EntityManager<K extends ResourceKey>({
       const result = await uploadImage(file);
       setFormValues((prev) => ({ ...prev, [fieldKey]: result.url }));
     } catch (err) {
-      setError(err instanceof Error ? err.message : t('entity.uploadImageFailed'));
+      setError(getLocalizedApiError(err, t, 'entity.uploadImageFailed'));
     }
   }
 
@@ -1493,7 +1641,7 @@ export default function EntityManager<K extends ResourceKey>({
         };
       });
     } catch (err) {
-      setError(err instanceof Error ? err.message : t('entity.uploadImagesFailed'));
+      setError(getLocalizedApiError(err, t, 'entity.uploadImagesFailed'));
     }
   }
 
@@ -1577,11 +1725,12 @@ export default function EntityManager<K extends ResourceKey>({
             <p className='text-sm font-semibold text-red-700'>{t('entity.imageUrlLoadError')}</p>
           </div>
         ) : (
+          // eslint-disable-next-line @next/next/no-img-element
           <img
             src={previewUrl}
             alt={label}
             loading='lazy'
-            className='max-h-[240px] w-full rounded-[12px] object-cover'
+            className='max-h-[240px] w-full rounded-[12px] object-contain'
             onError={() => setImageLoadErrors((prev) => ({ ...prev, [errorKey]: true }))}
             onLoad={() => setImageLoadErrors((prev) => ({ ...prev, [errorKey]: false }))}
           />
@@ -1688,7 +1837,7 @@ export default function EntityManager<K extends ResourceKey>({
               </div>
             </div>
           ) : (
-            <div className='grid min-h-[220px] place-items-center text-center'>
+            <div className='grid min-h-[150px] place-items-center text-center'>
               <div className='flex max-w-md flex-col items-center gap-3'>
                 <span className='grid h-12 w-12 place-items-center rounded-[16px] border border-slate-200 bg-slate-50 text-slate-500 transition-colors duration-200 group-hover:border-[var(--admin-primary-tint)] group-hover:bg-[var(--admin-primary-soft)] group-hover:text-[var(--admin-primary-strong)] group-focus-visible:border-[var(--admin-primary-tint)] group-focus-visible:bg-[var(--admin-primary-soft)] group-focus-visible:text-[var(--admin-primary-strong)]'>
                   <UploadIcon />
@@ -1737,7 +1886,7 @@ export default function EntityManager<K extends ResourceKey>({
           {imageUrl.trim() ? (
             renderImagePreview(imageUrl, field.label, field.key)
           ) : (
-            <div className='grid min-h-[190px] place-items-center rounded-[18px] border border-dashed border-slate-300 bg-white px-4 text-center'>
+            <div className='grid min-h-[140px] place-items-center rounded-[18px] border border-dashed border-slate-300 bg-white px-4 text-center'>
               <div className='flex max-w-xs flex-col items-center gap-3'>
                 <span className='grid h-11 w-11 place-items-center rounded-[14px] border border-slate-200 bg-white text-slate-500'>
                   <LinkIcon />
@@ -1874,12 +2023,10 @@ export default function EntityManager<K extends ResourceKey>({
         <div className='flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between'>
           <div>
             <p className='text-sm font-semibold text-slate-900'>
-              {locale === 'vi' ? 'Trường khách cần điền' : 'Customer input fields'}
+              {t('entity.customerFieldsTitle')}
             </p>
             <p className='mt-1 text-[13px] leading-5 text-slate-500'>
-              {locale === 'vi'
-                ? 'Các trường này sẽ hiện ở bước Nội dung của Studio, theo đúng ảnh nền đang chọn.'
-                : 'These fields appear in the Studio content step for this background.'}
+              {t('entity.customerFieldsDescription')}
             </p>
           </div>
           <Button
@@ -1889,15 +2036,13 @@ export default function EntityManager<K extends ResourceKey>({
             className='h-10 rounded-[12px] px-4'
             onClick={() => addContentFieldValue(field.key)}
           >
-            {locale === 'vi' ? 'Thêm trường' : 'Add field'}
+            {t('entity.addField')}
           </Button>
         </div>
 
         {contentFields.length === 0 ? (
           <div className='mt-4 rounded-[14px] border border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-center text-sm font-medium text-slate-500'>
-            {locale === 'vi'
-              ? 'Chưa có trường nội dung nào. Bấm “Thêm trường” để tạo ô khách cần nhập.'
-              : 'No content fields yet. Add one to collect customer input.'}
+            {t('entity.noContentFields')}
           </div>
         ) : (
           <div className='mt-4 space-y-3'>
@@ -1909,12 +2054,12 @@ export default function EntityManager<K extends ResourceKey>({
                 <div className='grid grid-cols-1 gap-3 lg:grid-cols-12'>
                   <label className='space-y-1 lg:col-span-3'>
                     <span className='text-[12px] font-semibold text-slate-600'>
-                      {locale === 'vi' ? 'Nhãn hiển thị' : 'Label'}
+                      {t('entity.displayLabel')}
                     </span>
                     <Input
                       value={contentField.label}
                       size='md'
-                      placeholder={locale === 'vi' ? 'VD: Tên người nhận' : 'Recipient name'}
+                      placeholder={t('entity.displayLabelPlaceholder')}
                       onKeyDown={(event) => event.stopPropagation()}
                       onChange={(event) => {
                         const label = event.target.value;
@@ -1927,11 +2072,11 @@ export default function EntityManager<K extends ResourceKey>({
                   </label>
 
                   <label className='space-y-1 lg:col-span-2'>
-                    <span className='text-[12px] font-semibold text-slate-600'>Key</span>
+                    <span className='text-[12px] font-semibold text-slate-600'>{t('entity.fieldKey')}</span>
                     <Input
                       value={contentField.key}
                       size='md'
-                      placeholder='title'
+                      placeholder={t('entity.fieldKeyPlaceholder')}
                       onChange={(event) =>
                         updateContentFieldValue(field.key, index, { key: event.target.value })
                       }
@@ -1940,7 +2085,7 @@ export default function EntityManager<K extends ResourceKey>({
 
                   <label className='space-y-1 lg:col-span-2'>
                     <span className='text-[12px] font-semibold text-slate-600'>
-                      {locale === 'vi' ? 'Loại ô nhập' : 'Input type'}
+                      {t('entity.inputType')}
                     </span>
                     <Select
                       value={contentField.type}
@@ -1950,7 +2095,7 @@ export default function EntityManager<K extends ResourceKey>({
                         })
                       }
                     >
-                      {CONTENT_FIELD_TYPE_OPTIONS.map((option) => (
+                      {getContentFieldTypeOptions(t).map((option) => (
                         <option key={option.value} value={option.value}>
                           {option.label}
                         </option>
@@ -1960,12 +2105,12 @@ export default function EntityManager<K extends ResourceKey>({
 
                   <label className='space-y-1 lg:col-span-3'>
                     <span className='text-[12px] font-semibold text-slate-600'>
-                      Placeholder
+                      {t('entity.placeholderLabel')}
                     </span>
                     <Input
                       value={contentField.placeholder}
                       size='md'
-                      placeholder={locale === 'vi' ? 'VD: Nguyễn Văn A' : 'Example value'}
+                      placeholder={t('entity.placeholderExample')}
                       onKeyDown={(event) => event.stopPropagation()}
                       onChange={(event) =>
                         updateContentFieldValue(field.key, index, { placeholder: event.target.value })
@@ -1982,7 +2127,7 @@ export default function EntityManager<K extends ResourceKey>({
                           updateContentFieldValue(field.key, index, { required: event.target.checked })
                         }
                       />
-                      {locale === 'vi' ? 'Bắt buộc' : 'Required'}
+                      {t('entity.required')}
                     </label>
                     <Button
                       type='button'
@@ -1996,12 +2141,12 @@ export default function EntityManager<K extends ResourceKey>({
 
                   <label className='space-y-1 lg:col-span-12'>
                     <span className='text-[12px] font-semibold text-slate-600'>
-                      {locale === 'vi' ? 'Ghi chú nhỏ dưới ô nhập' : 'Help text'}
+                      {t('entity.helpTextLabel')}
                     </span>
                     <Input
                       value={contentField.helpText}
                       size='md'
-                      placeholder={locale === 'vi' ? 'VD: Dòng này in ở góc dưới ảnh' : 'Short hint shown under the field'}
+                      placeholder={t('entity.helpTextPlaceholder')}
                       onKeyDown={(event) => event.stopPropagation()}
                       onChange={(event) =>
                         updateContentFieldValue(field.key, index, { helpText: event.target.value })
@@ -2029,14 +2174,14 @@ export default function EntityManager<K extends ResourceKey>({
 
       if (typeof width === 'number' && typeof height === 'number' && width > 0 && height > 0) {
         return (
-          <span className='block text-center font-semibold tabular-nums text-slate-900'>
-            {NUMBER_FORMAT.format(width)} x {NUMBER_FORMAT.format(height)}
+          <span className='block whitespace-nowrap text-left font-semibold tabular-nums text-slate-900'>
+            {formatNumber(width, locale)} x {formatNumber(height, locale)}
           </span>
         );
       }
 
       return (
-        <span className='block text-center font-semibold text-slate-900'>
+        <span title={label || name || undefined} className='block truncate text-left font-semibold text-slate-900'>
           {label || name || '-'}
         </span>
       );
@@ -2082,7 +2227,7 @@ export default function EntityManager<K extends ResourceKey>({
           <TableThumbnail
             src={imageUrl}
             alt={field.label}
-            zoomLabel={locale === 'vi' ? 'Phóng to ảnh' : 'Zoom image'}
+            zoomLabel={t('common.zoomImage')}
             onOpen={(src) => openImagePreview(src, field.label)}
           />
         </div>
@@ -2099,7 +2244,7 @@ export default function EntityManager<K extends ResourceKey>({
           <TableThumbnail
             src={imageUrls[0]}
             alt={field.label}
-            zoomLabel={locale === 'vi' ? 'Phóng to ảnh' : 'Zoom image'}
+            zoomLabel={t('common.zoomImage')}
             onOpen={(src) => openImagePreview(src, field.label)}
           />
           {imageUrls.length > 1 ? (
@@ -2119,15 +2264,24 @@ export default function EntityManager<K extends ResourceKey>({
             isCurrencyColumn(field.key) ? 'text-right' : 'text-center',
           )}
         >
-          {isCurrencyColumn(field.key) ? CURRENCY_FORMAT.format(value) : NUMBER_FORMAT.format(value)}
+          {isCurrencyColumn(field.key) ? formatVnd(value, locale) : formatNumber(value, locale)}
         </span>
       );
     }
 
     if (typeof value === 'boolean') {
+      const booleanLabel =
+        field.key === 'published'
+          ? value
+            ? t('productFields.published')
+            : t('productFields.notPublished')
+          : value
+            ? t('status.active')
+            : t('status.inactive');
+
       return (
         <Badge tone={value ? 'success' : 'neutral'} className='px-2.5 py-1 text-[12px]'>
-          {value ? t('status.active') : t('status.inactive')}
+          {booleanLabel}
         </Badge>
       );
     }
@@ -2144,7 +2298,7 @@ export default function EntityManager<K extends ResourceKey>({
       const formattedDate = formatEntityDateTime(value, locale);
 
       return (
-        <span title={safeTextValue} className='block text-center text-[13px] font-semibold tabular-nums text-slate-700'>
+        <span title={safeTextValue} className='block whitespace-nowrap text-center text-[13px] font-semibold tabular-nums text-slate-700'>
           {formattedDate}
         </span>
       );
@@ -2341,7 +2495,7 @@ export default function EntityManager<K extends ResourceKey>({
       />
       ) : null}
 
-      <Table containerClassName='min-h-0' minWidth='1080px'>
+      <Table containerClassName='min-h-0' minWidth={getEntityTableMinWidth(resource)}>
         <TableHeader>
           <tr>
             {visibleColumns.map((column) => {
@@ -2374,6 +2528,22 @@ export default function EntityManager<K extends ResourceKey>({
           {loading && items.length === 0 ? (
             <TableEmptyState colSpan={visibleColumns.length + 1} variant='loading'>
               {t('common.loading')}
+            </TableEmptyState>
+          ) : error && items.length === 0 ? (
+            <TableEmptyState
+              colSpan={visibleColumns.length + 1}
+              variant='error'
+              description={
+                <button
+                  type='button'
+                  onClick={() => void loadItems()}
+                  className='font-semibold text-[var(--admin-primary-strong)] underline decoration-transparent underline-offset-4 transition-colors hover:decoration-current'
+                >
+                  {locale === 'vi' ? 'Thử tải lại' : 'Try again'}
+                </button>
+              }
+            >
+              {error}
             </TableEmptyState>
           ) : items.length === 0 ? (
             <TableEmptyState colSpan={visibleColumns.length + 1}>
@@ -2429,15 +2599,12 @@ export default function EntityManager<K extends ResourceKey>({
         itemLabel={getEntityNoun(resource, locale)}
         pageLabel={getEntityUiText(locale, 'page')}
         pageSize={meta?.limit ?? pageSize}
-        pageSizeLabel={locale === 'vi' ? PAGE_SIZE_LABEL.vi : PAGE_SIZE_LABEL.en}
+        pageSizeLabel={t('common.perPage')}
         totalLabel={t('common.total')}
         previousLabel={t('common.previous')}
         nextLabel={t('common.next')}
         previousDisabled={page <= 1}
         nextDisabled={page >= (meta?.totalPages ?? meta?.total_pages ?? 1)}
-        rangeLabel={(from, to, total, itemLabel) =>
-          getEntityPaginationRangeLabel(locale, from, to, total, itemLabel)
-        }
         onPrevious={() => setPage((prev) => Math.max(1, prev - 1))}
         onNext={() => setPage((prev) => prev + 1)}
         onPageChange={setPage}
@@ -2481,8 +2648,22 @@ export default function EntityManager<K extends ResourceKey>({
           </ModalHeader>
 
           <ModalBody className='!bg-slate-50 !py-5 sm:!py-5'>
+            {fields.some((field) => field.advanced) ? (
+              <div className='mb-4 flex justify-end'>
+                <button
+                  type='button'
+                  onClick={() => setShowAdvancedFields((current) => !current)}
+                  className='rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-sm font-semibold text-slate-600 transition-colors hover:border-sky-200 hover:bg-sky-50 hover:text-sky-700'
+                >
+                  {showAdvancedFields
+                    ? locale === 'vi' ? 'Ẩn thiết lập nâng cao' : 'Hide advanced settings'
+                    : locale === 'vi' ? 'Hiện thiết lập nâng cao' : 'Show advanced settings'}
+                </button>
+              </div>
+            ) : null}
             <div className='grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-12'>
               {fields.map((field) => {
+                if (field.advanced && !showAdvancedFields) return null;
                 const value = formValues[field.key];
 
                 return (
@@ -2523,19 +2704,29 @@ export default function EntityManager<K extends ResourceKey>({
                           value={String(value ?? '')}
                           required={field.required}
                           aria-label={field.label}
-                          placeholder={field.placeholder ?? 'VD: black, short, toc nam'}
+                          placeholder={field.placeholder ?? t('entity.tagPlaceholder')}
                           onChange={(event) =>
                             setFormValues((prev) => ({ ...prev, [field.key]: event.target.value }))
                           }
                           size='md'
                         />
                         <p className='text-xs font-medium text-slate-500'>
-                          Nhập nhiều tag bằng dấu phẩy.
+                          {t('entity.tagHelp')}
                         </p>
                       </div>
                     ) : null}
 
                     {field.type === 'content-fields' ? renderContentFieldsEditor(field, value) : null}
+
+                    {field.type === 'product-config' ? (
+                      <ProductComponentConfigField
+                        value={value}
+                        options={field.productConfigOptions}
+                        onChange={(nextValue) =>
+                          setFormValues((prev) => ({ ...prev, [field.key]: nextValue }))
+                        }
+                      />
+                    ) : null}
 
                     {field.type === 'select' ? (
                       <Select
@@ -2591,7 +2782,7 @@ export default function EntityManager<K extends ResourceKey>({
                         })}
                         {(field.options ?? []).length === 0 ? (
                           <p className='px-1 py-2 text-sm font-medium text-slate-500'>
-                            Chưa có lựa chọn phù hợp.
+                            {t('entity.noMatchingOptions')}
                           </p>
                         ) : null}
                       </div>
@@ -2727,6 +2918,7 @@ export default function EntityManager<K extends ResourceKey>({
         </div>
         <div className='grid min-h-[220px] place-items-center bg-slate-950 p-3 sm:p-5'>
           {imagePreview ? (
+            // eslint-disable-next-line @next/next/no-img-element
             <img
               src={imagePreview.src}
               alt={imagePreview.alt}

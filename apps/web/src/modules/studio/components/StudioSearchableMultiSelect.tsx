@@ -15,6 +15,7 @@ type StudioSearchableMultiSelectProps = {
   searchPlaceholder: string;
   emptyLabel: string;
   clearLabel: string;
+  showSearch?: boolean;
 };
 
 export function StudioSearchableMultiSelect({
@@ -25,6 +26,7 @@ export function StudioSearchableMultiSelect({
   searchPlaceholder,
   emptyLabel,
   clearLabel,
+  showSearch = true,
 }: StudioSearchableMultiSelectProps) {
   return (
     <SearchableMultiSelect
@@ -36,6 +38,7 @@ export function StudioSearchableMultiSelect({
       searchPlaceholder={searchPlaceholder}
       values={value}
       onChange={onChange}
+      showSearch={showSearch}
       className="w-full"
     />
   );

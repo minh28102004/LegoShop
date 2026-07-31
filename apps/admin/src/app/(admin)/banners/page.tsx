@@ -21,12 +21,16 @@ export default function BannersPage() {
     { key: 'linkUrl', label: t('bannersPage.linkUrl'), type: 'text' },
     { key: 'imageUrl', label: t('bannersPage.image'), type: 'image', required: true },
   ];
+  const tableFields = ['title', 'imageUrl', 'sortOrder', 'status'].flatMap((key) =>
+    fields.filter((field) => field.key === key),
+  );
 
   return (
     <EntityManager
       title={t('bannersPage.singularTitle')}
       resource='banners'
       fields={fields}
+      tableFields={tableFields}
       pageTitle={t('bannersPage.title')}
       pageDescription={t('bannersPage.description')}
       createButtonLabel={t('bannersPage.createBanner')}

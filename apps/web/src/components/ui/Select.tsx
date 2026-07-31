@@ -56,6 +56,7 @@ export interface SelectProps
   required?: boolean;
   fieldState?: FieldState;
   contentClassName?: string;
+  optionsClassName?: string;
   itemClassName?: string;
   controlSize?: ControlSize;
   containerClassName?: string;
@@ -80,6 +81,7 @@ export const Select = React.forwardRef<HTMLButtonElement, SelectProps>(
       itemClassName,
       name,
       onValueChange,
+      optionsClassName,
       options,
       placeholder,
       required,
@@ -228,7 +230,7 @@ export const Select = React.forwardRef<HTMLButtonElement, SelectProps>(
           }
         >
           {({ close }) => (
-            <div className="space-y-0.5">
+            <div className={cn("space-y-0.5", optionsClassName)}>
               {options.map((option) => {
                 const active = option.value === selectedValue;
 

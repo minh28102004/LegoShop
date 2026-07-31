@@ -4,6 +4,7 @@ import { PackageCheck, X } from 'lucide-react';
 import { useMemo, type CSSProperties, type ReactNode } from 'react';
 import type { CustomFrameDesignData, JsonObject } from '@lego-shop/shared';
 import { resolveApiAssetUrl } from '@/lib/api';
+import { useI18n } from '@/lib/i18n/I18nProvider';
 import type { Accessory, CharacterPart } from '@/modules/admin/types/admin.types';
 
 const STUDIO_PREVIEW_MAX_BOUND = 420;
@@ -96,6 +97,7 @@ export function AdminDesignPreview({
   className = '',
   fit = 'responsive',
 }: AdminDesignPreviewProps) {
+  const { t } = useI18n();
   const characterPartById = useMemo(
     () => new Map(characterParts.map((part) => [part.id, part])),
     [characterParts],
@@ -123,7 +125,7 @@ export function AdminDesignPreview({
           />
         ) : (
           <div className='grid h-full min-h-[160px] w-full place-items-center text-xs font-semibold text-slate-400'>
-            Chưa có preview
+            {t('designPreview.noPreview')}
           </div>
         )}
       </div>
@@ -260,6 +262,7 @@ export default function DesignPreviewModal({
   characterParts = [],
   accessories = [],
 }: Props) {
+  const { t } = useI18n();
   const previewData = parseDesignData(designData);
   const accessoryImageById = useMemo(
     () => new Map(
@@ -277,17 +280,19 @@ export default function DesignPreviewModal({
       <div className='flex max-h-[90vh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl bg-white shadow-xl'>
         <div className='flex items-center justify-between border-b border-slate-100 p-4'>
           <div>
-            <h2 className='text-lg font-bold text-slate-800'>Bản thiết kế: {productName}</h2>
+            <h2 className='text-lg font-bold text-slate-800'>
+              {t('designPreview.title', { name: productName })}
+            </h2>
             {previewData ? (
               <p className='mt-1 text-xs font-semibold uppercase tracking-[0.12em] text-slate-400'>
-                {previewData.schema === 'v1' ? 'Custom frame schema v1' : 'Legacy design data'}
+                {previewData.schema === 'v1' ? t('designPreview.schemaV1') : t('designPreview.schemaLegacy')}
               </p>
             ) : null}
           </div>
           <button
             onClick={onClose}
             className='rounded-full p-2 transition-colors hover:bg-slate-100'
-            aria-label='Đóng'
+            aria-label={t('common.close')}
           >
             <X className='h-5 w-5 text-slate-500' />
           </button>
@@ -295,7 +300,7 @@ export default function DesignPreviewModal({
 
         <div className='flex-1 overflow-y-auto bg-slate-50 p-6'>
           {!previewData ? (
-            <div className='p-10 text-center text-slate-500'>Không có dữ liệu thiết kế</div>
+            <div className='p-10 text-center text-slate-500'>{t('designPreview.unavailable')}</div>
           ) : (
             <div className='grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]'>
               <div className='space-y-6'>
@@ -328,7 +333,7 @@ export default function DesignPreviewModal({
 
                 <div className='overflow-hidden rounded-xl border border-slate-200 bg-white'>
                   <div className='border-b border-slate-200 bg-slate-100 px-4 py-3 text-sm font-bold text-slate-700'>
-                    Dữ liệu gốc (JSON)
+                    {t('designPreview.rawData')}
                   </div>
                   <pre className='overflow-x-auto bg-slate-50 p-4 font-mono text-xs text-slate-600'>
                     {JSON.stringify(designData, null, 2)}
@@ -337,12 +342,17 @@ export default function DesignPreviewModal({
               </div>
 
               <aside className='space-y-4'>
-                <InfoCard label='Kích thước khung' value={previewData.frameSize || '-'} />
-                <InfoCard label='Nền' value={previewData.backgroundLabel || '-'} />
-                <InfoCard label='Chiều' value={previewData.frameOrientation === 'landscape' ? 'Ngang' : 'Dọc'} />
+                <InfoCard label={t('designPreview.frameSize')} value={previewData.frameSize || '-'} />
+                <InfoCard label={t('designPreview.background')} value={previewData.backgroundLabel || '-'} />
+                <InfoCard
+                  label={t('designPreview.orientation')}
+                  value={previewData.frameOrientation === 'landscape'
+                    ? t('designPreview.landscape')
+                    : t('designPreview.portrait')}
+                />
 
                 {previewData.contentEntries.length > 0 ? (
-                  <Panel title='Nội dung in'>
+                  <Panel title={t('designPreview.printContent')}>
                     <div className='space-y-2 text-sm'>
                       {previewData.contentEntries.map(([key, value]) => (
                         <p key={key} className='text-slate-700'>
@@ -354,7 +364,7 @@ export default function DesignPreviewModal({
                 ) : null}
 
                 {previewData.characters.length > 0 ? (
-                  <Panel title='Nhân vật'>
+                  <Panel title={t('designPreview.characters')}>
                     <div className='space-y-2 text-sm text-slate-700'>
                       {previewData.characters.map((character) => (
                         <div key={character.id} className='rounded-lg border border-slate-100 bg-slate-50 p-2'>
@@ -368,11 +378,11 @@ export default function DesignPreviewModal({
                           <p className='mt-1 break-all text-xs text-slate-500'>
                             {[character.faceId, character.hairId, character.torsoId, character.legsId, character.hatId]
                               .filter(Boolean)
-                              .join(' · ') || 'Chưa có part ID'}
+                              .join(' · ') || t('designPreview.noPartId')}
                           </p>
                           {character.accessoryIds.length > 0 ? (
                             <p className='mt-1 break-all text-xs text-slate-500'>
-                              Phụ kiện: {character.accessoryIds.join(', ')}
+                              {t('designPreview.accessories')}: {character.accessoryIds.join(', ')}
                             </p>
                           ) : null}
                         </div>
@@ -382,7 +392,7 @@ export default function DesignPreviewModal({
                 ) : null}
 
                 {previewData.accessories.length > 0 ? (
-                  <Panel title='Phụ kiện'>
+                  <Panel title={t('designPreview.accessories')}>
                     <div className='space-y-2 text-sm text-slate-700'>
                       {previewData.accessories.map((accessory) => {
                         const imageUrl = resolveApiAssetUrl(accessory.imageUrl) || accessoryImageById.get(accessory.id) || '';
@@ -402,7 +412,7 @@ export default function DesignPreviewModal({
                 ) : null}
 
                 {previewData.uploadedImages.length > 0 ? (
-                  <Panel title='Ảnh upload'>
+                  <Panel title={t('designPreview.uploadedImages')}>
                     <div className='grid grid-cols-3 gap-2'>
                       {previewData.uploadedImages.map((image) => (
                         <a
@@ -430,10 +440,12 @@ export default function DesignPreviewModal({
 }
 
 function RelativePreview({ previewData, compact = false }: { previewData: DesignData; compact?: boolean }) {
+  const { t } = useI18n();
+
   return (
     <div className='rounded-xl border border-slate-200 bg-white p-5 shadow-sm'>
       <div className='mb-4 text-sm font-bold text-slate-800'>
-        {compact ? 'Mô phỏng vị trí' : 'Mô phỏng vị trí tương đối'}
+        {compact ? t('designPreview.positionPreview') : t('designPreview.relativePositionPreview')}
       </div>
       <div className='flex justify-center overflow-x-auto'>
         <div
@@ -445,7 +457,7 @@ function RelativePreview({ previewData, compact = false }: { previewData: Design
           }}
         >
           {previewData.elements.length === 0 ? (
-            <span className='font-medium text-zinc-400'>Không có tọa độ chi tiết</span>
+            <span className='font-medium text-zinc-400'>{t('designPreview.noCoordinates')}</span>
           ) : (
             previewData.elements.map((element) => (
               <div

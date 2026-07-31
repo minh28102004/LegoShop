@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   Logger,
   NotFoundException,
@@ -44,7 +45,8 @@ export class CharacterPartsService {
   async findPublicCharacterParts(query?: CharacterPartsQueryDto) {
     const type = this.resolveType(query?.type);
     const search = query?.search?.trim();
-    const take = Math.min(90, Math.max(1, query?.limit ?? 90));
+    const take = Math.min(200, Math.max(1, query?.limit ?? 100));
+    const skip = (Math.max(1, query?.page ?? 1) - 1) * take;
 
     try {
       return await this.prisma.characterPart.findMany({
@@ -65,6 +67,7 @@ export class CharacterPartsService {
             : {}),
         },
         orderBy: [{ type: 'asc' }, { sortOrder: 'asc' }, { createdAt: 'desc' }],
+        skip,
         take,
       });
     } catch (error) {
@@ -72,7 +75,7 @@ export class CharacterPartsService {
         this.logger.warn(
           'CharacterPart schema is behind the generated Prisma client. Serving the legacy-compatible part list.',
         );
-        return this.findLegacyCharacterParts({ type, search, take });
+        return this.findLegacyCharacterParts({ type, search, skip, take });
       }
       throw error;
     }
@@ -215,7 +218,6 @@ export class CharacterPartsService {
 
     const requiredTypes = [
       CharacterPartType.FACE,
-      CharacterPartType.HAIR,
       CharacterPartType.TORSO,
       CharacterPartType.LEGS,
     ];
@@ -268,13 +270,17 @@ export class CharacterPartsService {
       });
     } catch (error) {
       if (!this.isMissingTableError(error)) throw error;
-      return (await this.findLegacyCharacterParts({ take: 90 })).filter(
-        (part) => partIds.includes(part.id),
-      );
+      return (
+        await this.findLegacyCharacterParts({ skip: 0, take: 200 })
+      ).filter((part) => partIds.includes(part.id));
     }
   }
 
   createCharacterPart(dto: CreateCharacterPartDto) {
+    const resolvedStatus =
+      dto.status ??
+      (dto.isActive === false ? ProductStatus.inactive : ProductStatus.active);
+
     return this.prisma.characterPart.create({
       data: {
         name: dto.name,
@@ -285,7 +291,7 @@ export class CharacterPartsService {
         compareAtPrice: dto.compareAtPrice,
         category: dto.category,
         availability: dto.availability,
-        isActive: dto.isActive,
+        isActive: resolvedStatus === ProductStatus.active,
         compatibility:
           dto.compatibility === undefined
             ? undefined
@@ -295,7 +301,7 @@ export class CharacterPartsService {
           dto.tags === undefined
             ? undefined
             : (dto.tags as Prisma.InputJsonValue),
-        status: dto.status,
+        status: resolvedStatus,
       },
     });
   }
@@ -322,13 +328,19 @@ export class CharacterPartsService {
       data.compareAtPrice = dto.compareAtPrice;
     if (dto.category !== undefined) data.category = dto.category;
     if (dto.availability !== undefined) data.availability = dto.availability;
-    if (dto.isActive !== undefined) data.isActive = dto.isActive;
+    if (dto.status !== undefined) {
+      data.status = dto.status;
+      data.isActive = dto.status === ProductStatus.active;
+    } else if (dto.isActive !== undefined) {
+      data.isActive = dto.isActive;
+      data.status = dto.isActive
+        ? ProductStatus.active
+        : ProductStatus.inactive;
+    }
     if (dto.compatibility !== undefined)
       data.compatibility = dto.compatibility as Prisma.InputJsonValue;
     if (dto.sortOrder !== undefined) data.sortOrder = dto.sortOrder;
     if (dto.tags !== undefined) data.tags = dto.tags as Prisma.InputJsonValue;
-    if (dto.status !== undefined) data.status = dto.status;
-
     return this.prisma.characterPart.update({
       where: { id },
       data,
@@ -338,11 +350,33 @@ export class CharacterPartsService {
   async deleteCharacterPart(id: string) {
     const existingPart = await this.prisma.characterPart.findUnique({
       where: { id },
-      select: { id: true },
+      select: {
+        id: true,
+        _count: {
+          select: {
+            facePresets: true,
+            hairPresets: true,
+            torsoPresets: true,
+            legsPresets: true,
+            hatPresets: true,
+            presetAccessories: true,
+          },
+        },
+      },
     });
 
     if (!existingPart) {
       throw new NotFoundException('Character part not found');
+    }
+
+    const referenceCount = Object.values(existingPart._count).reduce(
+      (total, count) => total + count,
+      0,
+    );
+    if (referenceCount > 0) {
+      throw new ConflictException(
+        `Character part is used by ${referenceCount} preset relation(s). Disable it instead of deleting it.`,
+      );
     }
 
     await this.prisma.characterPart.delete({
@@ -364,10 +398,12 @@ export class CharacterPartsService {
   private async findLegacyCharacterParts({
     type,
     search,
+    skip,
     take,
   }: {
     type?: CharacterPartType;
     search?: string;
+    skip: number;
     take: number;
   }) {
     const rows = await this.prisma.$queryRaw<
@@ -397,7 +433,7 @@ export class CharacterPartsService {
           !normalizedSearch ||
           row.name.toLocaleLowerCase('vi').includes(normalizedSearch),
       )
-      .slice(0, take)
+      .slice(skip, skip + take)
       .map((row) => ({
         ...row,
         slug: `legacy-${row.id}`,

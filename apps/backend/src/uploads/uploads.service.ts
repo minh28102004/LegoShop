@@ -104,6 +104,15 @@ function normalizePublicBaseUrl(value: string): string {
   return trimmed;
 }
 
+function normalizeSupabaseProjectUrl(value: string): string {
+  const parsed = new URL(value.trim());
+  if (parsed.protocol !== 'https:') {
+    throw new Error('SUPABASE_URL must use HTTPS');
+  }
+
+  return parsed.origin;
+}
+
 function normalizeRelativePath(value: string, label: string): string {
   const normalized = value.replace(/\\/g, '/').replace(/^\/+|\/+$/g, '');
   const segments = normalized.split('/').filter(Boolean);
@@ -343,11 +352,7 @@ export class UploadsService {
         'SUPABASE_URL and a backend-only SUPABASE_SECRET_KEY or SUPABASE_SERVICE_ROLE_KEY are required',
       );
     }
-    const parsed = new URL(url);
-    if (parsed.protocol !== 'https:') {
-      throw new Error('SUPABASE_URL must use HTTPS');
-    }
-    this.supabaseClient = createClient(url, key, {
+    this.supabaseClient = createClient(normalizeSupabaseProjectUrl(url), key, {
       auth: { persistSession: false, autoRefreshToken: false },
     });
     return this.supabaseClient;

@@ -22,12 +22,9 @@ import type {
   PaginatedOrders,
 } from '@/modules/admin/types/admin.types';
 import { useI18n } from '@/lib/i18n/useI18n';
-
-const CURRENCY = new Intl.NumberFormat('vi-VN', {
-  style: 'currency',
-  currency: 'VND',
-  maximumFractionDigits: 0,
-});
+import { getLocalizedApiError } from '@/lib/i18n/errors';
+import { formatCompactNumber, formatVnd } from '@/lib/i18n/format';
+import type { Locale } from '@/lib/i18n/config';
 
 type RecentOrder = DashboardStatsPayload['recentOrders'][number];
 type RevenuePoint = {
@@ -99,16 +96,12 @@ const STATUS_PALETTE: Record<string, StatusPalette> = {
   },
 };
 
-function formatCurrencyVND(value: number) {
-  return CURRENCY.format(Number.isFinite(value) ? value : 0);
+function formatCurrencyVND(value: number, locale: Locale) {
+  return formatVnd(value, locale);
 }
 
-function formatCompactCurrency(value: number) {
-  if (!Number.isFinite(value) || value <= 0) return '0';
-  if (value >= 1_000_000_000) return `${(value / 1_000_000_000).toFixed(1)} tỷ`;
-  if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1)} tr`;
-  if (value >= 1_000) return `${Math.round(value / 1_000)}k`;
-  return `${value}`;
+function formatCompactCurrency(value: number, locale: Locale) {
+  return formatCompactNumber(value, locale);
 }
 
 function toRecentOrders(orders?: RecentOrder[] | null) {
@@ -281,9 +274,13 @@ function ChartCard({
 function RevenueTrendChart({
   data,
   emptyText,
+  locale,
+  ariaLabel,
 }: {
   data: RevenuePoint[];
   emptyText: string;
+  locale: Locale;
+  ariaLabel: string;
 }) {
   if (!data.length) return <ChartEmptyState text={emptyText} />;
 
@@ -306,7 +303,7 @@ function RevenueTrendChart({
       <svg
         viewBox={`0 0 ${chart.width} ${chart.height}`}
         role='img'
-        aria-label='Biểu đồ doanh thu theo thời gian'
+        aria-label={ariaLabel}
         className='h-[260px] w-full'
       >
         {[0, 0.5, 1].map((ratio) => {
@@ -327,7 +324,7 @@ function RevenueTrendChart({
                 textAnchor='end'
                 className='fill-slate-400 text-[11px] font-medium'
               >
-                {formatCompactCurrency(maxValue * ratio)}
+                {formatCompactCurrency(maxValue * ratio, locale)}
               </text>
             </g>
           );
@@ -348,7 +345,7 @@ function RevenueTrendChart({
                 rx='8'
                 fill='var(--admin-primary)'
               >
-                <title>{`${item.label}: ${formatCurrencyVND(item.value)}`}</title>
+                <title>{`${item.label}: ${formatCurrencyVND(item.value, locale)}`}</title>
               </rect>
               <text
                 x={x + barWidth / 2}
@@ -443,7 +440,7 @@ function PaymentRateCard({
 }
 
 export default function DashboardStats() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const [stats, setStats] = useState<DashboardStatsPayload | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -461,7 +458,7 @@ export default function DashboardStats() {
           const orders = await listOrders({ page: 1, limit: 20 });
           setStats(fallbackStats(orders));
         } catch (err) {
-          setError(err instanceof Error ? err.message : t('dashboard.loadFailed'));
+          setError(getLocalizedApiError(err, t, 'dashboard.loadFailed'));
         }
       } finally {
         setLoading(false);
@@ -505,7 +502,7 @@ export default function DashboardStats() {
         />
         <StatCard
           label={t('dashboard.totalRevenue')}
-          value={formatCurrencyVND(stats.totalRevenue)}
+          value={formatCurrencyVND(stats.totalRevenue, locale)}
           description={t('dashboard.totalRevenueSubtext')}
           tone='emerald'
         />
@@ -540,7 +537,12 @@ export default function DashboardStats() {
           title={t('dashboard.revenueTrendTitle')}
           description={t('dashboard.revenueTrendDescription')}
         >
-          <RevenueTrendChart data={revenueData} emptyText={t('dashboard.chartEmpty')} />
+          <RevenueTrendChart
+            data={revenueData}
+            emptyText={t('dashboard.chartEmpty')}
+            locale={locale}
+            ariaLabel={t('dashboard.revenueTrendTitle')}
+          />
         </ChartCard>
 
         <ChartCard
@@ -595,7 +597,7 @@ export default function DashboardStats() {
                     </TableCell>
                     <TableCell>{order.customerName}</TableCell>
                     <TableCell className='text-right font-medium text-slate-800'>
-                      {formatCurrencyVND(order.totalAmount)}
+                      {formatCurrencyVND(order.totalAmount, locale)}
                     </TableCell>
                     <TableCell className='text-center'>
                       <StatusBadge value={order.orderStatus} t={t} />

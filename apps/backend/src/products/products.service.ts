@@ -1304,11 +1304,24 @@ export class ProductsService {
   async deleteProduct(id: string) {
     const existingProduct = await this.prisma.product.findUnique({
       where: { id },
-      select: { id: true },
+      select: {
+        id: true,
+        _count: {
+          select: {
+            orderItems: true,
+          },
+        },
+      },
     });
 
     if (!existingProduct) {
       throw new NotFoundException('Product not found');
+    }
+
+    if (existingProduct._count.orderItems > 0) {
+      throw new ConflictException(
+        `Product is referenced by ${existingProduct._count.orderItems} order item(s). Disable it instead of deleting it.`,
+      );
     }
 
     await this.prisma.product.delete({

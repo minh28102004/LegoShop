@@ -136,6 +136,7 @@ function CartPreviewImage({ src, alt }: { src: string | null; alt: string }) {
   return (
     <div className="relative aspect-square h-[100px] shrink-0 overflow-hidden rounded-sm border border-[#d9e6f0] bg-white">
       {showImage ? (
+        // eslint-disable-next-line @next/next/no-img-element
         <img
           src={src ?? ""}
           alt={alt}

@@ -2,6 +2,7 @@ import type {
   Accessory,
   Character,
   CharacterPart,
+  CharacterPartType,
   CharacterPreset,
   CharacterBuilderQuoteRequestContract,
   CharacterBuilderQuoteResponseContract,
@@ -25,6 +26,14 @@ export type FrameOptionsQuery = QueryParams & {
 
 export type AccessoriesQuery = QueryParams & {
   categoryId?: string;
+};
+
+export type CharacterPartsQuery = QueryParams & {
+  type?: CharacterPartType;
+  search?: string;
+  category_id?: string;
+  page?: number;
+  limit?: number;
 };
 
 export type FrameBackgroundsQuery = QueryParams & {
@@ -75,8 +84,11 @@ export function createProductsApi(request: ApiRequester) {
       return request(`public/characters/${encodeURIComponent(id)}`);
     },
 
-    listCharacterParts(query?: QueryParams): Promise<CharacterPart[]> {
-      return request("public/character-parts", { query });
+    listCharacterParts(
+      query?: CharacterPartsQuery,
+      options?: ProductCatalogRequestOptions,
+    ): Promise<CharacterPart[]> {
+      return request("public/character-parts", { ...options, query });
     },
 
     quoteCharacterBuilder(

@@ -39,16 +39,6 @@ export function validateStudioStep(
     }
   }
 
-  if (step === "content" || step === "review") {
-    design.contentFields.forEach((field) => {
-      if (field.required && !design.contentValues[field.key]?.trim()) {
-        const message = messages.fieldRequired(field.label);
-        fieldErrors[field.key] = message;
-        summaryErrors.push(message);
-      }
-    });
-  }
-
   if (step === "background" || step === "review") {
     const hasTemplate = Boolean(design.activeTemplate);
     const hasUploadedBackground = Boolean(design.customBackgroundUrl);

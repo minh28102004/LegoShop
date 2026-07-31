@@ -1,6 +1,7 @@
-import dayjs from 'dayjs';
 import Badge from '@/common/components/ui/Badge';
 import { cn } from '@/common/utils/cn';
+import { formatDate, formatVnd } from '@/lib/i18n/format';
+import { useI18n } from '@/lib/i18n/useI18n';
 import type { OrderFilterGroup, OrderFilters } from '@/modules/admin/components/orders/order-filter.types';
 
 type ActiveFilterTagsProps = {
@@ -24,17 +25,6 @@ function CloseIcon() {
   );
 }
 
-function formatDate(value: string) {
-  const date = dayjs(value);
-  return date.isValid() ? date.format('DD/MM/YYYY') : value;
-}
-
-function formatPrice(value: number) {
-  return new Intl.NumberFormat('vi-VN', {
-    maximumFractionDigits: 0,
-  }).format(value);
-}
-
 export default function ActiveFilterTags({
   filters,
   getStatusLabel,
@@ -42,6 +32,7 @@ export default function ActiveFilterTags({
   onClearPrice,
   onRemoveGroupValue,
 }: ActiveFilterTagsProps) {
+  const { locale, t } = useI18n();
   const chips: Array<{
     id: string;
     label: string;
@@ -73,8 +64,8 @@ export default function ActiveFilterTags({
   });
 
   if (filters.minPrice !== undefined || filters.maxPrice !== undefined) {
-    const min = filters.minPrice !== undefined ? `${formatPrice(filters.minPrice)} đ` : '';
-    const max = filters.maxPrice !== undefined ? `${formatPrice(filters.maxPrice)} đ` : '';
+    const min = filters.minPrice !== undefined ? formatVnd(filters.minPrice, locale) : '';
+    const max = filters.maxPrice !== undefined ? formatVnd(filters.maxPrice, locale) : '';
     const label = min && max ? `${min} - ${max}` : min ? `>= ${min}` : `<= ${max}`;
     chips.push({
       id: 'price-range',
@@ -87,7 +78,7 @@ export default function ActiveFilterTags({
     const [from, to] = filters.dateRange;
     chips.push({
       id: 'date-range',
-      label: `${formatDate(from)} - ${formatDate(to)}`,
+      label: `${formatDate(from, locale)} - ${formatDate(to, locale)}`,
       onRemove: onClearDateRange,
     });
   }
@@ -106,7 +97,7 @@ export default function ActiveFilterTags({
           <button
             type='button'
             onClick={chip.onRemove}
-            aria-label={`Remove ${chip.label}`}
+            aria-label={`${t('common.removeFilter')}: ${chip.label}`}
             className={cn(
               'inline-flex h-4 w-4 items-center justify-center rounded-full text-slate-400',
               'transition-colors duration-150 hover:bg-slate-100 hover:text-slate-700',

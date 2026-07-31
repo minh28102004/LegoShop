@@ -1,10 +1,11 @@
 "use client";
 
 import Image from "next/image";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { PointerEvent, ReactNode } from "react";
 import {
-  Image as ImageIcon,
+  Check,
+  ChevronDown,
   Maximize2,
   Minus,
   MousePointer2,
@@ -18,6 +19,7 @@ import {
   Undo,
 } from "lucide-react";
 
+import { Dropdown } from "@lego-shop/ui";
 import { DecorativeIcon } from "@/components/shared/FeatureIcon";
 import { DECORATIVE_ICON_PATHS } from "@/config/icons";
 import { uploadCustomerImage } from "@/lib/api/uploads";
@@ -29,6 +31,72 @@ import {
 } from "./StudioContext";
 
 const ZOOM_LEVELS = [0.5, 0.7, 1, 1.4, 2] as const;
+
+function ZoomLevelMenu({
+  zoom,
+  label,
+  onZoomChange,
+}: {
+  zoom: number;
+  label: string;
+  onZoomChange: (level: number) => void;
+}) {
+  return (
+    <Dropdown
+      align="left"
+      offset={6}
+      portal
+      panelClassName="w-[96px] rounded-[14px] border-[#d8e5ef] bg-white p-1.5 shadow-[0_16px_36px_-24px_rgba(15,43,74,0.38)]"
+      trigger={
+        <button
+          type="button"
+          aria-label={label}
+          className="group flex h-8 w-[76px] items-center justify-center gap-1 rounded-full px-2 text-sm font-semibold text-[#243a55] outline-none transition-colors duration-150 hover:bg-[#edf7fd] hover:text-[#238dcc] focus-visible:ring-2 focus-visible:ring-[#8cc9ec]/60"
+        >
+          <span>{Math.round(zoom * 100)}%</span>
+          <ChevronDown
+            className="h-3.5 w-3.5 shrink-0 transition-transform duration-200 group-aria-expanded:rotate-180"
+            aria-hidden="true"
+          />
+        </button>
+      }
+    >
+      {({ close }) => (
+        <div className="space-y-0.5">
+          {ZOOM_LEVELS.map((level) => {
+            const active = Math.abs(level - zoom) < 0.001;
+
+            return (
+              <button
+                key={level}
+                type="button"
+                role="menuitemradio"
+                aria-checked={active}
+                onClick={() => {
+                  onZoomChange(level);
+                  close();
+                }}
+                className={`relative flex h-9 w-full items-center justify-center rounded-[10px] px-2 pr-7 text-sm font-semibold outline-none transition-colors duration-150 ${
+                  active
+                    ? "bg-[#2f91d0] text-white"
+                    : "text-[#314760] hover:bg-[#edf7fd] hover:text-[#238dcc] focus-visible:bg-[#edf7fd] focus-visible:text-[#238dcc]"
+                }`}
+              >
+                {Math.round(level * 100)}%
+                {active ? (
+                  <Check
+                    className="absolute right-2 h-3.5 w-3.5 stroke-[2.5]"
+                    aria-hidden="true"
+                  />
+                ) : null}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </Dropdown>
+  );
+}
 
 const getFrameColorHex = (name: string, apiHex?: string | null): string => {
   if (apiHex && apiHex.startsWith("#")) return apiHex;
@@ -306,7 +374,6 @@ export function StudioCanvas() {
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [isPanning, setIsPanning] = useState(false);
-  const [fitMode, setFitMode] = useState(true);
 
   const commitSelection = useCallback(
     (nextId: string | null) => {
@@ -320,11 +387,9 @@ export function StudioCanvas() {
     if (!node) return;
 
     const updateSize = () => {
-      const rect = node.getBoundingClientRect();
-
       setViewportSize({
-        width: Math.round(rect.width),
-        height: Math.round(rect.height),
+        width: node.clientWidth,
+        height: node.clientHeight,
       });
     };
 
@@ -389,16 +454,7 @@ export function StudioCanvas() {
   const contentOuterW = canvasW + FRAME_BORDER * 2 + OUTER_PADDING * 2;
   const contentOuterH = canvasH + FRAME_BORDER * 2 + OUTER_PADDING * 2;
 
-  const fitScale = useMemo(() => {
-    if (!viewportSize.width || !viewportSize.height) return 0.88;
-
-    const usableW = Math.max(260, viewportSize.width - 120);
-    const usableH = Math.max(260, viewportSize.height - 132);
-
-    return Math.min(1, usableW / contentOuterW, usableH / contentOuterH);
-  }, [contentOuterH, contentOuterW, viewportSize.height, viewportSize.width]);
-
-  const previewScale = fitMode ? fitScale : zoom;
+  const previewScale = zoom;
   const scaledW = contentOuterW * previewScale;
   const scaledH = contentOuterH * previewScale;
   const isCanvasOverflowing =
@@ -595,15 +651,7 @@ export function StudioCanvas() {
     });
 
     centerFractionRef.current = null;
-  }, [
-    zoom,
-    fitMode,
-    canvasW,
-    canvasH,
-    fitScale,
-    viewportSize.width,
-    viewportSize.height,
-  ]);
+  }, [zoom, canvasW, canvasH, viewportSize.width, viewportSize.height]);
 
   useEffect(() => {
     return () => {
@@ -626,9 +674,9 @@ export function StudioCanvas() {
 
       setCustomBackgroundUrl(uploaded.url);
       setCustomBackgroundOriginalName(uploaded.originalName);
-    } catch (error) {
+    } catch {
       setUploadError(
-        error instanceof Error ? error.message : text.canvas.uploadError,
+        text.canvas.uploadError,
       );
     } finally {
       setUploadingBackground(false);
@@ -665,32 +713,16 @@ export function StudioCanvas() {
 
   const increaseZoom = () => {
     captureCenterFraction();
-    setFitMode(false);
-    setZoom(
-      ZOOM_LEVELS.find((level) => level > previewScale + 0.001) ??
-        2,
-    );
+    setZoom(ZOOM_LEVELS.find((level) => level > previewScale + 0.001) ?? 2);
   };
 
   const decreaseZoom = () => {
     captureCenterFraction();
-    setFitMode(false);
     setZoom(
-      [...ZOOM_LEVELS].reverse().find(
-        (level) => level < previewScale - 0.001,
-      ) ?? 0.5,
+      [...ZOOM_LEVELS]
+        .reverse()
+        .find((level) => level < previewScale - 0.001) ?? 0.5,
     );
-  };
-
-  const resetZoom = () => {
-    captureCenterFraction();
-    setFitMode(false);
-    setZoom(1);
-  };
-
-  const fitCanvas = () => {
-    centerFractionRef.current = null;
-    setFitMode(true);
   };
 
   return (
@@ -699,52 +731,23 @@ export function StudioCanvas() {
       onClick={() => commitSelection(null)}
     >
       <div
-        className="absolute left-4 right-4 top-4 z-20 flex items-center justify-between gap-2 overflow-x-auto pb-1 scrollbar-hide"
+        data-studio-canvas-toolbar="true"
+        className="absolute left-1/2 top-2 z-20 flex w-[calc(100%-2rem)] max-w-[980px] -translate-x-1/2 items-center justify-between gap-2 overflow-x-auto pb-1 scrollbar-hide sm:w-[calc(100%-2.5rem)]"
         onClick={(event) => event.stopPropagation()}
       >
         <div className="flex shrink-0 items-center gap-1 rounded-full border border-slate-200/70 bg-white/90 px-1.5 py-1 shadow-sm backdrop-blur">
-          <ToolbarIconButton title={text.canvas.fitCanvas} onClick={fitCanvas}>
-            <Maximize2 className="h-4 w-4" />
-          </ToolbarIconButton>
-
-          <button
-            type="button"
-            title={text.canvas.actualSize}
-            onClick={resetZoom}
-            className="h-8 rounded-full px-2 text-xs font-semibold text-slate-500 outline-none transition-colors hover:bg-[#f4f9fd] hover:text-[#2f91d0] focus-visible:ring-2 focus-visible:ring-[#9ed0ef]/60"
-          >
-            100%
-          </button>
-
-          <div className="h-5 w-px bg-[#dce7f0]" />
-
           <ToolbarIconButton title={text.canvas.zoomOut} onClick={decreaseZoom}>
             <Minus className="h-4 w-4" />
           </ToolbarIconButton>
 
-          <select
-            aria-label={`${text.canvas.zoomOut} / ${text.canvas.zoomIn}`}
-            value={fitMode ? "fit" : String(zoom)}
-            onChange={(event) => {
+          <ZoomLevelMenu
+            zoom={zoom}
+            label={`${text.canvas.zoomOut} / ${text.canvas.zoomIn}`}
+            onZoomChange={(level) => {
               captureCenterFraction();
-
-              if (event.target.value === "fit") {
-                setFitMode(true);
-                return;
-              }
-
-              setFitMode(false);
-              setZoom(Number(event.target.value));
+              setZoom(level);
             }}
-            className="h-8 min-w-[68px] cursor-pointer appearance-none rounded-full border-0 bg-transparent px-2 text-center text-sm font-semibold text-slate-700 outline-none transition-colors hover:bg-[#f4f9fd] focus-visible:ring-2 focus-visible:ring-[#9ed0ef]/60"
-          >
-            <option value="fit">{text.canvas.fitCanvas}</option>
-            {ZOOM_LEVELS.map((level) => (
-              <option key={level} value={level}>
-                {Math.round(level * 100)}%
-              </option>
-            ))}
-          </select>
+          />
 
           <ToolbarIconButton title={text.canvas.zoomIn} onClick={increaseZoom}>
             <Plus className="h-4 w-4" />
@@ -755,7 +758,12 @@ export function StudioCanvas() {
           <ToolbarTextButton
             title={text.canvas.addText}
             label={text.canvas.addText}
-            icon={<Type className="h-3.5 w-3.5" />}
+            icon={
+              <Type
+                aria-hidden="true"
+                className="size-[20px] shrink-0 text-slate-600"
+              />
+            }
             onClick={() =>
               addElement({
                 type: "text",
@@ -775,7 +783,16 @@ export function StudioCanvas() {
             }
             tone="success"
             disabled={uploadingBackground}
-            icon={<ImageIcon className="h-3.5 w-3.5" />}
+            icon={
+              <Image
+                src="/assets/icons/fluent-emoji/framed-picture-3d.png"
+                alt=""
+                aria-hidden="true"
+                width={24}
+                height={24}
+                className="size-[22px] shrink-0 object-contain"
+              />
+            }
             onClick={() => backgroundInputRef.current?.click()}
           />
 
@@ -829,6 +846,7 @@ export function StudioCanvas() {
 
         <div
           ref={viewportRef}
+          data-studio-canvas-viewport="true"
           className="relative mx-auto min-h-0 w-full max-w-[980px] flex-1 overflow-hidden rounded-[28px] border border-slate-200/60 bg-white/70 shadow-sm backdrop-blur-sm"
         >
           <div
@@ -838,12 +856,12 @@ export function StudioCanvas() {
             onPointerUp={handleCanvasPointerUp}
             onPointerCancel={handleCanvasPointerUp}
             className={[
-              "h-full w-full min-w-0 overflow-auto overscroll-contain",
+              "h-full w-full min-w-0 overscroll-contain",
               isCanvasOverflowing
-                ? isPanning
-                  ? "cursor-grabbing"
-                  : "cursor-grab"
-                : "cursor-default",
+                ? `overflow-auto ${
+                    isPanning ? "cursor-grabbing" : "cursor-grab"
+                  }`
+                : "cursor-default overflow-hidden",
             ].join(" ")}
           >
             <div

@@ -24,6 +24,8 @@ import {
 } from "@/modules/admin/services/adminApi";
 import { resolveApiAssetUrl } from "@/lib/api";
 import { useI18n } from "@/lib/i18n/useI18n";
+import { getLocalizedApiError } from "@/lib/i18n/errors";
+import { formatDate, formatDateTime, formatVnd } from "@/lib/i18n/format";
 import AdminNavIcon from "@/modules/admin/components/AdminNavIcon";
 import type {
   Accessory,
@@ -66,20 +68,14 @@ const SHIPPING_STATUSES: ShippingStatus[] = [
   "cancelled",
 ];
 
-const CURRENCY = new Intl.NumberFormat("vi-VN", {
-  style: "currency",
-  currency: "VND",
-  maximumFractionDigits: 0,
-});
-
-const SHIPPING_METHOD_LABELS: Record<string, string> = {
-  hcm_inner: "Nội thành TP.HCM",
-  hcm_outer: "Ngoại thành TP.HCM",
-  nationwide: "Tỉnh / thành khác",
-  shop_support: "Shop hỗ trợ đặt ship",
-  standard: "Ship thường",
-  fast: "Ship nhanh",
-  self: "Tự book ship / Qua lấy",
+const SHIPPING_METHOD_KEYS: Record<string, string> = {
+  hcm_inner: "orderDetail.shippingMethods.hcm_inner",
+  hcm_outer: "orderDetail.shippingMethods.hcm_outer",
+  nationwide: "orderDetail.shippingMethods.nationwide",
+  shop_support: "orderDetail.shippingMethods.shop_support",
+  standard: "orderDetail.shippingMethods.standard",
+  fast: "orderDetail.shippingMethods.fast",
+  self: "orderDetail.shippingMethods.self",
 };
 
 function isJsonObject(value: unknown): value is JsonObject {
@@ -303,7 +299,7 @@ export default function OrderDetail({ orderId }: Props) {
       setAccessoryCatalog(accessories);
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : t("orderDetail.loadFailed"),
+        getLocalizedApiError(err, t, "orderDetail.loadFailed"),
       );
     } finally {
       setLoading(false);
@@ -341,7 +337,7 @@ export default function OrderDetail({ orderId }: Props) {
       await load();
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : t("orderDetail.updateFailed"),
+        getLocalizedApiError(err, t, "orderDetail.updateFailed"),
       );
     } finally {
       setSaving(false);
@@ -407,7 +403,7 @@ export default function OrderDetail({ orderId }: Props) {
           </div>
           <div className="rounded-[22px] border border-[var(--admin-border)] bg-slate-50 p-4">
             <p className="text-[12px] font-semibold uppercase tracking-[0.12em] text-slate-500">
-              Zalo
+              {t("orderDetail.zalo")}
             </p>
             <p className="mt-2 truncate text-sm font-medium text-slate-900">
               {order.zalo || "-"}
@@ -431,7 +427,7 @@ export default function OrderDetail({ orderId }: Props) {
           </div>
           <div className="rounded-[22px] border border-[var(--admin-border)] bg-slate-50 p-4 md:col-span-2">
             <p className="text-[12px] font-semibold uppercase tracking-[0.12em] text-slate-500">
-              Dòng địa chỉ
+              {t("orderDetail.addressLine")}
             </p>
             <p className="mt-2 text-sm font-medium leading-6 text-slate-900">
               {order.addressLine || "-"}
@@ -439,49 +435,51 @@ export default function OrderDetail({ orderId }: Props) {
           </div>
           <div className="rounded-[22px] border border-[var(--admin-border)] bg-slate-50 p-4">
             <p className="text-[12px] font-semibold uppercase tracking-[0.12em] text-slate-500">
-              Vận chuyển
+              {t("orderDetail.shipping")}
             </p>
             <p className="mt-2 text-sm font-medium text-slate-900">
-              {SHIPPING_METHOD_LABELS[order.shippingMethod ?? ""] ??
-                order.shippingMethod ??
-                "-"}
+              {order.shippingMethod
+                ? SHIPPING_METHOD_KEYS[order.shippingMethod]
+                  ? t(SHIPPING_METHOD_KEYS[order.shippingMethod])
+                  : order.shippingMethod
+                : "-"}
             </p>
             <p className="mt-1 text-xs text-slate-500">
-              Phí vận chuyển: {CURRENCY.format(order.shippingFee)}
+              {t("orderDetail.shippingFee")}: {formatVnd(order.shippingFee, locale)}
             </p>
           </div>
           <div className="rounded-[22px] border border-[var(--admin-border)] bg-slate-50 p-4">
             <p className="text-[12px] font-semibold uppercase tracking-[0.12em] text-slate-500">
-              Ngày nhận
+              {t("orderDetail.receiveDate")}
             </p>
             <p className="mt-2 text-sm font-medium text-slate-900">
               {order.receiveDate
-                ? new Date(order.receiveDate).toLocaleDateString("vi-VN")
+                ? formatDate(order.receiveDate, locale)
                 : "-"}
             </p>
           </div>
           <div className="rounded-[22px] border border-[var(--admin-border)] bg-slate-50 p-4">
             <p className="text-[12px] font-semibold uppercase tracking-[0.12em] text-slate-500">
-              Hạn thanh toán
+              {t("orderDetail.paymentDeadline")}
             </p>
             <p className="mt-2 text-sm font-medium text-slate-900">
               {order.expiresAt
-                ? new Date(order.expiresAt).toLocaleString("vi-VN")
+                ? formatDateTime(order.expiresAt, locale)
                 : "-"}
             </p>
           </div>
           <div className="rounded-[22px] border border-[var(--admin-border)] bg-slate-50 p-4">
             <p className="text-[12px] font-semibold uppercase tracking-[0.12em] text-slate-500">
-              Tạm tính sản phẩm
+              {t("orderDetail.itemSubtotal")}
             </p>
             <p className="mt-2 text-base font-bold tabular-nums text-slate-900">
-              {CURRENCY.format(order.itemsAmount ?? order.totalAmount)}
+              {formatVnd(order.itemsAmount ?? order.totalAmount, locale)}
             </p>
             <p className="mt-1 text-xs text-slate-500">
-              Add-ons:{" "}
-              {CURRENCY.format((order.giftFee ?? 0) + (order.polaroidFee ?? 0))}
+              {t("orderDetail.addOns")}:{" "}
+              {formatVnd((order.giftFee ?? 0) + (order.polaroidFee ?? 0), locale)}
               {order.discountAmount > 0
-                ? ` · Voucher: -${CURRENCY.format(order.discountAmount)}`
+                ? ` · ${t("orderDetail.voucher")}: -${formatVnd(order.discountAmount, locale)}`
                 : ""}
             </p>
           </div>
@@ -490,11 +488,11 @@ export default function OrderDetail({ orderId }: Props) {
               {t("orderDetail.total")}
             </p>
             <p className="mt-2 text-base font-bold tabular-nums text-slate-900">
-              {CURRENCY.format(order.totalAmount)}
+              {formatVnd(order.totalAmount, locale)}
             </p>
             <p className="mt-1 text-xs text-slate-500">
-              Gói quà:{" "}
-              {order.giftPackage ? CURRENCY.format(order.giftFee ?? 0) : "-"} ·
+              {t("orderDetail.giftPackage")}:{" "}
+              {order.giftPackage ? formatVnd(order.giftFee ?? 0, locale) : "-"} ·
               Polaroid: {order.polaroidOption ?? "none"}
             </p>
           </div>
@@ -503,16 +501,16 @@ export default function OrderDetail({ orderId }: Props) {
               {t("orderDetail.remaining")}
             </p>
             <p className="mt-2 text-base font-bold tabular-nums text-slate-900">
-              {CURRENCY.format(order.remainingAmount)}
+              {formatVnd(order.remainingAmount, locale)}
             </p>
             <p className="mt-1 text-xs text-slate-500">
-              {t("orderDetail.deposit")}: {CURRENCY.format(order.depositAmount)}
+              {t("orderDetail.deposit")}: {formatVnd(order.depositAmount, locale)}
             </p>
           </div>
           {order.note ? (
             <div className="rounded-[22px] border border-[var(--admin-border)] bg-slate-50 p-4 md:col-span-2">
               <p className="text-[12px] font-semibold uppercase tracking-[0.12em] text-slate-500">
-                Ghi chú khách hàng
+                {t("orderDetail.customerNote")}
               </p>
               <p className="mt-2 whitespace-pre-line text-sm font-medium leading-6 text-slate-900">
                 {order.note}
@@ -522,7 +520,7 @@ export default function OrderDetail({ orderId }: Props) {
           {order.cancelReason ? (
             <div className="rounded-[22px] border border-red-200 bg-red-50 p-4 md:col-span-2">
               <p className="text-[12px] font-semibold uppercase tracking-[0.12em] text-red-500">
-                Lý do hủy
+                {t("orderDetail.cancelReason")}
               </p>
               <p className="mt-2 whitespace-pre-line text-sm font-medium leading-6 text-red-800">
                 {order.cancelReason}
@@ -620,9 +618,7 @@ export default function OrderDetail({ orderId }: Props) {
             <TableBody>
               {order.items.length === 0 ? (
                 <TableEmptyState colSpan={4}>
-                  {locale === "vi"
-                    ? "Không có sản phẩm nào."
-                    : "No products found."}
+                  {t("orderDetail.noProducts")}
                 </TableEmptyState>
               ) : (
                 order.items.map((item) => (
@@ -638,7 +634,7 @@ export default function OrderDetail({ orderId }: Props) {
                       </span>
                       {item.accessories?.length ? (
                         <span className="mt-1 block max-w-[360px] truncate text-xs font-normal text-slate-500">
-                          Phụ kiện:{" "}
+                          {t("orderDetail.accessories")}:{" "}
                           {item.accessories
                             .map((accessory) => accessory.name)
                             .join(", ")}
@@ -646,7 +642,7 @@ export default function OrderDetail({ orderId }: Props) {
                       ) : null}
                       {item.note ? (
                         <span className="mt-1 block max-w-[360px] whitespace-pre-line text-xs font-normal text-slate-500">
-                          Ghi chú: {item.note}
+                          {t("orderDetail.note")}: {item.note}
                         </span>
                       ) : null}
                     </TableCell>
@@ -654,7 +650,7 @@ export default function OrderDetail({ orderId }: Props) {
                       {item.quantity}
                     </TableCell>
                     <TableCell className="text-right font-medium text-slate-800">
-                      {CURRENCY.format(item.price)}
+                      {formatVnd(item.price, locale)}
                     </TableCell>
                     <TableCell className="text-center">
                       <div className="flex flex-col items-center gap-2">
@@ -679,7 +675,7 @@ export default function OrderDetail({ orderId }: Props) {
                             }
                             className="cursor-pointer text-sm font-bold text-emerald-600 underline underline-offset-4 hover:text-emerald-700"
                           >
-                            Xem thiết kế
+                            {t("orderDetail.viewDesign")}
                           </button>
                         ) : null}
                         {!item.previewUrl && !isJsonObject(item.designData) ? (
@@ -746,27 +742,32 @@ export default function OrderDetail({ orderId }: Props) {
                             }
                             className="rounded-lg border border-emerald-200 bg-white px-3 py-1.5 text-xs font-bold text-emerald-700 hover:bg-emerald-50"
                           >
-                            Xem dữ liệu
+                            {t("orderDetail.viewData")}
                           </button>
                         ) : null}
                       </div>
 
                       <div className="mt-3 grid gap-2 text-xs text-slate-600">
                         <p>
-                          <span className="font-bold text-slate-700">Nền:</span>{" "}
+                          <span className="font-bold text-slate-700">
+                            {t("orderDetail.background")}:
+                          </span>{" "}
                           {backgroundLabel ?? "-"}
                         </p>
                         <p>
                           <span className="font-bold text-slate-700">
-                            Thành phần:
+                            {t("orderDetail.components")}:
                           </span>{" "}
-                          {stats.characters} nhân vật · {stats.accessories} phụ
-                          kiện · {stats.uploadedImages} ảnh upload
+                          {t("orderDetail.designComponents", {
+                            characters: stats.characters,
+                            accessories: stats.accessories,
+                            images: stats.uploadedImages,
+                          })}
                         </p>
                         {item.note ? (
                           <p className="whitespace-pre-line">
                             <span className="font-bold text-slate-700">
-                              Ghi chú:
+                              {t("orderDetail.note")}:
                             </span>{" "}
                             {item.note}
                           </p>
@@ -786,7 +787,7 @@ export default function OrderDetail({ orderId }: Props) {
                         {designCharacters.length > 0 ? (
                           <div className="rounded-xl bg-white p-3">
                             <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500">
-                              Nhân vật LEGO
+                              {t("orderDetail.legoCharacters")}
                             </p>
                             <div className="space-y-3">
                               {designCharacters.map((character, index) => (
@@ -795,32 +796,35 @@ export default function OrderDetail({ orderId }: Props) {
                                   className="rounded-xl border border-slate-100 bg-slate-50 p-2"
                                 >
                                   <p className="mb-2 text-xs font-bold text-slate-800">
-                                    {character.name || `NV ${index + 1}`}
+                                    {character.name ||
+                                      t("orderDetail.characterFallback", {
+                                        number: index + 1,
+                                      })}
                                   </p>
                                   <div className="grid gap-2 sm:grid-cols-2">
                                     <CharacterPartBadge
-                                      label="Mặt"
+                                      label={t("orderDetail.face")}
                                       partId={character.faceId}
                                       partMap={characterPartMap}
                                     />
                                     <CharacterPartBadge
-                                      label="Tóc"
+                                      label={t("orderDetail.hair")}
                                       partId={character.hairId}
                                       partMap={characterPartMap}
                                     />
                                     <CharacterPartBadge
-                                      label="Áo"
+                                      label={t("orderDetail.torso")}
                                       partId={character.torsoId}
                                       partMap={characterPartMap}
                                     />
                                     <CharacterPartBadge
-                                      label="Quần"
+                                      label={t("orderDetail.legs")}
                                       partId={character.legsId}
                                       partMap={characterPartMap}
                                     />
                                     {character.hatId && (
                                       <CharacterPartBadge
-                                        label="Mũ"
+                                        label={t("orderDetail.hat")}
                                         partId={character.hatId}
                                         partMap={characterPartMap}
                                       />
@@ -831,7 +835,7 @@ export default function OrderDetail({ orderId }: Props) {
                                       {character.accessoryIds.map((partId) => (
                                         <CharacterPartBadge
                                           key={partId}
-                                          label="Phụ kiện"
+                                          label={t("orderDetail.accessories")}
                                           partId={partId}
                                           partMap={characterPartMap}
                                         />
@@ -904,7 +908,7 @@ export default function OrderDetail({ orderId }: Props) {
                     </TableCell>
                     <TableCell>{payment.type}</TableCell>
                     <TableCell className="text-right font-medium text-slate-800">
-                      {CURRENCY.format(payment.amount)}
+                      {formatVnd(payment.amount, locale)}
                     </TableCell>
                     <TableCell className="text-center">
                       <StatusBadge value={payment.status} t={t} />
@@ -919,7 +923,7 @@ export default function OrderDetail({ orderId }: Props) {
 
       {order.statusHistories && order.statusHistories.length > 0 ? (
         <Card className="p-5 sm:p-6">
-          <SectionHeader title="Lịch sử trạng thái" />
+          <SectionHeader title={t("orderDetail.statusHistory")} />
           <div className="mt-5 space-y-3">
             {order.statusHistories.map((history) => {
               const actor =
@@ -954,7 +958,7 @@ export default function OrderDetail({ orderId }: Props) {
                     <div className="text-left text-xs text-slate-500 sm:text-right">
                       <p className="font-semibold text-slate-700">{actor}</p>
                       <p>
-                        {new Date(history.createdAt).toLocaleString("vi-VN")}
+                        {formatDateTime(history.createdAt, locale)}
                       </p>
                     </div>
                   </div>

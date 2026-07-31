@@ -8,10 +8,11 @@ import { useAuthStore } from "@/features/auth/store";
 import { ROUTES } from "@/config/routes";
 import { formControlClassName } from "@/components/ui/form-control";
 import { useI18n } from "@/lib/i18n/useI18n";
+import { getLocalizedApiError } from "@/lib/i18n/errors";
 
 export default function RegisterPage() {
   const router = useRouter();
-  const { dictionary } = useI18n();
+  const { dictionary, t } = useI18n();
   const copy = dictionary.auth;
   const setAuth = useAuthStore((state) => state.setAuth);
 
@@ -35,7 +36,7 @@ export default function RegisterPage() {
       setAuth(data.accessToken, data.user);
       router.push(ROUTES.home);
     } catch (err) {
-      setError(err instanceof Error ? err.message : copy.register.failed);
+      setError(getLocalizedApiError(err, t, "auth.register.failed"));
     } finally {
       setLoading(false);
     }

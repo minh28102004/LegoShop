@@ -4,6 +4,7 @@ import type {
   CreatePaymentLinkResponseContract,
   TrackOrderRequestContract,
   TrackOrderResponseContract,
+  TrackOrdersResponseContract,
 } from '@lego-shop/shared';
 import type { ApiRequester } from '../client';
 
@@ -16,7 +17,7 @@ export function createOrdersApi(request: ApiRequester) {
       });
     },
 
-    trackOrder(payload: TrackOrderRequestContract): Promise<TrackOrderResponseContract> {
+    trackOrder(payload: TrackOrderRequestContract): Promise<TrackOrdersResponseContract> {
       return request('orders/track', {
         method: 'POST',
         body: payload,

@@ -54,7 +54,7 @@ function PaymentCancelContent() {
         </button>
         
         <Link 
-          href={`/order-tracking${orderCode ? `?code=${orderCode}` : ""}`}
+          href="/order-tracking"
           className="px-8 py-3 border border-zinc-200 hover:border-zinc-300 text-zinc-700 font-medium rounded-full transition-colors flex items-center justify-center gap-2"
         >
           <Search className="w-4 h-4" /> {copy.cancel.trackOrder}

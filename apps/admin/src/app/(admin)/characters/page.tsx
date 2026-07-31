@@ -5,74 +5,68 @@ import { useI18n } from '@/lib/i18n/useI18n';
 
 export default function CharactersPage() {
   const { t } = useI18n();
-
   const fields: EntityField[] = [
-    { key: 'name', label: 'Tên linh kiện', type: 'text', required: true },
+    { key: 'name', label: t('characterPartsPage.name'), type: 'text', required: true },
     {
       key: 'slug',
-      label: 'Slug',
+      label: t('entity.slug'),
       type: 'text',
-      placeholder: 'VD: toc-den-ngan',
-      helpText: 'Định danh ổn định dùng cho liên kết và import dữ liệu.',
+      placeholder: 'short-black-hair',
+      helpText: t('characterPartsPage.slugHelp'),
     },
     {
       key: 'type',
-      label: 'Nhóm linh kiện',
+      label: t('characterPartsPage.group'),
       type: 'select',
       required: true,
       options: [
-        { label: 'Khuôn mặt', value: 'FACE' },
-        { label: 'Tóc', value: 'HAIR' },
-        { label: 'Thân áo', value: 'TORSO' },
-        { label: 'Chân', value: 'LEGS' },
-        { label: 'Mũ', value: 'HAT' },
-        { label: 'Phụ kiện', value: 'ACCESSORY' },
+        { label: t('characterPartsPage.face'), value: 'FACE' },
+        { label: t('characterPartsPage.hair'), value: 'HAIR' },
+        { label: t('characterPartsPage.torso'), value: 'TORSO' },
+        { label: t('characterPartsPage.legs'), value: 'LEGS' },
+        { label: t('characterPartsPage.hat'), value: 'HAT' },
+        { label: t('characterPartsPage.accessory'), value: 'ACCESSORY' },
       ],
     },
     {
       key: 'imageUrl',
-      label: 'Ảnh PNG/WebP',
+      label: t('characterPartsPage.image'),
       type: 'image',
       required: true,
-      helpText:
-        'Dùng ảnh nền trong suốt, cùng kích thước canvas (khuyến nghị 512×512) để các lớp ghép đúng vị trí.',
+      helpText: t('characterPartsPage.imageHelp'),
     },
-    { key: 'priceAdjustment', label: 'Giá bán (VND)', type: 'number', required: true },
-    { key: 'compareAtPrice', label: 'Giá gốc (VND)', type: 'number' },
+    { key: 'priceAdjustment', label: t('characterPartsPage.sellingPrice'), type: 'number', required: true },
+    { key: 'compareAtPrice', label: t('characterPartsPage.comparePrice'), type: 'number' },
     {
       key: 'category',
-      label: 'Danh mục',
+      label: t('characterPartsPage.category'),
       type: 'text',
-      placeholder: 'VD: classic, graduation',
+      placeholder: 'classic, graduation',
     },
     {
       key: 'availability',
-      label: 'Tình trạng kho',
+      label: t('characterPartsPage.availability'),
       type: 'select',
       options: [
-        { label: 'Có sẵn', value: 'available' },
-        { label: 'Tạm hết', value: 'out_of_stock' },
-        { label: 'Ngừng bán', value: 'unavailable' },
+        { label: t('characterPartsPage.available'), value: 'available' },
+        { label: t('characterPartsPage.outOfStock'), value: 'out_of_stock' },
+        { label: t('characterPartsPage.unavailable'), value: 'unavailable' },
       ],
     },
     {
       key: 'compatibility',
-      label: 'Điều kiện tương thích',
+      label: t('characterPartsPage.compatibility'),
       type: 'json',
+      advanced: true,
       placeholder: '{\n  "bodyScale": ["standard"]\n}',
-      helpText: 'JSON dùng để giới hạn linh kiện tương thích trong Character Builder.',
+      helpText: t('characterPartsPage.compatibilityHelp'),
     },
-    { key: 'sortOrder', label: 'Thứ tự hiển thị', type: 'number' },
+    { key: 'sortOrder', label: t('characterPartsPage.sortOrder'), type: 'number' },
     {
       key: 'tags',
-      label: 'Từ khóa tìm kiếm',
+      label: t('characterPartsPage.tags'),
       type: 'tags',
-      placeholder: 'VD: black, short, tóc nam',
-    },
-    {
-      key: 'isActive',
-      label: 'Cho phép sử dụng trong Builder',
-      type: 'checkbox',
+      placeholder: 'black, short, classic',
     },
     {
       key: 'status',
@@ -84,22 +78,19 @@ export default function CharactersPage() {
       ],
     },
   ];
-
-  const tableFields = fields.filter((field) =>
-    ['name', 'type', 'imageUrl', 'priceAdjustment', 'availability', 'isActive', 'status'].includes(
-      field.key,
-    ),
+  const tableFields = ['name', 'imageUrl', 'type', 'priceAdjustment', 'availability', 'status'].flatMap(
+    (key) => fields.filter((field) => field.key === key),
   );
 
   return (
     <EntityManager
-      title='linh kiện nhân vật'
+      title={t('characterPartsPage.singular')}
       resource='character-parts'
       fields={fields}
       tableFields={tableFields}
-      pageTitle='Quản lý linh kiện nhân vật'
-      pageDescription='Quản lý khuôn mặt, tóc, thân áo, chân, mũ và phụ kiện dùng chung cho Character Builder, preset và sản phẩm bán lẻ.'
-      createButtonLabel='Thêm linh kiện'
+      pageTitle={t('characterPartsPage.title')}
+      pageDescription={t('characterPartsPage.description')}
+      createButtonLabel={t('characterPartsPage.create')}
     />
   );
 }

@@ -9,6 +9,8 @@ import Select from '@/common/components/ui/Select';
 import { getStatusBadgeLabel, StatusBadge } from '@/common/components/ui/Badge';
 import { getBusinessInquiryById, updateBusinessInquiryStatus } from '@/modules/admin/services/adminApi';
 import { useI18n } from '@/lib/i18n/useI18n';
+import { getLocalizedApiError } from '@/lib/i18n/errors';
+import { formatDateTime } from '@/lib/i18n/format';
 import AdminNavIcon from '@/modules/admin/components/AdminNavIcon';
 import type { BusinessInquiry, InquiryStatus } from '@/modules/admin/types/admin.types';
 
@@ -25,7 +27,7 @@ const INQUIRY_STATUSES: InquiryStatus[] = [
 ];
 
 export default function InquiryDetail({ inquiryId }: Props) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const [inquiry, setInquiry] = useState<BusinessInquiry | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -41,7 +43,7 @@ export default function InquiryDetail({ inquiryId }: Props) {
       const data = await getBusinessInquiryById(inquiryId);
       setInquiry(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : t('inquiries.loadFailed'));
+      setError(getLocalizedApiError(err, t, 'inquiries.loadFailed'));
     } finally {
       setLoading(false);
     }
@@ -63,7 +65,7 @@ export default function InquiryDetail({ inquiryId }: Props) {
       await updateBusinessInquiryStatus(inquiry.id, status);
       await load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : t('inquiries.updateFailed'));
+      setError(getLocalizedApiError(err, t, 'inquiries.updateFailed'));
     }
   }
 
@@ -119,7 +121,7 @@ export default function InquiryDetail({ inquiryId }: Props) {
               {t('inquiries.created')}
             </p>
             <p className='mt-2 text-sm font-medium text-slate-900'>
-              {new Date(inquiry.createdAt).toLocaleString()}
+              {formatDateTime(inquiry.createdAt, locale)}
             </p>
           </div>
         </div>

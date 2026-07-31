@@ -17,23 +17,26 @@ import {
   Search,
   Zap,
   UploadCloud,
+  ZoomIn,
   Check,
   ChevronLeft,
   ChevronRight,
   AlertCircle,
   X,
   CalendarDays,
-  PanelRightClose,
 } from "lucide-react";
 import { uploadCustomerImage } from "@/lib/api/uploads";
-import {
-  LOCALE_FORMATS,
-} from "@/lib/i18n/config";
+import { LOCALE_FORMATS } from "@/lib/i18n/config";
+import { DECORATIVE_ICON_PATHS } from "@/config/icons";
 import { Badge } from "@/components/ui/Badge";
+import { formControlClassName } from "@/components/ui/form-control";
 import { Modal } from "@/components/ui/Modal";
 import { useStudioI18n } from "../hooks/useStudioI18n";
-import { StudioReviewPanel } from "./StudioReviewPanel";
-import { StudioSidebar } from "./StudioSidebar";
+import {
+  STUDIO_REVIEW_FOOTER_ID,
+  StudioReviewPanel,
+} from "./StudioReviewPanel";
+import { StudioAddContentRow } from "./StudioAddContentRow";
 import { StudioSearchableMultiSelect } from "./StudioSearchableMultiSelect";
 import {
   DEFAULT_PANEL_TAB_BY_STEP,
@@ -60,9 +63,7 @@ export function StudioRightPanel() {
     isLoadingData,
     dataError,
     validateStep,
-    activeTool,
     setActiveTool,
-    activePanelTab,
     setActivePanelTab,
     setIsContextPanelCollapsed,
   } = useStudio();
@@ -94,53 +95,18 @@ export function StudioRightPanel() {
   };
 
   const panelTitle = text.workflow[activeStep];
-
-  const contextualContent = (() => {
-    if (activeStep === "review" || activePanelTab === "review") {
-      return <StudioReviewPanel />;
-    }
-    if (
-      activeStep === "characters" ||
-      activePanelTab === "characters" ||
-      activePanelTab === "accessories"
-    ) {
-      return <Step3Characters />;
-    }
-    if (activeStep === "frame" || activePanelTab === "frame") {
-      return <Step1Frame />;
-    }
-    if (
-      activeStep === "background" ||
-      activePanelTab === "templates" ||
-      activePanelTab === "backgrounds"
-    ) {
-      return (
-        <div className="space-y-5">
-          <Step2Content mode="background" />
-          <StudioSidebar embedded />
-        </div>
-      );
-    }
-    if (
-      activeStep === "content" ||
-      activePanelTab === "information" ||
-      activePanelTab === "uploads" ||
-      activePanelTab === "add-text" ||
-      activePanelTab === "formatting"
-    ) {
-      return (
-        <div className="space-y-5">
-          <Step2Content mode="content" />
-          <StudioSidebar embedded />
-        </div>
-      );
-    }
-    return <StudioSidebar embedded />;
-  })();
+  const isReviewPanel = activeStep === "review";
+  const contextualContent = {
+    frame: <Step1Frame />,
+    background: <Step2Content mode="background" />,
+    content: <Step2Content mode="content" />,
+    characters: <StudioCharacterLibraryPanel mode="all" />,
+    review: <StudioReviewPanel />,
+  }[activeStep];
 
   return (
     <div className="z-20 flex h-full min-h-0 w-full shrink-0 flex-col bg-white">
-      <div className="relative flex h-16 shrink-0 items-center justify-between gap-3 border-b border-[#e5edf5] px-4 pt-2 lg:h-14 lg:pt-0">
+      <div className="relative flex h-16 shrink-0 items-center justify-between gap-3 border-b border-[#e5edf5] px-4 pt-2 lg:hidden">
         <span
           aria-hidden="true"
           className="absolute left-1/2 top-2 h-1 w-10 -translate-x-1/2 rounded-full bg-slate-200 lg:hidden"
@@ -161,20 +127,24 @@ export function StudioRightPanel() {
           className="grid h-9 w-9 shrink-0 place-items-center rounded-xl text-slate-400 outline-none transition-colors duration-200 hover:bg-slate-100 hover:text-slate-800 focus-visible:ring-2 focus-visible:ring-[#9ed0ef]/60"
         >
           <X className="h-[18px] w-[18px] lg:hidden" />
-          <PanelRightClose className="hidden h-[18px] w-[18px] lg:block" />
         </button>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto bg-[linear-gradient(180deg,#ffffff_0%,#fbfdff_100%)] px-4 py-4">
-        <div
-          key={`${activeStep}-${activeTool}-${activePanelTab}`}
-          className="animate-fade-in"
-        >
+      <div
+        data-studio-panel-scroll
+        className="min-h-0 flex-1 overflow-y-auto overscroll-contain bg-[linear-gradient(180deg,#ffffff_0%,#fbfdff_100%)] px-4 py-4 [scrollbar-gutter:stable]"
+      >
+        <div key={activeStep} className="animate-fade-in">
           {contextualContent}
         </div>
       </div>
 
-      {activeStep !== "review" ? (
+      {isReviewPanel ? (
+        <div
+          id={STUDIO_REVIEW_FOOTER_ID}
+          className="shrink-0 border-t border-[#dbe7f1] bg-white/96 px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-4 backdrop-blur-md lg:pb-4"
+        />
+      ) : (
         <div className="shrink-0 border-t border-[#dbe7f1] bg-white/96 px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-4 backdrop-blur-md lg:pb-4">
           {validationMessage && (
             <div className="mb-3 rounded-2xl border border-amber-200/80 bg-amber-50/90 px-3.5 py-3 text-xs font-semibold leading-relaxed text-amber-800">
@@ -213,7 +183,7 @@ export function StudioRightPanel() {
             )}
           </div>
         </div>
-      ) : null}
+      )}
     </div>
   );
 }
@@ -429,14 +399,20 @@ function Step2Content({
     contentValues,
     setContentValue,
     clearContentValues,
+    addElement,
     isBackgroundsLoading,
     backgroundsError,
   } = useStudio();
   const { text } = useStudioI18n();
   const [activeCategoryIds, setActiveCategoryIds] = useState<string[]>([]);
+  const [templateSearchQuery, setTemplateSearchQuery] = useState("");
   const backgroundInputRef = useRef<HTMLInputElement | null>(null);
   const [isUploadingBackground, setIsUploadingBackground] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [previewBackground, setPreviewBackground] = useState<{
+    src: string;
+    name: string;
+  } | null>(null);
   const effectiveCategoryIds = useMemo(
     () =>
       activeCategoryIds.filter((categoryId) =>
@@ -446,13 +422,22 @@ function Step2Content({
   );
 
   const filteredTemplates = useMemo(() => {
-    if (effectiveCategoryIds.length === 0) return templates;
-    return templates.filter(
-      (template) =>
-        template.categoryId &&
-        effectiveCategoryIds.includes(template.categoryId),
-    );
-  }, [templates, effectiveCategoryIds]);
+    const normalizedQuery = templateSearchQuery.trim().toLocaleLowerCase();
+
+    return templates.filter((template) => {
+      const matchesCategory =
+        effectiveCategoryIds.length === 0 ||
+        (template.categoryId &&
+          effectiveCategoryIds.includes(template.categoryId));
+      const matchesQuery =
+        normalizedQuery.length === 0 ||
+        [template.name, template.description, template.instructions]
+          .filter((value): value is string => Boolean(value))
+          .some((value) => value.toLocaleLowerCase().includes(normalizedQuery));
+
+      return matchesCategory && matchesQuery;
+    });
+  }, [templates, effectiveCategoryIds, templateSearchQuery]);
   const selectedTemplate = useMemo(
     () => templates.find((t) => t.id === activeTemplate) ?? null,
     [activeTemplate, templates],
@@ -468,13 +453,29 @@ function Step2Content({
       setCustomBackgroundOriginalName(uploaded.originalName);
       setActiveTemplate(null);
       clearContentValues();
-    } catch (error) {
+    } catch {
       setUploadError(
-        error instanceof Error ? error.message : text.canvas.uploadError,
+        text.canvas.uploadError,
       );
     } finally {
       setIsUploadingBackground(false);
     }
+  };
+
+  const addText = (variant: "title" | "body" | "caption") => {
+    addElement({
+      type: "text",
+      content:
+        variant === "title"
+          ? text.sidebar.defaultTitleText
+          : variant === "caption"
+            ? text.sidebar.defaultCaptionText
+            : text.sidebar.defaultBodyText,
+      x: variant === "title" ? 110 : 120,
+      y: variant === "title" ? 285 : 320,
+      fontSize: variant === "title" ? 22 : variant === "caption" ? 13 : 16,
+      color: variant === "caption" ? "#64748b" : "#0f172a",
+    });
   };
 
   return (
@@ -485,29 +486,53 @@ function Step2Content({
             <h3 className="text-xs font-semibold tracking-wide text-slate-950 uppercase">
               {text.panels.chooseBackground}
             </h3>
-            <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-500">
+            <Badge
+              variant="highlight"
+              size="sm"
+              className="h-6 justify-center px-2.5 text-xs font-bold"
+            >
               {text.panels.backgroundCount(
                 filteredTemplates.length + (customBackgroundUrl ? 1 : 0),
               )}
-            </span>
+            </Badge>
           </div>
 
-          {templateCategories.length > 0 ? (
-            <div className="mb-4">
-              <StudioSearchableMultiSelect
-                label={text.common.all}
-                options={templateCategories.map((category) => ({
-                  value: category.id,
-                  label: category.name,
-                }))}
-                value={effectiveCategoryIds}
-                onChange={setActiveCategoryIds}
-                searchPlaceholder={text.sidebar.searchTemplates}
-                emptyLabel={text.sidebar.noTemplateMatches}
-                clearLabel={text.panels.clearAll}
+          <div className="mb-4 flex items-center gap-2">
+            <label className="relative min-w-0 flex-1">
+              <span className="sr-only">{text.sidebar.searchTemplates}</span>
+              <Search className="pointer-events-none absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <input
+                type="search"
+                value={templateSearchQuery}
+                placeholder={text.sidebar.searchTemplates}
+                aria-label={text.sidebar.searchTemplates}
+                className={formControlClassName({
+                  className:
+                    "appearance-none pl-10 pr-3 text-sm focus:!shadow-none focus-visible:!shadow-none",
+                  size: "compact",
+                })}
+                onChange={(event) => setTemplateSearchQuery(event.target.value)}
               />
-            </div>
-          ) : null}
+            </label>
+
+            {templateCategories.length > 0 ? (
+              <div className="w-[38%] min-w-[132px]">
+                <StudioSearchableMultiSelect
+                  label={text.common.all}
+                  options={templateCategories.map((category) => ({
+                    value: category.id,
+                    label: category.name,
+                  }))}
+                  value={effectiveCategoryIds}
+                  onChange={setActiveCategoryIds}
+                  searchPlaceholder={text.sidebar.searchTemplates}
+                  emptyLabel={text.sidebar.noTemplateMatches}
+                  clearLabel={text.panels.clearAll}
+                  showSearch={false}
+                />
+              </div>
+            ) : null}
+          </div>
 
           {backgroundsError ? (
             <div
@@ -519,116 +544,173 @@ function Step2Content({
             </div>
           ) : null}
 
-          <div className="grid max-h-[350px] grid-cols-4 gap-3 overflow-y-auto pr-1">
+          <div className="grid max-h-[360px] grid-cols-4 gap-2.5 overflow-y-auto py-1 pr-1">
             {customBackgroundUrl && (
-              <button
-                type="button"
-                onClick={() => {
-                  setActiveTemplate(null);
-                  setCustomBackgroundOriginalName(null);
-                  clearContentValues();
-                }}
-                className={`group relative aspect-square overflow-hidden rounded-[16px] border appearance-none outline-none transition-all duration-200 focus:outline-none focus-visible:outline-none ${
+              <div
+                className={`group relative aspect-[3/4] overflow-hidden rounded-[16px] border-2 bg-white p-1.5 appearance-none outline-none transition-all duration-200 focus:outline-none focus-visible:outline-none ${
                   !activeTemplate
                     ? "border-[#79b9e8]"
-                    : "border-[#e8eff6] bg-white hover:border-[#bfdcf0]"
+                    : "border-[#e1e7ed] hover:border-[#b8d7ea]"
                 }`}
               >
-                <Image
-                  src={customBackgroundUrl}
-                  alt={text.panels.yourBackground}
-                  fill
-                  unoptimized
-                  sizes="96px"
-                  className="object-contain bg-white p-2 transition-transform duration-500"
-                />
-                {!activeTemplate && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-[#2f91d0]/12 backdrop-blur-[1px]">
-                    <div className="rounded-full bg-[#2f91d0] p-1">
-                      <Check className="h-3 w-3 text-white" />
-                    </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveTemplate(null);
+                    setCustomBackgroundOriginalName(null);
+                    clearContentValues();
+                  }}
+                  className="group/card relative flex h-full w-full flex-col overflow-hidden rounded-[12px] bg-white text-left outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#79b9e8]"
+                >
+                  <div className="relative min-h-0 w-full flex-1 overflow-hidden rounded-[10px] bg-[#f1f3f5]">
+                    <Image
+                      src={customBackgroundUrl}
+                      alt={text.panels.yourBackground}
+                      fill
+                      unoptimized
+                      sizes="112px"
+                      className="object-contain p-1.5 transition-transform duration-300 ease-out group-hover/card:scale-[1.025] motion-reduce:transform-none motion-reduce:transition-none"
+                    />
                   </div>
-                )}
-                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-2 pt-6 text-center">
-                  <span className="block truncate text-[9px] font-semibold uppercase tracking-wider text-white">
-                    {text.panels.yourBackground}
-                  </span>
-                </div>
-              </button>
+                  <div className="flex h-8 shrink-0 items-center bg-white px-1.5 pt-1">
+                    <span className="block w-full truncate text-[10px] font-extrabold uppercase tracking-wide text-slate-700">
+                      {text.panels.yourBackground}
+                    </span>
+                  </div>
+                  {!activeTemplate && (
+                    <span className="absolute right-0 top-0 z-10 grid h-5 w-5 place-items-center rounded-full bg-[#2f91d0] ring-2 ring-white">
+                      <Check
+                        className="h-2.5 w-2.5 text-white"
+                        strokeWidth={3}
+                      />
+                    </span>
+                  )}
+                </button>
+                <button
+                  type="button"
+                  aria-label={`${text.canvas.zoomIn}: ${text.panels.yourBackground}`}
+                  onClick={() =>
+                    setPreviewBackground({
+                      src: customBackgroundUrl,
+                      name: text.panels.yourBackground,
+                    })
+                  }
+                  className="absolute bottom-[27px] right-0 z-20 grid h-6 w-6 place-items-center rounded-full border border-white/70 bg-slate-950/35 p-0 text-white backdrop-blur-[2px] appearance-none transition-colors duration-200 hover:bg-[#2f91d0]/85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2f91d0] focus-visible:ring-offset-1"
+                >
+                  <ZoomIn className="h-3.5 w-3.5" aria-hidden="true" />
+                </button>
+              </div>
             )}
             {isBackgroundsLoading ? (
               Array.from({ length: 12 }).map((_, i) => (
                 <div
                   key={i}
-                  className="aspect-square rounded-[16px] bg-[#eef3f8] animate-pulse"
+                  className="aspect-[3/4] rounded-[16px] bg-[#eef3f8] animate-pulse"
                 />
               ))
             ) : filteredTemplates.length === 0 && !customBackgroundUrl ? (
-              <div className="col-span-4 py-10 text-center text-sm font-medium text-slate-500">
+              <div className="col-span-full py-10 text-center text-sm font-medium text-slate-500">
                 {text.panels.noBackgrounds}
               </div>
             ) : (
-              filteredTemplates.map((tpl) => (
-                <button
-                  key={tpl.id}
-                  type="button"
-                  onClick={() => {
-                    setCustomBackgroundUrl(null);
-                    setCustomBackgroundOriginalName(null);
-                    setActiveTemplate(tpl.id);
-                  }}
-                  className={`group relative aspect-square overflow-hidden rounded-[16px] border appearance-none outline-none transition-all duration-200 focus:outline-none focus-visible:outline-none ${
-                    activeTemplate === tpl.id
-                      ? "border-[#79b9e8]"
-                      : "border-[#e8eff6] bg-white hover:border-[#bfdcf0]"
-                  }`}
-                >
-                  {tpl.thumbnailUrl || tpl.imageUrl ? (
-                    <Image
-                      src={tpl.thumbnailUrl ?? tpl.imageUrl ?? ""}
-                      alt={tpl.name}
-                      fill
-                      unoptimized
-                      sizes="96px"
-                      className="object-contain bg-white p-2 transition-transform duration-500"
-                    />
-                  ) : (
-                    <div className="flex h-full w-full items-center justify-center bg-[#f8fbff] p-2">
-                      <span className="text-center text-[10px] font-medium leading-tight text-slate-500">
-                        {tpl.name}
-                      </span>
-                    </div>
-                  )}
+              filteredTemplates.map((tpl) => {
+                const cardSource = tpl.thumbnailUrl ?? tpl.imageUrl;
+                const previewSource = tpl.imageUrl ?? tpl.thumbnailUrl;
+                const selected = activeTemplate === tpl.id;
 
-                  {activeTemplate === tpl.id && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-[#2f91d0]/12 backdrop-blur-[1px]">
-                      <div className="rounded-full bg-[#2f91d0] p-1">
-                        <Check className="h-3 w-3 text-white" />
+                return (
+                  <div
+                    key={tpl.id}
+                    className={`group relative aspect-[3/4] overflow-hidden rounded-[16px] border-2 bg-white p-1.5 transition-[border-color,transform] duration-200 hover:-translate-y-0.5 ${
+                      selected
+                        ? "border-[#79b9e8]"
+                        : "border-[#e1e7ed] hover:border-[#b8d7ea]"
+                    }`}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCustomBackgroundUrl(null);
+                        setCustomBackgroundOriginalName(null);
+                        setActiveTemplate(tpl.id);
+                      }}
+                      className="group/card relative flex h-full w-full flex-col overflow-hidden rounded-[12px] bg-white text-left outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#79b9e8]"
+                    >
+                      <div className="relative min-h-0 w-full flex-1 overflow-hidden rounded-[10px] bg-[#f1f3f5]">
+                        {cardSource ? (
+                          <Image
+                            src={cardSource}
+                            alt={tpl.name}
+                            fill
+                            unoptimized
+                            sizes="112px"
+                            className="object-contain p-1.5 transition-transform duration-300 ease-out group-hover/card:scale-[1.025] motion-reduce:transform-none motion-reduce:transition-none"
+                          />
+                        ) : (
+                          <div className="flex h-full w-full items-center justify-center bg-[#f8fbff] p-2">
+                            <span className="text-center text-[10px] font-medium leading-tight text-slate-500">
+                              {tpl.name}
+                            </span>
+                          </div>
+                        )}
                       </div>
-                    </div>
-                  )}
+                      <div className="flex h-8 shrink-0 items-center bg-white px-1.5 pt-1">
+                        <span className="block w-full truncate text-[10px] font-extrabold uppercase tracking-wide text-slate-700">
+                          {tpl.name}
+                        </span>
+                      </div>
 
-                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-2 pt-6 text-center">
-                    <span className="block truncate text-[9px] font-semibold uppercase tracking-wider text-white">
-                      {tpl.name}
-                    </span>
+                      {selected && (
+                        <span className="absolute right-0 top-0 z-10 grid h-5 w-5 place-items-center rounded-full bg-[#2f91d0] ring-2 ring-white">
+                          <Check
+                            className="h-2.5 w-2.5 text-white"
+                            strokeWidth={3}
+                          />
+                        </span>
+                      )}
+                    </button>
+
+                    {previewSource ? (
+                      <button
+                        type="button"
+                        aria-label={`${text.canvas.zoomIn}: ${tpl.name}`}
+                        onClick={() =>
+                          setPreviewBackground({
+                            src: previewSource,
+                            name: tpl.name,
+                          })
+                        }
+                        className="absolute bottom-[27px] right-0 z-20 grid h-6 w-6 place-items-center rounded-full border border-white/70 bg-slate-950/35 p-0 text-white backdrop-blur-[2px] appearance-none transition-colors duration-200 hover:bg-[#2f91d0]/85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2f91d0] focus-visible:ring-offset-1"
+                      >
+                        <ZoomIn className="h-3.5 w-3.5" aria-hidden="true" />
+                      </button>
+                    ) : null}
                   </div>
-                </button>
-              ))
+                );
+              })
             )}
           </div>
 
-          <div className="mt-4 border-t border-[#e4edf5] pt-4">
+          <div className="mt-4 border-t border-[#edf1f5] pt-4">
             <button
               type="button"
               onClick={() => backgroundInputRef.current?.click()}
               disabled={isUploadingBackground}
-              className="group flex w-full items-center justify-center gap-2 rounded-[16px] border border-dashed border-[#d3e3f0] bg-[#fbfdff] py-3 text-xs font-semibold text-slate-600 appearance-none outline-none transition-all duration-200 hover:border-[#aed2eb] hover:bg-white hover:text-[#2f91d0] focus:outline-none focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-70"
+              className="group flex min-h-16 w-full items-center justify-center gap-3 rounded-[18px] border-2 border-dashed border-[#d6dee7] bg-[#fbfcfd] px-5 py-3 text-xs font-extrabold text-slate-500 appearance-none outline-none transition-[background-color,border-color,color] duration-300 hover:border-[#9fc4dc] hover:bg-[#f5f9fc] hover:text-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#9ed0ef]/70 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-70"
             >
-              <UploadCloud className="h-4 w-4 transition-transform" />
-              {isUploadingBackground
-                ? text.panels.uploadingBackground.toUpperCase()
-                : text.panels.uploadBackground.toUpperCase()}
+              <Image
+                src={DECORATIVE_ICON_PATHS.camera}
+                alt=""
+                width={30}
+                height={30}
+                aria-hidden="true"
+                className="h-[30px] w-[30px] shrink-0 -translate-y-1 object-contain transition-transform duration-300 ease-out group-hover:-rotate-3 group-hover:scale-110 motion-reduce:transform-none motion-reduce:transition-none"
+              />
+              <span className="leading-none">
+                {isUploadingBackground
+                  ? text.panels.uploadingBackground.toUpperCase()
+                  : text.panels.uploadBackground.toUpperCase()}
+              </span>
             </button>
             <input
               ref={backgroundInputRef}
@@ -654,7 +736,7 @@ function Step2Content({
             <button
               type="button"
               onClick={clearContentValues}
-              className="rounded-full border-0 bg-transparent px-3 py-1.5 text-xs font-semibold text-slate-500 appearance-none outline-none transition-colors duration-200 hover:bg-rose-50 hover:text-rose-600 focus:outline-none focus-visible:outline-none"
+              className="rounded-full border border-slate-200 bg-slate-100/80 px-4 py-2 text-[11px] font-extrabold text-slate-700 appearance-none outline-none transition-colors duration-200 hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-300/60"
             >
               {text.panels.clearAll.toUpperCase()}
             </button>
@@ -674,18 +756,79 @@ function Step2Content({
               )}
             </div>
           )}
-          <div className="space-y-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             {contentFields.map((field) => (
-              <ContentFieldInput
+              <div
                 key={field.key}
-                field={field}
-                value={contentValues[field.key] ?? ""}
-                onChange={(value) => setContentValue(field.key, value)}
-              />
+                className={
+                  field.type === "textarea" || field.type === "image"
+                    ? "sm:col-span-2"
+                    : undefined
+                }
+              >
+                <ContentFieldInput
+                  field={field}
+                  value={contentValues[field.key] ?? ""}
+                  onChange={(value) => setContentValue(field.key, value)}
+                />
+              </div>
             ))}
+          </div>
+
+          <div className="mt-5 space-y-3 rounded-[26px] border border-[#e2ebf3] bg-[#f3f6f9] p-3.5">
+            <StudioAddContentRow
+              title={text.sidebar.titleText}
+              subtitle={text.sidebar.titleTextHint}
+              emphasis="title"
+              onClick={() => addText("title")}
+            />
+            <StudioAddContentRow
+              title={text.sidebar.bodyText}
+              subtitle={text.sidebar.bodyTextHint}
+              emphasis="body"
+              onClick={() => addText("body")}
+            />
+            <StudioAddContentRow
+              title={text.sidebar.captionText}
+              subtitle={text.sidebar.captionTextHint}
+              emphasis="caption"
+              onClick={() => addText("caption")}
+            />
           </div>
         </div>
       ) : null}
+
+      <Modal
+        isOpen={previewBackground !== null}
+        onClose={() => setPreviewBackground(null)}
+        size="full"
+        aria-label={`${text.canvas.preview}: ${previewBackground?.name ?? ""}`}
+        className="h-[calc(100dvh-32px)] max-w-[min(1180px,calc(100vw-32px))] rounded-[22px] border border-white/15 bg-[#0b1220] shadow-2xl"
+        contentClassName="relative flex h-full items-center justify-center overflow-hidden bg-[#0b1220] p-3 sm:p-5"
+      >
+        {previewBackground ? (
+          <>
+            <div className="relative h-full w-full overflow-hidden rounded-[16px] bg-white/5">
+              <Image
+                src={previewBackground.src}
+                alt={previewBackground.name}
+                fill
+                unoptimized
+                sizes="calc(100vw - 64px)"
+                className="object-contain"
+              />
+            </div>
+            <button
+              type="button"
+              aria-label={text.common.closePanel}
+              onClick={() => setPreviewBackground(null)}
+              className="absolute right-5 top-5 z-20 grid h-11 w-11 place-items-center rounded-full border border-white/20 bg-slate-950/70 text-white backdrop-blur-sm transition-[background-color,transform] duration-200 hover:scale-105 hover:bg-slate-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 motion-reduce:transform-none"
+            >
+              <X className="h-6 w-6" aria-hidden="true" />
+            </button>
+          </>
+        ) : null}
+      </Modal>
     </div>
   );
 }
@@ -769,10 +912,10 @@ function DateFieldInput({
   const days = getCalendarDays(viewDate);
   const today = new Date();
   const weekdays = text.common.weekdays;
-  const monthLabel = new Intl.DateTimeFormat(
-    LOCALE_FORMATS[locale],
-    { month: "long", year: "numeric" },
-  ).format(viewDate);
+  const monthLabel = new Intl.DateTimeFormat(LOCALE_FORMATS[locale], {
+    month: "long",
+    year: "numeric",
+  }).format(viewDate);
 
   const changeMonth = (direction: -1 | 1) => {
     setViewDate((current) => {
@@ -791,6 +934,36 @@ function DateFieldInput({
     const nextOpen = !open;
     if (nextOpen && selectedDate) setViewDate(selectedDate);
     setOpen(nextOpen);
+    if (nextOpen) {
+      requestAnimationFrame(() => {
+        const root = rootRef.current;
+        const scrollPanel = root?.closest<HTMLElement>(
+          "[data-studio-panel-scroll]",
+        );
+        const popover = root?.querySelector<HTMLElement>(".form-popover");
+        if (!scrollPanel || !popover) return;
+
+        const panelRect = scrollPanel.getBoundingClientRect();
+        const popoverRect = popover.getBoundingClientRect();
+        const safeGap = 12;
+        const bottomOverflow =
+          popoverRect.bottom - (panelRect.bottom - safeGap);
+        const topOverflow = panelRect.top + safeGap - popoverRect.top;
+        const scrollDelta =
+          bottomOverflow > 0
+            ? bottomOverflow
+            : topOverflow > 0
+              ? -topOverflow
+              : 0;
+
+        if (scrollDelta !== 0) {
+          scrollPanel.scrollTo({
+            top: scrollPanel.scrollTop + scrollDelta,
+            behavior: "smooth",
+          });
+        }
+      });
+    }
   };
 
   return (
@@ -809,8 +982,8 @@ function DateFieldInput({
       </button>
 
       {open ? (
-        <div className="form-popover absolute bottom-full left-0 z-[80] mb-2 w-[320px] max-w-[calc(100vw-40px)] p-3">
-          <div className="mb-3 flex items-center justify-between gap-2">
+        <div className="form-popover absolute right-0 top-full z-[80] mt-2 max-h-none w-[320px] max-w-[calc(100vw-40px)] overflow-visible p-2.5">
+          <div className="mb-2 flex items-center justify-between gap-2">
             <button
               type="button"
               onClick={() => changeMonth(-1)}
@@ -820,7 +993,7 @@ function DateFieldInput({
               <ChevronLeft className="h-4 w-4" />
             </button>
 
-            <p className="text-sm font-bold text-slate-900">{monthLabel}</p>
+            <p className="text-sm font-semibold text-slate-900">{monthLabel}</p>
 
             <button
               type="button"
@@ -836,7 +1009,7 @@ function DateFieldInput({
             {weekdays.map((weekday) => (
               <span
                 key={weekday}
-                className="py-1 text-[11px] font-bold text-slate-400"
+                className="py-1 text-[11px] font-semibold text-slate-400"
               >
                 {weekday}
               </span>
@@ -853,7 +1026,7 @@ function DateFieldInput({
                   key={date.toISOString()}
                   onClick={() => selectDate(date)}
                   className={[
-                    "grid h-9 place-items-center rounded-xl border-0 text-sm font-semibold appearance-none outline-none transition-colors focus:outline-none focus-visible:outline-none",
+                    "grid h-8 place-items-center rounded-xl border-0 text-sm font-medium appearance-none outline-none transition-colors focus:outline-none focus-visible:outline-none",
                     active
                       ? "bg-[#2f91d0] text-white"
                       : isToday
@@ -869,21 +1042,21 @@ function DateFieldInput({
             })}
           </div>
 
-          <div className="mt-3 flex items-center justify-between border-t border-[#edf3f8] pt-3">
+          <div className="mt-2 flex items-center justify-between border-t border-[#edf3f8] pt-2">
             <button
               type="button"
               onClick={() => {
                 onChange("");
                 setOpen(false);
               }}
-              className="rounded-full border-0 bg-transparent px-3 py-1.5 text-xs font-semibold text-slate-500 appearance-none outline-none transition-colors duration-200 hover:bg-rose-50 hover:text-rose-600 focus:outline-none focus-visible:outline-none"
+              className="rounded-full border-0 bg-transparent px-3 py-1.5 text-xs font-medium text-slate-500 appearance-none outline-none transition-colors duration-200 hover:bg-rose-50 hover:text-rose-600 focus:outline-none focus-visible:outline-none"
             >
               {text.common.clearDate}
             </button>
             <button
               type="button"
               onClick={() => selectDate(new Date())}
-              className="rounded-full border-0 bg-[#eef7ff] px-3 py-1.5 text-xs font-bold text-[#2f91d0] appearance-none outline-none transition-colors duration-200 hover:bg-[#dff0fb] focus:outline-none focus-visible:outline-none"
+              className="rounded-full border-0 bg-[#eef7ff] px-3 py-1.5 text-xs font-semibold text-[#2f91d0] appearance-none outline-none transition-colors duration-200 hover:bg-[#dff0fb] focus:outline-none focus-visible:outline-none"
             >
               {text.common.today}
             </button>
@@ -910,8 +1083,7 @@ function ContentFieldInput({
   return (
     <div>
       <label className="mb-2 block text-[12px] font-bold text-slate-700">
-        {field.label}{" "}
-        {field.required && <span className="text-[#2563eb]">*</span>}
+        {field.label}
       </label>
 
       {field.type === "textarea" ? (
@@ -960,9 +1132,13 @@ function ContentFieldInput({
 }
 
 // ==================== Step 3: Nhân vật ====================
-const CHARACTER_ACCESSORY_PAGE_SIZE = 24;
+const CHARACTER_ACCESSORY_PAGE_SIZE = 25;
 
-function Step3Characters() {
+export function StudioCharacterLibraryPanel({
+  mode = "all",
+}: {
+  mode?: "characters" | "accessories" | "all";
+}) {
   const {
     characterPrice,
     characterParts,
@@ -1111,333 +1287,423 @@ function Step3Characters() {
   };
 
   return (
-    <div className="space-y-5">
-      <div className="rounded-[22px] border border-[#cfe4f4] bg-[#f4faff] p-[18px] text-sm font-semibold leading-relaxed text-[#2f6690]">
-        {text.panels.shippingBanner}
-      </div>
+    <div
+      className={`space-y-5 ${
+        mode === "characters"
+          ? "p-4"
+          : mode === "accessories"
+            ? "h-full min-h-0"
+            : ""
+      }`}
+    >
+      {mode !== "accessories" ? (
+        <div
+          className={`rounded-[24px] border border-[#e4edf5] p-5 ${
+            mode === "characters" ? "bg-[#fbfdff]" : "bg-white"
+          }`}
+        >
+          {/* Header */}
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <h3 className="text-xs font-semibold tracking-wide text-slate-950 uppercase">
+              {text.panels.manageCharacters}
+            </h3>
+            <button
+              type="button"
+              onClick={openCreateBuilder}
+              title={text.panels.randomCharacterTitle}
+              className="flex h-8 shrink-0 items-center gap-1.5 rounded-full border border-[#b9d8ed] bg-[#f4faff] px-3 text-xs font-bold text-[#2f91d0] appearance-none outline-none transition-all duration-200 hover:border-[#2f91d0] hover:bg-[#2f91d0] hover:text-white focus:outline-none focus-visible:outline-none"
+            >
+              <Zap className="h-3.5 w-3.5" /> {text.panels.randomCharacter}
+            </button>
+          </div>
 
-      <div className="rounded-[24px] border border-[#e4edf5] bg-white p-5">
-        {/* Header */}
-        <div className="mb-4 flex items-center justify-between gap-3">
-          <h3 className="text-xs font-semibold tracking-wide text-slate-950 uppercase">
-            {text.panels.manageCharacters}
-          </h3>
-          <button
-            type="button"
-            onClick={openCreateBuilder}
-            title={text.panels.randomCharacterTitle}
-            className="flex h-8 shrink-0 items-center gap-1.5 rounded-full border border-[#b9d8ed] bg-[#f4faff] px-3 text-xs font-bold text-[#2f91d0] appearance-none outline-none transition-all duration-200 hover:border-[#2f91d0] hover:bg-[#2f91d0] hover:text-white focus:outline-none focus-visible:outline-none"
-          >
-            <Zap className="h-3.5 w-3.5" /> {text.panels.randomCharacter}
-          </button>
-        </div>
-
-        {/* Character chips + Add button */}
-        <div className="flex flex-wrap items-center gap-2">
-          {characterElements.map((character, index) => {
-            const active = selectedId === character.id;
-            const label = character.content || `NV ${index + 1}`;
-            return (
-              <div
-                key={character.id}
-                className={`group flex items-center gap-1 rounded-full border px-3 py-1.5 text-sm font-bold transition-all duration-200 ${
-                  active
-                    ? "border-[#b9d8ed] bg-[#f4faff] text-[#2f91d0]"
-                    : "border-[#e4edf5] bg-white text-slate-600 hover:border-[#9ed0ef]"
-                }`}
-              >
-                <button
-                  type="button"
-                  onClick={() => openEditBuilder(character)}
-                  className="max-w-[72px] truncate appearance-none outline-none focus:outline-none focus-visible:outline-none"
-                  title={`${text.common.edit} ${label}`}
-                >
-                  {label}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleRemoveCharacter(character.id, label)}
-                  className="ml-0.5 grid h-4 w-4 shrink-0 place-items-center rounded-full bg-red-100 text-red-500 opacity-70 appearance-none outline-none transition-colors duration-200 hover:bg-red-500 hover:text-white hover:opacity-100 focus:outline-none focus-visible:outline-none"
-                  aria-label={`${text.common.remove} ${label}`}
-                >
-                  <X className="h-2.5 w-2.5" />
-                </button>
-              </div>
-            );
-          })}
-
-          <button
-            type="button"
-            data-flat-button="true"
-            onClick={openCreateBuilder}
-            className="inline-flex h-10 appearance-none items-center gap-2 rounded-full border-0 bg-emerald-500 px-4 text-sm font-bold text-white outline-none transition-all duration-200 hover:bg-emerald-600 active:bg-emerald-700 focus:outline-none focus-visible:outline-none"
-          >
-            <span className="text-base leading-none">+</span>
-            <span>{text.panels.addShort}</span>
-            <span className="rounded-full bg-white/20 px-2 py-1 text-[11px] font-bold leading-none text-white">
-              {formatPrice(characterPrice)}
-            </span>
-          </button>
-        </div>
-
-        {characterElements.length === 0 && (
-          <p className="mt-3 text-xs font-medium text-slate-500">
-            {text.panels.noCharactersHint}
-          </p>
-        )}
-
-        {/* Price breakdown */}
-        {characterElements.length > 0 && (
-          <div className="mt-4 space-y-1.5 rounded-[16px] bg-[#f4faff] px-4 py-3">
+          {/* Character chips + Add button */}
+          <div className="flex flex-wrap items-center gap-2">
             {characterElements.map((character, index) => {
-              const partFee = getCharacterPartFee(character);
+              const active = selectedId === character.id;
               const label = character.content || `NV ${index + 1}`;
               return (
                 <div
                   key={character.id}
-                  className="flex items-center justify-between text-xs"
+                  className={`group flex items-center gap-1 rounded-full border px-3 py-1.5 text-sm font-bold transition-all duration-200 ${
+                    active
+                      ? "border-[#b9d8ed] bg-[#f4faff] text-[#2f91d0]"
+                      : "border-[#e4edf5] bg-white text-slate-600 hover:border-[#9ed0ef]"
+                  }`}
                 >
-                  <span className="font-medium text-slate-600">{label}</span>
-                  <span className="font-bold text-slate-950">
-                    {formatPrice(characterPrice + partFee)}
-                    {partFee > 0 && (
-                      <span className="ml-1 font-medium text-slate-500">
-                        (+{formatPrice(partFee)} {text.panels.partFee})
-                      </span>
-                    )}
-                  </span>
+                  <button
+                    type="button"
+                    onClick={() => openEditBuilder(character)}
+                    className="max-w-[72px] truncate appearance-none outline-none focus:outline-none focus-visible:outline-none"
+                    title={`${text.common.edit} ${label}`}
+                  >
+                    {label}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveCharacter(character.id, label)}
+                    className="ml-0.5 grid h-4 w-4 shrink-0 place-items-center rounded-full bg-red-100 text-red-500 opacity-70 appearance-none outline-none transition-colors duration-200 hover:bg-red-500 hover:text-white hover:opacity-100 focus:outline-none focus-visible:outline-none"
+                    aria-label={`${text.common.remove} ${label}`}
+                  >
+                    <X className="h-2.5 w-2.5" />
+                  </button>
                 </div>
               );
             })}
-            <div className="mt-2 flex items-center justify-between border-t border-[#e4edf5] pt-2 text-xs">
-              <span className="font-bold text-slate-950">
-                {text.panels.characterTotal}
-              </span>
-              <span className="font-bold text-[#2f91d0]">
-                {formatPrice(
-                  charactersTotalPrice +
-                    characterElements.reduce(
-                      (s, c) => s + getCharacterPartFee(c),
-                      0,
-                    ),
-                )}
-              </span>
-            </div>
-          </div>
-        )}
-      </div>
 
-      <div className="flex flex-col overflow-hidden rounded-[24px] border border-[#e4edf5] bg-white">
-        <div className="border-b border-[#e4edf5] bg-[#fbfdff] p-5">
-          <h3 className="mb-4 text-xs font-semibold tracking-wide text-slate-950 uppercase">
-            {text.panels.accessoriesAndCharms}
-          </h3>
-
-          <div className="relative mb-4">
-            <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-            <input
-              type="text"
-              placeholder={text.panels.searchAccessories}
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="form-control form-control--compact pl-10 pr-4 text-sm font-medium"
-            />
-          </div>
-
-          {isAccessoryCategoriesLoading ? (
-            <div
-              className="h-11 animate-pulse rounded-2xl bg-slate-100"
-              aria-hidden="true"
-            />
-          ) : accessoryCategories.length > 0 ? (
-            <StudioSearchableMultiSelect
-              label={text.common.all}
-              options={accessoryCategories.map((category) => ({
-                value: category.id,
-                label: category.name,
-              }))}
-              value={activeAccessoryCategoryIds}
-              onChange={setActiveAccessoryCategoryIds}
-              searchPlaceholder={text.panels.searchAccessories}
-              emptyLabel={text.panels.noAccessoryMatches}
-              clearLabel={text.common.remove}
-            />
-          ) : null}
-
-          {accessoryCategoriesError ? (
-            <p className="mt-3 flex items-start gap-2 text-xs font-semibold leading-relaxed text-amber-700">
-              <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-              <span>{accessoryCategoriesError}</span>
-            </p>
-          ) : null}
-        </div>
-
-        <div className="grid max-h-[380px] grid-cols-4 gap-3 overflow-y-auto p-5">
-          {isAccessoriesLoading ? (
-            Array.from({ length: 12 }).map((_, i) => (
-              <div
-                key={i}
-                className="aspect-square animate-pulse rounded-[16px] bg-[#eef3f8]"
-              />
-            ))
-          ) : accessoriesError ? (
-            <div className="col-span-4 flex items-start gap-2 rounded-[16px] border border-rose-200 bg-rose-50 px-3 py-3 text-xs font-semibold leading-relaxed text-rose-700">
-              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-              <span>{accessoriesError}</span>
-            </div>
-          ) : filteredAccessories.length === 0 ? (
-            <div className="col-span-4 py-10 text-center text-sm font-medium text-slate-500">
-              {accessories.length === 0
-                ? text.panels.noAccessoriesAvailable
-                : text.panels.noAccessoryMatches}
-            </div>
-          ) : (
-            visibleAccessories.map((acc) => {
-              const isAdded = addedAccessoryIds.has(acc.id);
-              return (
-                <button
-                  key={acc.id}
-                  type="button"
-                  onClick={() => {
-                    if (isAdded) {
-                      const el = elements.find((e) => e.accessoryId === acc.id);
-                      if (el) removeElement(el.id);
-                    } else {
-                      addElement({
-                        type: "accessory",
-                        x: 80 + Math.random() * 200,
-                        y: 80 + Math.random() * 200,
-                        imageUrl: acc.imageUrl || acc.iconUrl || "",
-                        content: acc.name,
-                        width: 60,
-                        height: 60,
-                        price: acc.price,
-                        accessoryId: acc.id,
-                      });
-                    }
-                  }}
-                  className={`group relative flex aspect-square flex-col items-center justify-center gap-1 overflow-hidden rounded-[18px] border p-2.5 appearance-none outline-none transition-all duration-200 focus:outline-none focus-visible:outline-none ${
-                    isAdded
-                      ? "border-[#9ed0ef] bg-[#f4faff]"
-                      : "border-[#e4edf5] bg-white hover:border-[#bfdcf0] hover:bg-[#fbfdff]"
-                  }`}
-                >
-                  {acc.imageUrl || acc.iconUrl ? (
-                    <Image
-                      src={acc.imageUrl || acc.iconUrl || ""}
-                      alt={acc.name}
-                      width={40}
-                      height={40}
-                      unoptimized
-                      className="h-10 w-10 object-contain transition-transform duration-300"
-                    />
-                  ) : (
-                    <div className="h-10 w-10 rounded-lg bg-[#f4faff]" />
-                  )}
-
-                  <span className="mt-1 w-full truncate px-1 text-center text-[10px] font-bold text-slate-600">
-                    {acc.name}
-                  </span>
-
-                  <span className="text-[10px] font-bold text-[#2f91d0]">
-                    {formatPrice(acc.price)}
-                  </span>
-
-                  {isAdded && (
-                    <div className="absolute right-1.5 top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-[#2f91d0]">
-                      <Check className="h-3 w-3 text-white" />
-                    </div>
-                  )}
-                </button>
-              );
-            })
-          )}
-
-          {!isAccessoriesLoading &&
-          !accessoriesError &&
-          visibleAccessories.length < filteredAccessories.length ? (
             <button
               type="button"
-              onClick={() =>
-                setAccessoryPagination({
-                  key: accessoryPaginationKey,
-                  count: Math.min(
-                    visibleAccessoryCount + CHARACTER_ACCESSORY_PAGE_SIZE,
-                    filteredAccessories.length,
-                  ),
-                })
-              }
-              className="col-span-4 h-10 rounded-xl border border-[#dbe7f1] bg-white text-xs font-semibold text-[#227eb8] transition-colors duration-200 hover:border-[#b9d8ed] hover:bg-[#f8fbff] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#80c4e9]/70"
+              data-flat-button="true"
+              onClick={openCreateBuilder}
+              className="inline-flex h-10 appearance-none items-center gap-2 rounded-full border-0 bg-emerald-500 px-4 text-sm font-bold text-white outline-none transition-all duration-200 hover:bg-emerald-600 active:bg-emerald-700 focus:outline-none focus-visible:outline-none"
             >
-              {text.sidebar.loadMore(
-                visibleAccessories.length,
-                filteredAccessories.length,
-              )}
+              <span className="text-base leading-none">+</span>
+              <span>{text.panels.addShort}</span>
+              <span className="rounded-full bg-white/20 px-2 py-1 text-[11px] font-bold leading-none text-white">
+                {formatPrice(characterPrice)}
+              </span>
             </button>
-          ) : null}
-        </div>
+          </div>
 
-        <div className="flex items-center justify-between gap-3 border-t border-[#e4edf5] bg-[#fbfdff] px-5 py-3 text-xs">
-          <span className="font-semibold text-slate-600">
-            {text.panels.selectedCharms(selectedAccessoryElements.length)}
-          </span>
-          <span className="font-bold text-[#2f91d0]">
-            {formatPrice(selectedAccessoriesTotal)}
-          </span>
-        </div>
-      </div>
+          {characterElements.length === 0 && (
+            <p className="mt-3 text-xs font-medium text-slate-500">
+              {text.panels.noCharactersHint}
+            </p>
+          )}
 
-      <CharacterBuilderModal
-        key={`${builderOpen ? "open" : "closed"}:${editingCharacter?.id ?? "new"}:${characterElements.length}`}
-        open={builderOpen}
-        editingCharacter={editingCharacter}
-        characterParts={characterParts}
-        characterPresets={characterPresets}
-        characterPrice={characterPrice}
-        characterIndex={
-          editingCharacter
-            ? Math.max(
-                0,
-                characterElements.findIndex(
-                  (item) => item.id === editingCharacter.id,
+          {/* Price breakdown */}
+          {characterElements.length > 0 && (
+            <div className="mt-4 space-y-1.5 rounded-[16px] bg-[#f4faff] px-4 py-3">
+              {characterElements.map((character, index) => {
+                const partFee = getCharacterPartFee(character);
+                const label = character.content || `NV ${index + 1}`;
+                return (
+                  <div
+                    key={character.id}
+                    className="flex items-center justify-between text-xs"
+                  >
+                    <span className="font-medium text-slate-600">{label}</span>
+                    <span className="font-bold text-slate-950">
+                      {formatPrice(characterPrice + partFee)}
+                      {partFee > 0 && (
+                        <span className="ml-1 font-medium text-slate-500">
+                          (+{formatPrice(partFee)} {text.panels.partFee})
+                        </span>
+                      )}
+                    </span>
+                  </div>
+                );
+              })}
+              <div className="mt-2 flex items-center justify-between border-t border-[#e4edf5] pt-2 text-xs">
+                <span className="font-bold text-slate-950">
+                  {text.panels.characterTotal}
+                </span>
+                <span className="font-bold text-[#2f91d0]">
+                  {formatPrice(
+                    charactersTotalPrice +
+                      characterElements.reduce(
+                        (s, c) => s + getCharacterPartFee(c),
+                        0,
+                      ),
+                  )}
+                </span>
+              </div>
+            </div>
+          )}
+        </div>
+      ) : null}
+
+      {mode !== "characters" ? (
+        <div
+          className={`flex flex-col overflow-hidden bg-white ${
+            mode === "accessories"
+              ? "h-full min-h-0"
+              : "rounded-[24px] border border-[#e4edf5]"
+          }`}
+        >
+          <div
+            className={`border-b border-[#e4edf5] bg-[#fbfdff] ${
+              mode === "accessories" ? "px-4 py-3" : "p-5"
+            }`}
+          >
+            {mode !== "accessories" ? (
+              <h3 className="mb-4 text-xs font-semibold tracking-wide text-slate-950 uppercase">
+                {text.panels.accessoriesAndCharms}
+              </h3>
+            ) : null}
+
+            <div
+              className={`grid items-center ${
+                mode === "accessories"
+                  ? "grid-cols-1 gap-2.5"
+                  : "grid-cols-2 gap-3"
+              }`}
+            >
+              <div className="relative min-w-0">
+                <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder={text.panels.searchAccessories}
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="form-control form-control--compact pl-10 pr-4 text-sm font-medium"
+                />
+              </div>
+
+              {isAccessoryCategoriesLoading ? (
+                <div
+                  className="h-10 animate-pulse rounded-2xl bg-slate-100"
+                  aria-hidden="true"
+                />
+              ) : accessoryCategories.length > 0 ? (
+                <StudioSearchableMultiSelect
+                  label={text.common.all}
+                  options={accessoryCategories.map((category) => ({
+                    value: category.id,
+                    label: category.name,
+                  }))}
+                  value={activeAccessoryCategoryIds}
+                  onChange={setActiveAccessoryCategoryIds}
+                  searchPlaceholder={text.panels.searchAccessories}
+                  emptyLabel={text.panels.noAccessoryMatches}
+                  clearLabel={text.common.remove}
+                  showSearch={false}
+                />
+              ) : null}
+            </div>
+
+            {accessoryCategoriesError ? (
+              <p className="mt-3 flex items-start gap-2 text-xs font-semibold leading-relaxed text-amber-700">
+                <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                <span>{accessoryCategoriesError}</span>
+              </p>
+            ) : null}
+          </div>
+
+          <div
+            className={`gap-2.5 overflow-y-auto p-5 ${
+              mode === "accessories"
+                ? "min-h-0 flex flex-1 flex-wrap content-start"
+                : "grid max-h-[380px] grid-cols-5"
+            }`}
+          >
+            {isAccessoriesLoading ? (
+              Array.from({ length: mode === "accessories" ? 9 : 15 }).map(
+                (_, i) => (
+                  <div
+                    key={i}
+                    style={
+                      mode === "accessories"
+                        ? {
+                            flex: "0 0 calc((100% - 1.25rem) / 3)",
+                          }
+                        : undefined
+                    }
+                    className={`animate-pulse rounded-[16px] bg-[#eef3f8] ${
+                      mode === "accessories"
+                        ? "h-[126px]"
+                        : "aspect-[4/5] min-h-[126px]"
+                    }`}
+                  />
                 ),
               )
-            : characterElements.length
-        }
-        onClose={closeBuilder}
-        onSave={handleSaveCharacter}
-      />
+            ) : accessoriesError ? (
+              <div
+                className={`flex items-start gap-2 rounded-[16px] border border-rose-200 bg-rose-50 px-3 py-3 text-xs font-semibold leading-relaxed text-rose-700 ${
+                  mode === "accessories" ? "w-full" : "col-span-5"
+                }`}
+              >
+                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                <span>{accessoriesError}</span>
+              </div>
+            ) : filteredAccessories.length === 0 ? (
+              <div
+                className={`py-10 text-center text-sm font-medium text-slate-500 ${
+                  mode === "accessories" ? "w-full" : "col-span-5"
+                }`}
+              >
+                {accessories.length === 0
+                  ? text.panels.noAccessoriesAvailable
+                  : text.panels.noAccessoryMatches}
+              </div>
+            ) : (
+              visibleAccessories.map((acc) => {
+                const isAdded = addedAccessoryIds.has(acc.id);
+                return (
+                  <button
+                    key={acc.id}
+                    type="button"
+                    style={
+                      mode === "accessories"
+                        ? {
+                            flex: "0 0 calc((100% - 1.25rem) / 3)",
+                          }
+                        : undefined
+                    }
+                    onClick={() => {
+                      if (isAdded) {
+                        const el = elements.find(
+                          (e) => e.accessoryId === acc.id,
+                        );
+                        if (el) removeElement(el.id);
+                      } else {
+                        addElement({
+                          type: "accessory",
+                          x: 80 + Math.random() * 200,
+                          y: 80 + Math.random() * 200,
+                          imageUrl: acc.imageUrl || acc.iconUrl || "",
+                          content: acc.name,
+                          width: 52,
+                          height: 52,
+                          price: acc.price,
+                          accessoryId: acc.id,
+                        });
+                      }
+                    }}
+                    className={`group relative flex min-w-0 flex-col overflow-hidden rounded-[18px] border p-1.5 appearance-none outline-none transition-all duration-200 hover:-translate-y-0.5 hover:shadow-sm focus:outline-none focus-visible:outline-none ${
+                      mode === "accessories"
+                        ? "h-[126px]"
+                        : "aspect-[4/5] min-h-[126px]"
+                    } ${
+                      isAdded
+                        ? "border-[#9ed0ef] bg-[#f4faff]"
+                        : "border-[#e4edf5] bg-white hover:border-[#bfdcf0] hover:bg-[#fbfdff]"
+                    }`}
+                  >
+                    <div className="flex min-h-0 w-full flex-1 items-center justify-center overflow-hidden rounded-[13px] bg-[#f4f6f8] p-1.5">
+                      {acc.imageUrl || acc.iconUrl ? (
+                        <Image
+                          src={acc.imageUrl || acc.iconUrl || ""}
+                          alt={acc.name}
+                          width={96}
+                          height={96}
+                          unoptimized
+                          className="h-full w-full object-contain transition-transform duration-300 group-hover:scale-[1.03]"
+                        />
+                      ) : (
+                        <div className="h-full min-h-12 w-full rounded-[10px] bg-[#eef5fa]" />
+                      )}
+                    </div>
 
-      <Modal
-        isOpen={pendingCharacterRemoval !== null}
-        onClose={() => setPendingCharacterRemoval(null)}
-        title={text.panels.removeCharacterTitle}
-        size="sm"
-        contentClassName="p-5 sm:p-6"
-        className="max-w-md rounded-[24px] border border-[#e4edf5] bg-white shadow-sm"
-      >
-        <p className="text-sm font-medium leading-6 text-slate-600">
-          {pendingCharacterRemoval
-            ? text.panels.removeCharacter(pendingCharacterRemoval.name)
-            : ""}
-        </p>
-        <div className="mt-6 flex justify-end gap-3">
-          <button
-            type="button"
-            onClick={() => setPendingCharacterRemoval(null)}
-            className="h-10 rounded-xl border border-[#dbe7f1] bg-white px-4 text-sm font-semibold text-slate-700 transition-colors duration-200 hover:border-[#b9d8ed] hover:bg-[#f8fbff]"
-          >
-            {text.common.cancel}
-          </button>
-          <button
-            type="button"
-            onClick={confirmCharacterRemoval}
-            className="h-10 rounded-xl border border-rose-500 bg-rose-500 px-4 text-sm font-semibold text-white transition-colors duration-200 hover:border-rose-600 hover:bg-rose-600"
-          >
-            {text.common.remove}
-          </button>
+                    <div className="w-full shrink-0 px-1 pb-1 pt-1.5 text-center">
+                      <span className="block w-full truncate text-[10px] font-bold text-slate-700">
+                        {acc.name}
+                      </span>
+
+                      <span className="mt-0.5 block text-[10px] font-bold text-[#2f91d0]">
+                        {formatPrice(acc.price)}
+                      </span>
+                    </div>
+
+                    {isAdded && (
+                      <div className="absolute right-1.5 top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-[#2f91d0]">
+                        <Check className="h-3 w-3 text-white" />
+                      </div>
+                    )}
+                  </button>
+                );
+              })
+            )}
+
+            {!isAccessoriesLoading &&
+            !accessoriesError &&
+            visibleAccessories.length < filteredAccessories.length ? (
+              <button
+                type="button"
+                style={
+                  mode === "accessories"
+                    ? {
+                        flex: "0 0 100%",
+                      }
+                    : undefined
+                }
+                onClick={() =>
+                  setAccessoryPagination({
+                    key: accessoryPaginationKey,
+                    count: Math.min(
+                      visibleAccessoryCount + CHARACTER_ACCESSORY_PAGE_SIZE,
+                      filteredAccessories.length,
+                    ),
+                  })
+                }
+                className={`h-10 rounded-xl border border-[#dbe7f1] bg-white text-xs font-semibold text-[#227eb8] transition-colors duration-200 hover:border-[#b9d8ed] hover:bg-[#f8fbff] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#80c4e9]/70 ${
+                  mode === "accessories" ? "w-full" : "col-span-5"
+                }`}
+              >
+                {text.sidebar.loadMore(
+                  visibleAccessories.length,
+                  filteredAccessories.length,
+                )}
+              </button>
+            ) : null}
+          </div>
+
+          <div className="flex items-center justify-between gap-3 border-t border-[#e4edf5] bg-[#fbfdff] px-5 py-3 text-xs">
+            <span className="font-semibold text-slate-600">
+              {text.panels.selectedCharms(selectedAccessoryElements.length)}
+            </span>
+            <span className="font-bold text-[#2f91d0]">
+              {formatPrice(selectedAccessoriesTotal)}
+            </span>
+          </div>
         </div>
-      </Modal>
+      ) : null}
+
+      {mode !== "accessories" ? (
+        <>
+          <CharacterBuilderModal
+            key={`${builderOpen ? "open" : "closed"}:${editingCharacter?.id ?? "new"}:${characterElements.length}`}
+            open={builderOpen}
+            editingCharacter={editingCharacter}
+            characterParts={characterParts}
+            characterPresets={characterPresets}
+            characterPrice={characterPrice}
+            characterIndex={
+              editingCharacter
+                ? Math.max(
+                    0,
+                    characterElements.findIndex(
+                      (item) => item.id === editingCharacter.id,
+                    ),
+                  )
+                : characterElements.length
+            }
+            onClose={closeBuilder}
+            onSave={handleSaveCharacter}
+          />
+
+          <Modal
+            isOpen={pendingCharacterRemoval !== null}
+            onClose={() => setPendingCharacterRemoval(null)}
+            title={text.panels.removeCharacterTitle}
+            size="sm"
+            contentClassName="p-5 sm:p-6"
+            className="max-w-md rounded-[24px] border border-[#e4edf5] bg-white shadow-sm"
+          >
+            <p className="text-sm font-medium leading-6 text-slate-600">
+              {pendingCharacterRemoval
+                ? text.panels.removeCharacter(pendingCharacterRemoval.name)
+                : ""}
+            </p>
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setPendingCharacterRemoval(null)}
+                className="h-10 rounded-xl border border-[#dbe7f1] bg-white px-4 text-sm font-semibold text-slate-700 transition-colors duration-200 hover:border-[#b9d8ed] hover:bg-[#f8fbff]"
+              >
+                {text.common.cancel}
+              </button>
+              <button
+                type="button"
+                onClick={confirmCharacterRemoval}
+                className="h-10 rounded-xl border border-rose-500 bg-rose-500 px-4 text-sm font-semibold text-white transition-colors duration-200 hover:border-rose-600 hover:bg-rose-600"
+              >
+                {text.common.remove}
+              </button>
+            </div>
+          </Modal>
+        </>
+      ) : null}
     </div>
   );
 }

@@ -49,7 +49,6 @@ import {
   getTemplateElements,
   isElementType,
   isRecord,
-  normalizeContentFields,
   readString,
   toCharacterPartSnapshot,
 } from "../lib/studio-restore";
@@ -352,22 +351,13 @@ export function StudioProvider({ children }: { children: ReactNode }) {
     };
   }, [activeTemplate, templates, isBackgroundsLoading]);
 
-  const activeTemplateObj = useMemo(
-    () => templates.find((t) => t.id === activeTemplate) ?? null,
-    [activeTemplate, templates],
-  );
   const contentFields = useMemo(
     () =>
-      normalizeContentFields(
-        activeTemplateObj?.contentFields,
-        defaultContentFields,
-        text.defaults.fieldLabel,
-      ),
-    [
-      activeTemplateObj?.contentFields,
-      defaultContentFields,
-      text.defaults.fieldLabel,
-    ],
+      defaultContentFields.map((field) => ({
+        ...field,
+        required: false,
+      })),
+    [defaultContentFields],
   );
   const printText = useMemo(
     () => selectPrintText(contentFields, contentValues),

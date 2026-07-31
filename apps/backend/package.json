@@ -22,6 +22,8 @@
     "import:sample-media:dry": "tsx src/scripts/import-sample-media.ts --dry-run",
     "import:sample-media": "tsx src/scripts/import-sample-media.ts --apply",
     "import:sample-media:rollback": "tsx src/scripts/import-sample-media.ts --rollback",
+    "import:minifig-images:dry": "tsx src/scripts/import-minifig-images.ts --dry-run",
+    "import:minifig-images": "tsx src/scripts/import-minifig-images.ts --apply",
     "backfill:product-compositions": "tsx src/scripts/backfill-product-compositions.ts",
     "backfill:product-compositions:apply": "tsx src/scripts/backfill-product-compositions.ts --apply",
     "test:sample-media-storage": "tsx src/scripts/test-sample-media-storage.ts"
@@ -38,6 +40,7 @@
     "@nestjs/passport": "^11.0.5",
     "@nestjs/platform-express": "^11.0.1",
     "@nestjs/swagger": "^11.4.4",
+    "@nestjs/throttler": "^6.5.0",
     "@payos/node": "^2.0.5",
     "@prisma/adapter-pg": "^7.8.0",
     "@prisma/client": "^7.8.0",

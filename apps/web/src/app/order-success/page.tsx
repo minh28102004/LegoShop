@@ -46,7 +46,7 @@ function OrderSuccessContent() {
 
       <div className="flex flex-col sm:flex-row gap-3 w-full max-w-sm">
         <Link
-          href={`${ROUTES.orderTracking}${orderCode ? `?code=${orderCode}` : ""}`}
+          href={ROUTES.orderTracking}
           className="flex-1 px-6 py-3.5 bg-[hsl(var(--color-cta))] hover:bg-[hsl(var(--color-cta-hover))] text-white font-bold rounded-2xl transition-colors flex items-center justify-center gap-2 shadow-sm"
         >
           <Search className="w-4 h-4" /> {copy.trackOrder}

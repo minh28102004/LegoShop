@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { publicApiClient } from "@/lib/api/public-client";
+import { loadCharacterPartCatalog } from "@/modules/lego-frame/lib/character-part-catalog";
 import {
   getBackgroundCategories,
   mapFrameBackground,
@@ -169,8 +170,7 @@ export function useStudioData(frameSize: string) {
 
   useEffect(() => {
     const controller = new AbortController();
-    publicApiClient.products
-      .listCharacterParts()
+    loadCharacterPartCatalog(controller.signal)
       .then((items) => {
         if (controller.signal.aborted) return;
         setCharacterParts(

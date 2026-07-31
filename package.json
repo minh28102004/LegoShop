@@ -8,6 +8,7 @@
     "build": "turbo run build",
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
+    "audit:i18n": "node scripts/audit-i18n-parity.mjs",
     "dev:web": "pnpm --filter web dev",
     "dev:admin": "pnpm --filter admin dev",
     "dev:backend": "pnpm --filter backend start:dev",
@@ -19,11 +20,5 @@
     "prettier": "latest",
     "turbo": "latest",
     "typescript": "latest"
-  },
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "sharp",
-      "unrs-resolver"
-    ]
   }
 }

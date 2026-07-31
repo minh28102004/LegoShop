@@ -2,14 +2,17 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { formatCurrency as formatPrice } from "@lego-shop/shared";
 import {
   AlertCircle,
   ArrowRight,
+  CreditCard,
   Lightbulb,
   ShoppingCart,
   Zap,
 } from "lucide-react";
+import toast from "react-hot-toast";
 
 import { ROUTES, UI_MODAL_IDS } from "@/config/routes";
 import { useCartStore } from "@/features/cart/store";
@@ -22,6 +25,8 @@ import {
   serializeStudioDesign,
 } from "../lib/studio-serialization";
 import { useStudio } from "./StudioContext";
+
+export const STUDIO_REVIEW_FOOTER_ID = "studio-review-footer";
 
 export function StudioReviewPanel() {
   const router = useRouter();
@@ -54,12 +59,22 @@ export function StudioReviewPanel() {
   const openModal = useUIStore((state) => state.openModal);
 
   const [seconds, setSeconds] = useState(15 * 60);
+  const [footerRoot, setFooterRoot] = useState<HTMLElement | null>(null);
+
   useEffect(() => {
     const interval = setInterval(
       () => setSeconds((current) => Math.max(0, current - 1)),
       1000,
     );
     return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(() => {
+      setFooterRoot(document.getElementById(STUDIO_REVIEW_FOOTER_ID));
+    });
+
+    return () => window.cancelAnimationFrame(frame);
   }, []);
 
   const timerMins = String(Math.floor(seconds / 60)).padStart(2, "0");
@@ -137,10 +152,18 @@ export function StudioReviewPanel() {
 
     if (isEditMode && editCartItemId) {
       updateItem(editCartItemId, cartItem);
-      return;
+      return "updated" as const;
     }
 
     addItem(cartItem);
+    return "added" as const;
+  };
+
+  const notifyCartPersisted = (result: "added" | "updated") => {
+    toast.success(
+      result === "updated" ? text.toast.cartUpdated : text.toast.cartAdded,
+      { id: "studio-cart-persisted" },
+    );
   };
 
   const openCartDrawer = () => {
@@ -151,13 +174,13 @@ export function StudioReviewPanel() {
 
   const handleAddToCart = () => {
     if (!canCheckout) return;
-    persistCartItem();
+    notifyCartPersisted(persistCartItem());
     openCartDrawer();
   };
 
   const handleBuyNow = () => {
     if (!canCheckout) return;
-    persistCartItem();
+    notifyCartPersisted(persistCartItem());
     router.push(ROUTES.checkout);
   };
 
@@ -275,57 +298,64 @@ export function StudioReviewPanel() {
         </div>
       </div>
 
-      <div className="flex flex-col gap-3 pt-2">
-        {checkoutBlockMessage ? (
-          <div
-            role="alert"
-            className="rounded-[22px] border border-amber-200/80 bg-amber-50/90 px-4 py-4 text-sm font-medium leading-relaxed text-amber-800"
-          >
-            <div className="flex items-start gap-2">
-              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-              <span>{checkoutBlockMessage}</span>
-            </div>
-            {missingRequiredContent ? (
+      {checkoutBlockMessage ? (
+        <div
+          role="alert"
+          className="rounded-[22px] border border-amber-200/80 bg-amber-50/90 px-4 py-4 text-sm font-medium leading-relaxed text-amber-800"
+        >
+          <div className="flex items-start gap-2">
+            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+            <span>{checkoutBlockMessage}</span>
+          </div>
+          {missingRequiredContent ? (
+            <button
+              type="button"
+              onClick={() => {
+                setActiveStep("content");
+                setActiveTool("text");
+                setActivePanelTab("information");
+                setIsContextPanelCollapsed(false);
+              }}
+              className="mt-3 inline-flex h-9 items-center justify-center rounded-full border border-amber-300 bg-white px-3 text-xs font-semibold text-amber-900 appearance-none outline-none transition-colors duration-200 hover:bg-amber-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/70 focus-visible:ring-offset-2"
+            >
+              {text.panels.completeContent}
+            </button>
+          ) : null}
+        </div>
+      ) : null}
+
+      {footerRoot
+        ? createPortal(
+            <div className="grid grid-cols-2 items-center gap-2.5">
               <button
                 type="button"
-                onClick={() => {
-                  setActiveStep("content");
-                  setActiveTool("text");
-                  setActivePanelTab("information");
-                  setIsContextPanelCollapsed(false);
-                }}
-                className="mt-3 inline-flex h-9 items-center justify-center rounded-full border border-amber-300 bg-white px-3 text-xs font-semibold text-amber-900 appearance-none outline-none transition-colors duration-200 hover:bg-amber-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/70 focus-visible:ring-offset-2"
+                onClick={handleAddToCart}
+                disabled={!canCheckout}
+                className="group flex h-12 min-w-0 items-center justify-center gap-2 rounded-2xl bg-white px-3 text-[13px] font-semibold text-[#17334f] ring-1 ring-inset ring-[#cfdde8] appearance-none outline-none transition-all duration-300 hover:-translate-y-0.5 hover:bg-[#f4faff] hover:text-[#258fce] hover:ring-[#9fcbe5] hover:shadow-[0_12px_25px_-18px_rgba(37,143,206,0.8)] active:translate-y-0 disabled:cursor-not-allowed disabled:translate-y-0 disabled:bg-slate-100 disabled:text-slate-400 disabled:ring-slate-200 disabled:shadow-none focus:outline-none focus-visible:ring-2 focus-visible:ring-[#82c5ec] motion-reduce:transform-none"
               >
-                {text.panels.completeContent}
+                <ShoppingCart className="h-[17px] w-[17px] shrink-0 transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:scale-110 group-disabled:translate-y-0 group-disabled:scale-100" />
+                <span className="truncate">
+                  {isEditMode ? text.panels.updateCart : text.panels.addToCart}
+                </span>
               </button>
-            ) : null}
-          </div>
-        ) : null}
 
-        <button
-          type="button"
-          data-flat-button="true"
-          onClick={handleBuyNow}
-          disabled={!canCheckout}
-          className="group relative flex h-12 w-full items-center justify-center gap-2 overflow-hidden rounded-[18px] border-0 bg-[#2f91d0] px-4 text-sm font-semibold text-white appearance-none outline-none transition-colors duration-200 hover:bg-[#257fb7] disabled:cursor-not-allowed disabled:border-0 disabled:bg-slate-200 disabled:text-slate-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2f91d0]/70 focus-visible:ring-offset-2"
-        >
-          <div className="absolute inset-0 flex h-full w-full justify-center [transform:skew(-12deg)_translateX(-150%)] group-hover:duration-1000 group-hover:[transform:skew(-12deg)_translateX(150%)]">
-            <div className="relative h-full w-8 bg-white/20" />
-          </div>
-          <span>{text.panels.buyNow}</span>
-          <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-        </button>
-
-        <button
-          type="button"
-          onClick={handleAddToCart}
-          disabled={!canCheckout}
-          className="flex h-12 items-center justify-center gap-2 rounded-[18px] border border-[#e4edf5] bg-white px-4 text-sm font-semibold text-slate-950 appearance-none outline-none transition-all duration-200 hover:border-[#bfdcf0] hover:bg-[#fbfdff] hover:text-[#2f91d0] disabled:cursor-not-allowed disabled:border-transparent disabled:bg-slate-100 disabled:text-slate-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#80c4e9]/70 focus-visible:ring-offset-2"
-        >
-          <ShoppingCart className="h-4 w-4" />
-          {isEditMode ? text.panels.updateCart : text.panels.addToCart}
-        </button>
-      </div>
+              <button
+                type="button"
+                data-flat-button="true"
+                onClick={handleBuyNow}
+                disabled={!canCheckout}
+                className="group relative flex h-12 min-w-0 items-center justify-center gap-2 overflow-hidden rounded-2xl border-0 bg-[#258fce] px-3 text-[13px] font-semibold text-white shadow-[0_12px_30px_-20px_rgba(37,143,206,0.95)] appearance-none outline-none transition-all duration-300 before:absolute before:inset-y-0 before:left-[-45%] before:w-1/3 before:-skew-x-12 before:bg-gradient-to-r before:from-transparent before:via-white/35 before:to-transparent before:transition-transform before:duration-700 hover:-translate-y-0.5 hover:bg-[#1d7fb8] hover:shadow-[0_16px_30px_-16px_rgba(37,143,206,0.9)] hover:before:translate-x-[430%] active:translate-y-0 disabled:cursor-not-allowed disabled:translate-y-0 disabled:bg-slate-200 disabled:text-slate-500 disabled:shadow-none disabled:before:hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-[#82c5ec] focus-visible:ring-offset-2 motion-reduce:transform-none motion-reduce:before:hidden"
+              >
+                <CreditCard className="relative z-10 h-[17px] w-[17px] shrink-0 transition-transform duration-300 group-hover:-rotate-6 group-hover:scale-110 group-disabled:rotate-0 group-disabled:scale-100" />
+                <span className="relative z-10 truncate">
+                  {text.panels.buyNow}
+                </span>
+                <ArrowRight className="relative z-10 h-4 w-4 shrink-0 transition-transform duration-300 group-hover:translate-x-1 group-disabled:translate-x-0" />
+              </button>
+            </div>,
+            footerRoot,
+          )
+        : null}
     </div>
   );
 }

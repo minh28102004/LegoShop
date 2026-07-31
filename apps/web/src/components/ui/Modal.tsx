@@ -40,6 +40,9 @@ export interface ModalProps
   size?: Extract<Size, "sm" | "md" | "lg"> | "full";
   children: React.ReactNode;
   contentClassName?: string;
+  headerAccessory?: React.ReactNode;
+  headerClassName?: string;
+  titleClassName?: string;
 }
 
 function getFocusableElements(container: HTMLElement): HTMLElement[] {
@@ -56,10 +59,13 @@ export const Modal = React.forwardRef<HTMLDivElement, ModalProps>(
       children,
       className,
       contentClassName,
+      headerAccessory,
+      headerClassName,
       isOpen,
       onClose,
       size,
       title,
+      titleClassName,
       ...props
     },
     ref,
@@ -155,11 +161,12 @@ export const Modal = React.forwardRef<HTMLDivElement, ModalProps>(
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
+            transition={{ duration: shouldReduceMotion ? 0.1 : 0.16 }}
           >
             <button
               type="button"
               aria-label={dictionary.common.closeModal}
-              className="absolute inset-0 bg-[rgb(7_29_58/0.58)] backdrop-blur-[2px]"
+              className="absolute inset-0 bg-[rgb(7_29_58/0.62)]"
               onClick={onClose}
             />
             <motion.div
@@ -171,27 +178,42 @@ export const Modal = React.forwardRef<HTMLDivElement, ModalProps>(
               initial={
                 shouldReduceMotion
                   ? { opacity: 0 }
-                  : { opacity: 0, scale: 0.97, y: 16 }
+                  : { opacity: 0, y: 12 }
               }
-              animate={{ opacity: 1, scale: 1, y: 0 }}
+              animate={{ opacity: 1, y: 0 }}
               exit={
                 shouldReduceMotion
                   ? { opacity: 0 }
-                  : { opacity: 0, scale: 0.97, y: 16 }
+                  : { opacity: 0, y: 8 }
               }
               transition={
                 shouldReduceMotion
-                  ? { duration: 0.12 }
-                  : { type: "spring", stiffness: 360, damping: 34 }
+                  ? { duration: 0.1 }
+                  : { duration: 0.2, ease: [0.22, 1, 0.36, 1] }
               }
-              className={cn(modalVariants({ size }), className)}
+              className={cn(
+                modalVariants({ size }),
+                "will-change-[transform,opacity]",
+                className,
+              )}
               {...props}
             >
               {title ? (
-                <div className="border-b border-border px-6 py-4">
-                  <h2 id={titleId} className="text-display-sm">
+                <div
+                  className={cn(
+                    "flex items-center gap-3 border-b border-border px-6 py-4",
+                    headerClassName,
+                  )}
+                >
+                  <h2
+                    id={titleId}
+                    className={cn("min-w-0 text-display-sm", titleClassName)}
+                  >
                     {title}
                   </h2>
+                  {headerAccessory ? (
+                    <div className="ml-auto shrink-0">{headerAccessory}</div>
+                  ) : null}
                 </div>
               ) : null}
               <div className={cn("overflow-y-auto p-6", contentClassName)}>

@@ -5,7 +5,7 @@ import { ArrayMaxSize, ArrayMinSize, IsArray, IsUUID } from 'class-validator';
 export class QuoteCharacterBuilderDto implements CharacterBuilderQuoteRequestContract {
   @ApiProperty({ type: [String] })
   @IsArray()
-  @ArrayMinSize(4)
+  @ArrayMinSize(3)
   @ArrayMaxSize(24)
   @IsUUID('4', { each: true })
   partIds: string[];

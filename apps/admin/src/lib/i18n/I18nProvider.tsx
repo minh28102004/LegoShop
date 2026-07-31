@@ -20,7 +20,7 @@ import { getDictionary } from '@/lib/i18n/dictionaries';
 type I18nContextValue = {
   locale: Locale;
   setLocale: (locale: Locale) => void;
-  t: (key: string) => string;
+  t: (key: string, replacements?: Record<string, string | number>) => string;
 };
 
 const I18nContext = createContext<I18nContextValue | undefined>(undefined);
@@ -61,13 +61,20 @@ export function I18nProvider({ children }: PropsWithChildren) {
   }, []);
 
   const t = useCallback(
-    (key: string) => {
+    (key: string, replacements?: Record<string, string | number>) => {
       const currentDictionary = getDictionary(locale);
       const fallbackDictionary = getDictionary(defaultLocale);
       const value =
         getValueByPath(currentDictionary as Record<string, unknown>, key) ??
         getValueByPath(fallbackDictionary as Record<string, unknown>, key);
-      return typeof value === 'string' ? value : key;
+      const message = typeof value === 'string' ? value : key;
+      if (!replacements) return message;
+
+      return Object.entries(replacements).reduce(
+        (result, [token, replacement]) =>
+          result.replaceAll(`{${token}}`, String(replacement)),
+        message,
+      );
     },
     [locale],
   );

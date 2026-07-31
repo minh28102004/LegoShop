@@ -1,6 +1,9 @@
+'use client';
+
 import { type ButtonHTMLAttributes, type ReactNode } from 'react';
 import LoadingSpinner from '@/common/components/ui/LoadingSpinner';
 import { cn } from '@/common/utils/cn';
+import { useI18n } from '@/lib/i18n/useI18n';
 
 type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'soft' | 'cancel' | 'remove';
 type ButtonSize = 'sm' | 'md' | 'lg';
@@ -48,6 +51,8 @@ export default function Button({
   disabled,
   ...props
 }: ButtonProps) {
+  const { t } = useI18n();
+
   return (
     <button
       type={type}
@@ -61,7 +66,7 @@ export default function Button({
       {...props}
     >
       {loading ? (
-        <LoadingSpinner size='sm' label='Loading button action' className='border-current/30 border-t-current' />
+        <LoadingSpinner size='sm' label={t('common.loadingButton')} className='border-current/30 border-t-current' />
       ) : leftIcon ? (
         <span className='shrink-0'>{leftIcon}</span>
       ) : null}

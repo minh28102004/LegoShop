@@ -7,32 +7,17 @@ import toast from 'react-hot-toast';
 import Dropdown from '@/common/components/ui/Dropdown';
 import { cn } from '@/common/utils/cn';
 import { type Locale } from '@/lib/i18n/config';
+import { getDictionary } from '@/lib/i18n/dictionaries';
 import { useI18n } from '@/lib/i18n/useI18n';
 
 const LOCALE_OPTIONS: Array<{
   value: Locale;
   label: string;
   flagSrc: string;
-  flagAlt: string;
 }> = [
-  {
-    value: 'vi',
-    label: 'VI',
-    flagSrc: '/flags/vi.svg',
-    flagAlt: 'Cờ Việt Nam',
-  },
-  {
-    value: 'en',
-    label: 'EN',
-    flagSrc: '/flags/en.svg',
-    flagAlt: 'English flag',
-  },
+  { value: 'vi', label: 'VI', flagSrc: '/flags/vi.svg' },
+  { value: 'en', label: 'EN', flagSrc: '/flags/en.svg' },
 ];
-
-const LOCALE_TOAST_LABEL: Record<Locale, string> = {
-  vi: 'Tiếng Việt',
-  en: 'English',
-};
 
 type LanguageSwitcherProps = {
   className?: string;
@@ -65,11 +50,16 @@ export default function LanguageSwitcher({
     if (nextLocale === locale) return;
 
     setLocale(nextLocale);
-    const localeLabel = LOCALE_TOAST_LABEL[nextLocale];
+    const nextDictionary = getDictionary(nextLocale);
     toast.success(
-      nextLocale === 'vi' ? `Đã chuyển sang ${localeLabel}` : `Language changed to ${localeLabel}`,
+      nextDictionary.languageSwitcher.changed.replace(
+        '{locale}',
+        nextDictionary.languageSwitcher.localeLabel[nextLocale],
+      ),
     );
   }
+
+  if (!selected) return null;
 
   return (
     <div
@@ -88,7 +78,7 @@ export default function LanguageSwitcher({
         offset={6}
         panelRole='listbox'
         onOpenChange={setOpen}
-        className={cn('w-[96px] min-w-[96px]', compact && 'w-[90px] min-w-[90px]')}
+        className={cn('w-[96px] min-w-[96px]', compact && 'w-[78px] min-w-[78px] sm:w-[90px] sm:min-w-[90px]')}
         panelClassName='p-1.5'
         trigger={
           <button
@@ -98,7 +88,7 @@ export default function LanguageSwitcher({
           >
             <Image
               src={selected.flagSrc}
-              alt={selected.flagAlt}
+              alt={t(`languageSwitcher.localeLabel.${selected.value}`)}
               width={20}
               height={20}
               className='h-5 w-5 shrink-0 rounded-full object-cover'
@@ -134,15 +124,12 @@ export default function LanguageSwitcher({
                   )}
                   onClick={() => {
                     close();
-
-                    if (option.value === locale) return;
-
                     handleLocaleChange(option.value);
                   }}
                 >
                   <Image
                     src={option.flagSrc}
-                    alt={option.flagAlt}
+                    alt={t(`languageSwitcher.localeLabel.${option.value}`)}
                     width={20}
                     height={20}
                     className='h-5 w-5 shrink-0 rounded-full object-cover'

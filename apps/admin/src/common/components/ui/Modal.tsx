@@ -5,6 +5,7 @@ import {
   useEffect,
 } from 'react';
 import { cn } from '@/common/utils/cn';
+import { useI18n } from '@/lib/i18n/useI18n';
 
 type ModalProps = PropsWithChildren<{
   open: boolean;
@@ -26,6 +27,7 @@ export default function Modal({
   containerClassName,
   children,
 }: ModalProps) {
+  const { t } = useI18n();
   useEffect(() => {
     if (!open) return;
 
@@ -60,7 +62,7 @@ export default function Modal({
     >
       <button
         type='button'
-        aria-label='Close modal overlay'
+        aria-label={t('common.close')}
         className='absolute inset-0'
         onClick={onClose}
       />
@@ -70,7 +72,7 @@ export default function Modal({
         aria-modal='true'
         aria-labelledby={ariaLabelledby}
         className={cn(
-          'relative z-10 flex max-h-[min(92vh,940px)] w-full max-w-4xl flex-col overflow-hidden rounded-[24px] border border-slate-200 bg-white shadow-[0_24px_54px_-38px_rgba(15,23,42,0.32)] animate-zoom-in',
+          'relative z-10 flex max-h-[min(90dvh,940px)] w-full max-w-4xl flex-col overflow-hidden rounded-[24px] border border-slate-200 bg-white shadow-[0_24px_54px_-38px_rgba(15,23,42,0.32)] animate-zoom-in',
           panelClassName,
         )}
         onClick={(event) => event.stopPropagation()}

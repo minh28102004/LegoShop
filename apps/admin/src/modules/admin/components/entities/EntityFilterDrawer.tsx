@@ -2,6 +2,7 @@
 
 import { Drawer } from 'antd';
 import type { ReactNode } from 'react';
+import { useI18n } from '@/lib/i18n/useI18n';
 import Button from '@/common/components/ui/Button';
 import Input from '@/common/components/ui/Input';
 import { AdminToolbarDateRangeField } from '@/modules/admin/components/AdminToolbar';
@@ -135,6 +136,7 @@ export default function EntityFilterDrawer({
   open,
   statusOptions,
 }: EntityFilterDrawerProps) {
+  const { t } = useI18n();
   const hasStatusFilter = statusOptions.length > 0;
   const hasCategoryFilter = categoryOptions.length > 0;
 
@@ -172,7 +174,7 @@ export default function EntityFilterDrawer({
                 values={draftFilters.status}
                 ariaLabel={labels.status}
                 allLabel={labels.allStatuses}
-                placeholder={`Chọn ${labels.status.toLowerCase()}`}
+                placeholder={t('common.selectPlaceholder')}
                 options={statusOptions}
                 selectedLabel={labels.selectedCount}
                 onChange={(values) => updateList('status', values)}
@@ -186,7 +188,7 @@ export default function EntityFilterDrawer({
                 values={draftFilters.category}
                 ariaLabel={labels.category}
                 allLabel={labels.allCategories}
-                placeholder={`Chọn ${labels.category.toLowerCase()}`}
+                placeholder={t('common.selectPlaceholder')}
                 options={categoryOptions}
                 selectedLabel={labels.selectedCount}
                 onChange={(values) => updateList('category', values)}

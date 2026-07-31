@@ -61,12 +61,12 @@ export function StudioStepper() {
   const progressPercent = (activeIndex / (steps.length - 1)) * 100;
 
   return (
-    <div className="mx-auto w-full max-w-[760px] overflow-x-auto overflow-y-visible py-1 scrollbar-hide">
-      <div className="relative flex min-w-[680px] items-center justify-between">
-        <div className="pointer-events-none absolute left-5 right-5 top-1/2 z-0 h-px -translate-y-1/2 bg-[#dbe7f1]" />
+    <div className="mx-auto w-full max-w-[790px] overflow-x-auto overflow-y-visible px-3 py-2 scrollbar-hide">
+      <div className="relative flex min-w-[660px] items-center justify-between">
+        <div className="pointer-events-none absolute left-6 right-6 top-1/2 z-0 h-px -translate-y-1/2 bg-[#dbe7f1]" />
         <div
-          className="pointer-events-none absolute left-5 top-1/2 z-0 h-px -translate-y-1/2 bg-[#2f91d0] transition-[width] duration-500 ease-out motion-reduce:transition-none"
-          style={{ width: `calc((100% - 40px) * ${progressPercent / 100})` }}
+          className="pointer-events-none absolute left-6 top-1/2 z-0 h-[2px] -translate-y-1/2 rounded-full bg-[linear-gradient(90deg,#2f91d0,#68b8e6)] transition-[width] duration-500 ease-out motion-reduce:transition-none"
+          style={{ width: `calc((100% - 48px) * ${progressPercent / 100})` }}
         />
 
         {steps.map((item, index) => {
@@ -80,18 +80,18 @@ export function StudioStepper() {
               onClick={() => handleStepChange(item.id)}
               aria-current={isActive ? "step" : undefined}
               className={[
-                "group relative z-10 inline-flex h-9 shrink-0 items-center gap-2 rounded-full border px-3 text-[13px] font-semibold",
-                "outline-none transition-colors duration-200 ease-out focus-visible:ring-2 focus-visible:ring-[#9ed0ef]/70 motion-reduce:transition-none",
+                "business-hover-lift group relative z-10 inline-flex h-10 shrink-0 items-center gap-2 rounded-full border px-3.5 text-[13px] font-semibold",
+                "outline-none hover:shadow-[0_10px_22px_-20px_rgba(18,45,78,0.28)] focus-visible:ring-2 focus-visible:ring-[#9ed0ef]/70",
                 isActive
-                  ? "border-[#2f91d0] bg-[#2f91d0] text-white ring-1 ring-inset ring-[#7fc2ea]/70"
+                  ? "border-2 border-[#2f91d0] bg-[linear-gradient(135deg,#2f91d0,#3da4dc)] text-white"
                   : isPast
-                    ? "border-[#9ed0ef] bg-white text-[#2f91d0] hover:border-[#70bde9] hover:bg-[#f8fbff]"
+                    ? "border-2 border-[#9ed0ef] bg-white text-[#2f91d0] hover:border-[#70bde9] hover:bg-[#f4faff]"
                     : "border-[#dbe7f1] bg-white text-slate-500 hover:border-[#b9d8ed] hover:bg-[#f8fbff] hover:text-slate-800",
               ].join(" ")}
             >
               <span
                 className={[
-                  "grid h-5 w-5 shrink-0 place-items-center rounded-full text-[11px] font-bold transition-colors duration-200",
+                  "grid h-[22px] w-[22px] shrink-0 place-items-center rounded-full text-[11px] font-bold transition-colors duration-500",
                   isActive
                     ? "bg-white text-[#2f91d0]"
                     : isPast
@@ -99,7 +99,11 @@ export function StudioStepper() {
                       : "bg-slate-100 text-slate-600 group-hover:bg-[#e9f5fc] group-hover:text-[#2f91d0]",
                 ].join(" ")}
               >
-                {isPast ? <Check className="h-3 w-3" strokeWidth={3} /> : item.number}
+                {isPast ? (
+                  <Check className="h-3 w-3" strokeWidth={3} />
+                ) : (
+                  item.number
+                )}
               </span>
               <span className="whitespace-nowrap leading-none">{item.label}</span>
             </button>

@@ -23,21 +23,16 @@ import OrdersFilterDrawer from '@/modules/admin/components/orders/OrdersFilterDr
 import OrdersToolbar from '@/modules/admin/components/orders/OrdersToolbar';
 import {
   DEFAULT_ORDER_FILTERS,
-  clearAdvancedOrderFilters,
   countAdvancedOrderFilters,
   hasAnyOrderFilter,
   type OrderFilters,
 } from '@/modules/admin/components/orders/order-filter.types';
 import { listOrders } from '@/modules/admin/services/adminApi';
 import { useI18n } from '@/lib/i18n/useI18n';
+import { getLocalizedApiError } from '@/lib/i18n/errors';
+import { formatVnd } from '@/lib/i18n/format';
+import type { Locale } from '@/lib/i18n/config';
 import type { PaginatedOrders } from '@/modules/admin/types/admin.types';
-
-const CURRENCY = new Intl.NumberFormat('vi-VN', {
-  style: 'currency',
-  currency: 'VND',
-  maximumFractionDigits: 0,
-});
-const NUMBER_FORMAT = new Intl.NumberFormat('vi-VN');
 
 const ORDER_PAGE_SIZE = 20;
 
@@ -59,23 +54,8 @@ function toDateRange(from: string, to: string): [string, string] | undefined {
   return from || to ? [from, to] : undefined;
 }
 
-function getOrderItemLabel(locale: string) {
+function getOrderItemLabel(locale: Locale) {
   return locale === 'vi' ? 'đơn hàng' : 'orders';
-}
-
-function getOrderPaginationRangeLabel(
-  locale: string,
-  from: number,
-  to: number,
-  total: number,
-  itemLabel: string,
-) {
-  const formattedRange = `${NUMBER_FORMAT.format(from)}–${NUMBER_FORMAT.format(to)}`;
-  const formattedTotal = `${NUMBER_FORMAT.format(total)}${itemLabel ? ` ${itemLabel}` : ''}`;
-
-  return locale === 'vi'
-    ? `Hiển thị ${formattedRange} trên ${formattedTotal}`
-    : `Showing ${formattedRange} of ${formattedTotal}`;
 }
 
 export default function OrdersManager() {
@@ -144,7 +124,7 @@ export default function OrdersManager() {
         setPayload(data);
       } catch (err) {
         if (requestSeq.current !== requestId) return;
-        setError(err instanceof Error ? err.message : t('orders.loadFailed'));
+        setError(getLocalizedApiError(err, t, 'orders.loadFailed'));
       } finally {
         if (requestSeq.current === requestId) {
           setLoading(false);
@@ -217,7 +197,7 @@ export default function OrdersManager() {
         total={payload?.meta.total ?? 0}
       />
 
-      <Table containerClassName='min-h-0' minWidth='1180px'>
+      <Table containerClassName='min-h-0' minWidth='1040px'>
         <TableHeader>
           <tr>
             <SortableTableHead
@@ -226,6 +206,7 @@ export default function OrdersManager() {
               sorts={appliedFilters.sorts}
               defaultDirection='asc'
               onSortChange={handleTableSort}
+              className='w-[170px] min-w-[170px] max-w-[170px] text-left'
             >
               {t('orders.code')}
             </SortableTableHead>
@@ -235,17 +216,9 @@ export default function OrdersManager() {
               sorts={appliedFilters.sorts}
               defaultDirection='asc'
               onSortChange={handleTableSort}
+              className='min-w-[240px] text-left'
             >
               {t('orders.customer')}
-            </SortableTableHead>
-            <SortableTableHead
-              sortKey='phone'
-              defaultSorts={DEFAULT_TABLE_SORTS}
-              sorts={appliedFilters.sorts}
-              defaultDirection='asc'
-              onSortChange={handleTableSort}
-            >
-              {t('orders.phone')}
             </SortableTableHead>
             <SortableTableHead
               sortKey='totalAmount'
@@ -253,7 +226,7 @@ export default function OrdersManager() {
               sorts={appliedFilters.sorts}
               defaultDirection='desc'
               onSortChange={handleTableSort}
-              className='text-right'
+              className='w-[130px] min-w-[130px] max-w-[130px] text-right'
             >
               {t('orders.amount')}
             </SortableTableHead>
@@ -263,7 +236,7 @@ export default function OrdersManager() {
               sorts={appliedFilters.sorts}
               defaultDirection='asc'
               onSortChange={handleTableSort}
-              className='text-center'
+              className='w-[135px] min-w-[135px] max-w-[135px] text-center'
             >
               {t('orders.orderStatus')}
             </SortableTableHead>
@@ -273,7 +246,7 @@ export default function OrdersManager() {
               sorts={appliedFilters.sorts}
               defaultDirection='asc'
               onSortChange={handleTableSort}
-              className='text-center'
+              className='w-[145px] min-w-[145px] max-w-[145px] text-center'
             >
               {t('orders.paymentStatus')}
             </SortableTableHead>
@@ -283,58 +256,56 @@ export default function OrdersManager() {
               sorts={appliedFilters.sorts}
               defaultDirection='asc'
               onSortChange={handleTableSort}
-              className='text-center'
+              className='w-[145px] min-w-[145px] max-w-[145px] text-center'
             >
               {t('orders.shippingStatus')}
             </SortableTableHead>
-            <TableHead className='text-center'>{t('orders.action')}</TableHead>
+            <TableHead className='w-[110px] min-w-[110px] max-w-[110px] px-2 text-center'>{t('orders.action')}</TableHead>
           </tr>
         </TableHeader>
 
         <TableBody>
           {loading && !payload ? (
-            <TableEmptyState colSpan={8} variant='loading'>{t('common.loading')}</TableEmptyState>
+            <TableEmptyState colSpan={7} variant='loading'>{t('common.loading')}</TableEmptyState>
           ) : error ? (
-            <TableEmptyState colSpan={8} variant='error'>
+            <TableEmptyState colSpan={7} variant='error'>
               {error}
             </TableEmptyState>
           ) : payload && payload.data.length > 0 ? (
             payload.data.map((order) => (
               <TableRow key={order.id} hoverable>
-                <TableCell className='font-mono text-[13px] font-semibold text-slate-800'>
+                <TableCell className='w-[170px] min-w-[170px] max-w-[170px] whitespace-nowrap font-mono text-[13px] font-semibold text-slate-800'>
                   {order.orderCode}
                 </TableCell>
-                <TableCell>
-                  <span className='block max-w-[180px] truncate font-semibold text-slate-900'>
+                <TableCell className='min-w-[240px]'>
+                  <span title={order.customerName} className='block truncate font-semibold text-slate-900'>
                     {order.customerName}
                   </span>
-                </TableCell>
-                <TableCell>
                   <span
                     title={order.email ? `${order.phone} | ${order.email}` : order.phone}
-                    className='block max-w-[220px] truncate font-medium tabular-nums text-slate-700'
+                    className='mt-1 block truncate font-medium tabular-nums text-slate-600'
                   >
                     {order.phone}
                   </span>
                   {order.email ? (
-                    <span title={order.email} className='mt-1 block max-w-[220px] truncate text-[13px] font-medium text-slate-500'>
+                    <span title={order.email} className='mt-0.5 block truncate text-[12px] font-medium text-slate-500'>
                       {order.email}
                     </span>
                   ) : null}
                 </TableCell>
-                <TableCell className='text-right font-medium text-slate-800'>
-                  {CURRENCY.format(order.totalAmount)}
+                <TableCell className='w-[130px] min-w-[130px] max-w-[130px] whitespace-nowrap text-right font-medium text-slate-800'>
+                  {formatVnd(order.totalAmount, locale)}
                 </TableCell>
-                <TableCell className='text-center'>
+                <TableCell className='w-[135px] min-w-[135px] max-w-[135px] text-center'>
                   <StatusBadge value={order.orderStatus} t={t} />
                 </TableCell>
-                <TableCell className='text-center'>
+                <TableCell className='w-[145px] min-w-[145px] max-w-[145px] text-center'>
                   <StatusBadge value={order.paymentStatus} t={t} />
                 </TableCell>
-                <TableCell className='text-center'>
+                <TableCell className='w-[145px] min-w-[145px] max-w-[145px] text-center'>
                   <StatusBadge value={order.shippingStatus} t={t} />
                 </TableCell>
-                <TableCell className='text-center'>
+                <TableCell className='w-[110px] min-w-[110px] max-w-[110px] px-2 text-center'>
                   <TableActions>
                     <Tooltip content={t('orders.detail')}>
                       <Link
@@ -350,7 +321,7 @@ export default function OrdersManager() {
               </TableRow>
             ))
           ) : (
-            <TableEmptyState colSpan={8}>{t('orders.noOrdersFound')}</TableEmptyState>
+            <TableEmptyState colSpan={7}>{t('orders.noOrdersFound')}</TableEmptyState>
           )}
         </TableBody>
       </Table>
@@ -362,15 +333,12 @@ export default function OrdersManager() {
         itemLabel={getOrderItemLabel(locale)}
         pageLabel={t('orders.page')}
         pageSize={payload?.meta.limit ?? pageSize}
-        pageSizeLabel={locale === 'vi' ? 'Mỗi trang' : 'Per page'}
+        pageSizeLabel={t('common.perPage')}
         totalLabel={t('common.total')}
         previousLabel={t('common.previous')}
         nextLabel={t('common.next')}
         previousDisabled={page <= 1}
         nextDisabled={page >= (payload?.meta.totalPages ?? payload?.meta.total_pages ?? 1)}
-        rangeLabel={(from, to, total, itemLabel) =>
-          getOrderPaginationRangeLabel(locale, from, to, total, itemLabel)
-        }
         onPrevious={() => setPage((prev) => Math.max(1, prev - 1))}
         onNext={() => setPage((prev) => prev + 1)}
         onPageChange={setPage}

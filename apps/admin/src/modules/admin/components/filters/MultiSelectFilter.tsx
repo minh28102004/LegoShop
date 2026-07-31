@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, type ReactNode } from 'react';
+import { useId, useState, type ReactNode } from 'react';
 import Dropdown from '@/common/components/ui/Dropdown';
 import { cn } from '@/common/utils/cn';
+import { useI18n } from '@/lib/i18n/useI18n';
 
 export type MultiSelectFilterOption = {
   label: string;
@@ -76,7 +77,9 @@ export default function MultiSelectFilter({
   selectedLabel,
   values,
 }: MultiSelectFilterProps) {
+  const { t } = useI18n();
   const [open, setOpen] = useState(false);
+  const listboxId = useId();
   const valueSet = new Set(values);
   const selectedOptions = options.filter((option) => valueSet.has(option.value));
   const display =
@@ -84,7 +87,8 @@ export default function MultiSelectFilter({
       ? (placeholder ?? '')
       : selectedOptions.length === 1
         ? selectedOptions[0]?.label
-        : (selectedLabel?.(selectedOptions.length) ?? `${selectedOptions.length} mục`);
+        : (selectedLabel?.(selectedOptions.length) ??
+          t('common.selectedItems', { count: selectedOptions.length }));
 
   function toggleValue(value: string) {
     if (valueSet.has(value)) {
@@ -107,6 +111,7 @@ export default function MultiSelectFilter({
         <button
           type='button'
           role='combobox'
+          aria-controls={listboxId}
           aria-expanded={open}
           aria-label={ariaLabel}
           className={cn(
@@ -137,7 +142,7 @@ export default function MultiSelectFilter({
       panelClassName='admin-scrollbar max-w-[min(380px,calc(100vw-24px))] overflow-y-auto p-1.5'
     >
       {() => (
-        <div className='space-y-1'>
+        <div id={listboxId} className='space-y-1'>
           {options.map((option) => {
             const active = valueSet.has(option.value);
             return (

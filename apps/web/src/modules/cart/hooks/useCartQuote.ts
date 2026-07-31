@@ -45,6 +45,34 @@ export type CartQuoteOptions = Pick<
 >;
 
 const EMPTY_CART_QUOTE_OPTIONS: CartQuoteOptions = {};
+const CART_QUOTE_CACHE_TTL_MS = 30_000;
+const CART_QUOTE_INTERACTION_DELAY_MS = 80;
+const CART_QUOTE_CACHE_LIMIT = 12;
+
+type CachedCartQuote = {
+  quote: CartQuoteResponseContract;
+  cachedAt: number;
+};
+
+const cartQuoteCache = new Map<string, CachedCartQuote>();
+
+function getCachedCartQuote(key: string) {
+  const cached = cartQuoteCache.get(key);
+  if (!cached) return null;
+  if (Date.now() - cached.cachedAt > CART_QUOTE_CACHE_TTL_MS) {
+    cartQuoteCache.delete(key);
+    return null;
+  }
+  return cached.quote;
+}
+
+function cacheCartQuote(key: string, quote: CartQuoteResponseContract) {
+  cartQuoteCache.delete(key);
+  cartQuoteCache.set(key, { quote, cachedAt: Date.now() });
+  if (cartQuoteCache.size <= CART_QUOTE_CACHE_LIMIT) return;
+  const oldestKey = cartQuoteCache.keys().next().value;
+  if (typeof oldestKey === "string") cartQuoteCache.delete(oldestKey);
+}
 
 export function buildCartQuotePayload(
   items: SimpleCartItem[],
@@ -97,10 +125,12 @@ export function useCartQuote(
     Record<string, CartQuoteItemResponseContract>
   >({});
   const sequence = useRef(0);
+  const hasSettledQuote = useRef(false);
 
   const retry = useCallback(() => {
+    cartQuoteCache.delete(quoteKey);
     setRequestVersion((version) => version + 1);
-  }, []);
+  }, [quoteKey]);
 
   useEffect(() => {
     if (!hasHydrated) return;
@@ -110,37 +140,54 @@ export function useCartQuote(
     const currentRequestPayload = JSON.parse(
       quoteKey,
     ) as CartQuoteRequestContract;
-    const timer = window.setTimeout(() => {
-      setStatus("loading");
-      publicApiClient.public
-        .quoteCart(currentRequestPayload)
-        .then((nextQuote) => {
-          if (currentSequence !== sequence.current) return;
-          const prices: Record<string, number> = {};
-          const changedItems: Record<string, CartQuoteItemResponseContract> =
-            {};
-          nextQuote.items.forEach((item) => {
-            if (item.valid) prices[item.cartItemId] = item.unitPrice;
-            if (
-              item.warnings.some((warning) => warning.code === "PRICE_CHANGED")
-            ) {
-              changedItems[item.cartItemId] = item;
-            }
-          });
-          if (Object.keys(changedItems).length > 0) {
-            setPriceChanges((current) => ({ ...current, ...changedItems }));
-          }
-          setQuote(nextQuote);
+    const cachedQuote = getCachedCartQuote(quoteKey);
+    const timer = window.setTimeout(
+      () => {
+        if (cachedQuote) {
+          setQuote(cachedQuote);
           setQuotedKey(quoteKey);
           setStatus("success");
-          updateQuotedPrices(prices);
-        })
-        .catch(() => {
-          if (currentSequence !== sequence.current) return;
-          setQuotedKey(quoteKey);
-          setStatus("error");
-        });
-    }, 260);
+          hasSettledQuote.current = true;
+          return;
+        }
+
+        setStatus("loading");
+        publicApiClient.public
+          .quoteCart(currentRequestPayload)
+          .then((nextQuote) => {
+            if (currentSequence !== sequence.current) return;
+            const prices: Record<string, number> = {};
+            const changedItems: Record<string, CartQuoteItemResponseContract> =
+              {};
+            nextQuote.items.forEach((item) => {
+              if (item.valid) prices[item.cartItemId] = item.unitPrice;
+              if (
+                item.warnings.some(
+                  (warning) => warning.code === "PRICE_CHANGED",
+                )
+              ) {
+                changedItems[item.cartItemId] = item;
+              }
+            });
+            if (Object.keys(changedItems).length > 0) {
+              setPriceChanges((current) => ({ ...current, ...changedItems }));
+            }
+            setQuote(nextQuote);
+            setQuotedKey(quoteKey);
+            setStatus("success");
+            hasSettledQuote.current = true;
+            cacheCartQuote(quoteKey, nextQuote);
+            updateQuotedPrices(prices);
+          })
+          .catch(() => {
+            if (currentSequence !== sequence.current) return;
+            setQuotedKey(quoteKey);
+            setStatus("error");
+            hasSettledQuote.current = true;
+          });
+      },
+      hasSettledQuote.current ? CART_QUOTE_INTERACTION_DELAY_MS : 0,
+    );
 
     return () => window.clearTimeout(timer);
   }, [hasHydrated, items.length, quoteKey, requestVersion, updateQuotedPrices]);

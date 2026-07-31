@@ -40,12 +40,16 @@ export default function AccessoriesPage() {
     ],
     [categories, t],
   );
+  const tableFields = ['name', 'imageUrl', 'categoryId', 'price'].flatMap((key) =>
+    fields.filter((field) => field.key === key),
+  );
 
   return (
     <EntityManager
       title={t('accessoriesPage.singularTitle')}
       resource='accessories'
       fields={fields}
+      tableFields={tableFields}
       pageTitle={t('accessoriesPage.title')}
       pageDescription={t('accessoriesPage.description')}
       createButtonLabel={t('accessoriesPage.createAccessory')}

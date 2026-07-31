@@ -11,7 +11,6 @@ import {
 } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowRight,
   Check,
@@ -25,9 +24,9 @@ import {
   X,
 } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
-import { ApiClientError } from "@lego-shop/api";
 import {
   formatCurrency,
+  normalizeVietnamesePhone,
   type TrackOrderResponseContract,
 } from "@lego-shop/shared";
 
@@ -171,15 +170,13 @@ function Eyebrow({
 function TrackingPageContent() {
   const { dictionary, locale } = useI18n();
   const copy = dictionary.orderTracking;
-  const searchParams = useSearchParams();
-  const router = useRouter();
   const resultRef = useRef<HTMLElement | null>(null);
-  const [orderCode, setOrderCode] = useState(
-    () => searchParams.get("code") ?? "",
-  );
   const [phone, setPhone] = useState("");
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<TrackOrderResponseContract | null>(null);
+  const [orders, setOrders] = useState<TrackOrderResponseContract[]>([]);
+  const [selectedOrder, setSelectedOrder] =
+    useState<TrackOrderResponseContract | null>(null);
+  const [hasSearched, setHasSearched] = useState(false);
   const [feedback, setFeedback] = useState<Feedback | null>(null);
   const [isGuideOpen, setIsGuideOpen] = useState(false);
   const [pendingGuideTarget, setPendingGuideTarget] = useState<string | null>(
@@ -187,14 +184,14 @@ function TrackingPageContent() {
   );
 
   useEffect(() => {
-    if (!result) return;
+    if (!hasSearched) return;
 
     const frame = window.requestAnimationFrame(() => {
       resultRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     });
 
     return () => window.cancelAnimationFrame(frame);
-  }, [result]);
+  }, [hasSearched, orders]);
 
   useEffect(() => {
     if (!isGuideOpen || !pendingGuideTarget) return;
@@ -217,47 +214,60 @@ function TrackingPageContent() {
 
   async function handleLookup(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const normalizedCode = orderCode.trim().toUpperCase();
-    const normalizedPhone = phone.replace(/\s+/g, "").trim();
+    if (loading) return;
 
-    if (!normalizedCode || !normalizedPhone) {
+    if (!phone.trim()) {
       setFeedback({ tone: "error", message: copy.lookup.requiredError });
       return;
     }
 
-    if (normalizedPhone.replace(/\D/g, "").length < 8) {
+    const normalizedPhone = normalizeVietnamesePhone(phone);
+    if (!normalizedPhone) {
       setFeedback({ tone: "error", message: copy.lookup.phoneError });
       return;
     }
 
     setLoading(true);
     setFeedback(null);
-    setResult(null);
+    setOrders([]);
+    setSelectedOrder(null);
+    setHasSearched(false);
     setPendingGuideTarget(null);
     setIsGuideOpen(false);
 
     try {
       const response = await publicApiClient.orders.trackOrder({
-        orderCode: normalizedCode,
         phone: normalizedPhone,
       });
-      setResult(normalizeTrackingResult(response));
-      setFeedback({ tone: "success", message: copy.lookup.success });
-      router.replace(
-        `${ROUTES.orderTracking}?code=${encodeURIComponent(normalizedCode)}`,
-        { scroll: false },
+      const nextOrders = Array.isArray(response.orders)
+        ? response.orders.map(normalizeTrackingResult)
+        : [];
+      setOrders(nextOrders);
+      setSelectedOrder(
+        nextOrders.length === 1 ? (nextOrders[0] ?? null) : null,
       );
-    } catch (error: unknown) {
-      const notFound = error instanceof ApiClientError && error.status === 404;
+      setHasSearched(true);
+      if (nextOrders.length > 0) {
+        setFeedback({ tone: "success", message: copy.lookup.success });
+      }
+    } catch {
       setFeedback({
         tone: "error",
-        message: notFound
-          ? copy.lookup.notFoundError
-          : copy.lookup.networkError,
+        message: copy.lookup.networkError,
       });
     } finally {
       setLoading(false);
     }
+  }
+
+  function handleSelectOrder(order: TrackOrderResponseContract) {
+    setSelectedOrder(order);
+    window.setTimeout(() => {
+      document.getElementById("tracking-order-detail")?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    }, 50);
   }
 
   return (
@@ -270,11 +280,12 @@ function TrackingPageContent() {
         <div className="pointer-events-none absolute -right-24 top-12 h-64 w-64 rounded-full bg-[#fff0b8]/70 blur-3xl" />
 
         <Container size="default" className="relative">
-          <ScrollReveal className="overflow-hidden rounded-[1.75rem] border border-[#d8e9f7] bg-white shadow-[0_20px_55px_-42px_rgba(16,35,63,0.38)]">
+          <ScrollReveal
+            data-testid="tracking-lookup-card"
+            className="mx-auto max-w-[1040px] overflow-hidden rounded-[1.75rem] border border-[#d8e9f7] bg-white shadow-[0_20px_55px_-42px_rgba(16,35,63,0.38)]"
+          >
             <div className="border-b border-[#e5edf4] px-5 py-5 text-center sm:px-7 sm:py-6 lg:px-9">
-              <Eyebrow>
-                {copy.hero.eyebrow}
-              </Eyebrow>
+              <Eyebrow>{copy.hero.eyebrow}</Eyebrow>
 
               <h1 className="mx-auto mt-2 max-w-2xl text-balance text-[clamp(1.5rem,3vw,2.25rem)] font-bold leading-[1.12] tracking-[-0.03em] text-[#10233f]">
                 {copy.hero.title}
@@ -287,67 +298,22 @@ function TrackingPageContent() {
 
             <div className="relative px-5 pb-5 pt-6 sm:px-7 lg:px-9 lg:pb-6 lg:pt-8">
               <form
+                data-testid="tracking-lookup-form"
                 onSubmit={handleLookup}
                 noValidate
-                className="relative grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] lg:items-start"
+                className="relative mx-auto flex max-w-[920px] flex-col gap-4 sm:flex-row sm:items-start"
               >
-                <div className="block">
-                  <label
-                    htmlFor="tracking-order-code"
-                    className="mb-2 block text-sm font-semibold text-slate-900"
-                  >
-                    {copy.lookup.orderCodeLabel}
-                  </label>
-
-                  <div className="group/field relative">
-                    <Search
-                      className="pointer-events-none absolute left-4 top-1/2 z-10 h-[22px] w-[22px] -translate-y-1/2 text-slate-400 transition-colors duration-[90ms] ease-out group-focus-within/field:text-[#63afe3]"
-                      aria-hidden="true"
-                    />
-                    <input
-                      id="tracking-order-code"
-                      value={orderCode}
-                      onChange={(event) =>
-                        setOrderCode(event.target.value.toUpperCase())
-                      }
-                      placeholder={copy.lookup.orderCodePlaceholder}
-                      autoComplete="off"
-                      className={formControlClassName({
-                        className: "pl-[52px] pr-12 text-[15px] font-medium",
-                      })}
-                    />
-
-                    {orderCode ? (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setOrderCode("");
-                          setFeedback(null);
-                        }}
-                        aria-label={copy.lookup.clearOrderCode}
-                        className="absolute right-2.5 top-1/2 z-10 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-lg text-slate-400 transition-colors duration-150 hover:bg-slate-100 hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9bd2f0]"
-                      >
-                        <X className="h-4 w-4" aria-hidden="true" />
-                      </button>
-                    ) : null}
-                  </div>
-
-                  <span className="mt-2 block text-xs leading-5 text-slate-400">
-                    {copy.lookup.codeHint}
-                  </span>
-                </div>
-
-                <div className="block">
+                <div className="min-w-0 flex-1">
                   <label
                     htmlFor="tracking-phone"
-                    className="mb-2 block text-sm font-semibold text-slate-900"
+                    className="mb-2 block text-[15px] font-semibold text-slate-900"
                   >
                     {copy.lookup.phoneLabel}
                   </label>
 
                   <div className="group/field relative">
                     <ShieldCheck
-                      className="pointer-events-none absolute left-4 top-1/2 z-10 h-[22px] w-[22px] -translate-y-1/2 text-slate-400 transition-colors duration-[90ms] ease-out group-focus-within/field:text-[#63afe3]"
+                      className="pointer-events-none absolute left-5 top-1/2 z-10 h-6 w-6 -translate-y-1/2 text-slate-400 transition-colors duration-[90ms] ease-out group-focus-within/field:text-[#63afe3]"
                       aria-hidden="true"
                     />
                     <input
@@ -359,7 +325,8 @@ function TrackingPageContent() {
                       placeholder={copy.lookup.phonePlaceholder}
                       autoComplete="tel"
                       className={formControlClassName({
-                        className: "pl-[52px] pr-12 text-[15px] font-medium",
+                        className:
+                          "h-[52px] pl-[60px] pr-14 text-[17px] font-medium",
                       })}
                     />
 
@@ -371,14 +338,14 @@ function TrackingPageContent() {
                           setFeedback(null);
                         }}
                         aria-label={copy.lookup.clearPhone}
-                        className="absolute right-2.5 top-1/2 z-10 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-lg text-slate-400 transition-colors duration-150 hover:bg-slate-100 hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9bd2f0]"
+                        className="absolute right-3 top-1/2 z-10 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-lg text-slate-400 transition-colors duration-150 hover:bg-slate-100 hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9bd2f0]"
                       >
-                        <X className="h-4 w-4" aria-hidden="true" />
+                        <X className="h-[18px] w-[18px]" aria-hidden="true" />
                       </button>
                     ) : null}
                   </div>
 
-                  <span className="mt-2 block text-xs leading-5 text-slate-400">
+                  <span className="mt-2 block text-sm leading-5 text-slate-400">
                     {copy.lookup.phoneHint}
                   </span>
                 </div>
@@ -386,12 +353,12 @@ function TrackingPageContent() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="group relative inline-flex h-12 min-w-[140px] items-center justify-center gap-1.5 overflow-hidden rounded-[14px] bg-[#168fce] px-6 text-base font-bold text-white transition-all duration-300 hover:-translate-y-0.5 hover:bg-[#087ab7] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-200 disabled:cursor-wait disabled:opacity-70 lg:mt-[29px] motion-reduce:transform-none"
+                  className="group relative inline-flex h-[52px] w-full shrink-0 items-center justify-center gap-2 overflow-hidden rounded-2xl bg-[#168fce] px-7 text-[17px] font-bold text-white transition-all duration-300 hover:-translate-y-0.5 hover:bg-[#087ab7] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-200 disabled:cursor-wait disabled:opacity-70 sm:mt-[30px] sm:w-auto sm:min-w-[160px] motion-reduce:transform-none"
                 >
                   {loading ? (
-                    <LoaderCircle className="h-5 w-5 animate-spin" />
+                    <LoaderCircle className="h-[22px] w-[22px] animate-spin" />
                   ) : (
-                    <Search className="h-5 w-5" />
+                    <Search className="h-[22px] w-[22px]" />
                   )}
 
                   {loading ? copy.lookup.submitting : copy.lookup.submit}
@@ -401,16 +368,10 @@ function TrackingPageContent() {
               </form>
 
               <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-4 text-sm">
-                <a
-                  href="#where-code"
-                  onClick={(event) => {
-                    event.preventDefault();
-                    openGuideAt("where-code");
-                  }}
-                  className="font-semibold text-[#087ab7] transition-colors hover:text-[#075f91] hover:underline"
-                >
-                  {copy.lookup.forgotCode}
-                </a>
+                <span className="inline-flex items-center gap-2 text-xs font-medium text-slate-500">
+                  <ShieldCheck className="h-4 w-4 text-[#168fce]" />
+                  {copy.lookup.privacyNote}
+                </span>
 
                 <a
                   href="#support"
@@ -445,7 +406,7 @@ function TrackingPageContent() {
             </div>
           </ScrollReveal>
 
-          <div className="mt-4">
+          <div className="mx-auto mt-4 max-w-[1040px]">
             <button
               type="button"
               onClick={() => {
@@ -678,17 +639,135 @@ function TrackingPageContent() {
         ) : null}
       </AnimatePresence>
 
-      {result ? (
+      {orders.length === 1 && selectedOrder ? (
         <TrackingResultSection
           ref={resultRef}
-          result={result}
+          result={selectedOrder}
           copy={copy}
           locale={locale}
         />
+      ) : hasSearched ? (
+        <>
+          <TrackingOrdersSection
+            ref={resultRef}
+            orders={orders}
+            selectedOrderCode={selectedOrder?.orderCode ?? null}
+            onSelect={handleSelectOrder}
+            copy={copy}
+            locale={locale}
+          />
+          {selectedOrder ? (
+            <TrackingResultSection
+              ref={null}
+              result={selectedOrder}
+              copy={copy}
+              locale={locale}
+            />
+          ) : null}
+        </>
       ) : null}
     </main>
   );
 }
+
+const TrackingOrdersSection = ({
+  orders,
+  selectedOrderCode,
+  onSelect,
+  copy,
+  locale,
+  ref,
+}: {
+  orders: TrackOrderResponseContract[];
+  selectedOrderCode: string | null;
+  onSelect: (order: TrackOrderResponseContract) => void;
+  copy: TrackingCopy;
+  locale: "vi" | "en";
+  ref: Ref<HTMLElement>;
+}) => (
+  <section
+    ref={ref}
+    className="scroll-mt-24 border-t border-[#dce8f2] bg-white py-16 sm:py-20"
+  >
+    <Container size="default">
+      <ScrollReveal>
+        {orders.length === 0 ? (
+          <div className="mx-auto max-w-2xl rounded-[2rem] border border-[#dce8f2] bg-[#f8fbfe] px-6 py-12 text-center sm:px-10">
+            <span className="mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-[#e8f5fd]">
+              <FluentIcon src={FLUENT_ICONS.package} className="h-10 w-10" />
+            </span>
+            <h2 className="mt-5 text-xl font-bold text-[#10233f]">
+              {copy.list.emptyTitle}
+            </h2>
+            <p className="mx-auto mt-2 max-w-lg text-sm leading-6 text-slate-500">
+              {copy.list.emptyDescription}
+            </p>
+          </div>
+        ) : (
+          <>
+            <SectionHeading
+              eyebrow={copy.list.eyebrow}
+              title={copy.list.title}
+              description={copy.list.description}
+            />
+
+            <div className="mt-8 grid gap-4">
+              {orders.map((order) => {
+                const selected = order.orderCode === selectedOrderCode;
+                return (
+                  <article
+                    key={order.orderCode}
+                    className={`grid gap-5 rounded-[1.5rem] border p-5 transition sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:p-6 ${
+                      selected
+                        ? "border-[#77bfe8] bg-[#f3faff] shadow-[0_14px_34px_-28px_rgba(22,143,206,0.75)]"
+                        : "border-[#dce8f2] bg-white hover:border-[#9dcce7] hover:shadow-[0_14px_34px_-30px_rgba(16,35,63,0.45)]"
+                    }`}
+                  >
+                    <div className="grid min-w-0 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                      <ResultDatum
+                        label={copy.result.orderCode}
+                        value={order.orderCode}
+                        mono
+                      />
+                      <ResultDatum
+                        label={copy.result.orderDate}
+                        value={formatDate(order.createdAt, locale)}
+                      />
+                      <ResultDatum
+                        label={copy.result.currentStatus}
+                        value={labelFrom(
+                          copy.orderStatusLabels,
+                          order.orderStatus,
+                        )}
+                      />
+                      <ResultDatum
+                        label={copy.result.total}
+                        value={formatCurrency(order.totalAmount, {
+                          locale: LOCALE_FORMATS[locale],
+                        })}
+                        strong
+                      />
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => onSelect(order)}
+                      aria-pressed={selected}
+                      className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-full bg-[#168fce] px-5 text-sm font-bold text-white transition hover:bg-[#087ab7] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-200 sm:w-auto"
+                    >
+                      {selected ? copy.list.viewing : copy.list.viewDetails}
+                      <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                    </button>
+                  </article>
+                );
+              })}
+            </div>
+          </>
+        )}
+      </ScrollReveal>
+    </Container>
+  </section>
+);
 
 const TrackingResultSection = ({
   result,
@@ -707,6 +786,7 @@ const TrackingResultSection = ({
 
   return (
     <section
+      id="tracking-order-detail"
       ref={ref}
       className="scroll-mt-24 border-t border-[#dce8f2] bg-white py-20"
     >

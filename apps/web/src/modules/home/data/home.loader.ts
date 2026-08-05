@@ -48,6 +48,20 @@ const STATIC_FALLBACK_MEDIA: Record<HomeMediaSlot, string> = {
   "final-cta": FIGURE_LAB_TEAM_GIFT_IMAGE,
 };
 
+const STATIC_COLLECTION_FALLBACK_MEDIA = [
+  "/home/graduation-frame.png",
+  "/home/love-frame.png",
+  "/home/birthday-frame.png",
+  FIGURE_LAB_TEAM_GIFT_IMAGE,
+] as const;
+
+const GENERIC_COLLECTION_SLUG_TOKENS = new Set([
+  "collection",
+  "series",
+  "set",
+  "sets",
+]);
+
 type LoadedList<T> = {
   items: T[];
   state: HomeResourceState;
@@ -180,15 +194,76 @@ function mapProducts(products: Product[]): HomeFeaturedProduct[] {
     .slice(0, MAX_FEATURED_PRODUCTS);
 }
 
-function mapCategories(collections: Collection[]): HomeCategory[] {
-  return collections.slice(0, MAX_HOME_CATEGORIES).map((collection) => ({
-    id: collection.id,
-    title: collection.name,
-    description: collection.description,
-    href: ROUTES.collection,
-    imageUrl: getSafeApiMediaUrl(collection.imageUrl),
-    imageAlt: collection.name,
-  }));
+function getProductMediaCandidates(products: Product[]) {
+  return products.flatMap((product) => {
+    const imageUrl = Array.isArray(product.images)
+      ? (product.images
+          .map(getSafeApiMediaUrl)
+          .find((candidate) => candidate !== null) ?? null)
+      : null;
+
+    return imageUrl
+      ? [{ imageUrl, slug: toNonEmptyString(product.slug) ?? "" }]
+      : [];
+  });
+}
+
+function getCollectionFallbackImage(
+  collection: Collection,
+  productMedia: ReturnType<typeof getProductMediaCandidates>,
+  collectionIndex: number,
+): string {
+  const collectionTokens = collection.slug
+    .toLowerCase()
+    .split("-")
+    .filter(
+      (token) =>
+        token.length >= 4 && !GENERIC_COLLECTION_SLUG_TOKENS.has(token),
+    );
+  const matchingProduct = productMedia.find(({ slug }) =>
+    collectionTokens.some((token) => slug.toLowerCase().includes(token)),
+  );
+  const indexedProduct = productMedia[collectionIndex % productMedia.length];
+
+  return (
+    matchingProduct?.imageUrl ??
+    indexedProduct?.imageUrl ??
+    STATIC_COLLECTION_FALLBACK_MEDIA[
+      collectionIndex % STATIC_COLLECTION_FALLBACK_MEDIA.length
+    ] ??
+    FIGURE_LAB_TEAM_GIFT_IMAGE
+  );
+}
+
+function getSafeCollectionDescription(value?: string | null): string | null {
+  const description = toNonEmptyString(value);
+
+  // Imported fixture text can contain several replacement question marks when
+  // its original UTF-8 value was decoded incorrectly. Let the translated card
+  // fallback render instead of exposing corrupted text to customers.
+  if ((description?.match(/\?/g)?.length ?? 0) >= 2) return null;
+
+  return description;
+}
+
+function mapCategories(
+  collections: Collection[],
+  products: Product[],
+): HomeCategory[] {
+  const productMedia = getProductMediaCandidates(products);
+
+  return collections
+    .slice(0, MAX_HOME_CATEGORIES)
+    .map((collection, collectionIndex) => ({
+      id: collection.id,
+      title: collection.name,
+      description: getSafeCollectionDescription(collection.description),
+      href: ROUTES.collection,
+      imageUrl:
+        getSafeApiMediaUrl(collection.imageUrl) ??
+        getCollectionFallbackImage(collection, productMedia, collectionIndex),
+      imageAlt: collection.name,
+    }));
 }
 
 function getBannerSystemKey(banner: Banner): string | null {
@@ -316,7 +391,7 @@ export async function loadHomePageData(): Promise<HomePageData> {
   return {
     products: mapProducts(productResult.items),
     productState: productResult.state,
-    categories: mapCategories(categoryResult.items),
+    categories: mapCategories(categoryResult.items, productResult.items),
     categoryState: categoryResult.state,
     media,
     heroSlides: mapHeroSlides(homepageMediaResult.items, bannerResult.items),

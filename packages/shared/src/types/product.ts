@@ -195,7 +195,6 @@ export type CharacterPart = Timestamped & {
   compareAtPrice?: Nullable<PriceInVND>;
   category?: Nullable<string>;
   availability?: string;
-  isActive?: boolean;
   compatibility?: Nullable<JsonValue>;
   sortOrder: number;
   tags: Nullable<JsonValue>;
@@ -205,6 +204,7 @@ export type CharacterPart = Timestamped & {
 export type Banner = Timestamped & {
   id: ID;
   title: Nullable<string>;
+  sourceKey: Nullable<string>;
   imageUrl: URLString;
   linkUrl: Nullable<URLString>;
   sortOrder: number;

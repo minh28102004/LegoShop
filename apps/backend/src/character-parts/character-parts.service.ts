@@ -17,6 +17,7 @@ import {
   resolveDateRange,
   resolveSorts,
 } from '../common/admin-query/admin-query.util';
+import { countJsonCatalogReferences } from '../common/catalog-reference.util';
 import { PrismaService } from '../prisma/prisma.service';
 import { CharacterPartsQueryDto } from './dto/character-parts-query.dto';
 import { CreateCharacterPartDto } from './dto/create-character-part.dto';
@@ -51,8 +52,6 @@ export class CharacterPartsService {
     try {
       return await this.prisma.characterPart.findMany({
         where: {
-          status: ProductStatus.active,
-          isActive: true,
           availability: 'available',
           ...(type ? { type } : {}),
           ...(query?.category_id ? { category: query.category_id.trim() } : {}),
@@ -87,7 +86,15 @@ export class CharacterPartsService {
       const { sortBy, sortDir, sortCriteria } = resolveSorts(
         query?.sort_by,
         query?.sort_dir,
-        ['name', 'type', 'sortOrder', 'status', 'createdAt', 'updatedAt'],
+        [
+          'name',
+          'type',
+          'availability',
+          'sortOrder',
+          'status',
+          'createdAt',
+          'updatedAt',
+        ],
         'sortOrder',
       );
       const orderBy = sortCriteria.map(({ field, direction }) => ({
@@ -262,8 +269,6 @@ export class CharacterPartsService {
       return await this.prisma.characterPart.findMany({
         where: {
           id: { in: partIds },
-          status: ProductStatus.active,
-          isActive: true,
           availability: 'available',
         },
         orderBy: [{ type: 'asc' }, { sortOrder: 'asc' }],
@@ -277,9 +282,8 @@ export class CharacterPartsService {
   }
 
   createCharacterPart(dto: CreateCharacterPartDto) {
-    const resolvedStatus =
-      dto.status ??
-      (dto.isActive === false ? ProductStatus.inactive : ProductStatus.active);
+    this.assertPriceRange(dto.priceAdjustment ?? 0, dto.compareAtPrice);
+    const resolvedStatus = dto.status ?? ProductStatus.active;
 
     return this.prisma.characterPart.create({
       data: {
@@ -309,11 +313,51 @@ export class CharacterPartsService {
   async updateCharacterPart(id: string, dto: UpdateCharacterPartDto) {
     const existingPart = await this.prisma.characterPart.findUnique({
       where: { id },
-      select: { id: true },
+      select: {
+        id: true,
+        type: true,
+        priceAdjustment: true,
+        compareAtPrice: true,
+      },
     });
 
     if (!existingPart) {
       throw new NotFoundException('Character part not found');
+    }
+
+    this.assertPriceRange(
+      dto.priceAdjustment ?? existingPart.priceAdjustment,
+      dto.compareAtPrice !== undefined
+        ? dto.compareAtPrice
+        : existingPart.compareAtPrice,
+    );
+
+    const changesType =
+      dto.type !== undefined && dto.type !== existingPart.type;
+    const makesUnavailable =
+      (dto.availability !== undefined && dto.availability !== 'available') ||
+      dto.status === ProductStatus.inactive;
+    if (changesType || makesUnavailable) {
+      const presetReferenceCount = await this.prisma.characterPreset.count({
+        where: {
+          ...(makesUnavailable && !changesType
+            ? { status: ProductStatus.active }
+            : {}),
+          OR: [
+            { facePartId: id },
+            { hairPartId: id },
+            { torsoPartId: id },
+            { legsPartId: id },
+            { hatPartId: id },
+            { accessories: { some: { partId: id } } },
+          ],
+        },
+      });
+      if (presetReferenceCount > 0) {
+        throw new ConflictException(
+          `Character part is used by ${presetReferenceCount} preset(s). Disable or update those presets before changing its type or availability.`,
+        );
+      }
     }
 
     const data: Prisma.CharacterPartUpdateInput = {};
@@ -331,11 +375,6 @@ export class CharacterPartsService {
     if (dto.status !== undefined) {
       data.status = dto.status;
       data.isActive = dto.status === ProductStatus.active;
-    } else if (dto.isActive !== undefined) {
-      data.isActive = dto.isActive;
-      data.status = dto.isActive
-        ? ProductStatus.active
-        : ProductStatus.inactive;
     }
     if (dto.compatibility !== undefined)
       data.compatibility = dto.compatibility as Prisma.InputJsonValue;
@@ -369,13 +408,23 @@ export class CharacterPartsService {
       throw new NotFoundException('Character part not found');
     }
 
-    const referenceCount = Object.values(existingPart._count).reduce(
+    const presetReferenceCount = Object.values(existingPart._count).reduce(
       (total, count) => total + count,
       0,
     );
+    const [orderItems, designs] = await Promise.all([
+      this.prisma.orderItem.findMany({
+        select: { designData: true, componentSnapshot: true },
+      }),
+      this.prisma.userDesign.findMany({ select: { designData: true } }),
+    ]);
+    const referenceCount =
+      presetReferenceCount +
+      countJsonCatalogReferences(orderItems, id) +
+      countJsonCatalogReferences(designs, id);
     if (referenceCount > 0) {
       throw new ConflictException(
-        `Character part is used by ${referenceCount} preset relation(s). Disable it instead of deleting it.`,
+        `Character part is used by ${referenceCount} preset, order, or design record(s). Make it unavailable instead of deleting it.`,
       );
     }
 
@@ -387,6 +436,21 @@ export class CharacterPartsService {
       success: true,
       message: 'Character part deleted successfully',
     };
+  }
+
+  private assertPriceRange(
+    priceAdjustment: number,
+    compareAtPrice?: number | null,
+  ) {
+    if (
+      compareAtPrice !== undefined &&
+      compareAtPrice !== null &&
+      compareAtPrice <= priceAdjustment
+    ) {
+      throw new BadRequestException(
+        'Character part compare-at price must be greater than its selling price',
+      );
+    }
   }
 
   private resolveType(type?: string): CharacterPartType | undefined {
@@ -421,7 +485,6 @@ export class CharacterPartsService {
         "createdAt",
         "updatedAt"
       FROM "CharacterPart"
-      WHERE "status" = 'active'
       ORDER BY "type" ASC, "sortOrder" ASC, "createdAt" DESC
     `);
     const normalizedSearch = search?.trim().toLocaleLowerCase('vi');
@@ -440,7 +503,6 @@ export class CharacterPartsService {
         compareAtPrice: null,
         category: null,
         availability: 'available',
-        isActive: true,
         compatibility: null,
       }));
   }

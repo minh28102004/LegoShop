@@ -5,6 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { Prisma, ProductStatus, VoucherDiscountType } from '@prisma/client';
+import { VOUCHER_EFFECTIVE_STATUS } from '@lego-shop/shared';
 import {
   buildAdminListMeta,
   buildDateFilter,
@@ -115,7 +116,7 @@ export class VouchersService {
       ]);
 
       return {
-        data,
+        data: data.map((voucher) => this.serializeVoucher(voucher)),
         meta: buildAdminListMeta({
           page: pagination.page,
           limit: pagination.limit,
@@ -127,9 +128,11 @@ export class VouchersService {
       };
     }
 
-    return this.prisma.voucher.findMany({
+    const vouchers = await this.prisma.voucher.findMany({
       orderBy: [{ status: 'asc' }, { createdAt: 'desc' }],
     });
+
+    return vouchers.map((voucher) => this.serializeVoucher(voucher));
   }
 
   async findAdminVoucherById(id: string) {
@@ -139,7 +142,7 @@ export class VouchersService {
       throw new NotFoundException('Voucher not found');
     }
 
-    return voucher;
+    return this.serializeVoucher(voucher);
   }
 
   async createVoucher(dto: CreateVoucherDto) {
@@ -156,7 +159,7 @@ export class VouchersService {
       throw new ConflictException('Voucher code already exists');
     }
 
-    return this.prisma.voucher.create({
+    const voucher = await this.prisma.voucher.create({
       data: {
         code,
         description: dto.description,
@@ -170,12 +173,20 @@ export class VouchersService {
         status: dto.status,
       },
     });
+
+    return this.serializeVoucher(voucher);
   }
 
   async updateVoucher(id: string, dto: UpdateVoucherDto) {
     const existingVoucher = await this.prisma.voucher.findUnique({
       where: { id },
-      select: { id: true, discountType: true, discountValue: true },
+      select: {
+        id: true,
+        discountType: true,
+        discountValue: true,
+        startsAt: true,
+        expiresAt: true,
+      },
     });
 
     if (!existingVoucher) {
@@ -185,7 +196,10 @@ export class VouchersService {
     const discountType = dto.discountType ?? existingVoucher.discountType;
     const discountValue = dto.discountValue ?? existingVoucher.discountValue;
     this.assertDiscountValue(discountType, discountValue);
-    this.assertDateRange(dto.startsAt, dto.expiresAt);
+    this.assertDateRange(
+      dto.startsAt !== undefined ? dto.startsAt : existingVoucher.startsAt,
+      dto.expiresAt !== undefined ? dto.expiresAt : existingVoucher.expiresAt,
+    );
 
     const data: Prisma.VoucherUpdateInput = {};
 
@@ -219,20 +233,32 @@ export class VouchersService {
       data.code = code;
     }
 
-    return this.prisma.voucher.update({
+    const voucher = await this.prisma.voucher.update({
       where: { id },
       data,
     });
+
+    return this.serializeVoucher(voucher);
   }
 
   async deleteVoucher(id: string) {
     const existingVoucher = await this.prisma.voucher.findUnique({
       where: { id },
-      select: { id: true },
+      select: { id: true, code: true, usedCount: true },
     });
 
     if (!existingVoucher) {
       throw new NotFoundException('Voucher not found');
+    }
+
+    const referencedOrderCount = await this.prisma.order.count({
+      where: { voucherCode: existingVoucher.code },
+    });
+    if (existingVoucher.usedCount > 0 || referencedOrderCount > 0) {
+      throw new ConflictException({
+        code: 'VOUCHER_IN_USE',
+        message: 'Voucher used by an order cannot be deleted',
+      });
     }
 
     await this.prisma.voucher.delete({ where: { id } });
@@ -283,21 +309,26 @@ export class VouchersService {
       throw new BadRequestException('Voucher code not found');
     }
 
-    if (
-      voucher.usageLimit !== null &&
-      voucher.usedCount >= voucher.usageLimit
-    ) {
-      throw new BadRequestException('Voucher usage limit has been reached');
-    }
-
-    await tx.voucher.update({
-      where: { id: voucherId },
+    const updated = await tx.voucher.updateMany({
+      where: {
+        id: voucherId,
+        ...(voucher.usageLimit !== null
+          ? { usedCount: { lt: voucher.usageLimit } }
+          : {}),
+      },
       data: {
         usedCount: {
           increment: 1,
         },
       },
     });
+
+    if (updated.count !== 1) {
+      throw new BadRequestException({
+        code: 'VOUCHER_USAGE_LIMIT_REACHED',
+        message: 'Voucher usage limit has been reached',
+      });
+    }
   }
 
   private normalizeCode(code: string) {
@@ -326,7 +357,10 @@ export class VouchersService {
     }
   }
 
-  private assertDateRange(startsAt?: string | null, expiresAt?: string | null) {
+  private assertDateRange(
+    startsAt?: string | Date | null,
+    expiresAt?: string | Date | null,
+  ) {
     if (!startsAt || !expiresAt) return;
 
     if (new Date(expiresAt).getTime() < new Date(startsAt).getTime()) {
@@ -374,5 +408,25 @@ export class VouchersService {
         : rawDiscount;
 
     return Math.max(0, Math.min(cappedDiscount, orderAmount));
+  }
+
+  private serializeVoucher<T extends VoucherRecord>(voucher: T) {
+    const now = Date.now();
+    const effectiveStatus =
+      voucher.status !== ProductStatus.active
+        ? VOUCHER_EFFECTIVE_STATUS.DISABLED
+        : voucher.startsAt && voucher.startsAt.getTime() > now
+          ? VOUCHER_EFFECTIVE_STATUS.SCHEDULED
+          : voucher.expiresAt && voucher.expiresAt.getTime() < now
+            ? VOUCHER_EFFECTIVE_STATUS.EXPIRED
+            : voucher.usageLimit !== null &&
+                voucher.usedCount >= voucher.usageLimit
+              ? VOUCHER_EFFECTIVE_STATUS.EXHAUSTED
+              : VOUCHER_EFFECTIVE_STATUS.ACTIVE;
+
+    return {
+      ...voucher,
+      effectiveStatus,
+    };
   }
 }

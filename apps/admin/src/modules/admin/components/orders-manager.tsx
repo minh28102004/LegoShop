@@ -175,7 +175,6 @@ export default function OrdersManager() {
         activeFilterCount={activeAdvancedFilterCount}
         dateFrom={dateFrom}
         dateTo={dateTo}
-        description={t('sidebarDesc.orders')}
         onDateFromChange={(from) => {
           updateAppliedAndDraft((current) => ({
             ...current,

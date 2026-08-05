@@ -113,13 +113,7 @@ export function CharacterBuilderShop({
   const { dictionary } = useI18n();
   const copy = dictionary.characterBuilder;
 
-  const catalogParts = useMemo(
-    () =>
-      parts.filter(
-        (part) => part.status === "active" && part.isActive !== false,
-      ),
-    [parts],
-  );
+  const catalogParts = useMemo(() => parts, [parts]);
   const activeParts = useMemo(
     () =>
       catalogParts.filter(

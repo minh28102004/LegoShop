@@ -1,24 +1,35 @@
-'use client';
+"use client";
 
-import { type FormEvent, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { motion } from 'framer-motion';
-import toast from 'react-hot-toast';
-import Badge, { getStatusBadgeLabel, StatusBadge } from '@/common/components/ui/Badge';
-import Button from '@/common/components/ui/Button';
-import Checkbox from '@/common/components/ui/Checkbox';
-import ConfirmDialog from '@/common/components/ui/ConfirmDialog';
-import Input from '@/common/components/ui/Input';
-import LoadingSpinner from '@/common/components/ui/LoadingSpinner';
+import {
+  type FormEvent,
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { motion } from "framer-motion";
+import toast from "react-hot-toast";
+import Badge, {
+  getStatusBadgeLabel,
+  StatusBadge,
+} from "@/common/components/ui/Badge";
+import Button from "@/common/components/ui/Button";
+import Checkbox from "@/common/components/ui/Checkbox";
+import ConfirmDialog from "@/common/components/ui/ConfirmDialog";
+import Input from "@/common/components/ui/Input";
+import LoadingSpinner from "@/common/components/ui/LoadingSpinner";
 import Modal, {
   ModalBody,
   ModalFooter,
   ModalHeader,
-} from '@/common/components/ui/Modal';
-import PageShell from '@/common/components/ui/PageShell';
-import Select from '@/common/components/ui/Select';
-import Tooltip from '@/common/components/ui/Tooltip';
-import { resolveApiAssetUrl } from '@/lib/api';
-import { type AdminNavIcon as AdminNavIconName } from '@/common/constants/routes';
+} from "@/common/components/ui/Modal";
+import PageShell from "@/common/components/ui/PageShell";
+import Select from "@/common/components/ui/Select";
+import Tooltip from "@/common/components/ui/Tooltip";
+import { resolveApiAssetUrl } from "@/lib/api";
+import { type AdminNavIcon as AdminNavIconName } from "@/common/constants/routes";
 import Table, {
   DEFAULT_TABLE_SORTS,
   SortableTableHead,
@@ -34,9 +45,10 @@ import Table, {
   areTableSortsEqual,
   serializeTableSorts,
   type TableSort,
-} from '@/common/components/ui/Table';
-import Textarea from '@/common/components/ui/Textarea';
-import { cn } from '@/common/utils/cn';
+} from "@/common/components/ui/Table";
+import Textarea from "@/common/components/ui/Textarea";
+import { cn } from "@/common/utils/cn";
+import { slugify } from "@lego-shop/shared";
 import {
   createResource,
   deleteResource,
@@ -46,44 +58,51 @@ import {
   type ResourceKey,
   updateResource,
   uploadImage,
-} from '@/modules/admin/services/adminApi';
-import { useI18n } from '@/lib/i18n/useI18n';
-import { getLocalizedApiError } from '@/lib/i18n/errors';
-import { formatDateTime, formatNumber, formatVnd } from '@/lib/i18n/format';
-import type { Locale } from '@/lib/i18n/config';
+} from "@/modules/admin/services/adminApi";
+import { useI18n } from "@/lib/i18n/useI18n";
+import { getLocalizedApiError } from "@/lib/i18n/errors";
+import { formatDateTime, formatNumber, formatVnd } from "@/lib/i18n/format";
+import type { Locale } from "@/lib/i18n/config";
 import AdminToolbar, {
   AdminToolbarField,
   AdminToolbarIcon,
   adminToolbarButtonClass,
   adminToolbarInputClass,
-} from '@/modules/admin/components/AdminToolbar';
-import AdminNavIcon from '@/modules/admin/components/AdminNavIcon';
-import EntityFilterDrawer from '@/modules/admin/components/entities/EntityFilterDrawer';
+} from "@/modules/admin/components/AdminToolbar";
+import {
+  FormField,
+  FormGrid,
+  FormSection,
+  type AdminFormFieldSpan,
+} from "@/modules/admin/components/AdminFormLayout";
+import AdminNavIcon from "@/modules/admin/components/AdminNavIcon";
+import EntityFilterDrawer from "@/modules/admin/components/entities/EntityFilterDrawer";
 import ProductComponentConfigField, {
   type ProductConfigOptions,
-} from '@/modules/admin/components/entities/ProductComponentConfigField';
+} from "@/modules/admin/components/entities/ProductComponentConfigField";
 import {
   EMPTY_ENTITY_FILTER_DRAFT,
   type EntityFilterDraft,
-} from '@/modules/admin/components/entities/entity-filter.types';
-import type { PaginatedResourceResponse } from '@/modules/admin/types/admin.types';
+} from "@/modules/admin/components/entities/entity-filter.types";
+import type { PaginatedResourceResponse } from "@/modules/admin/types/admin.types";
 
 type FieldType =
-  | 'text'
-  | 'number'
-  | 'datetime'
-  | 'textarea'
-  | 'checkbox'
-  | 'select'
-  | 'multi-select'
-  | 'json'
-  | 'tags'
-  | 'content-fields'
-  | 'product-config'
-  | 'image'
-  | 'images';
-type ImageInputMode = 'file' | 'url';
-type ContentFieldInputType = 'text' | 'date' | 'textarea' | 'image';
+  | "section"
+  | "text"
+  | "number"
+  | "datetime"
+  | "textarea"
+  | "checkbox"
+  | "select"
+  | "multi-select"
+  | "json"
+  | "tags"
+  | "content-fields"
+  | "product-config"
+  | "image"
+  | "images";
+type ImageInputMode = "file" | "url";
+type ContentFieldInputType = "text" | "date" | "textarea" | "image";
 
 type ContentFieldFormValue = {
   key: string;
@@ -99,9 +118,15 @@ export type EntityField = {
   label: string;
   type: FieldType;
   required?: boolean;
+  min?: number;
   options?: Array<{ label: string; value: string }>;
   placeholder?: string;
   helpText?: string;
+  span?: AdminFormFieldSpan;
+  showWhen?: {
+    field: string;
+    values: string[];
+  };
   productConfigOptions?: ProductConfigOptions;
   advanced?: boolean;
 };
@@ -112,7 +137,6 @@ type EntityManagerProps<K extends ResourceKey> = {
   fields: EntityField[];
   tableFields?: EntityField[];
   pageTitle?: string;
-  pageDescription?: string;
   createButtonLabel?: string;
 };
 
@@ -135,118 +159,205 @@ type EntityTablePolicy = {
   columns: EntityTableColumnPolicy[];
 };
 
-const fieldCardClass = 'min-w-0 space-y-2';
+const fieldCardClass = "min-w-0 space-y-2";
 const ENTITY_PAGE_SIZE = 20;
-const ENTITY_ACTION_COLUMN_CLASS = 'w-[110px] min-w-[110px] max-w-[110px] px-2 text-center';
+const ENTITY_ACTION_COLUMN_CLASS =
+  "w-[110px] min-w-[110px] max-w-[110px] px-3 text-right";
 const ENTITY_DATE_FILTER_RESOURCES = new Set<ResourceKey>([
-  'products',
-  'templates',
-  'frame-options',
-  'template-categories',
-  'accessories',
-  'characters',
-  'character-parts',
-  'character-presets',
-  'accessory-categories',
-  'banners',
-  'frame-backgrounds',
-  'collections',
-  'vouchers',
+  "products",
+  "templates",
+  "frame-options",
+  "template-categories",
+  "accessories",
+  "characters",
+  "character-parts",
+  "character-presets",
+  "accessory-categories",
+  "banners",
+  "frame-backgrounds",
+  "collections",
+  "vouchers",
 ]);
-type SortDirection = 'asc' | 'desc';
-type EntityListMeta = PaginatedResourceResponse<unknown>['meta'];
+type SortDirection = "asc" | "desc";
+type EntityListMeta = PaginatedResourceResponse<unknown>["meta"];
 
 function isCurrencyColumn(key: string) {
   const normalized = key.toLowerCase();
-  return normalized.includes('price') || normalized.includes('amount') || normalized.includes('total');
+  return (
+    normalized.includes("price") ||
+    normalized.includes("amount") ||
+    normalized.includes("total")
+  );
 }
 
-function getFieldLayoutClass(field: EntityField, resource: ResourceKey) {
+function getEntityFormFieldSpan(
+  field: EntityField,
+  resource: ResourceKey,
+): AdminFormFieldSpan {
+  if (field.span) return field.span;
+
   const normalizedKey = field.key.toLowerCase();
 
-  if (field.type === 'textarea') return 'lg:col-span-12';
+  if (field.type === "section") return 12;
+  if (field.type === "textarea") return 12;
   if (
-    field.type === 'json' ||
-    field.type === 'tags' ||
-    field.type === 'content-fields' ||
-    field.type === 'product-config'
-  ) return 'lg:col-span-12';
-  if (field.type === 'image' || field.type === 'images') return 'lg:col-span-12';
-  if (field.type === 'checkbox') return 'lg:col-span-4 xl:col-span-3 max-w-[320px]';
-  if (field.type === 'number') return 'lg:col-span-3';
-  if (field.type === 'datetime') return 'lg:col-span-5';
-  if (field.type === 'select') {
-    if (normalizedKey === 'status') {
-      return resource === 'products' || resource === 'banners' || resource === 'collections'
-        ? 'lg:col-span-4'
-        : 'lg:col-span-3';
-    }
-    if (normalizedKey === 'categoryid') return 'lg:col-span-4';
-    return 'lg:col-span-4';
+    field.type === "json" ||
+    field.type === "tags" ||
+    field.type === "content-fields" ||
+    field.type === "product-config"
+  )
+    return 12;
+  if (field.type === "image" || field.type === "images") return 12;
+  if (field.type === "checkbox") return 3;
+  if (field.type === "number") return 4;
+  if (field.type === "datetime") return 6;
+  if (field.type === "select") {
+    if (normalizedKey === "status") return 4;
+    if (normalizedKey === "categoryid") return 6;
+    return 4;
   }
-  if (field.type === 'multi-select') return 'lg:col-span-12';
+  if (field.type === "multi-select") return 12;
 
   if (
-    normalizedKey === 'name' ||
-    normalizedKey.endsWith('name') ||
-    normalizedKey === 'title'
+    normalizedKey === "name" ||
+    normalizedKey.endsWith("name") ||
+    normalizedKey === "title"
   ) {
-    if (resource === 'collections') return 'lg:col-span-8';
-    if (resource === 'template-categories' || resource === 'accessory-categories') {
-      return 'lg:col-span-6';
+    if (resource === "collections") return 8;
+    if (
+      resource === "template-categories" ||
+      resource === "accessory-categories"
+    ) {
+      return 6;
     }
-    return 'lg:col-span-5';
+    return 8;
   }
 
   if (
-    normalizedKey === 'slug' ||
-    normalizedKey.includes('url') ||
-    normalizedKey.includes('link')
+    normalizedKey === "slug" ||
+    normalizedKey.includes("url") ||
+    normalizedKey.includes("link")
   ) {
-    return 'lg:col-span-12';
+    return normalizedKey === "slug" ? 4 : 12;
   }
 
-  return 'lg:col-span-5';
+  return 6;
+}
+
+type EntityFormSectionGroup = {
+  key: string;
+  title?: string;
+  description?: string;
+  fields: EntityField[];
+};
+
+function isEntityFormFieldVisible(
+  field: EntityField,
+  values: Record<string, unknown>,
+  showAdvancedFields: boolean,
+) {
+  if (field.advanced && !showAdvancedFields) return false;
+  if (!field.showWhen) return true;
+
+  return field.showWhen.values.includes(
+    String(values[field.showWhen.field] ?? ""),
+  );
+}
+
+function getEntityFormSections(
+  fields: EntityField[],
+  values: Record<string, unknown>,
+  showAdvancedFields: boolean,
+): EntityFormSectionGroup[] {
+  const sections: EntityFormSectionGroup[] = [];
+  let current: EntityFormSectionGroup = {
+    key: "default",
+    fields: [],
+  };
+
+  const pushCurrent = () => {
+    if (current.fields.length > 0) sections.push(current);
+  };
+
+  fields.forEach((field) => {
+    if (field.type === "section") {
+      pushCurrent();
+      current = {
+        key: field.key,
+        title: field.label,
+        description: field.helpText,
+        fields: [],
+      };
+      return;
+    }
+
+    if (isEntityFormFieldVisible(field, values, showAdvancedFields)) {
+      current.fields.push(field);
+    }
+  });
+
+  pushCurrent();
+  return sections;
 }
 
 function getTableColumnClass(field: EntityField) {
-  if (field.type === 'number') return 'text-right';
-  if (field.key.toLowerCase().includes('status')) return 'text-center';
-  if (field.type === 'image' || field.type === 'images') return 'text-center';
-  return '';
+  if (field.type === "number") return "text-right";
+  if (field.key.toLowerCase().includes("status")) return "text-center";
+  if (field.type === "image" || field.type === "images") return "text-center";
+  return "";
 }
 
 function getEntityPrimaryColumnClass(resource: ResourceKey) {
-  if (resource === 'frame-backgrounds') return 'w-[42%] min-w-[280px] max-w-[520px] text-left';
-  if (resource === 'products') return 'w-[28%] min-w-[260px] max-w-[420px] text-left';
-  if (resource === 'banners') return 'w-[26%] min-w-[220px] max-w-[360px] text-left';
-  if (resource === 'template-categories' || resource === 'accessory-categories') {
-    return 'w-[36%] min-w-[240px] max-w-[420px] text-left';
+  if (resource === "frame-backgrounds")
+    return "w-[42%] min-w-[280px] max-w-[520px] text-left";
+  if (resource === "products")
+    return "w-[28%] min-w-[260px] max-w-[420px] text-left";
+  if (resource === "banners")
+    return "w-[26%] min-w-[220px] max-w-[360px] text-left";
+  if (
+    resource === "template-categories" ||
+    resource === "accessory-categories"
+  ) {
+    return "w-[36%] min-w-[240px] max-w-[420px] text-left";
   }
-  return 'w-[30%] min-w-[220px] max-w-[380px] text-left';
+  return "w-[30%] min-w-[220px] max-w-[380px] text-left";
 }
 
-function getEntityTableColumnClass(column: EntityTableColumn, resource: ResourceKey) {
+function getEntityTableColumnClass(
+  column: EntityTableColumn,
+  resource: ResourceKey,
+) {
   if (column.className) return column.className;
 
   const field = column.field;
   const normalizedKey = field.key.toLowerCase();
 
-  if (normalizedKey === 'colorhex') return 'w-[96px] min-w-[96px] max-w-[96px] text-center';
-  if (normalizedKey === 'framesize') return 'w-[12%] min-w-[140px] max-w-[160px] text-center';
-  if (normalizedKey === 'createdat' || normalizedKey === 'updatedat') {
-    return 'w-[14%] min-w-[150px] max-w-[180px] text-center';
+  if (normalizedKey === "colorhex")
+    return "w-[96px] min-w-[96px] max-w-[96px] text-center";
+  if (normalizedKey === "framesize")
+    return "w-[12%] min-w-[140px] max-w-[160px] text-center";
+  if (normalizedKey === "createdat" || normalizedKey === "updatedat") {
+    return "w-[14%] min-w-[150px] max-w-[180px] text-center";
   }
-  if (normalizedKey === 'stock' || normalizedKey === 'sortorder') {
-    return 'w-[10%] min-w-[104px] max-w-[128px] text-center';
+  if (normalizedKey === "stock" || normalizedKey === "sortorder") {
+    return "w-[10%] min-w-[104px] max-w-[128px] text-center";
   }
-  if (field.type === 'number') return 'w-[12%] min-w-[128px] max-w-[150px] text-right';
-  if (field.type === 'image' || field.type === 'images') return 'w-[14%] min-w-[118px] max-w-[170px] text-center';
-  if (normalizedKey.includes('status')) return 'w-[14%] min-w-[148px] max-w-[180px] text-center';
-  if (field.type === 'json' || field.type === 'tags') return 'min-w-[280px] max-w-[420px]';
-  if (normalizedKey.includes('description')) return 'min-w-[240px] max-w-[360px]';
-  if (normalizedKey === 'slug' || normalizedKey.includes('url') || normalizedKey.includes('link')) {
-    return 'w-[18%] min-w-[180px] max-w-[260px]';
+  if (field.type === "number")
+    return "w-[12%] min-w-[128px] max-w-[150px] text-right";
+  if (field.type === "image" || field.type === "images")
+    return "w-[14%] min-w-[118px] max-w-[170px] text-center";
+  if (normalizedKey.includes("status"))
+    return "w-[14%] min-w-[148px] max-w-[180px] text-center";
+  if (field.type === "json" || field.type === "tags")
+    return "min-w-[280px] max-w-[420px]";
+  if (normalizedKey.includes("description"))
+    return "min-w-[240px] max-w-[360px]";
+  if (
+    normalizedKey === "slug" ||
+    normalizedKey.includes("url") ||
+    normalizedKey.includes("link")
+  ) {
+    return "w-[18%] min-w-[180px] max-w-[260px]";
   }
   if (isPrimaryField(field)) return getEntityPrimaryColumnClass(resource);
 
@@ -255,7 +366,11 @@ function getEntityTableColumnClass(column: EntityTableColumn, resource: Resource
 
 function isPrimaryField(field: EntityField) {
   const normalizedKey = field.key.toLowerCase();
-  return normalizedKey === 'name' || normalizedKey.endsWith('name') || normalizedKey === 'title';
+  return (
+    normalizedKey === "name" ||
+    normalizedKey.endsWith("name") ||
+    normalizedKey === "title"
+  );
 }
 
 function getOptionalNumber(value: string): number | undefined {
@@ -266,215 +381,461 @@ function getOptionalNumber(value: string): number | undefined {
 }
 
 function getEntityTimestampLabel(locale: string, key: string) {
-  if (key === 'createdAt') return locale === 'vi' ? 'Ngày tạo' : 'Created';
-  if (key === 'updatedAt') return locale === 'vi' ? 'Ngày cập nhật' : 'Updated';
+  if (key === "createdAt") return locale === "vi" ? "Ngày tạo" : "Created";
+  if (key === "updatedAt") return locale === "vi" ? "Ngày cập nhật" : "Updated";
   return key;
 }
 
-function getSyntheticEntityTableField(key: string, locale: string): EntityField | undefined {
-  if (key !== 'createdAt' && key !== 'updatedAt') return undefined;
+function getSyntheticEntityTableField(
+  key: string,
+  locale: string,
+): EntityField | undefined {
+  if (key !== "createdAt" && key !== "updatedAt") return undefined;
 
   return {
     key,
     label: getEntityTimestampLabel(locale, key),
-    type: 'text',
+    type: "text",
   };
 }
 
 function formatEntityDateTime(value: unknown, locale: Locale) {
   const date =
-    typeof value === 'string' || typeof value === 'number'
+    typeof value === "string" || typeof value === "number"
       ? new Date(value)
       : value instanceof Date
         ? value
         : null;
 
-  if (!date || Number.isNaN(date.getTime())) return '-';
+  if (!date || Number.isNaN(date.getTime())) return "-";
 
   return formatDateTime(date, locale);
 }
 
 function getEntityUiText(locale: string, key: string) {
   const vi: Record<string, string> = {
-    searchPlaceholder: 'Tìm theo tên, slug, mô tả...',
-    dateRange: 'Khoảng ngày',
-    dateFrom: 'Từ ngày',
-    dateTo: 'Đến ngày',
-    allStatuses: 'Tất cả trạng thái',
-    allCategories: 'Tất cả danh mục',
-    priceMin: 'Giá từ',
-    priceMax: 'Giá đến',
-    priceRange: 'Khoảng giá',
-    filters: 'Bộ lọc',
-    filterTitle: 'Bộ lọc',
-    applyFilters: 'Áp dụng',
-    reset: 'Đặt lại',
-    page: 'Trang',
+    searchPlaceholder: "Tìm theo tên, slug, mô tả...",
+    dateRange: "Khoảng ngày",
+    dateFrom: "Từ ngày",
+    dateTo: "Đến ngày",
+    allStatuses: "Tất cả trạng thái",
+    allCategories: "Tất cả danh mục",
+    priceMin: "Giá từ",
+    priceMax: "Giá đến",
+    priceRange: "Khoảng giá",
+    filters: "Bộ lọc",
+    filterTitle: "Bộ lọc",
+    applyFilters: "Áp dụng",
+    reset: "Đặt lại",
+    page: "Trang",
   };
   const en: Record<string, string> = {
-    searchPlaceholder: 'Search by name, slug, description...',
-    dateRange: 'Date range',
-    dateFrom: 'From date',
-    dateTo: 'To date',
-    allStatuses: 'All statuses',
-    allCategories: 'All categories',
-    priceMin: 'Price from',
-    priceMax: 'Price to',
-    priceRange: 'Price range',
-    filters: 'Filters',
-    filterTitle: 'Filters',
-    applyFilters: 'Apply filters',
-    reset: 'Reset',
-    page: 'Page',
+    searchPlaceholder: "Search by name, slug, description...",
+    dateRange: "Date range",
+    dateFrom: "From date",
+    dateTo: "To date",
+    allStatuses: "All statuses",
+    allCategories: "All categories",
+    priceMin: "Price from",
+    priceMax: "Price to",
+    priceRange: "Price range",
+    filters: "Filters",
+    filterTitle: "Filters",
+    applyFilters: "Apply filters",
+    reset: "Reset",
+    page: "Page",
   };
 
-  return locale === 'vi' ? vi[key] : en[key];
+  return locale === "vi" ? vi[key] : en[key];
 }
 
 const ENTITY_TABLE_POLICIES: Partial<Record<ResourceKey, EntityTablePolicy>> = {
   products: {
-    minWidth: '860px',
+    minWidth: "910px",
     columns: [
-      { key: 'name', className: 'min-w-[240px] text-left', sortable: true },
-      { key: 'basePrice', className: 'w-[120px] min-w-[120px] max-w-[120px] text-right', sortable: true },
-      { key: 'thumbnailUrl', className: 'w-[100px] min-w-[100px] max-w-[100px] text-center' },
-      { key: 'published', className: 'w-[130px] min-w-[130px] max-w-[130px] text-center' },
-      { key: 'updatedAt', className: 'w-[170px] min-w-[170px] max-w-[170px] whitespace-nowrap text-center', sortable: true },
+      {
+        key: "name",
+        className: "w-[22%] min-w-[220px] text-left",
+        sortable: true,
+      },
+      {
+        key: "basePrice",
+        className: "w-[16%] min-w-[130px] text-right",
+        sortable: true,
+      },
+      {
+        key: "thumbnailUrl",
+        className: "w-[13%] min-w-[110px] text-center",
+      },
+      {
+        key: "published",
+        className: "w-[17%] min-w-[150px] text-center",
+      },
+      {
+        key: "updatedAt",
+        className: "w-[20%] min-w-[170px] whitespace-nowrap text-center",
+        sortable: true,
+      },
     ],
   },
   accessories: {
-    minWidth: '920px',
+    minWidth: "920px",
     columns: [
-      { key: 'name', className: 'min-w-[220px] text-left', sortable: true },
-      { key: 'imageUrl', className: 'w-[100px] min-w-[100px] max-w-[100px] text-center' },
-      { key: 'categoryId', className: 'w-[180px] min-w-[180px] max-w-[180px] text-left', sortable: true },
-      { key: 'price', className: 'w-[120px] min-w-[120px] max-w-[120px] text-right' },
-      { key: 'updatedAt', className: 'w-[170px] min-w-[170px] max-w-[170px] whitespace-nowrap text-center', sortable: true },
+      {
+        key: "name",
+        className: "w-[24%] min-w-[220px] text-left",
+        sortable: true,
+      },
+      {
+        key: "imageUrl",
+        className: "w-[14%] min-w-[110px] text-center",
+      },
+      {
+        key: "categoryId",
+        className: "w-[20%] min-w-[180px] text-left",
+        sortable: true,
+      },
+      {
+        key: "price",
+        className: "w-[15%] min-w-[120px] text-right",
+      },
+      {
+        key: "updatedAt",
+        className:
+          "w-[19%] min-w-[170px] whitespace-nowrap text-center",
+        sortable: true,
+      },
     ],
   },
-  'frame-options': {
-    minWidth: '780px',
+  "frame-options": {
+    minWidth: "860px",
     columns: [
-      { key: 'frameSize', className: 'min-w-[160px] text-left' },
-      { key: 'imageUrl', className: 'w-[100px] min-w-[100px] max-w-[100px] text-center' },
-      { key: 'price', className: 'w-[120px] min-w-[120px] max-w-[120px] text-right', sortable: true },
-      { key: 'stock', className: 'w-[100px] min-w-[100px] max-w-[100px] text-center', sortable: true },
-      { key: 'updatedAt', className: 'w-[170px] min-w-[170px] max-w-[170px] whitespace-nowrap text-center', sortable: true },
+      {
+        key: "frameSize",
+        className: "w-[20%] min-w-[160px] text-left",
+      },
+      {
+        key: "imageUrl",
+        className: "w-[17%] min-w-[110px] text-center",
+      },
+      {
+        key: "price",
+        className: "w-[16%] min-w-[120px] text-right",
+        sortable: true,
+      },
+      {
+        key: "stock",
+        className: "w-[14%] min-w-[104px] text-center",
+        sortable: true,
+      },
+      {
+        key: "updatedAt",
+        className:
+          "w-[25%] min-w-[170px] whitespace-nowrap text-center",
+        sortable: true,
+      },
     ],
   },
-  'character-parts': {
-    minWidth: '980px',
+  "character-parts": {
+    minWidth: "980px",
     columns: [
-      { key: 'name', className: 'min-w-[220px] text-left', sortable: true },
-      { key: 'imageUrl', className: 'w-[100px] min-w-[100px] max-w-[100px] text-center' },
-      { key: 'type', className: 'w-[160px] min-w-[160px] max-w-[160px] text-left', sortable: true },
-      { key: 'priceAdjustment', className: 'w-[130px] min-w-[130px] max-w-[130px] text-right' },
-      { key: 'status', className: 'w-[130px] min-w-[130px] max-w-[130px] text-center', sortable: true },
-      { key: 'updatedAt', className: 'w-[170px] min-w-[170px] max-w-[170px] whitespace-nowrap text-center', sortable: true },
+      {
+        key: "name",
+        className: "w-[22%] min-w-[220px] text-left",
+        sortable: true,
+      },
+      {
+        key: "imageUrl",
+        className: "w-[12%] min-w-[100px] text-center",
+      },
+      {
+        key: "type",
+        className: "w-[15%] min-w-[150px] text-left",
+        sortable: true,
+      },
+      {
+        key: "priceAdjustment",
+        className: "w-[13%] min-w-[130px] text-right",
+      },
+      {
+        key: "availability",
+        className: "w-[15%] min-w-[145px] text-center",
+        sortable: true,
+      },
+      {
+        key: "updatedAt",
+        className:
+          "w-[17%] min-w-[170px] whitespace-nowrap text-center",
+        sortable: true,
+      },
     ],
   },
-  'character-presets': {
-    minWidth: '1020px',
+  "character-presets": {
+    minWidth: "1020px",
     columns: [
-      { key: 'name', className: 'min-w-[220px] text-left', sortable: true },
-      { key: 'previewImageUrl', className: 'w-[100px] min-w-[100px] max-w-[100px] text-center' },
-      { key: 'isBuilderPreset', className: 'w-[135px] min-w-[135px] max-w-[135px] text-center' },
-      { key: 'isSellable', className: 'w-[125px] min-w-[125px] max-w-[125px] text-center' },
-      { key: 'status', className: 'w-[130px] min-w-[130px] max-w-[130px] text-center', sortable: true },
-      { key: 'updatedAt', className: 'w-[170px] min-w-[170px] max-w-[170px] whitespace-nowrap text-center', sortable: true },
+      {
+        key: "name",
+        className: "w-[22%] min-w-[220px] text-left",
+        sortable: true,
+      },
+      {
+        key: "previewImageUrl",
+        className: "w-[12%] min-w-[100px] text-center",
+      },
+      {
+        key: "isBuilderPreset",
+        className: "w-[13%] min-w-[135px] text-center",
+      },
+      {
+        key: "isSellable",
+        className: "w-[12%] min-w-[125px] text-center",
+      },
+      {
+        key: "status",
+        className: "w-[14%] min-w-[130px] text-center",
+        sortable: true,
+      },
+      {
+        key: "updatedAt",
+        className:
+          "w-[19%] min-w-[170px] whitespace-nowrap text-center",
+        sortable: true,
+      },
     ],
   },
-  'frame-backgrounds': {
-    minWidth: '880px',
+  "frame-backgrounds": {
+    minWidth: "880px",
     columns: [
-      { key: 'title', className: 'min-w-[260px] text-left', sortable: true },
-      { key: 'imageUrl', className: 'w-[100px] min-w-[100px] max-w-[100px] text-center' },
-      { key: 'sortOrder', className: 'w-[105px] min-w-[105px] max-w-[105px] text-center', sortable: true },
-      { key: 'status', className: 'w-[130px] min-w-[130px] max-w-[130px] text-center', sortable: true },
-      { key: 'updatedAt', className: 'w-[170px] min-w-[170px] max-w-[170px] whitespace-nowrap text-center', sortable: true },
+      {
+        key: "title",
+        className: "w-[26%] min-w-[240px] text-left",
+        sortable: true,
+      },
+      {
+        key: "imageUrl",
+        className: "w-[15%] min-w-[110px] text-center",
+      },
+      {
+        key: "sortOrder",
+        className: "w-[13%] min-w-[105px] text-center",
+        sortable: true,
+      },
+      {
+        key: "status",
+        className: "w-[16%] min-w-[130px] text-center",
+        sortable: true,
+      },
+      {
+        key: "updatedAt",
+        className:
+          "w-[22%] min-w-[170px] whitespace-nowrap text-center",
+        sortable: true,
+      },
     ],
   },
   collections: {
-    minWidth: '940px',
+    minWidth: "1020px",
     columns: [
-      { key: 'name', className: 'min-w-[220px] text-left', sortable: true },
-      { key: 'imageUrl', className: 'w-[100px] min-w-[100px] max-w-[100px] text-center' },
-      { key: 'slug', className: 'w-[190px] min-w-[190px] max-w-[190px] text-left', sortable: true },
-      { key: 'status', className: 'w-[130px] min-w-[130px] max-w-[130px] text-center', sortable: true },
-      { key: 'updatedAt', className: 'w-[170px] min-w-[170px] max-w-[170px] whitespace-nowrap text-center', sortable: true },
+      {
+        key: "name",
+        className: "w-[20%] min-w-[210px] text-left",
+        sortable: true,
+      },
+      {
+        key: "imageUrl",
+        className: "w-[11%] min-w-[100px] text-center",
+      },
+      {
+        key: "slug",
+        className: "w-[19%] min-w-[180px] text-left",
+        sortable: true,
+      },
+      {
+        key: "sortOrder",
+        className: "w-[11%] min-w-[105px] text-center",
+        sortable: true,
+      },
+      {
+        key: "status",
+        className: "w-[14%] min-w-[130px] text-center",
+        sortable: true,
+      },
+      {
+        key: "updatedAt",
+        className:
+          "w-[17%] min-w-[170px] whitespace-nowrap text-center",
+        sortable: true,
+      },
     ],
   },
   banners: {
-    minWidth: '880px',
+    minWidth: "1080px",
     columns: [
-      { key: 'title', className: 'min-w-[240px] text-left', sortable: true },
-      { key: 'imageUrl', className: 'w-[100px] min-w-[100px] max-w-[100px] text-center' },
-      { key: 'sortOrder', className: 'w-[105px] min-w-[105px] max-w-[105px] text-center', sortable: true },
-      { key: 'status', className: 'w-[130px] min-w-[130px] max-w-[130px] text-center', sortable: true },
-      { key: 'updatedAt', className: 'w-[170px] min-w-[170px] max-w-[170px] whitespace-nowrap text-center', sortable: true },
+      {
+        key: "title",
+        className: "w-[18%] min-w-[220px] text-left",
+        sortable: true,
+      },
+      {
+        key: "sourceKey",
+        className: "w-[18%] min-w-[180px] text-left",
+        sortable: true,
+      },
+      {
+        key: "imageUrl",
+        className: "w-[11%] min-w-[100px] text-center",
+      },
+      {
+        key: "sortOrder",
+        className: "w-[10%] min-w-[105px] text-center",
+        sortable: true,
+      },
+      {
+        key: "status",
+        className: "w-[14%] min-w-[130px] text-center",
+        sortable: true,
+      },
+      {
+        key: "updatedAt",
+        className:
+          "w-[19%] min-w-[170px] whitespace-nowrap text-center",
+        sortable: true,
+      },
     ],
   },
   vouchers: {
-    minWidth: '1050px',
+    minWidth: "1050px",
     columns: [
-      { key: 'code', className: 'min-w-[180px] text-left', sortable: true },
-      { key: 'discountType', className: 'w-[150px] min-w-[150px] max-w-[150px] text-left', sortable: true },
-      { key: 'discountValue', className: 'w-[130px] min-w-[130px] max-w-[130px] text-right', sortable: true },
-      { key: 'usedCount', className: 'w-[105px] min-w-[105px] max-w-[105px] text-center' },
-      { key: 'status', className: 'w-[130px] min-w-[130px] max-w-[130px] text-center', sortable: true },
-      { key: 'expiresAt', className: 'w-[170px] min-w-[170px] max-w-[170px] whitespace-nowrap text-center', sortable: true },
+      { key: "code", className: "min-w-[180px] text-left", sortable: true },
+      {
+        key: "discountType",
+        className: "w-[150px] min-w-[150px] max-w-[150px] text-left",
+        sortable: true,
+      },
+      {
+        key: "discountValue",
+        className: "w-[130px] min-w-[130px] max-w-[130px] text-right",
+        sortable: true,
+      },
+      {
+        key: "usedCount",
+        className: "w-[105px] min-w-[105px] max-w-[105px] text-center",
+      },
+      {
+        key: "effectiveStatus",
+        className: "w-[130px] min-w-[130px] max-w-[130px] text-center",
+      },
+      {
+        key: "expiresAt",
+        className:
+          "w-[170px] min-w-[170px] max-w-[170px] whitespace-nowrap text-center",
+        sortable: true,
+      },
     ],
   },
   templates: {
-    minWidth: '940px',
+    minWidth: "940px",
     columns: [
-      { key: 'name', className: 'min-w-[220px] text-left', sortable: true },
-      { key: 'imageUrl', className: 'w-[100px] min-w-[100px] max-w-[100px] text-center' },
-      { key: 'categoryId', className: 'w-[180px] min-w-[180px] max-w-[180px] text-left', sortable: true },
-      { key: 'status', className: 'w-[130px] min-w-[130px] max-w-[130px] text-center', sortable: true },
-      { key: 'updatedAt', className: 'w-[170px] min-w-[170px] max-w-[170px] whitespace-nowrap text-center', sortable: true },
+      {
+        key: "name",
+        className: "w-[25%] min-w-[220px] text-left",
+        sortable: true,
+      },
+      {
+        key: "imageUrl",
+        className: "w-[14%] min-w-[110px] text-center",
+      },
+      {
+        key: "categoryId",
+        className: "w-[20%] min-w-[180px] text-left",
+        sortable: true,
+      },
+      {
+        key: "status",
+        className: "w-[16%] min-w-[130px] text-center",
+        sortable: true,
+      },
+      {
+        key: "updatedAt",
+        className:
+          "w-[17%] min-w-[170px] whitespace-nowrap text-center",
+        sortable: true,
+      },
     ],
   },
-  'template-categories': {
-    minWidth: '650px',
+  "template-categories": {
+    minWidth: "650px",
     columns: [
-      { key: 'name', className: 'min-w-[240px] text-left', sortable: true },
-      { key: 'slug', className: 'min-w-[200px] text-left', sortable: true },
-      { key: 'updatedAt', className: 'w-[170px] min-w-[170px] max-w-[170px] whitespace-nowrap text-center', sortable: true },
+      { key: "name", className: "min-w-[240px] text-left", sortable: true },
+      { key: "slug", className: "min-w-[200px] text-left", sortable: true },
+      {
+        key: "updatedAt",
+        className:
+          "w-[170px] min-w-[170px] max-w-[170px] whitespace-nowrap text-center",
+        sortable: true,
+      },
     ],
   },
-  'accessory-categories': {
-    minWidth: '650px',
+  "accessory-categories": {
+    minWidth: "650px",
     columns: [
-      { key: 'name', className: 'min-w-[240px] text-left', sortable: true },
-      { key: 'slug', className: 'min-w-[200px] text-left', sortable: true },
-      { key: 'updatedAt', className: 'w-[170px] min-w-[170px] max-w-[170px] whitespace-nowrap text-center', sortable: true },
+      { key: "name", className: "min-w-[240px] text-left", sortable: true },
+      { key: "slug", className: "min-w-[200px] text-left", sortable: true },
+      {
+        key: "updatedAt",
+        className:
+          "w-[170px] min-w-[170px] max-w-[170px] whitespace-nowrap text-center",
+        sortable: true,
+      },
     ],
   },
-  'frame-sizes': {
-    minWidth: '620px',
+  "frame-sizes": {
+    minWidth: "620px",
     columns: [
-      { key: 'label', className: 'min-w-[240px] text-left' },
-      { key: 'price', className: 'w-[130px] min-w-[130px] max-w-[130px] text-right' },
-      { key: 'updatedAt', className: 'w-[170px] min-w-[170px] max-w-[170px] whitespace-nowrap text-center', sortable: true },
+      { key: "label", className: "min-w-[240px] text-left" },
+      {
+        key: "price",
+        className: "w-[130px] min-w-[130px] max-w-[130px] text-right",
+      },
+      {
+        key: "updatedAt",
+        className:
+          "w-[170px] min-w-[170px] max-w-[170px] whitespace-nowrap text-center",
+        sortable: true,
+      },
     ],
   },
-  'frame-colors': {
-    minWidth: '620px',
+  "frame-colors": {
+    minWidth: "620px",
     columns: [
-      { key: 'name', className: 'min-w-[240px] text-left' },
-      { key: 'colorHex', className: 'w-[130px] min-w-[130px] max-w-[130px] text-center' },
-      { key: 'updatedAt', className: 'w-[170px] min-w-[170px] max-w-[170px] whitespace-nowrap text-center', sortable: true },
+      { key: "name", className: "min-w-[240px] text-left" },
+      {
+        key: "colorHex",
+        className: "w-[130px] min-w-[130px] max-w-[130px] text-center",
+      },
+      {
+        key: "updatedAt",
+        className:
+          "w-[170px] min-w-[170px] max-w-[170px] whitespace-nowrap text-center",
+        sortable: true,
+      },
     ],
   },
 };
 
-function getEntityTableColumns(fields: EntityField[], resource: ResourceKey, locale: string): EntityTableColumn[] {
+function getEntityTableColumns(
+  fields: EntityField[],
+  resource: ResourceKey,
+  locale: string,
+): EntityTableColumn[] {
   const columns: EntityTableColumn[] = [];
   const usedKeys = new Set<string>();
   const policy = ENTITY_TABLE_POLICIES[resource];
 
-  const addField = (field?: EntityField, columnPolicy?: EntityTableColumnPolicy) => {
+  const addField = (
+    field?: EntityField,
+    columnPolicy?: EntityTableColumnPolicy,
+  ) => {
     if (!field || usedKeys.has(field.key)) return;
     columns.push({
       id: field.key,
@@ -498,7 +859,7 @@ function getEntityTableColumns(fields: EntityField[], resource: ResourceKey, loc
   }
 
   fields
-    .filter((field) => field.type !== 'checkbox')
+    .filter((field) => field.type !== "checkbox")
     .slice(0, 6)
     .forEach((field) => addField(field));
 
@@ -506,45 +867,138 @@ function getEntityTableColumns(fields: EntityField[], resource: ResourceKey, loc
 }
 
 function getEntityTableMinWidth(resource: ResourceKey) {
-  return ENTITY_TABLE_POLICIES[resource]?.minWidth ?? '760px';
+  return ENTITY_TABLE_POLICIES[resource]?.minWidth ?? "760px";
+}
+
+function getEntityActionColumnClass(resource: ResourceKey) {
+  if (resource === "products") {
+    return "w-[12%] min-w-[110px] px-4 text-right";
+  }
+
+  return ENTITY_ACTION_COLUMN_CLASS;
+}
+
+function getEntityModalWidthClass(resource: ResourceKey) {
+  if (resource === "products") return "max-w-[1120px]";
+  if (resource === "character-presets" || resource === "frame-backgrounds") {
+    return "max-w-[1040px]";
+  }
+  if (
+    resource === "accessories" ||
+    resource === "banners" ||
+    resource === "characters" ||
+    resource === "collections" ||
+    resource === "frame-options" ||
+    resource === "templates" ||
+    resource === "vouchers"
+  ) {
+    return "max-w-[920px]";
+  }
+
+  return "max-w-[760px]";
 }
 
 const ENTITY_SORT_FIELDS = {
-  products: ['name', 'basePrice', 'status', 'featured', 'createdAt', 'updatedAt'],
-  templates: ['name', 'status', 'categoryId', 'createdAt', 'updatedAt'],
-  'frame-options': ['type', 'name', 'price', 'stock', 'sortOrder', 'status', 'createdAt', 'updatedAt'],
-  'template-categories': ['name', 'slug', 'createdAt', 'updatedAt'],
-  accessories: ['name', 'status', 'categoryId', 'createdAt', 'updatedAt'],
-  characters: ['name', 'price', 'sortOrder', 'status', 'createdAt', 'updatedAt'],
-  'character-parts': ['name', 'type', 'sortOrder', 'status', 'createdAt', 'updatedAt'],
-  'character-presets': ['name', 'sortOrder', 'status', 'createdAt', 'updatedAt'],
-  'accessory-categories': ['name', 'slug', 'createdAt', 'updatedAt'],
-  banners: ['title', 'sortOrder', 'status', 'createdAt', 'updatedAt'],
-    'frame-backgrounds': ['title', 'sortOrder', 'status', 'updatedAt'],
-  collections: ['name', 'slug', 'status', 'createdAt', 'updatedAt'],
-  'frame-sizes': ['name', 'createdAt', 'updatedAt'],
-  'frame-colors': ['name', 'createdAt', 'updatedAt'],
-  vouchers: ['code', 'discountType', 'discountValue', 'minOrderAmount', 'status', 'expiresAt', 'createdAt', 'updatedAt'],
+  products: [
+    "name",
+    "basePrice",
+    "status",
+    "featured",
+    "createdAt",
+    "updatedAt",
+  ],
+  templates: ["name", "status", "categoryId", "createdAt", "updatedAt"],
+  "frame-options": [
+    "type",
+    "name",
+    "price",
+    "stock",
+    "sortOrder",
+    "status",
+    "createdAt",
+    "updatedAt",
+  ],
+  "template-categories": ["name", "slug", "createdAt", "updatedAt"],
+  accessories: ["name", "status", "categoryId", "createdAt", "updatedAt"],
+  characters: [
+    "name",
+    "price",
+    "sortOrder",
+    "status",
+    "createdAt",
+    "updatedAt",
+  ],
+  "character-parts": [
+    "name",
+    "type",
+    "availability",
+    "sortOrder",
+    "createdAt",
+    "updatedAt",
+  ],
+  "character-presets": [
+    "name",
+    "sortOrder",
+    "status",
+    "createdAt",
+    "updatedAt",
+  ],
+  "accessory-categories": ["name", "slug", "createdAt", "updatedAt"],
+  banners: [
+    "title",
+    "sourceKey",
+    "sortOrder",
+    "status",
+    "createdAt",
+    "updatedAt",
+  ],
+  "frame-backgrounds": ["title", "sortOrder", "status", "updatedAt"],
+  collections: [
+    "name",
+    "slug",
+    "sortOrder",
+    "status",
+    "createdAt",
+    "updatedAt",
+  ],
+  "frame-sizes": ["name", "createdAt", "updatedAt"],
+  "frame-colors": ["name", "createdAt", "updatedAt"],
+  vouchers: [
+    "code",
+    "discountType",
+    "discountValue",
+    "minOrderAmount",
+    "status",
+    "expiresAt",
+    "createdAt",
+    "updatedAt",
+  ],
 } satisfies Partial<Record<ResourceKey, string[]>>;
 
-function isEntityColumnSortable(column: EntityTableColumn, resource: ResourceKey) {
+function isEntityColumnSortable(
+  column: EntityTableColumn,
+  resource: ResourceKey,
+) {
   if (column.sortable !== true) return false;
   return ENTITY_SORT_FIELDS[resource]?.includes(column.field.key) ?? false;
 }
 
-function getEntityDefaultSortDirection(column: EntityTableColumn): SortDirection {
-  if (column.field.type === 'number' || column.field.type === 'checkbox') return 'desc';
-  return 'asc';
+function getEntityDefaultSortDirection(
+  column: EntityTableColumn,
+): SortDirection {
+  if (column.field.type === "number" || column.field.type === "checkbox")
+    return "desc";
+  return "asc";
 }
 
 function CloseIcon() {
   return (
-    <svg viewBox='0 0 24 24' fill='none' className='h-5 w-5' aria-hidden='true'>
+    <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden="true">
       <path
-        d='M6 6L18 18M18 6L6 18'
-        stroke='currentColor'
-        strokeWidth='1.9'
-        strokeLinecap='round'
+        d="M6 6L18 18M18 6L6 18"
+        stroke="currentColor"
+        strokeWidth="1.9"
+        strokeLinecap="round"
       />
     </svg>
   );
@@ -552,18 +1006,18 @@ function CloseIcon() {
 
 function EditIcon() {
   return (
-    <svg viewBox='0 0 24 24' fill='none' className='h-4 w-4' aria-hidden='true'>
+    <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" aria-hidden="true">
       <path
-        d='M4 20H8L18.5 9.5C19.3284 8.67157 19.3284 7.32843 18.5 6.5L17.5 5.5C16.6716 4.67157 15.3284 4.67157 14.5 5.5L4 16V20Z'
-        stroke='currentColor'
-        strokeWidth='1.8'
-        strokeLinejoin='round'
+        d="M4 20H8L18.5 9.5C19.3284 8.67157 19.3284 7.32843 18.5 6.5L17.5 5.5C16.6716 4.67157 15.3284 4.67157 14.5 5.5L4 16V20Z"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinejoin="round"
       />
       <path
-        d='M13.5 6.5L17.5 10.5'
-        stroke='currentColor'
-        strokeWidth='1.8'
-        strokeLinecap='round'
+        d="M13.5 6.5L17.5 10.5"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
       />
     </svg>
   );
@@ -571,19 +1025,29 @@ function EditIcon() {
 
 function PlusIcon() {
   return (
-    <svg viewBox='0 0 24 24' fill='none' className='h-4 w-4' aria-hidden='true'>
-      <path d='M12 5.5V18.5' stroke='currentColor' strokeWidth='1.8' strokeLinecap='round' />
-      <path d='M5.5 12H18.5' stroke='currentColor' strokeWidth='1.8' strokeLinecap='round' />
+    <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" aria-hidden="true">
+      <path
+        d="M12 5.5V18.5"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
+      <path
+        d="M5.5 12H18.5"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
     </svg>
   );
 }
 
 function FilterIconWithBadge({ count }: { count: number }) {
   return (
-    <span className='relative inline-flex'>
-      <AdminToolbarIcon name='filter' />
+    <span className="relative inline-flex">
+      <AdminToolbarIcon name="filter" />
       {count > 0 ? (
-        <span className='absolute -right-2 -top-2 grid h-4 min-w-4 place-items-center rounded-full bg-[var(--admin-primary-strong)] px-1 text-[10px] font-bold leading-none text-white'>
+        <span className="absolute -right-2 -top-2 grid h-4 min-w-4 place-items-center rounded-full bg-[var(--admin-primary-strong)] px-1 text-[10px] font-bold leading-none text-white">
           {count}
         </span>
       ) : null}
@@ -593,36 +1057,36 @@ function FilterIconWithBadge({ count }: { count: number }) {
 
 function TrashIcon() {
   return (
-    <svg viewBox='0 0 24 24' fill='none' className='h-4 w-4' aria-hidden='true'>
+    <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" aria-hidden="true">
       <path
-        d='M5 7H19'
-        stroke='currentColor'
-        strokeWidth='1.8'
-        strokeLinecap='round'
+        d="M5 7H19"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
       />
       <path
-        d='M10 11V17'
-        stroke='currentColor'
-        strokeWidth='1.8'
-        strokeLinecap='round'
+        d="M10 11V17"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
       />
       <path
-        d='M14 11V17'
-        stroke='currentColor'
-        strokeWidth='1.8'
-        strokeLinecap='round'
+        d="M14 11V17"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
       />
       <path
-        d='M7 7L8 19H16L17 7'
-        stroke='currentColor'
-        strokeWidth='1.8'
-        strokeLinejoin='round'
+        d="M7 7L8 19H16L17 7"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinejoin="round"
       />
       <path
-        d='M9 7V5.5C9 4.67157 9.67157 4 10.5 4H13.5C14.3284 4 15 4.67157 15 5.5V7'
-        stroke='currentColor'
-        strokeWidth='1.8'
-        strokeLinejoin='round'
+        d="M9 7V5.5C9 4.67157 9.67157 4 10.5 4H13.5C14.3284 4 15 4.67157 15 5.5V7"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinejoin="round"
       />
     </svg>
   );
@@ -630,19 +1094,19 @@ function TrashIcon() {
 
 function UploadIcon() {
   return (
-    <svg viewBox='0 0 24 24' fill='none' className='h-5 w-5' aria-hidden='true'>
+    <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden="true">
       <path
-        d='M12 15.5V5.5M12 5.5L8.5 9M12 5.5L15.5 9'
-        stroke='currentColor'
-        strokeWidth='1.8'
-        strokeLinecap='round'
-        strokeLinejoin='round'
+        d="M12 15.5V5.5M12 5.5L8.5 9M12 5.5L15.5 9"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
       />
       <path
-        d='M5 14.5V17.5C5 18.6 5.9 19.5 7 19.5H17C18.1 19.5 19 18.6 19 17.5V14.5'
-        stroke='currentColor'
-        strokeWidth='1.8'
-        strokeLinecap='round'
+        d="M5 14.5V17.5C5 18.6 5.9 19.5 7 19.5H17C18.1 19.5 19 18.6 19 17.5V14.5"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
       />
     </svg>
   );
@@ -650,55 +1114,64 @@ function UploadIcon() {
 
 function LinkIcon() {
   return (
-    <svg viewBox='0 0 24 24' fill='none' className='h-4 w-4' aria-hidden='true'>
+    <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" aria-hidden="true">
       <path
-        d='M10.5 13.5L13.5 10.5'
-        stroke='currentColor'
-        strokeWidth='1.8'
-        strokeLinecap='round'
+        d="M10.5 13.5L13.5 10.5"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
       />
       <path
-        d='M9.5 8.5L10.8 7.2C12.3 5.7 14.8 5.7 16.3 7.2C17.8 8.7 17.8 11.2 16.3 12.7L15 14'
-        stroke='currentColor'
-        strokeWidth='1.8'
-        strokeLinecap='round'
+        d="M9.5 8.5L10.8 7.2C12.3 5.7 14.8 5.7 16.3 7.2C17.8 8.7 17.8 11.2 16.3 12.7L15 14"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
       />
       <path
-        d='M14.5 15.5L13.2 16.8C11.7 18.3 9.2 18.3 7.7 16.8C6.2 15.3 6.2 12.8 7.7 11.3L9 10'
-        stroke='currentColor'
-        strokeWidth='1.8'
-        strokeLinecap='round'
+        d="M14.5 15.5L13.2 16.8C11.7 18.3 9.2 18.3 7.7 16.8C6.2 15.3 6.2 12.8 7.7 11.3L9 10"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
       />
     </svg>
   );
 }
 
-function ImagePlaceholderIcon({ className = 'h-5 w-5' }: { className?: string }) {
+function ImagePlaceholderIcon({
+  className = "h-5 w-5",
+}: {
+  className?: string;
+}) {
   return (
-    <svg viewBox='0 0 24 24' fill='none' className={className} aria-hidden='true'>
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      className={className}
+      aria-hidden="true"
+    >
       <path
-        d='M4.5 7C4.5 5.62 5.62 4.5 7 4.5H17C18.38 4.5 19.5 5.62 19.5 7V17C19.5 18.38 18.38 19.5 17 19.5H7C5.62 19.5 4.5 18.38 4.5 17V7Z'
-        stroke='currentColor'
-        strokeWidth='1.7'
+        d="M4.5 7C4.5 5.62 5.62 4.5 7 4.5H17C18.38 4.5 19.5 5.62 19.5 7V17C19.5 18.38 18.38 19.5 17 19.5H7C5.62 19.5 4.5 18.38 4.5 17V7Z"
+        stroke="currentColor"
+        strokeWidth="1.7"
       />
       <path
-        d='M7.5 16L10.2 13.3C10.64 12.86 11.36 12.86 11.8 13.3L13 14.5L14.7 12.8C15.14 12.36 15.86 12.36 16.3 12.8L18 14.5'
-        stroke='currentColor'
-        strokeWidth='1.7'
-        strokeLinecap='round'
-        strokeLinejoin='round'
+        d="M7.5 16L10.2 13.3C10.64 12.86 11.36 12.86 11.8 13.3L13 14.5L14.7 12.8C15.14 12.36 15.86 12.36 16.3 12.8L18 14.5"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+        strokeLinejoin="round"
       />
-      <circle cx='9' cy='8.75' r='1.25' fill='currentColor' />
+      <circle cx="9" cy="8.75" r="1.25" fill="currentColor" />
     </svg>
   );
 }
 
 function getRelatedDisplayValue(row: Record<string, unknown>, key: string) {
-  if (key.toLowerCase() === 'categoryid') {
+  if (key.toLowerCase() === "categoryid") {
     const category = row.category;
-    if (category && typeof category === 'object' && 'name' in category) {
+    if (category && typeof category === "object" && "name" in category) {
       const name = (category as { name?: unknown }).name;
-      if (typeof name === 'string' && name.trim()) return name;
+      if (typeof name === "string" && name.trim()) return name;
     }
   }
 
@@ -721,47 +1194,54 @@ function TableThumbnail({
   const failed = Boolean(imageUrl && failedUrl === imageUrl);
   const canOpen = Boolean(imageUrl && !failed && onOpen);
 
-  const content = imageUrl && !failed ? (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
-      src={imageUrl}
-      alt={alt}
-      loading='lazy'
-      className='h-full w-full object-contain p-0.5 transition-opacity duration-150 group-hover:opacity-55'
-      onError={() => setFailedUrl(imageUrl)}
-    />
-  ) : (
-    <ImagePlaceholderIcon />
-  );
+  const content =
+    imageUrl && !failed ? (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={imageUrl}
+        alt={alt}
+        loading="lazy"
+        className="h-full w-full object-contain p-0.5 transition-opacity duration-150 group-hover:opacity-55"
+        onError={() => setFailedUrl(imageUrl)}
+      />
+    ) : (
+      <ImagePlaceholderIcon />
+    );
 
   if (canOpen) {
     return (
       <button
-        type='button'
-        className='group relative grid h-11 w-11 shrink-0 place-items-center overflow-hidden rounded-xl border border-slate-200 bg-slate-50 text-slate-400 transition-all duration-150 hover:border-[var(--admin-primary)] hover:shadow-[0_10px_24px_-18px_rgba(15,23,42,0.45)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--admin-primary-ring)]'
-        aria-label={`${zoomLabel ?? 'Zoom image'}: ${alt}`}
+        type="button"
+        className="group relative grid h-11 w-11 shrink-0 place-items-center overflow-hidden rounded-xl border border-slate-200 bg-slate-50 text-slate-400 transition-all duration-150 hover:border-[var(--admin-primary)] hover:shadow-[0_10px_24px_-18px_rgba(15,23,42,0.45)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--admin-primary-ring)]"
+        aria-label={`${zoomLabel ?? "Zoom image"}: ${alt}`}
         onClick={() => onOpen?.(imageUrl)}
       >
         {content}
-        <span className='absolute inset-0 grid place-items-center bg-slate-950/38 px-1 text-center text-[9px] font-medium leading-tight text-white opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-visible:opacity-100'>
-          {zoomLabel ?? 'Zoom image'}
+        <span className="absolute inset-0 grid place-items-center bg-slate-950/38 px-1 text-center text-[9px] font-medium leading-tight text-white opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-visible:opacity-100">
+          {zoomLabel ?? "Zoom image"}
         </span>
       </button>
     );
   }
 
   return (
-    <span className='grid h-11 w-11 shrink-0 place-items-center overflow-hidden rounded-xl border border-slate-200 bg-slate-50 text-slate-400'>
+    <span className="grid h-11 w-11 shrink-0 place-items-center overflow-hidden rounded-xl border border-slate-200 bg-slate-50 text-slate-400">
       {content}
     </span>
   );
 }
 
-function FieldLabel({ label, required }: { label: string; required?: boolean }) {
+function FieldLabel({
+  label,
+  required,
+}: {
+  label: string;
+  required?: boolean;
+}) {
   return (
-    <span className='admin-label'>
+    <span className="admin-label">
       <span>{label}</span>
-      {required ? <span className='text-red-500'> *</span> : null}
+      {required ? <span className="text-red-500"> *</span> : null}
     </span>
   );
 }
@@ -777,7 +1257,7 @@ function buildFieldPlaceholder(action: string, label: string) {
 }
 
 function hasImageValue(value: unknown) {
-  if (typeof value === 'string') return value.trim().length > 0;
+  if (typeof value === "string") return value.trim().length > 0;
   if (Array.isArray(value)) return value.some(isNonEmptyString);
   return false;
 }
@@ -787,8 +1267,8 @@ function getInitialImageInputModes(
   values: Record<string, unknown>,
 ) {
   return fields.reduce<Record<string, ImageInputMode>>((modes, field) => {
-    if (field.type === 'image' || field.type === 'images') {
-      modes[field.key] = hasImageValue(values[field.key]) ? 'url' : 'file';
+    if (field.type === "image" || field.type === "images") {
+      modes[field.key] = hasImageValue(values[field.key]) ? "url" : "file";
     }
     return modes;
   }, {});
@@ -797,48 +1277,49 @@ function getInitialImageInputModes(
 function toInitialValues(fields: EntityField[]): Record<string, unknown> {
   const values: Record<string, unknown> = {};
   fields.forEach((field) => {
-    if (field.type === 'product-config') {
+    if (field.type === "section") return;
+    if (field.type === "product-config") {
       values[field.key] = {};
       return;
     }
-    if (field.type === 'content-fields') {
+    if (field.type === "content-fields") {
       values[field.key] = [];
       return;
     }
-    if (field.type === 'images') {
+    if (field.type === "images") {
       values[field.key] = [];
       return;
     }
-    if (field.type === 'multi-select') {
+    if (field.type === "multi-select") {
       values[field.key] = [];
       return;
     }
-    if (field.type === 'image') {
-      values[field.key] = '';
+    if (field.type === "image") {
+      values[field.key] = "";
       return;
     }
-    if (field.type === 'checkbox') {
+    if (field.type === "checkbox") {
       values[field.key] = false;
       return;
     }
-    if (field.type === 'number') {
-      values[field.key] = field.required ? 0 : '';
+    if (field.type === "number") {
+      values[field.key] = "";
       return;
     }
-    values[field.key] = '';
+    values[field.key] = "";
   });
   return values;
 }
 
 function toDatetimeLocalValue(value: unknown) {
   const date =
-    typeof value === 'string' || typeof value === 'number'
+    typeof value === "string" || typeof value === "number"
       ? new Date(value)
       : value instanceof Date
         ? value
         : null;
 
-  if (!date || Number.isNaN(date.getTime())) return '';
+  if (!date || Number.isNaN(date.getTime())) return "";
 
   const offsetMs = date.getTimezoneOffset() * 60 * 1000;
   return new Date(date.getTime() - offsetMs).toISOString().slice(0, 16);
@@ -846,78 +1327,92 @@ function toDatetimeLocalValue(value: unknown) {
 
 function getContentFieldTypeOptions(t: (key: string) => string) {
   return [
-    { value: 'text', label: t('entity.contentFieldText') },
-    { value: 'textarea', label: t('entity.contentFieldTextarea') },
-    { value: 'date', label: t('entity.contentFieldDate') },
-    { value: 'image', label: t('entity.contentFieldImage') },
+    { value: "text", label: t("entity.contentFieldText") },
+    { value: "textarea", label: t("entity.contentFieldTextarea") },
+    { value: "date", label: t("entity.contentFieldDate") },
+    { value: "image", label: t("entity.contentFieldImage") },
   ] satisfies Array<{ value: ContentFieldInputType; label: string }>;
 }
 
 function createContentFieldFormValue(index: number): ContentFieldFormValue {
   return {
     key: `field_${index + 1}`,
-    label: '',
-    type: 'text',
+    label: "",
+    type: "text",
     required: index === 0,
-    placeholder: '',
-    helpText: '',
+    placeholder: "",
+    helpText: "",
   };
 }
 
-function isContentFieldInputType(value: unknown): value is ContentFieldInputType {
-  return value === 'text' || value === 'date' || value === 'textarea' || value === 'image';
+function isContentFieldInputType(
+  value: unknown,
+): value is ContentFieldInputType {
+  return (
+    value === "text" ||
+    value === "date" ||
+    value === "textarea" ||
+    value === "image"
+  );
 }
 
 function readStringValue(value: unknown): string {
-  return typeof value === 'string' ? value : '';
+  return typeof value === "string" ? value : "";
 }
 
 function parseTagsInput(value: unknown): string[] {
   if (Array.isArray(value)) {
     return value
-      .map((tag) => (typeof tag === 'string' ? tag.trim() : ''))
-      .filter((tag, index, tags) => tag.length > 0 && tags.indexOf(tag) === index);
+      .map((tag) => (typeof tag === "string" ? tag.trim() : ""))
+      .filter(
+        (tag, index, tags) => tag.length > 0 && tags.indexOf(tag) === index,
+      );
   }
 
-  if (typeof value !== 'string') return [];
+  if (typeof value !== "string") return [];
 
   return value
-    .split(',')
+    .split(",")
     .map((tag) => tag.trim())
-    .filter((tag, index, tags) => tag.length > 0 && tags.indexOf(tag) === index);
+    .filter(
+      (tag, index, tags) => tag.length > 0 && tags.indexOf(tag) === index,
+    );
 }
 
 function formatTagsInputValue(value: unknown): string {
   if (Array.isArray(value)) {
     return value
-      .filter((tag): tag is string => typeof tag === 'string' && tag.trim().length > 0)
-      .join(', ');
+      .filter(
+        (tag): tag is string =>
+          typeof tag === "string" && tag.trim().length > 0,
+      )
+      .join(", ");
   }
 
-  return typeof value === 'string' ? value : '';
+  return typeof value === "string" ? value : "";
 }
 
 function buildContentFieldKey(label: string, index: number) {
   const normalized = label
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '_')
-    .replace(/^_+|_+$/g, '');
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
 
   return normalized || `field_${index + 1}`;
 }
 
 function readContentFieldArray(value: unknown): unknown[] {
   if (Array.isArray(value)) return value;
-  if (typeof value === 'string' && value.trim()) {
+  if (typeof value === "string" && value.trim()) {
     try {
       return readContentFieldArray(JSON.parse(value));
     } catch {
       return [];
     }
   }
-  if (value && typeof value === 'object') {
+  if (value && typeof value === "object") {
     const record = value as Record<string, unknown>;
     if (Array.isArray(record.fields)) return record.fields;
     if (Array.isArray(record.contentFields)) return record.contentFields;
@@ -926,21 +1421,28 @@ function readContentFieldArray(value: unknown): unknown[] {
   return [];
 }
 
-function normalizeContentFieldFormValues(value: unknown): ContentFieldFormValue[] {
+function normalizeContentFieldFormValues(
+  value: unknown,
+): ContentFieldFormValue[] {
   return readContentFieldArray(value).flatMap((item, index) => {
-    if (!item || typeof item !== 'object' || Array.isArray(item)) return [];
+    if (!item || typeof item !== "object" || Array.isArray(item)) return [];
 
     const record = item as Record<string, unknown>;
-    const type = isContentFieldInputType(record.type) ? record.type : 'text';
+    const type = isContentFieldInputType(record.type) ? record.type : "text";
 
     return [
       {
-        key: readStringValue(record.key).trim() || buildContentFieldKey(readStringValue(record.label), index),
+        key:
+          readStringValue(record.key).trim() ||
+          buildContentFieldKey(readStringValue(record.label), index),
         label: readStringValue(record.label) || readStringValue(record.name),
         type,
-        required: typeof record.required === 'boolean' ? record.required : index === 0,
+        required:
+          typeof record.required === "boolean" ? record.required : index === 0,
         placeholder: readStringValue(record.placeholder),
-        helpText: readStringValue(record.helpText) || readStringValue(record.description),
+        helpText:
+          readStringValue(record.helpText) ||
+          readStringValue(record.description),
       },
     ];
   });
@@ -952,14 +1454,17 @@ function serializeContentFieldFormValues(value: unknown) {
       const label = field.label.trim();
       const key = field.key.trim() || buildContentFieldKey(label, index);
 
-      if (!label && !field.placeholder.trim() && !field.helpText.trim()) return null;
+      if (!label && !field.placeholder.trim() && !field.helpText.trim())
+        return null;
 
       return {
         key,
         label: label || `Thông tin ${index + 1}`,
         type: field.type,
         required: field.required,
-        ...(field.placeholder.trim() ? { placeholder: field.placeholder.trim() } : {}),
+        ...(field.placeholder.trim()
+          ? { placeholder: field.placeholder.trim() }
+          : {}),
         ...(field.helpText.trim() ? { helpText: field.helpText.trim() } : {}),
       };
     })
@@ -969,169 +1474,190 @@ function serializeContentFieldFormValues(value: unknown) {
 }
 
 function serializeFormValue(field: EntityField, rawValue: unknown): unknown {
-  if (field.type === 'checkbox') return Boolean(rawValue);
-  if (field.type === 'number') {
-    if (rawValue === '') return field.key === 'stock' ? null : undefined;
+  if (field.type === "section") return undefined;
+  if (field.type === "checkbox") return Boolean(rawValue);
+  if (field.type === "number") {
+    if (rawValue === "") return field.key === "stock" ? null : undefined;
     const asNumber = Number(rawValue);
     return Number.isFinite(asNumber) ? asNumber : 0;
   }
-  if (field.type === 'datetime') {
-    if (typeof rawValue !== 'string' || !rawValue.trim()) return undefined;
+  if (field.type === "datetime") {
+    if (typeof rawValue !== "string" || !rawValue.trim()) return undefined;
     const date = new Date(rawValue);
     return Number.isNaN(date.getTime()) ? undefined : date.toISOString();
   }
-  if (field.type === 'image') {
-    return typeof rawValue === 'string' ? rawValue.trim() : '';
+  if (field.type === "image") {
+    return typeof rawValue === "string" ? rawValue.trim() : "";
   }
-  if (field.type === 'images') {
+  if (field.type === "images") {
     if (!Array.isArray(rawValue)) return [];
     return rawValue
-      .map((value) => (typeof value === 'string' ? value.trim() : ''))
+      .map((value) => (typeof value === "string" ? value.trim() : ""))
       .filter((value) => value.length > 0);
   }
-  if (field.type === 'multi-select') {
+  if (field.type === "multi-select") {
     return Array.isArray(rawValue)
-      ? rawValue.filter((value): value is string => typeof value === 'string' && value.length > 0)
+      ? rawValue.filter(
+          (value): value is string =>
+            typeof value === "string" && value.length > 0,
+        )
       : [];
   }
-  if (field.type === 'json') {
-    if (typeof rawValue !== 'string' || !rawValue.trim()) return undefined;
+  if (field.type === "json") {
+    if (typeof rawValue !== "string" || !rawValue.trim()) return undefined;
     return JSON.parse(rawValue);
   }
-  if (field.type === 'tags') {
+  if (field.type === "tags") {
     return parseTagsInput(rawValue);
   }
-  if (field.type === 'content-fields') {
+  if (field.type === "content-fields") {
     return serializeContentFieldFormValues(rawValue);
   }
-  if (field.type === 'product-config') {
-    return rawValue && typeof rawValue === 'object' && !Array.isArray(rawValue)
+  if (field.type === "product-config") {
+    return rawValue && typeof rawValue === "object" && !Array.isArray(rawValue)
       ? rawValue
       : undefined;
   }
-  if (field.type === 'text' || field.type === 'textarea' || field.type === 'select') {
-    if (typeof rawValue !== 'string') return '';
+  if (
+    field.type === "text" ||
+    field.type === "textarea" ||
+    field.type === "select"
+  ) {
+    if (typeof rawValue !== "string") return "";
     return rawValue;
   }
   return rawValue;
 }
 
 function displayCellValue(value: unknown): string {
-  if (value === null || value === undefined) return '-';
-  if (Array.isArray(value)) return value.join(', ');
-  if (typeof value === 'object') return JSON.stringify(value);
+  if (value === null || value === undefined) return "-";
+  if (Array.isArray(value)) return value.join(", ");
+  if (typeof value === "object") return JSON.stringify(value);
   return String(value);
 }
 
 function isNonEmptyString(value: unknown): value is string {
-  return typeof value === 'string' && value.trim().length > 0;
+  return typeof value === "string" && value.trim().length > 0;
 }
 
 function getEntityEmptyMessage(resource: ResourceKey, locale: string) {
   const messages = {
     vi: {
-      products: 'Không có sản phẩm nào.',
-      templates: 'Không có mẫu thiết kế nào.',
-      'template-categories': 'Không có danh mục mẫu nào.',
-      accessories: 'Không có phụ kiện nào.',
-      characters: 'Không có nhân vật nào.',
-      'character-parts': 'Chưa có bộ phận nhân vật nào.',
-      'character-presets': 'Chưa có mẫu nhân vật nào.',
-      'accessory-categories': 'Không có danh mục phụ kiện nào.',
-      banners: 'Không có banner nào.',
-      'frame-backgrounds': 'Chưa có nền ảnh khung nào.',
-      collections: 'Không có bộ sưu tập nào.',
-      'frame-options': 'Chưa có khung tranh nào.',
-      'frame-sizes': 'Không có kích thước khung nào.',
-      'frame-colors': 'Không có màu khung nào.',
-      vouchers: 'Chưa có voucher nào.',
+      products: "Không có sản phẩm nào.",
+      templates: "Không có mẫu thiết kế nào.",
+      "template-categories": "Không có danh mục mẫu nào.",
+      accessories: "Không có phụ kiện nào.",
+      characters: "Không có nhân vật nào.",
+      "character-parts": "Chưa có bộ phận nhân vật nào.",
+      "character-presets": "Chưa có mẫu nhân vật nào.",
+      "accessory-categories": "Không có danh mục phụ kiện nào.",
+      banners: "Không có banner nào.",
+      "frame-backgrounds": "Chưa có nền ảnh khung nào.",
+      collections: "Không có bộ sưu tập nào.",
+      "frame-options": "Chưa có khung tranh nào.",
+      "frame-sizes": "Không có kích thước khung nào.",
+      "frame-colors": "Không có màu khung nào.",
+      vouchers: "Chưa có voucher nào.",
     },
     en: {
-      products: 'No products found.',
-      templates: 'No templates found.',
-      'template-categories': 'No template categories found.',
-      accessories: 'No accessories found.',
-      characters: 'No characters found.',
-      'character-parts': 'No character parts found.',
-      'character-presets': 'No character presets found.',
-      'accessory-categories': 'No accessory categories found.',
-      banners: 'No banners found.',
-      'frame-backgrounds': 'No frame image backgrounds found.',
-      collections: 'No collections found.',
-      'frame-options': 'No picture frames found.',
-      'frame-sizes': 'No frame sizes found.',
-      'frame-colors': 'No frame colors found.',
-      vouchers: 'No vouchers found.',
+      products: "No products found.",
+      templates: "No templates found.",
+      "template-categories": "No template categories found.",
+      accessories: "No accessories found.",
+      characters: "No characters found.",
+      "character-parts": "No character parts found.",
+      "character-presets": "No character presets found.",
+      "accessory-categories": "No accessory categories found.",
+      banners: "No banners found.",
+      "frame-backgrounds": "No frame image backgrounds found.",
+      collections: "No collections found.",
+      "frame-options": "No picture frames found.",
+      "frame-sizes": "No frame sizes found.",
+      "frame-colors": "No frame colors found.",
+      vouchers: "No vouchers found.",
     },
   } satisfies Record<string, Record<ResourceKey, string>>;
 
-  return locale === 'vi' ? messages.vi[resource] : messages.en[resource];
+  return locale === "vi" ? messages.vi[resource] : messages.en[resource];
 }
 
 function getEntityNoun(resource: ResourceKey, locale: string, count?: number) {
   const nouns = {
     vi: {
-      products: 'sản phẩm',
-      templates: 'mẫu thiết kế',
-      'template-categories': 'danh mục mẫu',
-      accessories: 'phụ kiện',
-      characters: 'nhân vật',
-      'character-parts': 'bộ phận nhân vật',
-      'character-presets': 'mẫu nhân vật',
-      'accessory-categories': 'danh mục phụ kiện',
-      banners: 'banner',
-      'frame-backgrounds': 'nền ảnh khung',
-      collections: 'bộ sưu tập',
-      'frame-options': 'khung tranh',
-      'frame-sizes': 'kích thước khung',
-      'frame-colors': 'màu khung',
-      vouchers: 'voucher',
+      products: "sản phẩm",
+      templates: "mẫu thiết kế",
+      "template-categories": "danh mục mẫu",
+      accessories: "phụ kiện",
+      characters: "nhân vật",
+      "character-parts": "bộ phận nhân vật",
+      "character-presets": "mẫu nhân vật",
+      "accessory-categories": "danh mục phụ kiện",
+      banners: "banner",
+      "frame-backgrounds": "nền ảnh khung",
+      collections: "bộ sưu tập",
+      "frame-options": "khung tranh",
+      "frame-sizes": "kích thước khung",
+      "frame-colors": "màu khung",
+      vouchers: "voucher",
     },
     en: {
-      products: count === 1 ? 'product' : 'products',
-      templates: count === 1 ? 'template' : 'templates',
-      'template-categories': count === 1 ? 'template category' : 'template categories',
-      accessories: count === 1 ? 'accessory' : 'accessories',
-      characters: count === 1 ? 'character' : 'characters',
-      'character-parts': count === 1 ? 'character part' : 'character parts',
-      'character-presets': count === 1 ? 'character preset' : 'character presets',
-      'accessory-categories': count === 1 ? 'accessory category' : 'accessory categories',
-      banners: count === 1 ? 'banner' : 'banners',
-      'frame-backgrounds': count === 1 ? 'frame image background' : 'frame image backgrounds',
-      collections: count === 1 ? 'collection' : 'collections',
-      'frame-options': count === 1 ? 'picture frame' : 'picture frames',
-      'frame-sizes': count === 1 ? 'frame size' : 'frame sizes',
-      'frame-colors': count === 1 ? 'frame color' : 'frame colors',
-      vouchers: count === 1 ? 'voucher' : 'vouchers',
+      products: count === 1 ? "product" : "products",
+      templates: count === 1 ? "template" : "templates",
+      "template-categories":
+        count === 1 ? "template category" : "template categories",
+      accessories: count === 1 ? "accessory" : "accessories",
+      characters: count === 1 ? "character" : "characters",
+      "character-parts": count === 1 ? "character part" : "character parts",
+      "character-presets":
+        count === 1 ? "character preset" : "character presets",
+      "accessory-categories":
+        count === 1 ? "accessory category" : "accessory categories",
+      banners: count === 1 ? "banner" : "banners",
+      "frame-backgrounds":
+        count === 1 ? "frame image background" : "frame image backgrounds",
+      collections: count === 1 ? "collection" : "collections",
+      "frame-options": count === 1 ? "picture frame" : "picture frames",
+      "frame-sizes": count === 1 ? "frame size" : "frame sizes",
+      "frame-colors": count === 1 ? "frame color" : "frame colors",
+      vouchers: count === 1 ? "voucher" : "vouchers",
     },
   } satisfies Record<string, Record<ResourceKey, string>>;
 
-  return locale === 'vi' ? nouns.vi[resource] : nouns.en[resource];
+  return locale === "vi" ? nouns.vi[resource] : nouns.en[resource];
 }
 
-function getEntityCountLabel(resource: ResourceKey, count: number, locale: Locale) {
+function getEntityCountLabel(
+  resource: ResourceKey,
+  count: number,
+  locale: Locale,
+) {
   return `${formatNumber(count, locale)} ${getEntityNoun(resource, locale, count)}`;
 }
 
 function getEntityLoadingLabel(resource: ResourceKey, locale: string) {
   const noun = getEntityNoun(resource, locale);
-  return locale === 'vi' ? `Đang tải ${noun}...` : `Loading ${noun}...`;
+  return locale === "vi" ? `Đang tải ${noun}...` : `Loading ${noun}...`;
 }
 
-function getEntitySubmitLabel(resource: ResourceKey, locale: string, isEditing: boolean) {
+function getEntitySubmitLabel(
+  resource: ResourceKey,
+  locale: string,
+  isEditing: boolean,
+) {
   const noun = getEntityNoun(resource, locale, 1);
-  if (locale === 'vi') return `${isEditing ? 'Cập nhật' : 'Tạo'} ${noun}`;
-  return `${isEditing ? 'Update' : 'Create'} ${noun}`;
+  if (locale === "vi") return `${isEditing ? "Cập nhật" : "Tạo"} ${noun}`;
+  return `${isEditing ? "Update" : "Create"} ${noun}`;
 }
 
 function getEntityActionToastLabel(
   resource: ResourceKey,
   locale: string,
-  action: 'creating' | 'updating' | 'created' | 'updated' | 'deleting' | 'deleted',
+  action:
+    "creating" | "updating" | "created" | "updated" | "deleting" | "deleted",
 ) {
   const noun = getEntityNoun(resource, locale, 1);
 
-  if (locale === 'vi') {
+  if (locale === "vi") {
     const labels = {
       creating: `Đang tạo ${noun}...`,
       updating: `Đang cập nhật ${noun}...`,
@@ -1158,7 +1684,7 @@ function getEntityActionToastLabel(
 
 function getEntityDeleteDialogTitle(resource: ResourceKey, locale: string) {
   const noun = getEntityNoun(resource, locale, 1);
-  return locale === 'vi' ? `Xóa ${noun}?` : `Delete ${noun}?`;
+  return locale === "vi" ? `Xóa ${noun}?` : `Delete ${noun}?`;
 }
 
 function getEntityDeleteDialogDescription(
@@ -1168,7 +1694,7 @@ function getEntityDeleteDialogDescription(
 ) {
   const noun = getEntityNoun(resource, locale, 1);
 
-  if (locale === 'vi') {
+  if (locale === "vi") {
     return label
       ? `Bạn sắp xóa "${label}". Hành động này không thể hoàn tác.`
       : `Mục ${noun} này sẽ bị xóa khỏi hệ thống. Hành động này không thể hoàn tác.`;
@@ -1181,60 +1707,60 @@ function getEntityDeleteDialogDescription(
 
 function getEntityIconName(resource: ResourceKey): AdminNavIconName {
   const icons = {
-    products: 'products',
-    templates: 'templates',
-    'template-categories': 'templates',
-    accessories: 'accessories',
-    characters: 'characters',
-    'character-parts': 'characters',
-    'character-presets': 'characters',
-    'accessory-categories': 'accessories',
-    banners: 'banners',
-    'frame-backgrounds': 'frameBackgrounds',
-    collections: 'collections',
-    'frame-options': 'frameOptions',
-    'frame-sizes': 'products',
-    'frame-colors': 'products',
-    vouchers: 'vouchers',
+    products: "products",
+    templates: "templates",
+    "template-categories": "templates",
+    accessories: "accessories",
+    characters: "characters",
+    "character-parts": "characters",
+    "character-presets": "characters",
+    "accessory-categories": "accessories",
+    banners: "banners",
+    "frame-backgrounds": "frameBackgrounds",
+    collections: "collections",
+    "frame-options": "frameOptions",
+    "frame-sizes": "products",
+    "frame-colors": "products",
+    vouchers: "vouchers",
   } satisfies Record<ResourceKey, AdminNavIconName>;
 
   return icons[resource];
 }
 
 const DEFAULT_COLOR_MAP: Record<string, string> = {
-  'tráng': '#ffffff',
-  'trắng': '#ffffff',
-  'white': '#ffffff',
-  'den': '#1a1a1a',
-  'đen': '#1a1a1a',
-  'black': '#1a1a1a',
-  'go': '#d7a15c',
-  'gỗ': '#d7a15c',
-  'wood': '#d7a15c',
-  'xám': '#808080',
-  'gray': '#808080',
-  'grey': '#808080',
-  'nâu': '#8b4513',
-  'brown': '#8b4513',
-  'đỏ': '#ff0000',
-  'red': '#ff0000',
-  'vàng': '#facc15',
-  'yellow': '#facc15',
-  'xanh lá': '#22c55e',
-  'green': '#22c55e',
-  'xanh dương': '#3b82f6',
-  'blue': '#3b82f6',
+  tráng: "#ffffff",
+  trắng: "#ffffff",
+  white: "#ffffff",
+  den: "#1a1a1a",
+  đen: "#1a1a1a",
+  black: "#1a1a1a",
+  go: "#d7a15c",
+  gỗ: "#d7a15c",
+  wood: "#d7a15c",
+  xám: "#808080",
+  gray: "#808080",
+  grey: "#808080",
+  nâu: "#8b4513",
+  brown: "#8b4513",
+  đỏ: "#ff0000",
+  red: "#ff0000",
+  vàng: "#facc15",
+  yellow: "#facc15",
+  "xanh lá": "#22c55e",
+  green: "#22c55e",
+  "xanh dương": "#3b82f6",
+  blue: "#3b82f6",
 };
 
 function getValidHexForInput(val: unknown): string {
-  const str = String(val ?? '').trim();
+  const str = String(val ?? "").trim();
   if (/^#[0-9A-F]{6}$/i.test(str)) {
     return str;
   }
   if (/^[0-9A-F]{6}$/i.test(str)) {
     return `#${str}`;
   }
-  return '#ffffff';
+  return "#ffffff";
 }
 
 export default function EntityManager<K extends ResourceKey>({
@@ -1243,7 +1769,6 @@ export default function EntityManager<K extends ResourceKey>({
   fields,
   tableFields,
   pageTitle,
-  pageDescription,
   createButtonLabel,
 }: EntityManagerProps<K>) {
   const { t, locale } = useI18n();
@@ -1251,63 +1776,104 @@ export default function EntityManager<K extends ResourceKey>({
   const [meta, setMeta] = useState<EntityListMeta | null>(null);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(ENTITY_PAGE_SIZE);
-  const [search, setSearch] = useState('');
-  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string[]>([]);
   const [categoryFilter, setCategoryFilter] = useState<string[]>([]);
-  const [priceMinFilter, setPriceMinFilter] = useState('');
-  const [priceMaxFilter, setPriceMaxFilter] = useState('');
-  const [dateFromFilter, setDateFromFilter] = useState(EMPTY_ENTITY_FILTER_DRAFT.dateFrom);
-  const [dateToFilter, setDateToFilter] = useState(EMPTY_ENTITY_FILTER_DRAFT.dateTo);
+  const [priceMinFilter, setPriceMinFilter] = useState("");
+  const [priceMaxFilter, setPriceMaxFilter] = useState("");
+  const [dateFromFilter, setDateFromFilter] = useState(
+    EMPTY_ENTITY_FILTER_DRAFT.dateFrom,
+  );
+  const [dateToFilter, setDateToFilter] = useState(
+    EMPTY_ENTITY_FILTER_DRAFT.dateTo,
+  );
   const [sorts, setSorts] = useState<TableSort[]>([...DEFAULT_TABLE_SORTS]);
   const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
-  const [draftFilters, setDraftFilters] = useState<EntityFilterDraft>(EMPTY_ENTITY_FILTER_DRAFT);
+  const [draftFilters, setDraftFilters] = useState<EntityFilterDraft>(
+    EMPTY_ENTITY_FILTER_DRAFT,
+  );
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showAdvancedFields, setShowAdvancedFields] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [deleteTarget, setDeleteTarget] = useState<{ id: string; label?: string } | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{
+    id: string;
+    label?: string;
+  } | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [imagePreview, setImagePreview] = useState<{ src: string; alt: string } | null>(null);
+  const [imagePreview, setImagePreview] = useState<{
+    src: string;
+    alt: string;
+  } | null>(null);
   const requestSeq = useRef(0);
   const [formValues, setFormValues] = useState<Record<string, unknown>>(() =>
     toInitialValues(fields),
   );
-  const [imageInputModes, setImageInputModes] = useState<Record<string, ImageInputMode>>(() =>
-    getInitialImageInputModes(fields, toInitialValues(fields)),
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [imageInputModes, setImageInputModes] = useState<
+    Record<string, ImageInputMode>
+  >(() => getInitialImageInputModes(fields, toInitialValues(fields)));
+  const [imageFileNames, setImageFileNames] = useState<Record<string, string>>(
+    {},
   );
-  const [imageFileNames, setImageFileNames] = useState<Record<string, string>>({});
-  const [imageLoadErrors, setImageLoadErrors] = useState<Record<string, boolean>>({});
+  const [imageLoadErrors, setImageLoadErrors] = useState<
+    Record<string, boolean>
+  >({});
 
   const visibleColumns = useMemo(
     () => getEntityTableColumns(tableFields ?? fields, resource, locale),
     [fields, locale, resource, tableFields],
   );
   const statusField = useMemo(
-    () => fields.find((field) => field.key === 'status' && field.type === 'select'),
+    () =>
+      fields.find((field) => field.key === "status" && field.type === "select"),
     [fields],
   );
   const categoryField = useMemo(
-    () => fields.find((field) => field.key === 'categoryId' && field.type === 'select'),
+    () =>
+      fields.find(
+        (field) => field.key === "categoryId" && field.type === "select",
+      ),
     [fields],
   );
   const hasPriceFilter = useMemo(
-    () => fields.some((field) => field.key === 'basePrice' && field.type === 'number'),
+    () =>
+      fields.some(
+        (field) => field.key === "basePrice" && field.type === "number",
+      ),
     [fields],
   );
-  const statusOptions = useMemo(() => statusField?.options ?? [], [statusField]);
-  const categoryOptions = useMemo(() => categoryField?.options ?? [], [categoryField]);
+  const statusOptions = useMemo(
+    () => statusField?.options ?? [],
+    [statusField],
+  );
+  const categoryOptions = useMemo(
+    () => categoryField?.options ?? [],
+    [categoryField],
+  );
   const hasDateFilter = ENTITY_DATE_FILTER_RESOURCES.has(resource);
-  const hasEntityFilters = statusOptions.length > 0 || categoryOptions.length > 0 || hasPriceFilter || hasDateFilter;
+  const hasEntityFilters =
+    statusOptions.length > 0 ||
+    categoryOptions.length > 0 ||
+    hasPriceFilter ||
+    hasDateFilter;
   const drawerFilterCount = useMemo(
     () =>
       statusFilter.length +
       categoryFilter.length +
       Number(Boolean(priceMinFilter || priceMaxFilter)) +
       Number(Boolean(dateFromFilter || dateToFilter)),
-    [categoryFilter, dateFromFilter, dateToFilter, priceMaxFilter, priceMinFilter, statusFilter],
+    [
+      categoryFilter,
+      dateFromFilter,
+      dateToFilter,
+      priceMaxFilter,
+      priceMinFilter,
+      statusFilter,
+    ],
   );
   const activeFilterCount = drawerFilterCount;
   const showResetFilters =
@@ -1316,12 +1882,14 @@ export default function EntityManager<K extends ResourceKey>({
     !areTableSortsEqual(sorts, DEFAULT_TABLE_SORTS);
   const getInputPlaceholder = useCallback(
     (field: EntityField) =>
-      field.placeholder ?? buildFieldPlaceholder(t('entity.enterFieldPrefix'), field.label),
+      field.placeholder ??
+      buildFieldPlaceholder(t("entity.enterFieldPrefix"), field.label),
     [t],
   );
   const getSelectPlaceholder = useCallback(
     (field: EntityField) =>
-      field.placeholder ?? buildFieldPlaceholder(t('entity.selectFieldPrefix'), field.label),
+      field.placeholder ??
+      buildFieldPlaceholder(t("entity.selectFieldPrefix"), field.label),
     [t],
   );
 
@@ -1335,6 +1903,12 @@ export default function EntityManager<K extends ResourceKey>({
       window.clearTimeout(timer);
     };
   }, [search]);
+
+  useEffect(() => {
+    setFieldErrors((current) =>
+      Object.keys(current).length > 0 ? {} : current,
+    );
+  }, [formValues]);
 
   const loadItems = useCallback(async () => {
     const requestId = requestSeq.current + 1;
@@ -1351,19 +1925,32 @@ export default function EntityManager<K extends ResourceKey>({
         sort_dir: serializedSorts.sortDir,
         status: statusFilter.length > 0 ? statusFilter : undefined,
         category_id: categoryFilter.length > 0 ? categoryFilter : undefined,
-        price_min: hasPriceFilter ? getOptionalNumber(priceMinFilter) : undefined,
-        price_max: hasPriceFilter ? getOptionalNumber(priceMaxFilter) : undefined,
+        price_min: hasPriceFilter
+          ? getOptionalNumber(priceMinFilter)
+          : undefined,
+        price_max: hasPriceFilter
+          ? getOptionalNumber(priceMaxFilter)
+          : undefined,
         date_from: hasDateFilter ? dateFromFilter || undefined : undefined,
         date_to: hasDateFilter ? dateToFilter || undefined : undefined,
-        date_field: hasDateFilter && (dateFromFilter || dateToFilter) ? 'createdAt' : undefined,
+        date_field:
+          hasDateFilter && (dateFromFilter || dateToFilter)
+            ? "createdAt"
+            : undefined,
       };
       const response = await listResource(resource, params);
       if (requestSeq.current !== requestId) return;
       if (Array.isArray(response)) {
         setItems(response as ResourceDataMap[K][]);
         setMeta(null);
-      } else if (response && typeof response === 'object' && 'data' in response) {
-        const paginatedResponse = response as PaginatedResourceResponse<ResourceDataMap[K]>;
+      } else if (
+        response &&
+        typeof response === "object" &&
+        "data" in response
+      ) {
+        const paginatedResponse = response as PaginatedResourceResponse<
+          ResourceDataMap[K]
+        >;
         setItems(paginatedResponse.data);
         setMeta(paginatedResponse.meta ?? null);
       } else {
@@ -1372,7 +1959,7 @@ export default function EntityManager<K extends ResourceKey>({
       }
     } catch (err) {
       if (requestSeq.current !== requestId) return;
-      setError(getLocalizedApiError(err, t, 'entity.loadFailed'));
+      setError(getLocalizedApiError(err, t, "entity.loadFailed"));
     } finally {
       if (requestSeq.current === requestId) {
         setLoading(false);
@@ -1408,6 +1995,7 @@ export default function EntityManager<K extends ResourceKey>({
     setImageInputModes(getInitialImageInputModes(fields, initialValues));
     setImageFileNames({});
     setImageLoadErrors({});
+    setFieldErrors({});
     setEditingId(null);
     setShowAdvancedFields(false);
   }
@@ -1422,46 +2010,48 @@ export default function EntityManager<K extends ResourceKey>({
     const nextValues = toInitialValues(fields);
     fields.forEach((field) => {
       const value = (item as unknown as Record<string, unknown>)[field.key];
-      if (field.type === 'json') {
-        nextValues[field.key] = value ? JSON.stringify(value, null, 2) : '';
-      } else if (field.type === 'tags') {
+      if (field.type === "json") {
+        nextValues[field.key] = value ? JSON.stringify(value, null, 2) : "";
+      } else if (field.type === "tags") {
         nextValues[field.key] = formatTagsInputValue(value);
-      } else if (field.type === 'content-fields') {
+      } else if (field.type === "content-fields") {
         nextValues[field.key] = normalizeContentFieldFormValues(value);
-      } else if (field.type === 'product-config') {
+      } else if (field.type === "product-config") {
         nextValues[field.key] =
-          value && typeof value === 'object' && !Array.isArray(value) ? value : {};
-      } else if (field.type === 'checkbox') {
+          value && typeof value === "object" && !Array.isArray(value)
+            ? value
+            : {};
+      } else if (field.type === "checkbox") {
         nextValues[field.key] = Boolean(value);
-      } else if (field.type === 'images') {
+      } else if (field.type === "images") {
         nextValues[field.key] = Array.isArray(value) ? [...value] : [];
-      } else if (field.type === 'multi-select') {
+      } else if (field.type === "multi-select") {
         nextValues[field.key] = Array.isArray(value)
           ? value
               .map((entry) => {
-                if (typeof entry === 'string') return entry;
-                if (entry && typeof entry === 'object' && 'partId' in entry) {
+                if (typeof entry === "string") return entry;
+                if (entry && typeof entry === "object" && "partId" in entry) {
                   return String((entry as { partId: unknown }).partId);
                 }
-                return '';
+                return "";
               })
               .filter(Boolean)
-          : field.key === 'accessoryPartIds'
+          : field.key === "accessoryPartIds"
             ? Array.isArray(
                 (item as unknown as { accessories?: unknown[] }).accessories,
               )
               ? (
-                  (item as unknown as {
+                  item as unknown as {
                     accessories: Array<{ partId?: unknown }>;
-                  }).accessories
-                )
-                  .map((entry) => String(entry.partId ?? ''))
+                  }
+                ).accessories
+                  .map((entry) => String(entry.partId ?? ""))
                   .filter(Boolean)
               : []
             : [];
-      } else if (field.type === 'image') {
-        nextValues[field.key] = typeof value === 'string' ? value : '';
-      } else if (field.type === 'datetime') {
+      } else if (field.type === "image") {
+        nextValues[field.key] = typeof value === "string" ? value : "";
+      } else if (field.type === "datetime") {
         nextValues[field.key] = toDatetimeLocalValue(value);
       } else {
         nextValues[field.key] = value ?? nextValues[field.key];
@@ -1501,14 +2091,14 @@ export default function EntityManager<K extends ResourceKey>({
   }
 
   function resetFilters() {
-    setSearch('');
-    setDebouncedSearch('');
+    setSearch("");
+    setDebouncedSearch("");
     setStatusFilter([]);
     setCategoryFilter([]);
-    setPriceMinFilter('');
-    setPriceMaxFilter('');
-    setDateFromFilter('');
-    setDateToFilter('');
+    setPriceMinFilter("");
+    setPriceMaxFilter("");
+    setDateFromFilter("");
+    setDateToFilter("");
     setSorts([...DEFAULT_TABLE_SORTS]);
     setDraftFilters(EMPTY_ENTITY_FILTER_DRAFT);
     setPage(1);
@@ -1521,9 +2111,59 @@ export default function EntityManager<K extends ResourceKey>({
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (saving) return;
+
+    const nextFieldErrors = fields.reduce<Record<string, string>>(
+      (errors, field) => {
+        if (
+          !field.required ||
+          field.type === "section" ||
+          !isEntityFormFieldVisible(field, formValues, true)
+        ) {
+          return errors;
+        }
+        const value = formValues[field.key];
+        const missing =
+          value === undefined ||
+          value === null ||
+          (typeof value === "string" && value.trim().length === 0) ||
+          (Array.isArray(value) && value.length === 0) ||
+          ((field.type === "image" || field.type === "images") &&
+            !hasImageValue(value));
+        if (missing) {
+          errors[field.key] = t("entity.requiredField").replace(
+            "{field}",
+            field.label,
+          );
+        } else if (
+          field.type === "number" &&
+          field.min !== undefined &&
+          Number(value) < field.min
+        ) {
+          errors[field.key] = t("entity.numberMin")
+            .replace("{field}", field.label)
+            .replace("{min}", String(field.min));
+        }
+        return errors;
+      },
+      {},
+    );
+
+    if (Object.keys(nextFieldErrors).length > 0) {
+      setFieldErrors(nextFieldErrors);
+      setError(t("apiErrors.validation"));
+      return;
+    }
+
+    setFieldErrors({});
+
     const isEditing = Boolean(editingId);
     const toastId = toast.loading(
-      getEntityActionToastLabel(resource, locale, isEditing ? 'updating' : 'creating'),
+      getEntityActionToastLabel(
+        resource,
+        locale,
+        isEditing ? "updating" : "creating",
+      ),
     );
 
     setSaving(true);
@@ -1532,39 +2172,56 @@ export default function EntityManager<K extends ResourceKey>({
     try {
       const payload: Record<string, unknown> = {};
       for (const field of fields) {
+        if (
+          field.type === "section" ||
+          !isEntityFormFieldVisible(field, formValues, true)
+        ) {
+          continue;
+        }
         const raw = formValues[field.key];
         const value = serializeFormValue(field, raw);
-        if (value === '' || value === undefined || (value === null && field.key !== 'stock')) continue;
+        if (
+          value === "" ||
+          value === undefined ||
+          (value === null && field.key !== "stock")
+        )
+          continue;
         payload[field.key] = value;
       }
 
       const finalPayload =
-        resource === 'products'
+        resource === "products"
           ? {
               ...payload,
               images: Array.isArray(payload.images) ? payload.images : [],
             }
-          : resource === 'character-parts' && typeof payload.status === 'string'
-            ? {
-                ...payload,
-                isActive: payload.status === 'active',
-              }
-            : payload;
+          : payload;
 
       if (editingId) {
-        await updateResource(resource, editingId, finalPayload as Partial<ResourceDataMap[K]>);
+        await updateResource(
+          resource,
+          editingId,
+          finalPayload as Partial<ResourceDataMap[K]>,
+        );
       } else {
-        await createResource(resource, finalPayload as Partial<ResourceDataMap[K]>);
+        await createResource(
+          resource,
+          finalPayload as Partial<ResourceDataMap[K]>,
+        );
       }
 
       await loadItems();
       closeModal();
       toast.success(
-        getEntityActionToastLabel(resource, locale, isEditing ? 'updated' : 'created'),
+        getEntityActionToastLabel(
+          resource,
+          locale,
+          isEditing ? "updated" : "created",
+        ),
         { id: toastId },
       );
     } catch (err) {
-      const message = getLocalizedApiError(err, t, 'entity.saveFailed');
+      const message = getLocalizedApiError(err, t, "entity.saveFailed");
       setError(message);
       toast.error(message, { id: toastId });
     } finally {
@@ -1573,7 +2230,7 @@ export default function EntityManager<K extends ResourceKey>({
   }
 
   function getDeleteTargetLabel(row: Record<string, unknown>) {
-    const labelKeys = ['name', 'title', 'code', 'slug'];
+    const labelKeys = ["name", "title", "code", "slug"];
     const foundKey = labelKeys.find((key) => isNonEmptyString(row[key]));
     return foundKey ? String(row[foundKey]).trim() : undefined;
   }
@@ -1590,7 +2247,9 @@ export default function EntityManager<K extends ResourceKey>({
 
     setError(null);
     setDeleting(true);
-    const toastId = toast.loading(getEntityActionToastLabel(resource, locale, 'deleting'));
+    const toastId = toast.loading(
+      getEntityActionToastLabel(resource, locale, "deleting"),
+    );
     const deletingId = deleteTarget.id;
 
     try {
@@ -1598,9 +2257,11 @@ export default function EntityManager<K extends ResourceKey>({
       await loadItems();
       if (editingId === deletingId) closeModal();
       setDeleteTarget(null);
-      toast.success(getEntityActionToastLabel(resource, locale, 'deleted'), { id: toastId });
+      toast.success(getEntityActionToastLabel(resource, locale, "deleted"), {
+        id: toastId,
+      });
     } catch (err) {
-      const message = getLocalizedApiError(err, t, 'entity.deleteFailed');
+      const message = getLocalizedApiError(err, t, "entity.deleteFailed");
       setError(message);
       toast.error(message, { id: toastId });
     } finally {
@@ -1618,37 +2279,58 @@ export default function EntityManager<K extends ResourceKey>({
       const result = await uploadImage(file);
       setFormValues((prev) => ({ ...prev, [fieldKey]: result.url }));
     } catch (err) {
-      setError(getLocalizedApiError(err, t, 'entity.uploadImageFailed'));
+      setError(getLocalizedApiError(err, t, "entity.uploadImageFailed"));
     }
   }
 
-  async function handleMultipleImageUpload(fieldKey: string, files: FileList | null) {
+  async function handleMultipleImageUpload(
+    fieldKey: string,
+    files: FileList | null,
+  ) {
     if (!files?.length) return;
 
     setError(null);
     setImageFileNames((prev) => ({
       ...prev,
-      [fieldKey]: Array.from(files).map((file) => file.name).join(', '),
+      [fieldKey]: Array.from(files)
+        .map((file) => file.name)
+        .join(", "),
     }));
     setImageLoadErrors((prev) => ({ ...prev, [fieldKey]: false }));
     try {
-      const results = await Promise.all(Array.from(files).map((file) => uploadImage(file)));
+      const results = await Promise.all(
+        Array.from(files).map((file) => uploadImage(file)),
+      );
+      const uploadedUrls = results.map((item) => item.url);
       setFormValues((prev) => {
-        const current = Array.isArray(prev[fieldKey]) ? (prev[fieldKey] as string[]) : [];
+        const current = Array.isArray(prev[fieldKey])
+          ? (prev[fieldKey] as string[])
+          : [];
         return {
           ...prev,
-          [fieldKey]: [...current, ...results.map((item) => item.url)],
+          [fieldKey]: [...current, ...uploadedUrls],
+          ...(resource === "products" &&
+          fieldKey === "images" &&
+          !isNonEmptyString(prev.thumbnailUrl) &&
+          uploadedUrls[0]
+            ? { thumbnailUrl: uploadedUrls[0] }
+            : {}),
         };
       });
     } catch (err) {
-      setError(getLocalizedApiError(err, t, 'entity.uploadImagesFailed'));
+      setError(getLocalizedApiError(err, t, "entity.uploadImagesFailed"));
     }
   }
 
   function updateImageList(fieldKey: string, index: number, nextValue: string) {
-    setImageLoadErrors((prev) => ({ ...prev, [`${fieldKey}-${index}`]: false }));
+    setImageLoadErrors((prev) => ({
+      ...prev,
+      [`${fieldKey}-${index}`]: false,
+    }));
     setFormValues((prev) => {
-      const current = Array.isArray(prev[fieldKey]) ? [...(prev[fieldKey] as string[])] : [];
+      const current = Array.isArray(prev[fieldKey])
+        ? [...(prev[fieldKey] as string[])]
+        : [];
       current[index] = nextValue;
       return { ...prev, [fieldKey]: current };
     });
@@ -1656,18 +2338,58 @@ export default function EntityManager<K extends ResourceKey>({
 
   function addImageListItem(fieldKey: string) {
     setFormValues((prev) => {
-      const current = Array.isArray(prev[fieldKey]) ? [...(prev[fieldKey] as string[])] : [];
-      return { ...prev, [fieldKey]: [...current, ''] };
+      const current = Array.isArray(prev[fieldKey])
+        ? [...(prev[fieldKey] as string[])]
+        : [];
+      return { ...prev, [fieldKey]: [...current, ""] };
     });
   }
 
   function removeImageListItem(fieldKey: string, index: number) {
-    setImageLoadErrors((prev) => ({ ...prev, [`${fieldKey}-${index}`]: false }));
+    setImageLoadErrors((prev) => ({
+      ...prev,
+      [`${fieldKey}-${index}`]: false,
+    }));
     setFormValues((prev) => {
-      const current = Array.isArray(prev[fieldKey]) ? [...(prev[fieldKey] as string[])] : [];
+      const current = Array.isArray(prev[fieldKey])
+        ? [...(prev[fieldKey] as string[])]
+        : [];
+      const removed = current[index];
       current.splice(index, 1);
+      return {
+        ...prev,
+        [fieldKey]: current,
+        ...(resource === "products" &&
+        fieldKey === "images" &&
+        removed === prev.thumbnailUrl
+          ? { thumbnailUrl: current.find(isNonEmptyString) ?? "" }
+          : {}),
+      };
+    });
+  }
+
+  function moveImageListItem(
+    fieldKey: string,
+    index: number,
+    direction: -1 | 1,
+  ) {
+    setFormValues((prev) => {
+      const current = Array.isArray(prev[fieldKey])
+        ? [...(prev[fieldKey] as string[])]
+        : [];
+      const targetIndex = index + direction;
+      if (targetIndex < 0 || targetIndex >= current.length) return prev;
+      [current[index], current[targetIndex]] = [
+        current[targetIndex],
+        current[index],
+      ];
       return { ...prev, [fieldKey]: current };
     });
+  }
+
+  function setProductCoverImage(imageUrl: string) {
+    if (resource !== "products" || !imageUrl.trim()) return;
+    setFormValues((prev) => ({ ...prev, thumbnailUrl: imageUrl }));
   }
 
   function setImageInputMode(fieldKey: string, mode: ImageInputMode) {
@@ -1675,20 +2397,24 @@ export default function EntityManager<K extends ResourceKey>({
   }
 
   function renderImageFieldHeader(field: EntityField, mode: ImageInputMode) {
-    const options: Array<{ value: ImageInputMode; label: string; icon: ReactNode }> = [
-      { value: 'file', label: t('entity.imageModeFile'), icon: <UploadIcon /> },
-      { value: 'url', label: t('entity.imageModeUrl'), icon: <LinkIcon /> },
+    const options: Array<{
+      value: ImageInputMode;
+      label: string;
+      icon: ReactNode;
+    }> = [
+      { value: "file", label: t("entity.imageModeFile"), icon: <UploadIcon /> },
+      { value: "url", label: t("entity.imageModeUrl"), icon: <LinkIcon /> },
     ];
 
     return (
-      <div className='flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between'>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <FieldLabel label={field.label} required={field.required} />
-        <div className='relative grid h-10 w-full grid-cols-2 gap-1 overflow-hidden rounded-[14px] border border-slate-100 bg-white p-1 shadow-[0_1px_2px_rgba(15,23,42,0.04)] sm:w-[210px]'>
+        <div className="relative grid h-10 w-full grid-cols-2 gap-1 overflow-hidden rounded-[14px] border border-slate-100 bg-white p-1 shadow-[0_1px_2px_rgba(15,23,42,0.04)] sm:w-[210px]">
           <span
-            aria-hidden='true'
+            aria-hidden="true"
             className={cn(
-              'absolute left-1 top-1 h-8 w-[calc(50%-0.375rem)] rounded-[11px] bg-[var(--admin-primary)] shadow-[0_1px_2px_rgba(15,23,42,0.08)] transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]',
-              mode === 'url' && 'translate-x-[calc(100%+0.25rem)]',
+              "absolute left-1 top-1 h-8 w-[calc(50%-0.375rem)] rounded-[11px] bg-[var(--admin-primary)] shadow-[0_1px_2px_rgba(15,23,42,0.08)] transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]",
+              mode === "url" && "translate-x-[calc(100%+0.25rem)]",
             )}
           />
           {options.map((option) => {
@@ -1697,11 +2423,13 @@ export default function EntityManager<K extends ResourceKey>({
             return (
               <button
                 key={option.value}
-                type='button'
+                type="button"
                 onClick={() => setImageInputMode(field.key, option.value)}
                 className={cn(
-                  'relative z-10 inline-flex items-center justify-center gap-1.5 rounded-[11px] px-3 text-[13px] font-semibold transition-colors duration-200',
-                  active ? '!text-white' : '!text-slate-600 hover:bg-[var(--admin-primary-soft)] hover:!text-[var(--admin-primary-strong)]',
+                  "relative z-10 inline-flex items-center justify-center gap-1.5 rounded-[11px] px-3 text-[13px] font-semibold transition-colors duration-200",
+                  active
+                    ? "!text-white"
+                    : "!text-slate-600 hover:bg-[var(--admin-primary-soft)] hover:!text-[var(--admin-primary-strong)]",
                 )}
               >
                 {option.icon}
@@ -1714,25 +2442,35 @@ export default function EntityManager<K extends ResourceKey>({
     );
   }
 
-  function renderImagePreview(imageUrl: string, label: string, errorKey: string) {
+  function renderImagePreview(
+    imageUrl: string,
+    label: string,
+    errorKey: string,
+  ) {
     if (!imageUrl.trim()) return null;
     const previewUrl = resolveApiAssetUrl(imageUrl);
 
     return (
-      <div className='overflow-hidden rounded-[16px] border border-slate-200 bg-white p-2'>
+      <div className="overflow-hidden rounded-[16px] border border-slate-200 bg-white p-2">
         {imageLoadErrors[errorKey] ? (
-          <div className='grid min-h-[180px] place-items-center rounded-[12px] bg-red-50 px-4 text-center'>
-            <p className='text-sm font-semibold text-red-700'>{t('entity.imageUrlLoadError')}</p>
+          <div className="grid min-h-[180px] place-items-center rounded-[12px] bg-red-50 px-4 text-center">
+            <p className="text-sm font-semibold text-red-700">
+              {t("entity.imageUrlLoadError")}
+            </p>
           </div>
         ) : (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={previewUrl}
             alt={label}
-            loading='lazy'
-            className='max-h-[240px] w-full rounded-[12px] object-contain'
-            onError={() => setImageLoadErrors((prev) => ({ ...prev, [errorKey]: true }))}
-            onLoad={() => setImageLoadErrors((prev) => ({ ...prev, [errorKey]: false }))}
+            loading="lazy"
+            className="max-h-[240px] w-full rounded-[12px] object-contain"
+            onError={() =>
+              setImageLoadErrors((prev) => ({ ...prev, [errorKey]: true }))
+            }
+            onLoad={() =>
+              setImageLoadErrors((prev) => ({ ...prev, [errorKey]: false }))
+            }
           />
         )}
       </div>
@@ -1742,10 +2480,10 @@ export default function EntityManager<K extends ResourceKey>({
   function renderFileDropzone(field: EntityField, value: unknown) {
     const imageUrls = Array.isArray(value)
       ? value.filter(isNonEmptyString)
-      : typeof value === 'string' && value.trim()
+      : typeof value === "string" && value.trim()
         ? [value.trim()]
         : [];
-    const multiple = field.type === 'images';
+    const multiple = field.type === "images";
     const inputId = `${resource}-${field.key}-file-input`;
     const fieldFileName = imageFileNames[field.key];
 
@@ -1753,8 +2491,8 @@ export default function EntityManager<K extends ResourceKey>({
       <>
         <input
           id={inputId}
-          type='file'
-          accept='image/*'
+          type="file"
+          accept="image/*"
           multiple={multiple}
           hidden
           aria-label={field.label}
@@ -1762,25 +2500,28 @@ export default function EntityManager<K extends ResourceKey>({
             if (multiple) {
               void handleMultipleImageUpload(field.key, event.target.files);
             } else {
-              void handleSingleImageUpload(field.key, event.target.files?.[0] ?? null);
+              void handleSingleImageUpload(
+                field.key,
+                event.target.files?.[0] ?? null,
+              );
             }
-            event.target.value = '';
+            event.target.value = "";
           }}
-          className='hidden'
+          className="hidden"
         />
 
         <div
-          role='button'
+          role="button"
           tabIndex={0}
           aria-label={field.label}
-          className='group cursor-pointer rounded-[18px] border border-dashed border-slate-300 bg-white px-4 py-5 transition-colors duration-200 hover:border-[var(--admin-primary)] focus-visible:border-[var(--admin-primary)] focus-visible:outline-none focus-visible:shadow-[var(--admin-focus-ring)]'
+          className="group cursor-pointer rounded-[18px] border border-dashed border-slate-300 bg-white px-4 py-5 transition-colors duration-200 hover:border-[var(--admin-primary)] focus-visible:border-[var(--admin-primary)] focus-visible:outline-none focus-visible:shadow-[var(--admin-focus-ring)]"
           onClick={(event) => {
             const target = event.target as HTMLElement;
-            if (target.closest('a, button, input, label')) return;
+            if (target.closest("a, button, input, label")) return;
             document.getElementById(inputId)?.click();
           }}
           onKeyDown={(event) => {
-            if (event.key !== 'Enter' && event.key !== ' ') return;
+            if (event.key !== "Enter" && event.key !== " ") return;
             event.preventDefault();
             document.getElementById(inputId)?.click();
           }}
@@ -1788,75 +2529,138 @@ export default function EntityManager<K extends ResourceKey>({
           onDrop={(event) => {
             event.preventDefault();
             if (multiple) {
-              void handleMultipleImageUpload(field.key, event.dataTransfer.files);
+              void handleMultipleImageUpload(
+                field.key,
+                event.dataTransfer.files,
+              );
             } else {
-              void handleSingleImageUpload(field.key, event.dataTransfer.files?.[0] ?? null);
+              void handleSingleImageUpload(
+                field.key,
+                event.dataTransfer.files?.[0] ?? null,
+              );
             }
           }}
         >
           {imageUrls.length ? (
-            <div className='space-y-4'>
-              <div className={cn('grid grid-cols-1 gap-3', multiple && 'sm:grid-cols-2')}>
-                {imageUrls.map((imageUrl, index) => (
-                  <div
-                    key={`${field.key}-file-preview-${imageUrl}-${index}`}
-                    className='space-y-2 rounded-[16px] border border-slate-300 bg-white p-2.5'
-                  >
-                    {renderImagePreview(
-                      imageUrl,
-                      `${field.label} ${index + 1}`,
-                      multiple ? `${field.key}-${index}` : field.key,
-                    )}
-                    {multiple ? (
-                      <Button
-                        variant='remove'
-                        type='button'
-                        className='h-9 w-full rounded-[10px] px-3 py-1.5 text-xs'
-                        onClick={() => removeImageListItem(field.key, index)}
-                      >
-                        {t('entity.remove')}
-                      </Button>
-                    ) : null}
-                  </div>
-                ))}
+            <div className="space-y-4">
+              <div
+                className={cn(
+                  "grid grid-cols-1 gap-3",
+                  multiple && "sm:grid-cols-2",
+                )}
+              >
+                {imageUrls.map((imageUrl, index) => {
+                  const isProductImage =
+                    resource === "products" && field.key === "images";
+                  const isCover =
+                    isProductImage && formValues.thumbnailUrl === imageUrl;
+
+                  return (
+                    <div
+                      key={`${field.key}-file-preview-${imageUrl}-${index}`}
+                      className="space-y-2 rounded-[16px] border border-slate-300 bg-white p-2.5"
+                    >
+                      {renderImagePreview(
+                        imageUrl,
+                        `${field.label} ${index + 1}`,
+                        multiple ? `${field.key}-${index}` : field.key,
+                      )}
+                      {multiple ? (
+                        <div className="flex flex-wrap gap-2">
+                          {isProductImage ? (
+                            <Button
+                              variant="secondary"
+                              type="button"
+                              disabled={isCover}
+                              className="h-9 flex-1 rounded-[10px] px-3 py-1.5 text-xs"
+                              onClick={() => setProductCoverImage(imageUrl)}
+                            >
+                              {isCover
+                                ? t("entity.coverImage")
+                                : t("entity.setCover")}
+                            </Button>
+                          ) : null}
+                          <Button
+                            variant="secondary"
+                            type="button"
+                            disabled={index === 0}
+                            className="h-9 rounded-[10px] px-3 py-1.5 text-xs"
+                            onClick={() =>
+                              moveImageListItem(field.key, index, -1)
+                            }
+                          >
+                            {t("entity.moveUp")}
+                          </Button>
+                          <Button
+                            variant="secondary"
+                            type="button"
+                            disabled={index === imageUrls.length - 1}
+                            className="h-9 rounded-[10px] px-3 py-1.5 text-xs"
+                            onClick={() =>
+                              moveImageListItem(field.key, index, 1)
+                            }
+                          >
+                            {t("entity.moveDown")}
+                          </Button>
+                          <Button
+                            variant="remove"
+                            type="button"
+                            className="h-9 rounded-[10px] px-3 py-1.5 text-xs"
+                            onClick={() =>
+                              removeImageListItem(field.key, index)
+                            }
+                          >
+                            {t("entity.remove")}
+                          </Button>
+                        </div>
+                      ) : null}
+                    </div>
+                  );
+                })}
               </div>
               {fieldFileName ? (
-                <p className='truncate text-center text-[13px] font-medium text-slate-500'>
+                <p className="truncate text-center text-[13px] font-medium text-slate-500">
                   {fieldFileName}
                 </p>
               ) : null}
-              <div className='flex justify-center'>
+              <div className="flex justify-center">
                 <label
                   htmlFor={inputId}
                   onClick={(event) => event.stopPropagation()}
-                  className='inline-flex min-h-[42px] cursor-pointer items-center justify-center gap-2 rounded-[12px] border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold leading-none text-slate-700 transition-colors duration-200 hover:border-[var(--admin-primary)] hover:bg-[var(--admin-primary-soft)] hover:text-[var(--admin-primary-strong)]'
+                  className="inline-flex min-h-[42px] cursor-pointer items-center justify-center gap-2 rounded-[12px] border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold leading-none text-slate-700 transition-colors duration-200 hover:border-[var(--admin-primary)] hover:bg-[var(--admin-primary-soft)] hover:text-[var(--admin-primary-strong)]"
                 >
                   <UploadIcon />
-                  {multiple ? t('entity.chooseOtherFiles') : t('entity.changeImage')}
+                  {multiple
+                    ? t("entity.chooseOtherFiles")
+                    : t("entity.changeImage")}
                 </label>
               </div>
             </div>
           ) : (
-            <div className='grid min-h-[150px] place-items-center text-center'>
-              <div className='flex max-w-md flex-col items-center gap-3'>
-                <span className='grid h-12 w-12 place-items-center rounded-[16px] border border-slate-200 bg-slate-50 text-slate-500 transition-colors duration-200 group-hover:border-[var(--admin-primary-tint)] group-hover:bg-[var(--admin-primary-soft)] group-hover:text-[var(--admin-primary-strong)] group-focus-visible:border-[var(--admin-primary-tint)] group-focus-visible:bg-[var(--admin-primary-soft)] group-focus-visible:text-[var(--admin-primary-strong)]'>
+            <div className="grid min-h-[120px] place-items-center text-center">
+              <div className="flex max-w-md flex-col items-center gap-3">
+                <span className="grid h-12 w-12 place-items-center rounded-[16px] border border-slate-200 bg-slate-50 text-slate-500 transition-colors duration-200 group-hover:border-[var(--admin-primary-tint)] group-hover:bg-[var(--admin-primary-soft)] group-hover:text-[var(--admin-primary-strong)] group-focus-visible:border-[var(--admin-primary-tint)] group-focus-visible:bg-[var(--admin-primary-soft)] group-focus-visible:text-[var(--admin-primary-strong)]">
                   <UploadIcon />
                 </span>
                 <div>
-                  <p className='text-sm font-semibold text-slate-800'>
-                    {multiple ? t('entity.noImagesYet') : t('entity.noImageSelected')}
+                  <p className="text-sm font-semibold text-slate-800">
+                    {multiple
+                      ? t("entity.noImagesYet")
+                      : t("entity.noImageSelected")}
                   </p>
-                  <p className='mt-2 text-[13px] leading-6 text-slate-500'>
-                    {multiple ? t('entity.dropImagesDescription') : t('entity.dropImageDescription')}
+                  <p className="mt-2 text-[13px] leading-6 text-slate-500">
+                    {multiple
+                      ? t("entity.dropImagesDescription")
+                      : t("entity.dropImageDescription")}
                   </p>
                 </div>
                 <label
                   htmlFor={inputId}
                   onClick={(event) => event.stopPropagation()}
-                  className='inline-flex min-h-[42px] cursor-pointer items-center justify-center gap-2 rounded-[12px] border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold leading-none text-slate-700 transition-colors duration-200 hover:border-[var(--admin-primary)] hover:bg-[var(--admin-primary-soft)] hover:text-[var(--admin-primary-strong)]'
+                  className="inline-flex min-h-[42px] cursor-pointer items-center justify-center gap-2 rounded-[12px] border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold leading-none text-slate-700 transition-colors duration-200 hover:border-[var(--admin-primary)] hover:bg-[var(--admin-primary-soft)] hover:text-[var(--admin-primary-strong)]"
                 >
                   <UploadIcon />
-                  {t('entity.chooseFile')}
+                  {t("entity.chooseFile")}
                 </label>
               </div>
             </div>
@@ -1867,31 +2671,36 @@ export default function EntityManager<K extends ResourceKey>({
   }
 
   function renderUrlImageInput(field: EntityField, value: unknown) {
-    if (field.type === 'image') {
-      const imageUrl = typeof value === 'string' ? value : '';
+    if (field.type === "image") {
+      const imageUrl = typeof value === "string" ? value : "";
 
       return (
-        <div className='space-y-3'>
+        <div className="space-y-3">
           <Input
-            type='url'
+            type="url"
             value={imageUrl}
             aria-label={`${field.label} URL`}
-            placeholder={t('entity.pasteImageUrl')}
+            placeholder={t("entity.pasteImageUrl")}
             onChange={(event) => {
               setImageLoadErrors((prev) => ({ ...prev, [field.key]: false }));
-              setFormValues((prev) => ({ ...prev, [field.key]: event.target.value }));
+              setFormValues((prev) => ({
+                ...prev,
+                [field.key]: event.target.value,
+              }));
             }}
-            size='md'
+            size="md"
           />
           {imageUrl.trim() ? (
             renderImagePreview(imageUrl, field.label, field.key)
           ) : (
-            <div className='grid min-h-[140px] place-items-center rounded-[18px] border border-dashed border-slate-300 bg-white px-4 text-center'>
-              <div className='flex max-w-xs flex-col items-center gap-3'>
-                <span className='grid h-11 w-11 place-items-center rounded-[14px] border border-slate-200 bg-white text-slate-500'>
+            <div className="grid min-h-[120px] place-items-center rounded-[18px] border border-dashed border-slate-300 bg-white px-4 text-center">
+              <div className="flex max-w-xs flex-col items-center gap-3">
+                <span className="grid h-11 w-11 place-items-center rounded-[14px] border border-slate-200 bg-white text-slate-500">
                   <LinkIcon />
                 </span>
-                <p className='text-sm font-medium text-slate-500'>{t('entity.pasteImageUrlPreview')}</p>
+                <p className="text-sm font-medium text-slate-500">
+                  {t("entity.pasteImageUrlPreview")}
+                </p>
               </div>
             </div>
           )}
@@ -1900,64 +2709,118 @@ export default function EntityManager<K extends ResourceKey>({
     }
 
     const imageUrls = Array.isArray(value) ? value : [];
-    const urlInputs = imageUrls.length ? imageUrls : [''];
+    const urlInputs = imageUrls.length ? imageUrls : [""];
     const previewEntries = imageUrls
       .map((imageUrl, index) => ({
-        imageUrl: typeof imageUrl === 'string' ? imageUrl.trim() : '',
+        imageUrl: typeof imageUrl === "string" ? imageUrl.trim() : "",
         index,
       }))
       .filter((entry) => entry.imageUrl.length > 0);
 
     return (
-      <div className='space-y-3'>
+      <div className="space-y-3">
         {urlInputs.map((imageUrl, index) => (
-          <div key={`${field.key}-url-${index}`} className='flex flex-col gap-3 sm:flex-row'>
+          <div
+            key={`${field.key}-url-${index}`}
+            className="flex flex-col gap-3 sm:flex-row"
+          >
             <Input
-              type='url'
-              value={String(imageUrl ?? '')}
+              type="url"
+              value={String(imageUrl ?? "")}
               aria-label={`${field.label} URL ${index + 1}`}
-              onChange={(event) => updateImageList(field.key, index, event.target.value)}
-              placeholder={t('entity.pasteImageUrl')}
-              size='md'
-              className='flex-1'
+              onChange={(event) =>
+                updateImageList(field.key, index, event.target.value)
+              }
+              placeholder={t("entity.pasteImageUrl")}
+              size="md"
+              className="flex-1"
             />
             {imageUrls.length ? (
               <Button
-                variant='remove'
-                type='button'
-                className='h-10 rounded-[12px] px-4'
+                variant="remove"
+                type="button"
+                className="h-10 rounded-[12px] px-4"
                 onClick={() => removeImageListItem(field.key, index)}
               >
-                {t('entity.remove')}
+                {t("entity.remove")}
               </Button>
             ) : null}
           </div>
         ))}
 
         <Button
-          variant='secondary'
-          type='button'
-          className='h-10 rounded-[12px] px-4'
+          variant="secondary"
+          type="button"
+          className="h-10 rounded-[12px] px-4"
           onClick={() => addImageListItem(field.key)}
         >
-          {t('entity.addUrl')}
+          {t("entity.addUrl")}
         </Button>
 
         {previewEntries.length ? (
-          <div className='grid grid-cols-1 gap-3 sm:grid-cols-2'>
-            {previewEntries.map(({ imageUrl, index }) => (
-              <div key={`${field.key}-url-preview-${imageUrl}-${index}`}>
-                {renderImagePreview(imageUrl, `${field.label} ${index + 1}`, `${field.key}-${index}`)}
-              </div>
-            ))}
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            {previewEntries.map(({ imageUrl, index }) => {
+              const isProductImage =
+                resource === "products" && field.key === "images";
+              const isCover =
+                isProductImage && formValues.thumbnailUrl === imageUrl;
+
+              return (
+                <div
+                  key={`${field.key}-url-preview-${imageUrl}-${index}`}
+                  className="space-y-2"
+                >
+                  {renderImagePreview(
+                    imageUrl,
+                    `${field.label} ${index + 1}`,
+                    `${field.key}-${index}`,
+                  )}
+                  <div className="flex flex-wrap gap-2">
+                    {isProductImage ? (
+                      <Button
+                        variant="secondary"
+                        type="button"
+                        disabled={isCover}
+                        className="h-9 flex-1 rounded-[10px] px-3 py-1.5 text-xs"
+                        onClick={() => setProductCoverImage(imageUrl)}
+                      >
+                        {isCover
+                          ? t("entity.coverImage")
+                          : t("entity.setCover")}
+                      </Button>
+                    ) : null}
+                    <Button
+                      variant="secondary"
+                      type="button"
+                      disabled={index === 0}
+                      className="h-9 rounded-[10px] px-3 py-1.5 text-xs"
+                      onClick={() => moveImageListItem(field.key, index, -1)}
+                    >
+                      {t("entity.moveUp")}
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      type="button"
+                      disabled={index === imageUrls.length - 1}
+                      className="h-9 rounded-[10px] px-3 py-1.5 text-xs"
+                      onClick={() => moveImageListItem(field.key, index, 1)}
+                    >
+                      {t("entity.moveDown")}
+                    </Button>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         ) : (
-          <div className='grid min-h-[190px] place-items-center rounded-[18px] border border-dashed border-slate-300 bg-white px-4 text-center'>
-            <div className='flex max-w-xs flex-col items-center gap-3'>
-              <span className='grid h-11 w-11 place-items-center rounded-[14px] border border-slate-200 bg-white text-slate-500'>
+          <div className="grid min-h-[120px] place-items-center rounded-[18px] border border-dashed border-slate-300 bg-white px-4 text-center">
+            <div className="flex max-w-xs flex-col items-center gap-3">
+              <span className="grid h-11 w-11 place-items-center rounded-[14px] border border-slate-200 bg-white text-slate-500">
                 <LinkIcon />
               </span>
-              <p className='text-sm font-medium text-slate-500'>{t('entity.pasteImageUrlPreview')}</p>
+              <p className="text-sm font-medium text-slate-500">
+                {t("entity.pasteImageUrlPreview")}
+              </p>
             </div>
           </div>
         )}
@@ -1966,14 +2829,16 @@ export default function EntityManager<K extends ResourceKey>({
   }
 
   function renderImageField(field: EntityField, value: unknown) {
-    const mode = imageInputModes[field.key] ?? 'file';
+    const mode = imageInputModes[field.key] ?? "file";
 
     return (
-      <div className='space-y-3'>
+      <div className="space-y-3">
         {renderImageFieldHeader(field, mode)}
-        {mode === 'file' ? renderFileDropzone(field, value) : renderUrlImageInput(field, value)}
+        {mode === "file"
+          ? renderFileDropzone(field, value)
+          : renderUrlImageInput(field, value)}
         {field.helpText && (
-          <p className='rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium leading-relaxed text-amber-700'>
+          <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium leading-relaxed text-amber-700">
             ⚠️ {field.helpText}
           </p>
         )}
@@ -1988,7 +2853,9 @@ export default function EntityManager<K extends ResourceKey>({
   ) {
     setFormValues((prev) => {
       const current = normalizeContentFieldFormValues(prev[fieldKey]);
-      const next = current.length ? [...current] : [createContentFieldFormValue(0)];
+      const next = current.length
+        ? [...current]
+        : [createContentFieldFormValue(0)];
       const existing = next[index] ?? createContentFieldFormValue(index);
       next[index] = { ...existing, ...patch };
       return { ...prev, [fieldKey]: next };
@@ -2019,73 +2886,79 @@ export default function EntityManager<K extends ResourceKey>({
     const contentFields = normalizeContentFieldFormValues(value);
 
     return (
-      <div className='rounded-[18px] border border-slate-200 bg-white p-4'>
-        <div className='flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between'>
+      <div className="rounded-[18px] border border-slate-200 bg-white p-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className='text-sm font-semibold text-slate-900'>
-              {t('entity.customerFieldsTitle')}
+            <p className="text-sm font-semibold text-slate-900">
+              {t("entity.customerFieldsTitle")}
             </p>
-            <p className='mt-1 text-[13px] leading-5 text-slate-500'>
-              {t('entity.customerFieldsDescription')}
+            <p className="mt-1 text-[13px] leading-5 text-slate-500">
+              {t("entity.customerFieldsDescription")}
             </p>
           </div>
           <Button
-            type='button'
-            variant='secondary'
+            type="button"
+            variant="secondary"
             leftIcon={<PlusIcon />}
-            className='h-10 rounded-[12px] px-4'
+            className="h-10 rounded-[12px] px-4"
             onClick={() => addContentFieldValue(field.key)}
           >
-            {t('entity.addField')}
+            {t("entity.addField")}
           </Button>
         </div>
 
         {contentFields.length === 0 ? (
-          <div className='mt-4 rounded-[14px] border border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-center text-sm font-medium text-slate-500'>
-            {t('entity.noContentFields')}
+          <div className="mt-4 rounded-[14px] border border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-center text-sm font-medium text-slate-500">
+            {t("entity.noContentFields")}
           </div>
         ) : (
-          <div className='mt-4 space-y-3'>
+          <div className="mt-4 space-y-3">
             {contentFields.map((contentField, index) => (
               <div
                 key={`${field.key}-${index}`}
-                className='rounded-[16px] border border-slate-200 bg-slate-50 p-3'
+                className="rounded-[16px] border border-slate-200 bg-slate-50 p-3"
               >
-                <div className='grid grid-cols-1 gap-3 lg:grid-cols-12'>
-                  <label className='space-y-1 lg:col-span-3'>
-                    <span className='text-[12px] font-semibold text-slate-600'>
-                      {t('entity.displayLabel')}
+                <div className="grid grid-cols-1 gap-3 lg:grid-cols-12">
+                  <label className="space-y-1 lg:col-span-3">
+                    <span className="text-[12px] font-semibold text-slate-600">
+                      {t("entity.displayLabel")}
                     </span>
                     <Input
                       value={contentField.label}
-                      size='md'
-                      placeholder={t('entity.displayLabelPlaceholder')}
+                      size="md"
+                      placeholder={t("entity.displayLabelPlaceholder")}
                       onKeyDown={(event) => event.stopPropagation()}
                       onChange={(event) => {
                         const label = event.target.value;
                         updateContentFieldValue(field.key, index, {
                           label,
-                          key: contentField.key || buildContentFieldKey(label, index),
+                          key:
+                            contentField.key ||
+                            buildContentFieldKey(label, index),
                         });
                       }}
                     />
                   </label>
 
-                  <label className='space-y-1 lg:col-span-2'>
-                    <span className='text-[12px] font-semibold text-slate-600'>{t('entity.fieldKey')}</span>
+                  <label className="space-y-1 lg:col-span-2">
+                    <span className="text-[12px] font-semibold text-slate-600">
+                      {t("entity.fieldKey")}
+                    </span>
                     <Input
                       value={contentField.key}
-                      size='md'
-                      placeholder={t('entity.fieldKeyPlaceholder')}
+                      size="md"
+                      placeholder={t("entity.fieldKeyPlaceholder")}
                       onChange={(event) =>
-                        updateContentFieldValue(field.key, index, { key: event.target.value })
+                        updateContentFieldValue(field.key, index, {
+                          key: event.target.value,
+                        })
                       }
                     />
                   </label>
 
-                  <label className='space-y-1 lg:col-span-2'>
-                    <span className='text-[12px] font-semibold text-slate-600'>
-                      {t('entity.inputType')}
+                  <label className="space-y-1 lg:col-span-2">
+                    <span className="text-[12px] font-semibold text-slate-600">
+                      {t("entity.inputType")}
                     </span>
                     <Select
                       value={contentField.type}
@@ -2103,53 +2976,59 @@ export default function EntityManager<K extends ResourceKey>({
                     </Select>
                   </label>
 
-                  <label className='space-y-1 lg:col-span-3'>
-                    <span className='text-[12px] font-semibold text-slate-600'>
-                      {t('entity.placeholderLabel')}
+                  <label className="space-y-1 lg:col-span-3">
+                    <span className="text-[12px] font-semibold text-slate-600">
+                      {t("entity.placeholderLabel")}
                     </span>
                     <Input
                       value={contentField.placeholder}
-                      size='md'
-                      placeholder={t('entity.placeholderExample')}
+                      size="md"
+                      placeholder={t("entity.placeholderExample")}
                       onKeyDown={(event) => event.stopPropagation()}
                       onChange={(event) =>
-                        updateContentFieldValue(field.key, index, { placeholder: event.target.value })
+                        updateContentFieldValue(field.key, index, {
+                          placeholder: event.target.value,
+                        })
                       }
                     />
                   </label>
 
-                  <div className='flex items-end gap-2 lg:col-span-2'>
-                    <label className='flex h-10 flex-1 items-center gap-2 rounded-[12px] border border-slate-200 bg-white px-3 text-[13px] font-semibold text-slate-700'>
+                  <div className="flex items-end gap-2 lg:col-span-2">
+                    <label className="flex h-10 flex-1 items-center gap-2 rounded-[12px] border border-slate-200 bg-white px-3 text-[13px] font-semibold text-slate-700">
                       <input
-                        type='checkbox'
+                        type="checkbox"
                         checked={contentField.required}
                         onChange={(event) =>
-                          updateContentFieldValue(field.key, index, { required: event.target.checked })
+                          updateContentFieldValue(field.key, index, {
+                            required: event.target.checked,
+                          })
                         }
                       />
-                      {t('entity.required')}
+                      {t("entity.required")}
                     </label>
                     <Button
-                      type='button'
-                      variant='remove'
-                      className='h-10 rounded-[12px] px-3'
+                      type="button"
+                      variant="remove"
+                      className="h-10 rounded-[12px] px-3"
                       onClick={() => removeContentFieldValue(field.key, index)}
                     >
                       <TrashIcon />
                     </Button>
                   </div>
 
-                  <label className='space-y-1 lg:col-span-12'>
-                    <span className='text-[12px] font-semibold text-slate-600'>
-                      {t('entity.helpTextLabel')}
+                  <label className="space-y-1 lg:col-span-12">
+                    <span className="text-[12px] font-semibold text-slate-600">
+                      {t("entity.helpTextLabel")}
                     </span>
                     <Input
                       value={contentField.helpText}
-                      size='md'
-                      placeholder={t('entity.helpTextPlaceholder')}
+                      size="md"
+                      placeholder={t("entity.helpTextPlaceholder")}
                       onKeyDown={(event) => event.stopPropagation()}
                       onChange={(event) =>
-                        updateContentFieldValue(field.key, index, { helpText: event.target.value })
+                        updateContentFieldValue(field.key, index, {
+                          helpText: event.target.value,
+                        })
                       }
                     />
                   </label>
@@ -2162,39 +3041,54 @@ export default function EntityManager<K extends ResourceKey>({
     );
   }
 
-  function renderTableCell(column: EntityTableColumn, row: Record<string, unknown>) {
+  function renderTableCell(
+    column: EntityTableColumn,
+    row: Record<string, unknown>,
+  ) {
     const field = column.field;
     const value = getRelatedDisplayValue(row, field.key);
 
-    if (resource === 'frame-options' && field.key === 'frameSize') {
+    if (resource === "frame-options" && field.key === "frameSize") {
       const width = row.widthCm;
       const height = row.heightCm;
-      const label = typeof row.label === 'string' && row.label.trim() ? row.label.trim() : '';
-      const name = typeof row.name === 'string' && row.name.trim() ? row.name.trim() : '';
+      const label =
+        typeof row.label === "string" && row.label.trim()
+          ? row.label.trim()
+          : "";
+      const name =
+        typeof row.name === "string" && row.name.trim() ? row.name.trim() : "";
 
-      if (typeof width === 'number' && typeof height === 'number' && width > 0 && height > 0) {
+      if (
+        typeof width === "number" &&
+        typeof height === "number" &&
+        width > 0 &&
+        height > 0
+      ) {
         return (
-          <span className='block whitespace-nowrap text-left font-semibold tabular-nums text-slate-900'>
+          <span className="block whitespace-nowrap text-left font-semibold tabular-nums text-slate-900">
             {formatNumber(width, locale)} x {formatNumber(height, locale)}
           </span>
         );
       }
 
       return (
-        <span title={label || name || undefined} className='block truncate text-left font-semibold text-slate-900'>
-          {label || name || '-'}
+        <span
+          title={label || name || undefined}
+          className="block truncate text-left font-semibold text-slate-900"
+        >
+          {label || name || "-"}
         </span>
       );
     }
 
-    if (field.key === 'colorHex') {
-      const hex = typeof value === 'string' ? value.trim() : '';
-      if (!hex) return <span className='text-slate-400'>-</span>;
-      if (resource === 'frame-options') {
+    if (field.key === "colorHex") {
+      const hex = typeof value === "string" ? value.trim() : "";
+      if (!hex) return <span className="text-slate-400">-</span>;
+      if (resource === "frame-options") {
         return (
-          <div className='flex items-center justify-center'>
+          <div className="flex items-center justify-center">
             <span
-              className='h-8 w-8 shrink-0 rounded-full border border-slate-300 shadow-sm ring-2 ring-white'
+              className="h-8 w-8 shrink-0 rounded-full border border-slate-300 shadow-sm ring-2 ring-white"
               style={{ backgroundColor: hex }}
               title={hex}
             />
@@ -2202,53 +3096,56 @@ export default function EntityManager<K extends ResourceKey>({
         );
       }
       return (
-        <div className='flex items-center gap-2'>
+        <div className="flex items-center gap-2">
           <span
-            className='h-4.5 w-4.5 shrink-0 rounded-full border border-slate-300 shadow-sm'
+            className="h-4.5 w-4.5 shrink-0 rounded-full border border-slate-300 shadow-sm"
             style={{ backgroundColor: hex }}
           />
-          <span className='font-mono text-[13px] text-slate-700'>{hex}</span>
+          <span className="font-mono text-[13px] text-slate-700">{hex}</span>
         </div>
       );
     }
 
-    if (typeof value === 'string' && field.key.toLowerCase().includes('status')) {
+    if (
+      typeof value === "string" &&
+      field.key.toLowerCase().includes("status")
+    ) {
       const statusValue = value.trim();
-      if (!statusValue) return <span className='text-slate-400'>-</span>;
+      if (!statusValue) return <span className="text-slate-400">-</span>;
 
       return <StatusBadge value={statusValue} t={t} />;
     }
 
-    if (field.type === 'image') {
-      const imageUrl = typeof value === 'string' ? value.trim() : '';
+    if (field.type === "image") {
+      const imageUrl = typeof value === "string" ? value.trim() : "";
 
       return (
-        <div className='flex items-center justify-center'>
+        <div className="flex items-center justify-center">
           <TableThumbnail
             src={imageUrl}
             alt={field.label}
-            zoomLabel={t('common.zoomImage')}
+            zoomLabel={t("common.zoomImage")}
             onOpen={(src) => openImagePreview(src, field.label)}
           />
         </div>
       );
     }
 
-    if (field.type === 'images') {
+    if (field.type === "images") {
       const imageUrls = Array.isArray(value)
         ? value.filter(isNonEmptyString)
         : [];
 
       return (
-        <div className='flex items-center justify-center gap-2'>
+        <div className="flex items-center justify-center gap-2">
           <TableThumbnail
             src={imageUrls[0]}
             alt={field.label}
-            zoomLabel={t('common.zoomImage')}
+            zoomLabel={t("common.zoomImage")}
             onOpen={(src) => openImagePreview(src, field.label)}
           />
           {imageUrls.length > 1 ? (
-            <span className='rounded-full bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-500'>
+            <span className="rounded-full bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-500">
               +{imageUrls.length - 1}
             </span>
           ) : null}
@@ -2256,72 +3153,80 @@ export default function EntityManager<K extends ResourceKey>({
       );
     }
 
-    if (typeof value === 'number') {
+    if (typeof value === "number") {
       return (
         <span
           className={cn(
-            'block font-semibold tabular-nums text-slate-900',
-            isCurrencyColumn(field.key) ? 'text-right' : 'text-center',
+            "block font-semibold tabular-nums text-slate-900",
+            isCurrencyColumn(field.key) ? "text-right" : "text-center",
           )}
         >
-          {isCurrencyColumn(field.key) ? formatVnd(value, locale) : formatNumber(value, locale)}
+          {isCurrencyColumn(field.key)
+            ? formatVnd(value, locale)
+            : formatNumber(value, locale)}
         </span>
       );
     }
 
-    if (typeof value === 'boolean') {
+    if (typeof value === "boolean") {
       const booleanLabel =
-        field.key === 'published'
+        field.key === "published"
           ? value
-            ? t('productFields.published')
-            : t('productFields.notPublished')
+            ? t("productFields.published")
+            : t("productFields.notPublished")
           : value
-            ? t('status.active')
-            : t('status.inactive');
+            ? t("status.active")
+            : t("status.inactive");
 
       return (
-        <Badge tone={value ? 'success' : 'neutral'} className='px-2.5 py-1 text-[12px]'>
+        <Badge
+          tone={value ? "success" : "neutral"}
+          className="px-2.5 py-1 text-[12px]"
+        >
           {booleanLabel}
         </Badge>
       );
     }
 
     const textValue = displayCellValue(value);
-    const safeTextValue = textValue.trim() ? textValue : '-';
+    const safeTextValue = textValue.trim() ? textValue : "-";
     const normalizedKey = field.key.toLowerCase();
 
     if (
-      field.type === 'datetime' ||
-      normalizedKey === 'createdat' ||
-      normalizedKey === 'updatedat'
+      field.type === "datetime" ||
+      normalizedKey === "createdat" ||
+      normalizedKey === "updatedat"
     ) {
       const formattedDate = formatEntityDateTime(value, locale);
 
       return (
-        <span title={safeTextValue} className='block whitespace-nowrap text-center text-[13px] font-semibold tabular-nums text-slate-700'>
+        <span
+          title={safeTextValue}
+          className="block whitespace-nowrap text-center text-[13px] font-semibold tabular-nums text-slate-700"
+        >
           {formattedDate}
         </span>
       );
     }
 
-    if (field.type === 'tags') {
+    if (field.type === "tags") {
       const tags = parseTagsInput(value);
       if (tags.length === 0) {
-        return <span className='text-slate-400'>-</span>;
+        return <span className="text-slate-400">-</span>;
       }
 
       return (
-        <div className='flex max-w-[320px] flex-wrap gap-1.5'>
+        <div className="flex max-w-[320px] flex-wrap gap-1.5">
           {tags.slice(0, 4).map((tag) => (
             <span
               key={tag}
-              className='rounded-full bg-slate-100 px-2 py-1 text-[11px] font-semibold text-slate-600'
+              className="rounded-full bg-slate-100 px-2 py-1 text-[11px] font-semibold text-slate-600"
             >
               {tag}
             </span>
           ))}
           {tags.length > 4 ? (
-            <span className='rounded-full bg-slate-100 px-2 py-1 text-[11px] font-semibold text-slate-500'>
+            <span className="rounded-full bg-slate-100 px-2 py-1 text-[11px] font-semibold text-slate-500">
               +{tags.length - 4}
             </span>
           ) : null}
@@ -2329,43 +3234,59 @@ export default function EntityManager<K extends ResourceKey>({
       );
     }
 
-    if (field.type === 'json') {
+    if (field.type === "json") {
       return (
         <code
           title={safeTextValue}
-          className='block max-w-[300px] truncate rounded-lg bg-slate-100 px-2 py-1 font-mono text-[12px] font-medium text-slate-600'
+          className="block max-w-[300px] truncate rounded-lg bg-slate-100 px-2 py-1 font-mono text-[12px] font-medium text-slate-600"
         >
           {safeTextValue}
         </code>
       );
     }
 
-    if (normalizedKey === 'name' || normalizedKey.endsWith('name') || normalizedKey === 'title') {
+    if (
+      normalizedKey === "name" ||
+      normalizedKey.endsWith("name") ||
+      normalizedKey === "title"
+    ) {
       return (
-        <span title={safeTextValue} className='block max-w-[260px] truncate font-semibold text-slate-900'>
+        <span
+          title={safeTextValue}
+          className="block max-w-[260px] truncate font-semibold text-slate-900"
+        >
           {safeTextValue}
         </span>
       );
     }
 
-    if (normalizedKey === 'slug' || normalizedKey.includes('url')) {
+    if (normalizedKey === "slug" || normalizedKey.includes("url")) {
       return (
-        <span title={safeTextValue} className='block max-w-[260px] truncate text-[13px] font-medium text-slate-500'>
+        <span
+          title={safeTextValue}
+          className="block max-w-[260px] truncate text-[13px] font-medium text-slate-500"
+        >
           {safeTextValue}
         </span>
       );
     }
 
-    if (normalizedKey.includes('description')) {
+    if (normalizedKey.includes("description")) {
       return (
-        <span title={safeTextValue} className='block max-w-[320px] truncate text-[13px] leading-6 text-slate-500'>
+        <span
+          title={safeTextValue}
+          className="block max-w-[320px] truncate text-[13px] leading-6 text-slate-500"
+        >
           {safeTextValue}
         </span>
       );
     }
 
     return (
-      <span title={safeTextValue} className='block max-w-[280px] truncate text-slate-700'>
+      <span
+        title={safeTextValue}
+        className="block max-w-[280px] truncate text-slate-700"
+      >
         {safeTextValue}
       </span>
     );
@@ -2374,49 +3295,53 @@ export default function EntityManager<K extends ResourceKey>({
   return (
     <PageShell scrollable={false}>
       <AdminToolbar
-          icon={<AdminNavIcon name={getEntityIconName(resource)} className='h-6 w-6' />}
-          title={pageTitle ?? title}
-          description={pageDescription ?? t('entity.description')}
-          badge={
-            <Badge
-              tone='info'
-              className={cn(
-                'rounded-full px-4 py-2 text-sm font-bold !text-slate-950',
-                loading && 'min-w-[112px] justify-center',
-              )}
-            >
-              {loading ? (
-                <LoadingSpinner
-                  size='sm'
-                  label={getEntityLoadingLabel(resource, locale)}
-                  className='border-current/25 border-t-current'
-                />
-              ) : (
-                getEntityCountLabel(resource, meta?.total ?? items.length, locale)
-              )}
-            </Badge>
-          }
-        >
+        icon={
+          <AdminNavIcon
+            name={getEntityIconName(resource)}
+            className="h-6 w-6"
+          />
+        }
+        title={pageTitle ?? title}
+        badge={
+          <Badge
+            tone="info"
+            className={cn(
+              "rounded-full px-4 py-2 text-sm font-bold !text-slate-950",
+              loading && "min-w-[112px] justify-center",
+            )}
+          >
+            {loading ? (
+              <LoadingSpinner
+                size="sm"
+                label={getEntityLoadingLabel(resource, locale)}
+                className="border-current/25 border-t-current"
+              />
+            ) : (
+              getEntityCountLabel(resource, meta?.total ?? items.length, locale)
+            )}
+          </Badge>
+        }
+      >
         <AdminToolbarField
           hideLabel
           wide
-          icon={<AdminToolbarIcon name='search' />}
-          label={t('common.search')}
-          className='sm:w-[300px]'
+          icon={<AdminToolbarIcon name="search" />}
+          label={t("common.search")}
+          className="sm:w-[300px]"
         >
           <Input
             value={search}
-            aria-label={t('common.search')}
+            aria-label={t("common.search")}
             onChange={(event) => setSearch(event.target.value)}
-            placeholder={getEntityUiText(locale, 'searchPlaceholder')}
+            placeholder={getEntityUiText(locale, "searchPlaceholder")}
             className={adminToolbarInputClass}
           />
         </AdminToolbarField>
 
         {hasEntityFilters ? (
           <Button
-            type='button'
-            variant='secondary'
+            type="button"
+            variant="secondary"
             leftIcon={<FilterIconWithBadge count={drawerFilterCount} />}
             onClick={() => {
               setDraftFilters({
@@ -2430,72 +3355,77 @@ export default function EntityManager<K extends ResourceKey>({
               });
               setFilterDrawerOpen(true);
             }}
-            className={cn(adminToolbarButtonClass, 'px-4')}
+            className={cn(adminToolbarButtonClass, "px-4")}
           >
-            {getEntityUiText(locale, 'filters')}
+            {getEntityUiText(locale, "filters")}
           </Button>
         ) : null}
 
         {showResetFilters ? (
           <Button
-            variant='secondary'
-            type='button'
+            variant="secondary"
+            type="button"
             onClick={resetFilters}
-            leftIcon={<AdminToolbarIcon name='reset' />}
+            leftIcon={<AdminToolbarIcon name="reset" />}
             className={adminToolbarButtonClass}
           >
-            {getEntityUiText(locale, 'reset')}
+            {getEntityUiText(locale, "reset")}
           </Button>
         ) : null}
 
         <Button
           onClick={openCreateModal}
-          size='md'
-          variant='primary'
+          size="md"
+          variant="primary"
           leftIcon={<PlusIcon />}
-          className={cn(adminToolbarButtonClass, 'px-4')}
+          className={cn(adminToolbarButtonClass, "px-4")}
         >
-          {createButtonLabel ?? `${t('common.create')} ${title}`}
+          {createButtonLabel ?? `${t("common.create")} ${title}`}
         </Button>
 
         {error ? (
-          <p className='basis-full rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700'>
+          <p className="basis-full rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
             {error}
           </p>
         ) : null}
       </AdminToolbar>
 
       {hasEntityFilters ? (
-      <EntityFilterDrawer
-        open={filterDrawerOpen}
-        draftFilters={draftFilters}
-        statusOptions={statusOptions}
-        categoryOptions={categoryOptions}
-        hasDateFilter={hasDateFilter}
-        hasPriceFilter={hasPriceFilter}
-        onClose={() => setFilterDrawerOpen(false)}
-        onDraftChange={setDraftFilters}
-        onApply={applyEntityFilters}
-        labels={{
-          allCategories: getEntityUiText(locale, 'allCategories'),
-          allStatuses: getEntityUiText(locale, 'allStatuses'),
-          apply: getEntityUiText(locale, 'applyFilters'),
-          category: categoryField?.label ?? getEntityUiText(locale, 'allCategories'),
-          dateFrom: getEntityUiText(locale, 'dateFrom'),
-          dateRange: getEntityUiText(locale, 'dateRange'),
-          dateTo: getEntityUiText(locale, 'dateTo'),
-          filterTitle: getEntityUiText(locale, 'filterTitle'),
-          priceMax: getEntityUiText(locale, 'priceMax'),
-          priceMin: getEntityUiText(locale, 'priceMin'),
-          priceRange: getEntityUiText(locale, 'priceRange'),
-          reset: getEntityUiText(locale, 'reset'),
-          selectedCount: (count) => `${count} ${locale === 'vi' ? 'mục đã chọn' : 'selected'}`,
-          status: t('common.status'),
-        }}
-      />
+        <EntityFilterDrawer
+          open={filterDrawerOpen}
+          draftFilters={draftFilters}
+          statusOptions={statusOptions}
+          categoryOptions={categoryOptions}
+          hasDateFilter={hasDateFilter}
+          hasPriceFilter={hasPriceFilter}
+          onClose={() => setFilterDrawerOpen(false)}
+          onDraftChange={setDraftFilters}
+          onApply={applyEntityFilters}
+          labels={{
+            allCategories: getEntityUiText(locale, "allCategories"),
+            allStatuses: getEntityUiText(locale, "allStatuses"),
+            apply: getEntityUiText(locale, "applyFilters"),
+            category:
+              categoryField?.label ?? getEntityUiText(locale, "allCategories"),
+            dateFrom: getEntityUiText(locale, "dateFrom"),
+            dateRange: getEntityUiText(locale, "dateRange"),
+            dateTo: getEntityUiText(locale, "dateTo"),
+            filterTitle: getEntityUiText(locale, "filterTitle"),
+            priceMax: getEntityUiText(locale, "priceMax"),
+            priceMin: getEntityUiText(locale, "priceMin"),
+            priceRange: getEntityUiText(locale, "priceRange"),
+            reset: getEntityUiText(locale, "reset"),
+            selectedCount: (count) =>
+              t("common.selectedItems").replace("{count}", String(count)),
+            status: t("common.status"),
+          }}
+        />
       ) : null}
 
-      <Table containerClassName='min-h-0' minWidth={getEntityTableMinWidth(resource)}>
+      <Table
+        containerClassName="min-h-0"
+        minWidth={getEntityTableMinWidth(resource)}
+      >
         <TableHeader>
           <tr>
             {visibleColumns.map((column) => {
@@ -2520,26 +3450,31 @@ export default function EntityManager<K extends ResourceKey>({
                 </TableHead>
               );
             })}
-            <TableHead className={ENTITY_ACTION_COLUMN_CLASS}>{t('common.actions')}</TableHead>
+            <TableHead className={getEntityActionColumnClass(resource)}>
+              {t("common.actions")}
+            </TableHead>
           </tr>
         </TableHeader>
 
         <TableBody>
           {loading && items.length === 0 ? (
-            <TableEmptyState colSpan={visibleColumns.length + 1} variant='loading'>
-              {t('common.loading')}
+            <TableEmptyState
+              colSpan={visibleColumns.length + 1}
+              variant="loading"
+            >
+              {t("common.loading")}
             </TableEmptyState>
           ) : error && items.length === 0 ? (
             <TableEmptyState
               colSpan={visibleColumns.length + 1}
-              variant='error'
+              variant="error"
               description={
                 <button
-                  type='button'
+                  type="button"
                   onClick={() => void loadItems()}
-                  className='font-semibold text-[var(--admin-primary-strong)] underline decoration-transparent underline-offset-4 transition-colors hover:decoration-current'
+                  className="font-semibold text-[var(--admin-primary-strong)] underline decoration-transparent underline-offset-4 transition-colors hover:decoration-current"
                 >
-                  {locale === 'vi' ? 'Thử tải lại' : 'Try again'}
+                  {locale === "vi" ? "Thử tải lại" : "Try again"}
                 </button>
               }
             >
@@ -2551,34 +3486,44 @@ export default function EntityManager<K extends ResourceKey>({
             </TableEmptyState>
           ) : (
             items.map((item, index) => {
-              const row = item as unknown as Record<string, unknown> & { id?: string };
+              const row = item as unknown as Record<string, unknown> & {
+                id?: string;
+              };
 
               return (
                 <TableRow key={row.id ?? `${resource}-${index}`} hoverable>
                   {visibleColumns.map((column) => (
                     <TableCell
                       key={column.id}
-                      className={cn('text-slate-700', getEntityTableColumnClass(column, resource))}
+                      className={cn(
+                        "text-slate-700",
+                        getEntityTableColumnClass(column, resource),
+                      )}
                     >
                       {renderTableCell(column, row)}
                     </TableCell>
                   ))}
-                  <TableCell className={cn('whitespace-nowrap', ENTITY_ACTION_COLUMN_CLASS)}>
-                    <TableActions>
-                      <Tooltip content={t('common.edit')}>
+                  <TableCell
+                    className={cn(
+                      "whitespace-nowrap",
+                      getEntityActionColumnClass(resource),
+                    )}
+                  >
+                    <TableActions className="justify-end">
+                      <Tooltip content={t("common.edit")}>
                         <TableActionButton
-                          tone='edit'
+                          tone="edit"
                           onClick={() => startEdit(item)}
-                          aria-label={t('common.edit')}
+                          aria-label={t("common.edit")}
                         >
                           <EditIcon />
                         </TableActionButton>
                       </Tooltip>
-                      <Tooltip content={t('common.delete')}>
+                      <Tooltip content={t("common.delete")}>
                         <TableActionButton
-                          tone='delete'
+                          tone="delete"
                           onClick={() => requestDelete(row)}
-                          aria-label={t('common.delete')}
+                          aria-label={t("common.delete")}
                         >
                           <TrashIcon />
                         </TableActionButton>
@@ -2597,12 +3542,12 @@ export default function EntityManager<K extends ResourceKey>({
         totalPages={meta?.totalPages ?? meta?.total_pages ?? 1}
         total={meta?.total ?? items.length}
         itemLabel={getEntityNoun(resource, locale)}
-        pageLabel={getEntityUiText(locale, 'page')}
+        pageLabel={getEntityUiText(locale, "page")}
         pageSize={meta?.limit ?? pageSize}
-        pageSizeLabel={t('common.perPage')}
-        totalLabel={t('common.total')}
-        previousLabel={t('common.previous')}
-        nextLabel={t('common.next')}
+        pageSizeLabel={t("common.perPage")}
+        totalLabel={t("common.total")}
+        previousLabel={t("common.previous")}
+        nextLabel={t("common.next")}
         previousDisabled={page <= 1}
         nextDisabled={page >= (meta?.totalPages ?? meta?.total_pages ?? 1)}
         onPrevious={() => setPage((prev) => Math.max(1, prev - 1))}
@@ -2617,273 +3562,418 @@ export default function EntityManager<K extends ResourceKey>({
       <Modal
         open={isModalOpen}
         onClose={closeModal}
-        ariaLabelledby='entity-manager-modal-title'
-        panelClassName='max-w-4xl !border-0'
+        ariaLabelledby="entity-manager-modal-title"
+        panelClassName={cn("!border-0", getEntityModalWidthClass(resource))}
       >
-        <form onSubmit={handleSubmit} className='flex min-h-0 flex-1 flex-col'>
-          <ModalHeader className='items-center !border-b-[#4f9ed6] !bg-[#4fa6dc] px-5 py-5 sm:px-6 sm:py-5'>
-            <div className='flex min-h-10 min-w-0 items-center gap-4 pr-2'>
-              <span className='inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-[16px] bg-[#ffe16a] text-[#18385a] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.55)]'>
-                <AdminNavIcon name={getEntityIconName(resource)} className='h-6 w-6' />
+        <form noValidate onSubmit={handleSubmit} className="contents">
+          <ModalHeader className="items-center !border-b-[#4f9ed6] !bg-[#4fa6dc] px-5 py-5 sm:px-6 sm:py-5">
+            <div className="flex min-h-10 min-w-0 items-center gap-4 pr-2">
+              <span className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-[16px] bg-[#ffe16a] text-[#18385a] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.55)]">
+                <AdminNavIcon
+                  name={getEntityIconName(resource)}
+                  className="h-6 w-6"
+                />
               </span>
               <h3
-                id='entity-manager-modal-title'
-                className='text-2xl font-semibold leading-none tracking-[-0.02em] text-white sm:text-[26px]'
+                id="entity-manager-modal-title"
+                className="text-2xl font-semibold leading-none tracking-[-0.02em] text-white sm:text-[26px]"
               >
-                {editingId ? `${t('common.edit')} ${title}` : `${t('common.create')} ${title}`}
+                {editingId
+                  ? `${t("common.edit")} ${title}`
+                  : `${t("common.create")} ${title}`}
               </h3>
             </div>
 
             <motion.button
-              type='button'
+              type="button"
               onClick={closeModal}
-              aria-label={t('common.close')}
+              aria-label={t("common.close")}
               whileHover={{ rotate: 90 }}
               whileTap={{ scale: 0.96 }}
-              transition={{ type: 'spring', stiffness: 500, damping: 18 }}
-              className='inline-flex h-10 w-10 shrink-0 items-center justify-center self-center rounded-md bg-transparent p-2 text-white transition-colors duration-200 hover:bg-white/90 hover:text-[#2479b2] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#ffe16a]/45'
+              transition={{ type: "spring", stiffness: 500, damping: 18 }}
+              className="inline-flex h-10 w-10 shrink-0 items-center justify-center self-center rounded-md bg-transparent p-2 text-white transition-colors duration-200 hover:bg-white/90 hover:text-[#2479b2] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#ffe16a]/45"
             >
               <CloseIcon />
             </motion.button>
           </ModalHeader>
 
-          <ModalBody className='!bg-slate-50 !py-5 sm:!py-5'>
+          <ModalBody className="!bg-slate-100 !py-5 sm:!py-5">
             {fields.some((field) => field.advanced) ? (
-              <div className='mb-4 flex justify-end'>
+              <div className="mb-4 flex justify-end">
                 <button
-                  type='button'
+                  type="button"
                   onClick={() => setShowAdvancedFields((current) => !current)}
-                  className='rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-sm font-semibold text-slate-600 transition-colors hover:border-sky-200 hover:bg-sky-50 hover:text-sky-700'
+                  className="rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-sm font-semibold text-slate-600 transition-colors hover:border-sky-200 hover:bg-sky-50 hover:text-sky-700"
                 >
                   {showAdvancedFields
-                    ? locale === 'vi' ? 'Ẩn thiết lập nâng cao' : 'Hide advanced settings'
-                    : locale === 'vi' ? 'Hiện thiết lập nâng cao' : 'Show advanced settings'}
+                    ? t("entity.hideAdvanced")
+                    : t("entity.showAdvanced")}
                 </button>
               </div>
             ) : null}
-            <div className='grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-12'>
-              {fields.map((field) => {
-                if (field.advanced && !showAdvancedFields) return null;
-                const value = formValues[field.key];
+            <div className="space-y-5">
+              {getEntityFormSections(
+                fields,
+                formValues,
+                showAdvancedFields,
+              ).map((section) => (
+                <FormSection
+                  key={section.key}
+                  title={section.title}
+                  description={section.description}
+                >
+                  <FormGrid
+                    className={
+                      resource === "products"
+                        ? "!gap-x-5 !gap-y-4"
+                        : undefined
+                    }
+                  >
+                    {section.fields.map((field) => {
+                      const value = formValues[field.key];
 
-                return (
-                  <div key={field.key} className={cn(fieldCardClass, getFieldLayoutClass(field, resource))}>
-                    {field.type !== 'checkbox' && field.type !== 'image' && field.type !== 'images' ? (
-                      <FieldLabel label={field.label} required={field.required} />
-                    ) : null}
+                      return (
+                        <FormField
+                          key={field.key}
+                          span={getEntityFormFieldSpan(field, resource)}
+                          className={cn(
+                            fieldCardClass,
+                            resource === "products" &&
+                              field.key === "slug" &&
+                              "md:!col-span-6 lg:!col-span-6 xl:!col-span-8",
+                          )}
+                        >
+                          {field.type !== "checkbox" &&
+                          field.type !== "image" &&
+                          field.type !== "images" &&
+                          field.type !== "product-config" ? (
+                            <FieldLabel
+                              label={field.label}
+                              required={field.required}
+                            />
+                          ) : null}
 
-                    {field.type === 'textarea' ? (
-                      <Textarea
-                        value={String(value ?? '')}
-                        required={field.required}
-                        aria-label={field.label}
-                        placeholder={getInputPlaceholder(field)}
-                        onChange={(event) =>
-                          setFormValues((prev) => ({ ...prev, [field.key]: event.target.value }))
-                        }
-                        className='!min-h-[104px]'
-                      />
-                    ) : null}
-
-                    {field.type === 'json' ? (
-                      <Textarea
-                        value={String(value ?? '')}
-                        required={field.required}
-                        aria-label={field.label}
-                        placeholder={field.placeholder ?? '{ }'}
-                        onChange={(event) =>
-                          setFormValues((prev) => ({ ...prev, [field.key]: event.target.value }))
-                        }
-                        className='min-h-[180px] font-mono text-xs leading-6'
-                      />
-                    ) : null}
-
-                    {field.type === 'tags' ? (
-                      <div className='space-y-2'>
-                        <Input
-                          value={String(value ?? '')}
-                          required={field.required}
-                          aria-label={field.label}
-                          placeholder={field.placeholder ?? t('entity.tagPlaceholder')}
-                          onChange={(event) =>
-                            setFormValues((prev) => ({ ...prev, [field.key]: event.target.value }))
-                          }
-                          size='md'
-                        />
-                        <p className='text-xs font-medium text-slate-500'>
-                          {t('entity.tagHelp')}
-                        </p>
-                      </div>
-                    ) : null}
-
-                    {field.type === 'content-fields' ? renderContentFieldsEditor(field, value) : null}
-
-                    {field.type === 'product-config' ? (
-                      <ProductComponentConfigField
-                        value={value}
-                        options={field.productConfigOptions}
-                        onChange={(nextValue) =>
-                          setFormValues((prev) => ({ ...prev, [field.key]: nextValue }))
-                        }
-                      />
-                    ) : null}
-
-                    {field.type === 'select' ? (
-                      <Select
-                        value={String(value ?? '')}
-                        required={field.required}
-                        aria-label={field.label}
-                        onChange={(event) =>
-                          setFormValues((prev) => ({ ...prev, [field.key]: event.target.value }))
-                        }
-                      >
-                        <option value=''>{getSelectPlaceholder(field)}</option>
-                        {(field.options ?? []).map((option) => (
-                          <option key={option.value} value={option.value}>
-                            {field.key.toLowerCase().includes('status')
-                              ? getStatusBadgeLabel(option.value, t)
-                              : option.label}
-                          </option>
-                        ))}
-                      </Select>
-                    ) : null}
-
-                    {field.type === 'multi-select' ? (
-                      <div className='grid gap-2 rounded-2xl border border-slate-200 bg-white p-3 sm:grid-cols-2 lg:grid-cols-3'>
-                        {(field.options ?? []).map((option) => {
-                          const selectedValues = Array.isArray(value)
-                            ? value.filter((entry): entry is string => typeof entry === 'string')
-                            : [];
-                          const selected = selectedValues.includes(option.value);
-
-                          return (
-                            <Checkbox
-                              key={option.value}
-                              checked={selected}
+                          {field.type === "textarea" ? (
+                            <Textarea
+                              value={String(value ?? "")}
+                              required={field.required}
+                              aria-label={field.label}
+                              placeholder={getInputPlaceholder(field)}
                               onChange={(event) =>
-                                setFormValues((prev) => {
-                                  const current = Array.isArray(prev[field.key])
-                                    ? (prev[field.key] as unknown[]).filter(
-                                        (entry): entry is string => typeof entry === 'string',
-                                      )
-                                    : [];
-                                  return {
-                                    ...prev,
-                                    [field.key]: event.target.checked
-                                      ? [...new Set([...current, option.value])]
-                                      : current.filter((entry) => entry !== option.value),
-                                  };
-                                })
+                                setFormValues((prev) => ({
+                                  ...prev,
+                                  [field.key]: event.target.value,
+                                }))
                               }
-                              label={option.label}
-                              containerClassName='rounded-xl border-slate-200 bg-slate-50 px-3 py-2.5 shadow-none'
+                              className={
+                                resource === "products" &&
+                                field.key === "shortDescription"
+                                  ? "!min-h-[80px]"
+                                  : "!min-h-[104px]"
+                              }
                             />
-                          );
-                        })}
-                        {(field.options ?? []).length === 0 ? (
-                          <p className='px-1 py-2 text-sm font-medium text-slate-500'>
-                            {t('entity.noMatchingOptions')}
-                          </p>
-                        ) : null}
-                      </div>
-                    ) : null}
+                          ) : null}
 
-                    {field.type === 'checkbox' ? (
-                      <Checkbox
-                        checked={Boolean(value)}
-                        onChange={(event) =>
-                          setFormValues((prev) => ({ ...prev, [field.key]: event.target.checked }))
-                        }
-                        label={field.label}
-                        description={field.key === 'featured' ? undefined : `${t('entity.toggle')} ${field.label}`}
-                        containerClassName='rounded-[16px] border-slate-200 bg-white px-4 py-3 shadow-none'
-                      />
-                    ) : null}
+                          {field.type === "json" ? (
+                            <Textarea
+                              value={String(value ?? "")}
+                              required={field.required}
+                              aria-label={field.label}
+                              placeholder={field.placeholder ?? "{ }"}
+                              onChange={(event) =>
+                                setFormValues((prev) => ({
+                                  ...prev,
+                                  [field.key]: event.target.value,
+                                }))
+                              }
+                              className="min-h-[180px] font-mono text-xs leading-6"
+                            />
+                          ) : null}
 
-                    {field.type === 'datetime' ? (
-                      <Input
-                        type='datetime-local'
-                        value={String(value ?? '')}
-                        required={field.required}
-                        aria-label={field.label}
-                        onChange={(event) =>
-                          setFormValues((prev) => ({ ...prev, [field.key]: event.target.value }))
-                        }
-                        size='md'
-                      />
-                    ) : null}
-
-                    {(field.type === 'text' || field.type === 'number') ? (
-                      <div className={cn(field.key === 'colorHex' && 'flex items-center gap-2')}>
-                        <Input
-                          type={field.type}
-                          value={String(value ?? '')}
-                          required={field.required}
-                          aria-label={field.label}
-                          placeholder={getInputPlaceholder(field)}
-                          onChange={(event) => {
-                            const val = event.target.value;
-                            setFormValues((prev) => {
-                              const updated = { ...prev, [field.key]: val };
-                              if (resource === 'frame-colors' && field.key === 'name') {
-                                const normalized = val.trim().toLowerCase();
-                                const matchedHex = DEFAULT_COLOR_MAP[normalized];
-                                if (matchedHex && (!prev.colorHex || prev.colorHex === '')) {
-                                  updated.colorHex = matchedHex;
+                          {field.type === "tags" ? (
+                            <div className="space-y-2">
+                              <Input
+                                value={String(value ?? "")}
+                                required={field.required}
+                                aria-label={field.label}
+                                placeholder={
+                                  field.placeholder ??
+                                  t("entity.tagPlaceholder")
                                 }
-                              }
-                              return updated;
-                            });
-                          }}
-                          size='md'
-                          className='flex-1'
-                        />
-                        {field.key === 'colorHex' && (
-                          <div className='relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-slate-200 shadow-sm'>
-                            <input
-                              type='color'
-                              value={getValidHexForInput(value)}
-                              onChange={(event) => {
-                                const val = event.target.value;
-                                setFormValues((prev) => ({ ...prev, [field.key]: val }));
-                              }}
-                              className='absolute h-[150%] w-[150%] cursor-pointer border-none p-0 bg-transparent'
-                            />
-                          </div>
-                        )}
-                      </div>
-                    ) : null}
+                                onChange={(event) =>
+                                  setFormValues((prev) => ({
+                                    ...prev,
+                                    [field.key]: event.target.value,
+                                  }))
+                                }
+                                size="md"
+                              />
+                              <p className="text-xs font-medium text-slate-500">
+                                {t("entity.tagHelp")}
+                              </p>
+                            </div>
+                          ) : null}
 
-                    {(field.type === 'image' || field.type === 'images') ? renderImageField(field, value) : null}
-                  </div>
-                );
-              })}
+                          {field.type === "content-fields"
+                            ? renderContentFieldsEditor(field, value)
+                            : null}
+
+                          {field.type === "product-config" ? (
+                            <ProductComponentConfigField
+                              value={value}
+                              options={field.productConfigOptions}
+                              onChange={(nextValue) =>
+                                setFormValues((prev) => ({
+                                  ...prev,
+                                  [field.key]: nextValue,
+                                }))
+                              }
+                            />
+                          ) : null}
+
+                          {field.type === "select" ? (
+                            <Select
+                              value={String(value ?? "")}
+                              required={field.required}
+                              aria-label={field.label}
+                              onChange={(event) =>
+                                setFormValues((prev) => ({
+                                  ...prev,
+                                  [field.key]: event.target.value,
+                                }))
+                              }
+                            >
+                              <option value="">
+                                {getSelectPlaceholder(field)}
+                              </option>
+                              {(field.options ?? []).map((option) => (
+                                <option key={option.value} value={option.value}>
+                                  {field.key.toLowerCase().includes("status")
+                                    ? getStatusBadgeLabel(option.value, t)
+                                    : option.label}
+                                </option>
+                              ))}
+                            </Select>
+                          ) : null}
+
+                          {field.type === "multi-select" ? (
+                            <div className="custom-scrollbar grid max-h-72 gap-2 overflow-x-hidden overflow-y-auto rounded-2xl border border-slate-200 bg-white p-3 sm:grid-cols-2 lg:grid-cols-3">
+                              {(field.options ?? []).map((option) => {
+                                const selectedValues = Array.isArray(value)
+                                  ? value.filter(
+                                      (entry): entry is string =>
+                                        typeof entry === "string",
+                                    )
+                                  : [];
+                                const selected = selectedValues.includes(
+                                  option.value,
+                                );
+
+                                return (
+                                  <Checkbox
+                                    key={option.value}
+                                    checked={selected}
+                                    onChange={(event) =>
+                                      setFormValues((prev) => {
+                                        const current = Array.isArray(
+                                          prev[field.key],
+                                        )
+                                          ? (
+                                              prev[field.key] as unknown[]
+                                            ).filter(
+                                              (entry): entry is string =>
+                                                typeof entry === "string",
+                                            )
+                                          : [];
+                                        return {
+                                          ...prev,
+                                          [field.key]: event.target.checked
+                                            ? [
+                                                ...new Set([
+                                                  ...current,
+                                                  option.value,
+                                                ]),
+                                              ]
+                                            : current.filter(
+                                                (entry) =>
+                                                  entry !== option.value,
+                                              ),
+                                        };
+                                      })
+                                    }
+                                    label={option.label}
+                                    containerClassName="rounded-xl border-slate-200 bg-slate-50 px-3 py-2.5 shadow-none"
+                                  />
+                                );
+                              })}
+                              {(field.options ?? []).length === 0 ? (
+                                <p className="px-1 py-2 text-sm font-medium text-slate-500">
+                                  {t("entity.noMatchingOptions")}
+                                </p>
+                              ) : null}
+                            </div>
+                          ) : null}
+
+                          {field.type === "checkbox" ? (
+                            <Checkbox
+                              checked={Boolean(value)}
+                              onChange={(event) =>
+                                setFormValues((prev) => ({
+                                  ...prev,
+                                  [field.key]: event.target.checked,
+                                }))
+                              }
+                              label={field.label}
+                              containerClassName="rounded-[16px] border-slate-200 bg-white px-4 py-3 shadow-none"
+                            />
+                          ) : null}
+
+                          {field.type === "datetime" ? (
+                            <Input
+                              type="datetime-local"
+                              value={String(value ?? "")}
+                              required={field.required}
+                              aria-label={field.label}
+                              onChange={(event) =>
+                                setFormValues((prev) => ({
+                                  ...prev,
+                                  [field.key]: event.target.value,
+                                }))
+                              }
+                              size="md"
+                            />
+                          ) : null}
+
+                          {field.type === "text" || field.type === "number" ? (
+                            <div
+                              className={cn(
+                                field.key === "colorHex" &&
+                                  "flex items-center gap-2",
+                              )}
+                            >
+                              <Input
+                                type={field.type}
+                                min={
+                                  field.type === "number"
+                                    ? field.min
+                                    : undefined
+                                }
+                                value={String(value ?? "")}
+                                required={field.required}
+                                aria-label={field.label}
+                                placeholder={getInputPlaceholder(field)}
+                                onChange={(event) => {
+                                  const val = event.target.value;
+                                  setFormValues((prev) => {
+                                    const updated = {
+                                      ...prev,
+                                      [field.key]: val,
+                                    };
+                                    if (
+                                      (field.key === "name" ||
+                                        field.key === "title") &&
+                                      fields.some(
+                                        (candidate) => candidate.key === "slug",
+                                      )
+                                    ) {
+                                      const currentSlug = String(
+                                        prev.slug ?? "",
+                                      );
+                                      const previousAutoSlug = slugify(
+                                        String(prev[field.key] ?? ""),
+                                      );
+
+                                      if (
+                                        !currentSlug ||
+                                        currentSlug === previousAutoSlug
+                                      ) {
+                                        updated.slug = slugify(val);
+                                      }
+                                    }
+                                    if (
+                                      resource === "frame-colors" &&
+                                      field.key === "name"
+                                    ) {
+                                      const normalized = val
+                                        .trim()
+                                        .toLowerCase();
+                                      const matchedHex =
+                                        DEFAULT_COLOR_MAP[normalized];
+                                      if (
+                                        matchedHex &&
+                                        (!prev.colorHex || prev.colorHex === "")
+                                      ) {
+                                        updated.colorHex = matchedHex;
+                                      }
+                                    }
+                                    return updated;
+                                  });
+                                }}
+                                size="md"
+                                className="flex-1"
+                              />
+                              {field.key === "colorHex" && (
+                                <div className="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-slate-200 shadow-sm">
+                                  <input
+                                    type="color"
+                                    value={getValidHexForInput(value)}
+                                    onChange={(event) => {
+                                      const val = event.target.value;
+                                      setFormValues((prev) => ({
+                                        ...prev,
+                                        [field.key]: val,
+                                      }));
+                                    }}
+                                    className="absolute h-[150%] w-[150%] cursor-pointer border-none p-0 bg-transparent"
+                                  />
+                                </div>
+                              )}
+                            </div>
+                          ) : null}
+
+                          {field.type === "image" || field.type === "images"
+                            ? renderImageField(field, value)
+                            : null}
+                          {fieldErrors[field.key] ? (
+                            <p
+                              role="alert"
+                              className="text-sm font-semibold text-red-600"
+                            >
+                              {fieldErrors[field.key]}
+                            </p>
+                          ) : null}
+                        </FormField>
+                      );
+                    })}
+                  </FormGrid>
+                </FormSection>
+              ))}
             </div>
 
             {error ? (
-              <p className='rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700'>
+              <p className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
                 {error}
               </p>
             ) : null}
           </ModalBody>
 
-          <ModalFooter className='!bg-white'>
+          <ModalFooter className="!bg-white">
             <Button
-              variant='cancel'
-              type='button'
+              variant="cancel"
+              type="button"
               onClick={closeModal}
-              className='h-10 w-full rounded-[12px] px-4 sm:w-auto'
+              className="h-10 w-full rounded-[12px] px-4 sm:w-auto"
             >
-              {t('common.cancel')}
+              {t("common.cancel")}
             </Button>
             <Button
-              type='submit'
+              type="submit"
               disabled={saving}
               loading={saving}
-              className='h-10 w-full rounded-[12px] px-5 disabled:translate-y-0 sm:w-auto'
+              className="h-10 w-full rounded-[12px] px-5 disabled:translate-y-0 sm:w-auto"
             >
               {saving
-                ? t('entity.saving')
+                ? t("entity.saving")
                 : getEntitySubmitLabel(resource, locale, Boolean(editingId))}
             </Button>
           </ModalFooter>
@@ -2893,36 +3983,36 @@ export default function EntityManager<K extends ResourceKey>({
       <Modal
         open={Boolean(imagePreview)}
         onClose={closeImagePreview}
-        ariaLabelledby='entity-image-preview-title'
-        containerClassName='bg-slate-950/70'
-        panelClassName='max-w-6xl !border-0 !bg-slate-950 text-white shadow-[0_30px_80px_-34px_rgba(15,23,42,0.85)]'
+        ariaLabelledby="entity-image-preview-title"
+        containerClassName="bg-slate-950/70"
+        panelClassName="max-w-6xl !border-0 !bg-slate-950 text-white shadow-[0_30px_80px_-34px_rgba(15,23,42,0.85)]"
       >
-        <div className='flex items-center justify-between gap-4 border-b border-white/10 bg-slate-950 px-4 py-3 sm:px-5'>
+        <div className="flex items-center justify-between gap-4 border-b border-white/10 bg-slate-950 px-4 py-3 sm:px-5">
           <h3
-            id='entity-image-preview-title'
-            className='truncate text-base font-semibold text-white'
+            id="entity-image-preview-title"
+            className="truncate text-base font-semibold text-white"
           >
             {imagePreview?.alt}
           </h3>
           <motion.button
-            type='button'
+            type="button"
             onClick={closeImagePreview}
-            aria-label={t('common.close')}
+            aria-label={t("common.close")}
             whileHover={{ rotate: 90 }}
             whileTap={{ scale: 0.96 }}
-            transition={{ type: 'spring', stiffness: 500, damping: 18 }}
-            className='inline-flex h-10 w-10 shrink-0 items-center justify-center self-center rounded-md bg-transparent p-2 text-white transition-colors duration-200 hover:bg-white/90 hover:text-[#2479b2] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#ffe16a]/45'
+            transition={{ type: "spring", stiffness: 500, damping: 18 }}
+            className="inline-flex h-10 w-10 shrink-0 items-center justify-center self-center rounded-md bg-transparent p-2 text-white transition-colors duration-200 hover:bg-white/90 hover:text-[#2479b2] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#ffe16a]/45"
           >
             <CloseIcon />
           </motion.button>
         </div>
-        <div className='grid min-h-[220px] place-items-center bg-slate-950 p-3 sm:p-5'>
+        <div className="grid min-h-[220px] place-items-center bg-slate-950 p-3 sm:p-5">
           {imagePreview ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={imagePreview.src}
               alt={imagePreview.alt}
-              className='max-h-[78vh] w-full rounded-[16px] object-contain'
+              className="max-h-[78vh] w-full rounded-[16px] object-contain"
             />
           ) : null}
         </div>
@@ -2931,10 +4021,14 @@ export default function EntityManager<K extends ResourceKey>({
       <ConfirmDialog
         open={Boolean(deleteTarget)}
         title={getEntityDeleteDialogTitle(resource, locale)}
-        description={getEntityDeleteDialogDescription(resource, locale, deleteTarget?.label)}
-        confirmText={t('common.delete')}
-        cancelText={t('common.cancel')}
-        tone='danger'
+        description={getEntityDeleteDialogDescription(
+          resource,
+          locale,
+          deleteTarget?.label,
+        )}
+        confirmText={t("common.delete")}
+        cancelText={t("common.cancel")}
+        tone="danger"
         loading={deleting}
         onClose={() => setDeleteTarget(null)}
         onConfirm={handleDelete}

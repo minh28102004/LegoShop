@@ -4,8 +4,15 @@ import type {
 } from '@lego-shop/shared';
 import { PRODUCT_STATUS } from '@lego-shop/shared';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { Transform } from 'class-transformer';
-import { IsEnum, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { Transform, Type } from 'class-transformer';
+import {
+  IsEnum,
+  IsInt,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  Min,
+} from 'class-validator';
 
 export class CreateCollectionDto implements CreateCollectionRequestContract {
   @ApiProperty({
@@ -49,6 +56,13 @@ export class CreateCollectionDto implements CreateCollectionRequestContract {
   @IsString()
   @IsNotEmpty()
   imageUrl?: string;
+
+  @ApiPropertyOptional({ example: 10, default: 0 })
+  @Type(() => Number)
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  sortOrder?: number;
 
   @ApiPropertyOptional({
     enum: PRODUCT_STATUS,

@@ -4,6 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { ProductStatus } from '@prisma/client';
+import { normalizeVietnamesePhone } from '@lego-shop/shared';
 import { PrismaService } from '../prisma/prisma.service';
 import { BusinessQuoteDto } from './dto/business-quote.dto';
 import { CreateBusinessInquiryDto } from './dto/create-business-inquiry.dto';
@@ -73,13 +74,21 @@ export class BusinessInquiriesService {
       throw new BadRequestException('Contact person is required');
     }
 
+    const phone = normalizeVietnamesePhone(dto.phone);
+    if (!phone) {
+      throw new BadRequestException({
+        code: 'INVALID_PHONE_NUMBER',
+        message: 'A valid Vietnamese phone number is required',
+      });
+    }
+
     const createdInquiry = await this.prisma.businessInquiry.create({
       data: {
-        companyName: dto.companyName,
-        contactName,
-        email: dto.email,
-        phone: dto.phone,
-        message: dto.message,
+        companyName: dto.companyName.trim(),
+        contactName: contactName.trim(),
+        email: dto.email.trim().toLowerCase(),
+        phone,
+        message: dto.message.trim(),
       },
     });
 

@@ -17,6 +17,7 @@ import {
   resolveDateRange,
   resolveSorts,
 } from '../common/admin-query/admin-query.util';
+import { countJsonCatalogReferences } from '../common/catalog-reference.util';
 import { PrismaService } from '../prisma/prisma.service';
 import { CharacterPresetsQueryDto } from './dto/character-presets-query.dto';
 import { CreateCharacterPresetDto } from './dto/create-character-preset.dto';
@@ -48,7 +49,7 @@ export class CharacterPresetsService {
     const take = Math.min(40, Math.max(1, query?.limit ?? 24));
 
     try {
-      return await this.prisma.characterPreset.findMany({
+      const presets = await this.prisma.characterPreset.findMany({
         where: {
           status: ProductStatus.active,
           isBuilderPreset: true,
@@ -66,6 +67,20 @@ export class CharacterPresetsService {
         orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
         take,
       });
+
+      // Keep legacy rows with stale component relations out of the builder.
+      // New writes are validated below, while this read guard protects data
+      // that predates the relation validation without requiring a migration.
+      return presets.filter((preset) =>
+        [
+          preset.facePart,
+          preset.hairPart,
+          preset.torsoPart,
+          preset.legsPart,
+          preset.hatPart,
+          ...preset.accessories.map((accessory) => accessory.part),
+        ].every((part) => this.isPublicPresetPart(part)),
+      );
     } catch (error) {
       if (this.isMissingTableError(error)) {
         this.logger.warn(
@@ -390,9 +405,19 @@ export class CharacterPresetsService {
       },
     });
     if (!existing) throw new NotFoundException('Character preset not found');
-    if (existing._count.products > 0) {
+    const [orderItems, designs] = await Promise.all([
+      this.prisma.orderItem.findMany({
+        select: { designData: true, componentSnapshot: true },
+      }),
+      this.prisma.userDesign.findMany({ select: { designData: true } }),
+    ]);
+    const referenceCount =
+      existing._count.products +
+      countJsonCatalogReferences(orderItems, id) +
+      countJsonCatalogReferences(designs, id);
+    if (referenceCount > 0) {
       throw new ConflictException(
-        `Character preset is used by ${existing._count.products} product(s). Disable it instead of deleting it.`,
+        `Character preset is used by ${referenceCount} product, order, or design record(s). Disable it instead of deleting it.`,
       );
     }
 
@@ -414,6 +439,12 @@ export class CharacterPresetsService {
     } satisfies Prisma.CharacterPresetInclude;
   }
 
+  private isPublicPresetPart(
+    part: { status: ProductStatus; availability: string } | null,
+  ) {
+    return part === null || part.availability === 'available';
+  }
+
   private async validateComposition(
     dto: Pick<
       CreateCharacterPresetDto,
@@ -425,6 +456,13 @@ export class CharacterPresetsService {
       | 'accessoryPartIds'
     >,
   ) {
+    const accessoryPartIds = dto.accessoryPartIds ?? [];
+    if (new Set(accessoryPartIds).size !== accessoryPartIds.length) {
+      throw new BadRequestException(
+        'A character preset cannot contain the same accessory part twice',
+      );
+    }
+
     const expected = new Map<string, CharacterPartType>([
       ...(dto.facePartId
         ? ([[dto.facePartId, CharacterPartType.FACE]] as const)
@@ -441,7 +479,7 @@ export class CharacterPresetsService {
       ...(dto.hatPartId
         ? ([[dto.hatPartId, CharacterPartType.HAT]] as const)
         : []),
-      ...(dto.accessoryPartIds ?? []).map(
+      ...accessoryPartIds.map(
         (id) => [id, CharacterPartType.ACCESSORY] as const,
       ),
     ]);
@@ -450,14 +488,13 @@ export class CharacterPresetsService {
     const parts = await this.prisma.characterPart.findMany({
       where: {
         id: { in: [...expected.keys()] },
-        status: ProductStatus.active,
-        isActive: true,
+        availability: 'available',
       },
       select: { id: true, type: true },
     });
     if (parts.length !== expected.size) {
       throw new BadRequestException(
-        'Every preset component must exist and be active',
+        'Every preset component must exist and be available',
       );
     }
     for (const part of parts) {

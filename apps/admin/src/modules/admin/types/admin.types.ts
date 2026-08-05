@@ -27,7 +27,7 @@ import type {
   TemplateCategory as SharedTemplateCategory,
   Voucher as SharedVoucher,
   VoucherDiscountType,
-} from '@lego-shop/shared';
+} from "@lego-shop/shared";
 
 export type {
   FrameOptionType,
@@ -69,7 +69,7 @@ export interface PaymentLog {
   paidAt?: string | null;
 }
 
-export type Order = Omit<SharedOrder, 'payments'> & {
+export type Order = Omit<SharedOrder, "payments"> & {
   payments?: PaymentLog[];
 };
 
@@ -98,9 +98,12 @@ export interface DashboardStats {
     paymentStatus: PaymentStatus;
     createdAt: string;
   }>;
-  topProducts: Array<{
-    productName: string;
-    quantity: number;
-    revenue: number;
+  revenueTrend: Array<{
+    date: string;
+    amount: number;
+  }>;
+  orderStatusDistribution: Array<{
+    status: OrderStatus;
+    count: number;
   }>;
 }

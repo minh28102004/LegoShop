@@ -1,4 +1,8 @@
-import type { ProductStatus, VoucherDiscountType } from "../constants/status";
+import type {
+  ProductStatus,
+  VoucherDiscountType,
+  VoucherEffectiveStatus,
+} from "../constants/status";
 import type {
   ID,
   ISODateString,
@@ -20,4 +24,5 @@ export type Voucher = Timestamped & {
   startsAt: Nullable<ISODateString>;
   expiresAt: Nullable<ISODateString>;
   status: ProductStatus;
+  effectiveStatus?: VoucherEffectiveStatus;
 };

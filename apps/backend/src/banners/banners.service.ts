@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { Prisma, ProductStatus } from '@prisma/client';
 import {
   buildAdminListMeta,
@@ -38,6 +42,7 @@ export class BannersService {
       select: {
         id: true,
         title: true,
+        sourceKey: true,
         imageUrl: true,
         linkUrl: true,
         sortOrder: true,
@@ -140,8 +145,8 @@ export class BannersService {
       if (query?.search) {
         const searchFields = getAllowedSearchFields(
           query.search_fields,
-          ['title', 'linkUrl'],
-          ['title', 'linkUrl'],
+          ['title', 'sourceKey', 'linkUrl'],
+          ['title', 'sourceKey', 'linkUrl'],
         );
         where.OR = searchFields.map((field) => ({
           [field]: { contains: query.search, mode: 'insensitive' },
@@ -188,10 +193,12 @@ export class BannersService {
     return banner;
   }
 
-  createBanner(dto: CreateBannerDto) {
+  async createBanner(dto: CreateBannerDto) {
+    await this.assertSourceKeyAvailable(dto.sourceKey);
     return this.prisma.banner.create({
       data: {
         title: dto.title,
+        sourceKey: dto.sourceKey,
         imageUrl: dto.imageUrl,
         linkUrl: dto.linkUrl,
         sortOrder: dto.sortOrder,
@@ -212,6 +219,7 @@ export class BannersService {
 
     const data: {
       title?: string;
+      sourceKey?: string;
       imageUrl?: string;
       linkUrl?: string;
       sortOrder?: number;
@@ -219,6 +227,10 @@ export class BannersService {
     } = {};
 
     if (dto.title !== undefined) data.title = dto.title;
+    if (dto.sourceKey !== undefined) {
+      await this.assertSourceKeyAvailable(dto.sourceKey, id);
+      data.sourceKey = dto.sourceKey;
+    }
     if (dto.imageUrl !== undefined) data.imageUrl = dto.imageUrl;
     if (dto.linkUrl !== undefined) data.linkUrl = dto.linkUrl;
     if (dto.sortOrder !== undefined) data.sortOrder = dto.sortOrder;
@@ -248,5 +260,19 @@ export class BannersService {
       success: true,
       message: 'Banner deleted successfully',
     };
+  }
+
+  private async assertSourceKeyAvailable(
+    sourceKey?: string,
+    currentId?: string,
+  ) {
+    if (!sourceKey) return;
+    const existing = await this.prisma.banner.findUnique({
+      where: { sourceKey },
+      select: { id: true },
+    });
+    if (existing && existing.id !== currentId) {
+      throw new ConflictException('Banner system key already exists');
+    }
   }
 }

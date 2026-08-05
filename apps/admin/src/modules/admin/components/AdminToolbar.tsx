@@ -21,7 +21,6 @@ export type AdminToolbarIconName =
 type AdminToolbarProps = PropsWithChildren<{
   icon: ReactNode;
   title: ReactNode;
-  description?: ReactNode;
   badge?: ReactNode;
   className?: string;
 }>;
@@ -380,7 +379,6 @@ export default function AdminToolbar({
   badge,
   children,
   className,
-  description,
   icon,
   title,
 }: AdminToolbarProps) {
@@ -397,18 +395,11 @@ export default function AdminToolbar({
             <div className='grid h-11 w-11 shrink-0 place-items-center rounded-[15px] border border-[var(--admin-accent)] bg-[#ffe16a] text-[#18385a] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.55)]'>
               {icon}
             </div>
-            <div className='min-w-0'>
-              <div className='flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2'>
-                <h2 className='min-w-0 text-lg font-bold tracking-[-0.01em] text-slate-950 [text-wrap:balance]'>
-                  {title}
-                </h2>
-                {badge ? <div className='max-w-full shrink-0'>{badge}</div> : null}
-              </div>
-              {description ? (
-                <p className='mt-1 line-clamp-2 text-sm font-medium leading-5 text-slate-500'>
-                  {description}
-                </p>
-              ) : null}
+            <div className='flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2'>
+              <h2 className='min-w-0 text-lg font-bold tracking-[-0.01em] text-slate-950 [text-wrap:balance]'>
+                {title}
+              </h2>
+              {badge ? <div className='max-w-full shrink-0'>{badge}</div> : null}
             </div>
           </div>
         </div>

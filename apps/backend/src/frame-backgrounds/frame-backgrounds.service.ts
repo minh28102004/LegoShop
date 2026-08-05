@@ -1,5 +1,10 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { Prisma, ProductStatus } from '@prisma/client';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { FrameOptionType, Prisma, ProductStatus } from '@prisma/client';
 import {
   buildAdminListMeta,
   buildDateFilter,
@@ -12,6 +17,7 @@ import {
   resolveSorts,
 } from '../common/admin-query/admin-query.util';
 import { AdminListQueryDto } from '../common/dto/admin-list-query.dto';
+import { countJsonCatalogReferences } from '../common/catalog-reference.util';
 import { PrismaService } from '../prisma/prisma.service';
 import {
   stagedSampleMediaPublicStatus,
@@ -26,6 +32,11 @@ export class FrameBackgroundsService {
 
   async findPublicBackgrounds(frameOptionId?: string, category?: string) {
     const previewSeedTag = stagedSampleMediaSeedTag();
+    const normalizedCategory = category
+      ?.trim()
+      .toLowerCase()
+      .replace(/[\s_]+/g, '-')
+      .replace(/^-+|-+$/g, '');
     const visibility = previewSeedTag
       ? {
           OR: [
@@ -49,7 +60,14 @@ export class FrameBackgroundsService {
               ]
             : []),
         ],
-        ...(category ? { category } : {}),
+        ...(normalizedCategory
+          ? {
+              category: {
+                equals: normalizedCategory,
+                mode: 'insensitive' as const,
+              },
+            }
+          : {}),
       },
       select: {
         id: true,
@@ -162,13 +180,16 @@ export class FrameBackgroundsService {
     return frameBackground;
   }
 
-  createBackground(dto: CreateFrameBackgroundDto) {
+  async createBackground(dto: CreateFrameBackgroundDto) {
+    await this.validateFrameOptionIds(dto.frameOptionIds);
     return this.prisma.frameBackground.create({
       data: {
         title: dto.title,
         description: dto.description,
         instructions: dto.instructions,
         imageUrl: dto.imageUrl,
+        thumbnailUrl: dto.thumbnailUrl,
+        category: dto.category,
         contentFields:
           dto.contentFields !== undefined
             ? (dto.contentFields as Prisma.InputJsonValue)
@@ -190,6 +211,8 @@ export class FrameBackgroundsService {
       throw new NotFoundException('Frame background not found');
     }
 
+    await this.validateFrameOptionIds(dto.frameOptionIds);
+
     return this.prisma.frameBackground.update({
       where: { id },
       data: {
@@ -201,6 +224,10 @@ export class FrameBackgroundsService {
           ? { instructions: dto.instructions }
           : {}),
         ...(dto.imageUrl !== undefined ? { imageUrl: dto.imageUrl } : {}),
+        ...(dto.thumbnailUrl !== undefined
+          ? { thumbnailUrl: dto.thumbnailUrl }
+          : {}),
+        ...(dto.category !== undefined ? { category: dto.category } : {}),
         ...(dto.contentFields !== undefined
           ? { contentFields: dto.contentFields as Prisma.InputJsonValue }
           : {}),
@@ -223,6 +250,27 @@ export class FrameBackgroundsService {
       throw new NotFoundException('Frame background not found');
     }
 
+    const [directOrderCount, products, orderItems, designs] = await Promise.all(
+      [
+        this.prisma.orderItem.count({ where: { backgroundId: id } }),
+        this.prisma.product.findMany({ select: { componentConfig: true } }),
+        this.prisma.orderItem.findMany({
+          select: { designData: true, componentSnapshot: true },
+        }),
+        this.prisma.userDesign.findMany({ select: { designData: true } }),
+      ],
+    );
+    const referenceCount =
+      directOrderCount +
+      countJsonCatalogReferences(products, id) +
+      countJsonCatalogReferences(orderItems, id) +
+      countJsonCatalogReferences(designs, id);
+    if (referenceCount > 0) {
+      throw new ConflictException(
+        `Frame background is referenced by ${referenceCount} product, order, or design record(s). Disable it instead of deleting it.`,
+      );
+    }
+
     await this.prisma.frameBackground.delete({
       where: { id },
     });
@@ -231,5 +279,34 @@ export class FrameBackgroundsService {
       success: true,
       message: 'Frame background deleted successfully',
     };
+  }
+
+  private async validateFrameOptionIds(frameOptionIds?: string[]) {
+    if (!frameOptionIds?.length) return;
+    const uniqueIds = [...new Set(frameOptionIds)];
+    if (uniqueIds.length !== frameOptionIds.length) {
+      throw new BadRequestException(
+        'Frame background cannot contain duplicate frame option IDs',
+      );
+    }
+    const options = await this.prisma.frameOption.findMany({
+      where: { id: { in: uniqueIds } },
+      select: { id: true, type: true },
+    });
+    if (options.length !== uniqueIds.length) {
+      const found = new Set(options.map((option) => option.id));
+      const missing = uniqueIds.filter((id) => !found.has(id));
+      throw new BadRequestException(
+        `Frame option reference(s) not found: ${missing.join(', ')}`,
+      );
+    }
+    const invalidType = options.find(
+      (option) => option.type !== FrameOptionType.size,
+    );
+    if (invalidType) {
+      throw new BadRequestException(
+        `Frame background only accepts size options: ${invalidType.id}`,
+      );
+    }
   }
 }

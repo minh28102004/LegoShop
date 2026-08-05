@@ -114,15 +114,12 @@ export function useStudioData(frameSize: string) {
         }
 
         const optionFrameSizes = frameOptions
-          .filter(
-            (option) => option.status === "active" && option.type === "size",
-          )
+          .filter((option) => option.type === "size")
           .map((option) => mapFrameOptionSize(option, locale));
-        const activeFrameSizes = (
+        const activeFrameSizes =
           optionFrameSizes.length > 0
             ? optionFrameSizes
-            : legacySizes.map((size) => mapLegacyFrameSize(size, locale))
-        ).filter((size) => size.status === "active");
+            : legacySizes.map((size) => mapLegacyFrameSize(size, locale));
 
         setFrameSizes(activeFrameSizes);
         setResourceState("frameSizes", "success");
@@ -175,7 +172,9 @@ export function useStudioData(frameSize: string) {
         if (controller.signal.aborted) return;
         setCharacterParts(
           items
-            .filter((part) => part.status === "active")
+            .filter(
+              (part) => !part.availability || part.availability === "available",
+            )
             .flatMap((part) => {
               const imageUrl = resolveStudioImageUrl(part.imageUrl);
               return imageUrl ? [{ ...part, imageUrl }] : [];
@@ -297,8 +296,7 @@ export function useStudioData(frameSize: string) {
       .then((items) => {
         if (controller.signal.aborted) return;
         setAccessories(
-          (items as Array<ApiAccessory & { status?: string }>)
-            .filter((accessory) => accessory.status === "active")
+          (items as ApiAccessory[])
             .map(mapStudioAccessory)
             .sort(
               (left, right) =>

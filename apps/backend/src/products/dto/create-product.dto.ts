@@ -25,6 +25,16 @@ const trimOptionalString = ({ value }: { value: unknown }) => {
   return trimmed.length > 0 ? trimmed : undefined;
 };
 
+const normalizeOptionalCategory = ({ value }: { value: unknown }) => {
+  if (typeof value !== 'string') return value;
+  const normalized = value
+    .trim()
+    .toLowerCase()
+    .replace(/[\s_]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+  return normalized.length > 0 ? normalized : undefined;
+};
+
 const parseJsonObject = ({ value }: { value: unknown }) => {
   if (typeof value !== 'string') return value;
   const trimmed = value.trim();
@@ -115,7 +125,7 @@ export class CreateProductDto implements CreateProductRequestContract {
   productType?: ProductType;
 
   @ApiPropertyOptional({ example: 'graduation' })
-  @Transform(trimOptionalString)
+  @Transform(normalizeOptionalCategory)
   @IsOptional()
   @IsString()
   category?: string;

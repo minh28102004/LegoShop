@@ -1,5 +1,16 @@
-import type { CharacterPartType, FrameOptionType, ProductStatus, ProductType } from '../constants/status';
-import type { ID, JsonObject, JsonValue, PriceInVND, URLString } from '../types/common';
+import type {
+  CharacterPartType,
+  FrameOptionType,
+  ProductStatus,
+  ProductType,
+} from "../constants/status";
+import type {
+  ID,
+  JsonObject,
+  JsonValue,
+  PriceInVND,
+  URLString,
+} from "../types/common";
 import type {
   Accessory,
   Banner,
@@ -14,7 +25,7 @@ import type {
   ProductComponentConfig,
   ProductSummary,
   Template,
-} from '../types/product';
+} from "../types/product";
 
 export type ProductContract = Product;
 export type ProductSummaryContract = ProductSummary;
@@ -50,7 +61,8 @@ export type CreateProductRequestContract = {
   collectionId?: ID;
 };
 
-export type UpdateProductRequestContract = Partial<CreateProductRequestContract>;
+export type UpdateProductRequestContract =
+  Partial<CreateProductRequestContract>;
 
 export type CreateTemplateRequestContract = {
   name: string;
@@ -60,7 +72,8 @@ export type CreateTemplateRequestContract = {
   categoryId?: ID;
 };
 
-export type UpdateTemplateRequestContract = Partial<CreateTemplateRequestContract>;
+export type UpdateTemplateRequestContract =
+  Partial<CreateTemplateRequestContract>;
 
 export type CreateAccessoryRequestContract = {
   name: string;
@@ -71,7 +84,8 @@ export type CreateAccessoryRequestContract = {
   categoryId?: ID;
 };
 
-export type UpdateAccessoryRequestContract = Partial<CreateAccessoryRequestContract>;
+export type UpdateAccessoryRequestContract =
+  Partial<CreateAccessoryRequestContract>;
 
 export type CreateCharacterRequestContract = {
   name: string;
@@ -81,7 +95,8 @@ export type CreateCharacterRequestContract = {
   status?: ProductStatus;
 };
 
-export type UpdateCharacterRequestContract = Partial<CreateCharacterRequestContract>;
+export type UpdateCharacterRequestContract =
+  Partial<CreateCharacterRequestContract>;
 
 export type CreateCharacterPartRequestContract = {
   name: string;
@@ -92,17 +107,18 @@ export type CreateCharacterPartRequestContract = {
   compareAtPrice?: PriceInVND | null;
   category?: string;
   availability?: string;
-  isActive?: boolean;
   compatibility?: JsonValue;
   sortOrder?: number;
   tags?: JsonValue;
   status?: ProductStatus;
 };
 
-export type UpdateCharacterPartRequestContract = Partial<CreateCharacterPartRequestContract>;
+export type UpdateCharacterPartRequestContract =
+  Partial<CreateCharacterPartRequestContract>;
 
 export type CreateBannerRequestContract = {
   title?: string;
+  sourceKey?: string;
   imageUrl: URLString;
   linkUrl?: URLString;
   sortOrder?: number;
@@ -114,6 +130,8 @@ export type UpdateBannerRequestContract = Partial<CreateBannerRequestContract>;
 export type CreateFrameBackgroundRequestContract = {
   title: string;
   imageUrl: URLString;
+  thumbnailUrl?: URLString;
+  category?: string;
   description?: string;
   instructions?: string;
   contentFields?: JsonValue;
@@ -122,7 +140,8 @@ export type CreateFrameBackgroundRequestContract = {
   status?: ProductStatus;
 };
 
-export type UpdateFrameBackgroundRequestContract = Partial<CreateFrameBackgroundRequestContract>;
+export type UpdateFrameBackgroundRequestContract =
+  Partial<CreateFrameBackgroundRequestContract>;
 
 export type CreateFrameSizeRequestContract = {
   label: string;
@@ -130,14 +149,16 @@ export type CreateFrameSizeRequestContract = {
   popular?: boolean;
 };
 
-export type UpdateFrameSizeRequestContract = Partial<CreateFrameSizeRequestContract>;
+export type UpdateFrameSizeRequestContract =
+  Partial<CreateFrameSizeRequestContract>;
 
 export type CreateFrameColorRequestContract = {
   name: string;
   colorHex?: string;
 };
 
-export type UpdateFrameColorRequestContract = Partial<CreateFrameColorRequestContract>;
+export type UpdateFrameColorRequestContract =
+  Partial<CreateFrameColorRequestContract>;
 
 export type CreateFrameOptionRequestContract = {
   type?: FrameOptionType;
@@ -160,7 +181,8 @@ export type CreateFrameOptionRequestContract = {
   status?: ProductStatus;
 };
 
-export type UpdateFrameOptionRequestContract = Partial<CreateFrameOptionRequestContract>;
+export type UpdateFrameOptionRequestContract =
+  Partial<CreateFrameOptionRequestContract>;
 
 export type CreateCharacterPresetRequestContract = {
   name: string;
@@ -184,7 +206,8 @@ export type CreateCharacterPresetRequestContract = {
   status?: ProductStatus;
 };
 
-export type UpdateCharacterPresetRequestContract = Partial<CreateCharacterPresetRequestContract>;
+export type UpdateCharacterPresetRequestContract =
+  Partial<CreateCharacterPresetRequestContract>;
 
 export type CharacterBuilderQuoteRequestContract = {
   partIds: ID[];

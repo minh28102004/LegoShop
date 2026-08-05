@@ -1,59 +1,86 @@
-'use client';
+"use client";
 
-import { useEffect, useMemo, useState } from 'react';
-import EntityManager, { type EntityField } from '@/modules/admin/components/entity-manager';
-import { listResource } from '@/modules/admin/services/adminApi';
-import type { AccessoryCategory } from '@/modules/admin/types/admin.types';
-import { useI18n } from '@/lib/i18n/useI18n';
+import { useEffect, useMemo, useState } from "react";
+import EntityManager, {
+  type EntityField,
+} from "@/modules/admin/components/entity-manager";
+import { listResource } from "@/modules/admin/services/adminApi";
+import type { AccessoryCategory } from "@/modules/admin/types/admin.types";
+import { useI18n } from "@/lib/i18n/useI18n";
 
 export default function AccessoriesPage() {
   const { t } = useI18n();
   const [categories, setCategories] = useState<AccessoryCategory[]>([]);
 
   useEffect(() => {
-    listResource('accessory-categories')
+    listResource("accessory-categories")
       .then((data) => setCategories(data as AccessoryCategory[]))
       .catch(() => setCategories([]));
   }, []);
 
   const fields = useMemo<EntityField[]>(
     () => [
-      { key: 'name', label: t('accessoriesPage.name'), type: 'text', required: true },
-      { key: 'price', label: t('accessoriesPage.price'), type: 'number', required: true },
       {
-        key: 'status',
-        label: t('accessoriesPage.status'),
-        type: 'select',
-        options: [
-          { label: t('status.active'), value: 'active' },
-          { label: t('status.inactive'), value: 'inactive' },
-        ],
+        key: "__basic",
+        label: t("entity.formSections.basic"),
+        type: "section",
       },
       {
-        key: 'categoryId',
-        label: t('accessoriesPage.category'),
-        type: 'select',
-        options: categories.map((item) => ({ label: item.name, value: item.id })),
+        key: "name",
+        label: t("accessoriesPage.name"),
+        type: "text",
+        required: true,
+        span: 8,
       },
-      { key: 'imageUrl', label: t('accessoriesPage.image'), type: 'image' },
-      { key: 'iconUrl', label: t('accessoriesPage.icon'), type: 'image' },
+      {
+        key: "price",
+        label: t("accessoriesPage.price"),
+        type: "number",
+        required: true,
+        span: 4,
+      },
+      {
+        key: "categoryId",
+        label: t("accessoriesPage.category"),
+        type: "select",
+        span: 6,
+        options: categories.map((item) => ({
+          label: item.name,
+          value: item.id,
+        })),
+      },
+      {
+        key: "__media",
+        label: t("entity.formSections.media"),
+        type: "section",
+      },
+      {
+        key: "imageUrl",
+        label: t("accessoriesPage.image"),
+        type: "image",
+        span: 6,
+      },
+      {
+        key: "iconUrl",
+        label: t("accessoriesPage.icon"),
+        type: "image",
+        span: 6,
+      },
     ],
     [categories, t],
   );
-  const tableFields = ['name', 'imageUrl', 'categoryId', 'price'].flatMap((key) =>
-    fields.filter((field) => field.key === key),
+  const tableFields = ["name", "imageUrl", "categoryId", "price"].flatMap(
+    (key) => fields.filter((field) => field.key === key),
   );
 
   return (
     <EntityManager
-      title={t('accessoriesPage.singularTitle')}
-      resource='accessories'
+      title={t("accessoriesPage.singularTitle")}
+      resource="accessories"
       fields={fields}
       tableFields={tableFields}
-      pageTitle={t('accessoriesPage.title')}
-      pageDescription={t('accessoriesPage.description')}
-      createButtonLabel={t('accessoriesPage.createAccessory')}
+      pageTitle={t("accessoriesPage.title")}
+      createButtonLabel={t("accessoriesPage.createAccessory")}
     />
   );
 }
-

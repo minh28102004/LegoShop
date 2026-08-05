@@ -35,7 +35,13 @@ import type {
   PaymentStatus,
   ShippingStatus,
 } from "@/modules/admin/types/admin.types";
-import type { CustomFrameDesignData, JsonObject } from "@lego-shop/shared";
+import {
+  ORDER_STATUS_TRANSITIONS,
+  PAYMENT_STATUS_TRANSITIONS,
+  SHIPPING_STATUS_TRANSITIONS,
+  type CustomFrameDesignData,
+  type JsonObject,
+} from "@lego-shop/shared";
 import DesignPreviewModal, { AdminDesignPreview } from "./design-preview-modal";
 
 type Props = {
@@ -67,6 +73,16 @@ const SHIPPING_STATUSES: ShippingStatus[] = [
   "delivered",
   "cancelled",
 ];
+
+function getAllowedStatuses<TStatus extends string>(
+  current: TStatus,
+  allStatuses: readonly TStatus[],
+  transitions: Record<TStatus, readonly TStatus[]>,
+) {
+  return allStatuses.filter(
+    (status) => status === current || transitions[current].includes(status),
+  );
+}
 
 const SHIPPING_METHOD_KEYS: Record<string, string> = {
   hcm_inner: "orderDetail.shippingMethods.hcm_inner",
@@ -218,13 +234,6 @@ function getDesignStats(value: JsonObject | null) {
   };
 }
 
-const HISTORY_TYPE_LABELS: Record<string, string> = {
-  ORDER_STATUS: "Đơn hàng",
-  PAYMENT_STATUS: "Thanh toán",
-  SHIPPING_STATUS: "Vận chuyển",
-  NOTE: "Ghi chú",
-};
-
 function CharacterPartBadge({
   label,
   partId,
@@ -298,9 +307,7 @@ export default function OrderDetail({ orderId }: Props) {
       setCharacterParts(parts);
       setAccessoryCatalog(accessories);
     } catch (err) {
-      setError(
-        getLocalizedApiError(err, t, "orderDetail.loadFailed"),
-      );
+      setError(getLocalizedApiError(err, t, "orderDetail.loadFailed"));
     } finally {
       setLoading(false);
     }
@@ -336,9 +343,7 @@ export default function OrderDetail({ orderId }: Props) {
       }
       await load();
     } catch (err) {
-      setError(
-        getLocalizedApiError(err, t, "orderDetail.updateFailed"),
-      );
+      setError(getLocalizedApiError(err, t, "orderDetail.updateFailed"));
     } finally {
       setSaving(false);
     }
@@ -445,7 +450,8 @@ export default function OrderDetail({ orderId }: Props) {
                 : "-"}
             </p>
             <p className="mt-1 text-xs text-slate-500">
-              {t("orderDetail.shippingFee")}: {formatVnd(order.shippingFee, locale)}
+              {t("orderDetail.shippingFee")}:{" "}
+              {formatVnd(order.shippingFee, locale)}
             </p>
           </div>
           <div className="rounded-[22px] border border-[var(--admin-border)] bg-slate-50 p-4">
@@ -453,9 +459,7 @@ export default function OrderDetail({ orderId }: Props) {
               {t("orderDetail.receiveDate")}
             </p>
             <p className="mt-2 text-sm font-medium text-slate-900">
-              {order.receiveDate
-                ? formatDate(order.receiveDate, locale)
-                : "-"}
+              {order.receiveDate ? formatDate(order.receiveDate, locale) : "-"}
             </p>
           </div>
           <div className="rounded-[22px] border border-[var(--admin-border)] bg-slate-50 p-4">
@@ -463,9 +467,7 @@ export default function OrderDetail({ orderId }: Props) {
               {t("orderDetail.paymentDeadline")}
             </p>
             <p className="mt-2 text-sm font-medium text-slate-900">
-              {order.expiresAt
-                ? formatDateTime(order.expiresAt, locale)
-                : "-"}
+              {order.expiresAt ? formatDateTime(order.expiresAt, locale) : "-"}
             </p>
           </div>
           <div className="rounded-[22px] border border-[var(--admin-border)] bg-slate-50 p-4">
@@ -477,7 +479,10 @@ export default function OrderDetail({ orderId }: Props) {
             </p>
             <p className="mt-1 text-xs text-slate-500">
               {t("orderDetail.addOns")}:{" "}
-              {formatVnd((order.giftFee ?? 0) + (order.polaroidFee ?? 0), locale)}
+              {formatVnd(
+                (order.giftFee ?? 0) + (order.polaroidFee ?? 0),
+                locale,
+              )}
               {order.discountAmount > 0
                 ? ` · ${t("orderDetail.voucher")}: -${formatVnd(order.discountAmount, locale)}`
                 : ""}
@@ -492,8 +497,8 @@ export default function OrderDetail({ orderId }: Props) {
             </p>
             <p className="mt-1 text-xs text-slate-500">
               {t("orderDetail.giftPackage")}:{" "}
-              {order.giftPackage ? formatVnd(order.giftFee ?? 0, locale) : "-"} ·
-              Polaroid: {order.polaroidOption ?? "none"}
+              {order.giftPackage ? formatVnd(order.giftFee ?? 0, locale) : "-"}{" "}
+              · Polaroid: {order.polaroidOption ?? "none"}
             </p>
           </div>
           <div className="rounded-[22px] border border-[var(--admin-border)] bg-slate-50 p-4">
@@ -504,7 +509,8 @@ export default function OrderDetail({ orderId }: Props) {
               {formatVnd(order.remainingAmount, locale)}
             </p>
             <p className="mt-1 text-xs text-slate-500">
-              {t("orderDetail.deposit")}: {formatVnd(order.depositAmount, locale)}
+              {t("orderDetail.deposit")}:{" "}
+              {formatVnd(order.depositAmount, locale)}
             </p>
           </div>
           {order.note ? (
@@ -547,7 +553,11 @@ export default function OrderDetail({ orderId }: Props) {
                 updateStatus("order", e.target.value as OrderStatus)
               }
             >
-              {ORDER_STATUSES.map((status) => (
+              {getAllowedStatuses(
+                order.orderStatus,
+                ORDER_STATUSES,
+                ORDER_STATUS_TRANSITIONS,
+              ).map((status) => (
                 <option key={status} value={status}>
                   {statusLabel(status)}
                 </option>
@@ -567,7 +577,11 @@ export default function OrderDetail({ orderId }: Props) {
                 updateStatus("payment", e.target.value as PaymentStatus)
               }
             >
-              {PAYMENT_STATUSES.map((status) => (
+              {getAllowedStatuses(
+                order.paymentStatus,
+                PAYMENT_STATUSES,
+                PAYMENT_STATUS_TRANSITIONS,
+              ).map((status) => (
                 <option key={status} value={status}>
                   {statusLabel(status)}
                 </option>
@@ -581,13 +595,17 @@ export default function OrderDetail({ orderId }: Props) {
             </span>
             <Select
               value={order.shippingStatus}
-              disabled={saving}
+              disabled={saving || order.orderStatus === "cancelled"}
               aria-label={t("orderDetail.shippingStatus")}
               onChange={(e) =>
                 updateStatus("shipping", e.target.value as ShippingStatus)
               }
             >
-              {SHIPPING_STATUSES.map((status) => (
+              {getAllowedStatuses(
+                order.shippingStatus,
+                SHIPPING_STATUSES,
+                SHIPPING_STATUS_TRANSITIONS,
+              ).map((status) => (
                 <option key={status} value={status}>
                   {statusLabel(status)}
                 </option>
@@ -929,7 +947,7 @@ export default function OrderDetail({ orderId }: Props) {
               const actor =
                 history.changedByAdmin?.name ||
                 history.changedByAdmin?.email ||
-                "Hệ thống";
+                t("orderDetail.systemActor");
               return (
                 <div
                   key={history.id}
@@ -938,7 +956,7 @@ export default function OrderDetail({ orderId }: Props) {
                   <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                     <div>
                       <p className="text-sm font-bold text-slate-900">
-                        {HISTORY_TYPE_LABELS[history.type] ?? history.type}
+                        {t(`orderDetail.historyTypes.${history.type}`)}
                       </p>
                       <p className="mt-1 text-sm text-slate-600">
                         <span className="font-semibold">
@@ -957,9 +975,7 @@ export default function OrderDetail({ orderId }: Props) {
                     </div>
                     <div className="text-left text-xs text-slate-500 sm:text-right">
                       <p className="font-semibold text-slate-700">{actor}</p>
-                      <p>
-                        {formatDateTime(history.createdAt, locale)}
-                      </p>
+                      <p>{formatDateTime(history.createdAt, locale)}</p>
                     </div>
                   </div>
                 </div>

@@ -8,7 +8,6 @@ import { CHARACTER_PART_TYPE, PRODUCT_STATUS } from '@lego-shop/shared';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
 import {
-  IsBoolean,
   IsEnum,
   IsInt,
   IsNotEmpty,
@@ -86,11 +85,6 @@ export class CreateCharacterPartDto implements CreateCharacterPartRequestContrac
   @IsOptional()
   @IsString()
   availability?: string;
-
-  @ApiPropertyOptional({ example: true, default: true })
-  @IsOptional()
-  @IsBoolean()
-  isActive?: boolean;
 
   @ApiPropertyOptional({ example: { bodyScale: ['standard'] } })
   @Transform(parseJsonValue)

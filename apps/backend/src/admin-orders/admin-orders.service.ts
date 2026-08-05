@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import {
   OrderStatusHistoryType,
   OrderStatus,
@@ -7,6 +11,11 @@ import {
   Prisma,
   ShippingStatus,
 } from '@prisma/client';
+import {
+  ORDER_STATUS_TRANSITIONS,
+  PAYMENT_STATUS_TRANSITIONS,
+  SHIPPING_STATUS_TRANSITIONS,
+} from '@lego-shop/shared';
 import {
   buildAdminListMeta,
   buildDateFilter,
@@ -249,6 +258,12 @@ export class AdminOrdersService {
     changedByAdminId?: string,
   ) {
     const existing = await this.ensureOrderExists(id);
+    this.assertTransition(
+      ORDER_STATUS_TRANSITIONS,
+      existing.orderStatus,
+      dto.status,
+      'INVALID_ORDER_STATUS_TRANSITION',
+    );
 
     const order = await this.prisma.$transaction(async (tx) => {
       if (
@@ -270,6 +285,22 @@ export class AdminOrdersService {
         });
       }
 
+      if (
+        dto.status === OrderStatus.cancelled &&
+        existing.shippingStatus !== ShippingStatus.cancelled
+      ) {
+        await tx.orderStatusHistory.create({
+          data: {
+            orderId: id,
+            type: OrderStatusHistoryType.SHIPPING_STATUS,
+            fromValue: existing.shippingStatus,
+            toValue: ShippingStatus.cancelled,
+            changedByAdminId,
+            note: 'Order cancelled by administrator',
+          },
+        });
+      }
+
       return tx.order.update({
         where: { id },
         data: {
@@ -278,6 +309,7 @@ export class AdminOrdersService {
             ? {
                 cancelledAt: new Date(),
                 cancelReason: 'Cancelled by admin',
+                shippingStatus: ShippingStatus.cancelled,
               }
             : {}),
         },
@@ -296,6 +328,12 @@ export class AdminOrdersService {
     changedByAdminId?: string,
   ) {
     const existing = await this.ensureOrderExists(id);
+    this.assertTransition(
+      PAYMENT_STATUS_TRANSITIONS,
+      existing.paymentStatus,
+      dto.status,
+      'INVALID_PAYMENT_STATUS_TRANSITION',
+    );
 
     const order = await this.prisma.$transaction(async (tx) => {
       if (existing.paymentStatus !== dto.status) {
@@ -348,6 +386,19 @@ export class AdminOrdersService {
     changedByAdminId?: string,
   ) {
     const existing = await this.ensureOrderExists(id);
+    this.assertTransition(
+      SHIPPING_STATUS_TRANSITIONS,
+      existing.shippingStatus,
+      dto.status,
+      'INVALID_SHIPPING_STATUS_TRANSITION',
+    );
+
+    if (existing.orderStatus === OrderStatus.cancelled) {
+      throw new BadRequestException({
+        code: 'CANCELLED_ORDER_IS_TERMINAL',
+        message: 'Shipping status cannot change after order cancellation',
+      });
+    }
 
     const order = await this.prisma.$transaction(async (tx) => {
       if (existing.shippingStatus !== dto.status) {
@@ -448,5 +499,22 @@ export class AdminOrdersService {
 
   private serializeBigInt(value: bigint | null) {
     return typeof value === 'bigint' ? value.toString() : value;
+  }
+
+  private assertTransition<TStatus extends string>(
+    transitions: Record<TStatus, readonly TStatus[]>,
+    current: TStatus,
+    next: TStatus,
+    code: string,
+  ) {
+    if (current === next) return;
+    if (transitions[current]?.includes(next)) return;
+
+    throw new BadRequestException({
+      code,
+      message: `Cannot transition from ${current} to ${next}`,
+      current,
+      requested: next,
+    });
   }
 }

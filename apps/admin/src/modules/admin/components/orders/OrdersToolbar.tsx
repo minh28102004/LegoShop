@@ -19,7 +19,6 @@ type OrdersToolbarProps = {
   activeFilterCount: number;
   dateFrom: string;
   dateTo: string;
-  description: string;
   onDateFromChange: (value: string) => void;
   onDateToChange: (value: string) => void;
   onOpenFilters: () => void;
@@ -48,7 +47,6 @@ export default function OrdersToolbar({
   activeFilterCount,
   dateFrom,
   dateTo,
-  description,
   onDateFromChange,
   onDateToChange,
   onOpenFilters,
@@ -66,7 +64,6 @@ export default function OrdersToolbar({
     <AdminToolbar
       icon={<AdminNavIcon name='orders' className='h-6 w-6' />}
       title={title}
-      description={description}
       badge={
         <Badge tone='info' className='rounded-full px-4 py-2 text-sm font-bold'>
           {t(total === 1 ? 'orders.countOne' : 'orders.countOther', { count: formattedTotal })}

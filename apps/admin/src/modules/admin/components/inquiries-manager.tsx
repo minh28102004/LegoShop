@@ -183,7 +183,6 @@ export default function InquiriesManager() {
       <AdminToolbar
           icon={<AdminNavIcon name='businessInquiries' className='h-6 w-6' />}
           title={t('sidebar.businessInquiries')}
-          description={t('sidebarDesc.businessInquiries')}
           badge={
             <Badge tone='info' className='rounded-full px-4 py-2 text-sm font-bold !text-slate-950'>
               {formatNumber(payload?.meta.total ?? 0, locale)} {t('inquiries.countLabel')}
@@ -213,7 +212,7 @@ export default function InquiriesManager() {
           onClick={() => setFilterDrawerOpen(true)}
           className={adminToolbarButtonClass}
         >
-          {locale === 'vi' ? 'Bộ lọc' : 'Filters'}
+          {t('inquiries.filters')}
         </Button>
 
         {showResetFilters ? (
@@ -242,17 +241,18 @@ export default function InquiriesManager() {
         labels={{
           allCategories: '',
           allStatuses: t('inquiries.allStatuses'),
-          apply: locale === 'vi' ? 'Áp dụng' : 'Apply filters',
+          apply: t('inquiries.applyFilters'),
           category: '',
-          dateFrom: locale === 'vi' ? 'Tá»« ngÃ y' : 'From date',
-          dateRange: locale === 'vi' ? 'Khoáº£ng ngÃ y' : 'Date range',
-          dateTo: locale === 'vi' ? 'Äáº¿n ngÃ y' : 'To date',
-          filterTitle: locale === 'vi' ? 'Bộ lọc' : 'Filters',
+          dateFrom: t('inquiries.dateFrom'),
+          dateRange: t('inquiries.dateRange'),
+          dateTo: t('inquiries.dateTo'),
+          filterTitle: t('inquiries.filters'),
           priceMax: '',
           priceMin: '',
           priceRange: '',
           reset: t('inquiries.reset'),
-          selectedCount: (count) => `${count} ${locale === 'vi' ? 'mục đã chọn' : 'selected'}`,
+          selectedCount: (count) =>
+            t('inquiries.selectedCount').replace('{count}', String(count)),
           status: t('common.status'),
         }}
       />

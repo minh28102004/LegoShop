@@ -25,9 +25,7 @@ import type {
 const MAX_FEATURED_PRODUCTS = 4;
 const MAX_HOME_CATEGORIES = 6;
 const MAX_HERO_SLIDES = 24;
-const EXCLUDED_HERO_MEDIA_SOURCE_KEYS = new Set([
-  "home-c4c80ef0a8d8",
-]);
+const EXCLUDED_HERO_MEDIA_SOURCE_KEYS = new Set(["home-c4c80ef0a8d8"]);
 
 const BANNER_TITLES: Record<HomeMediaSlot, string> = {
   hero: "homepage:hero",
@@ -39,10 +37,13 @@ const BANNER_TITLES: Record<HomeMediaSlot, string> = {
 
 const MEDIA_ALT: Record<HomeMediaSlot, string> = vi.home.media.alt;
 
-const DEVELOPMENT_MEDIA: Record<HomeMediaSlot, string> = {
+// These assets ship with the web app and keep the homepage complete when an
+// optional CMS banner slot has not been configured yet. API media still wins
+// whenever a matching active banner exists.
+const STATIC_FALLBACK_MEDIA: Record<HomeMediaSlot, string> = {
   hero: FIGURE_LAB_TEAM_GIFT_IMAGE,
   story: "/home/graduation-celebration.png",
-  friendship: "/home/love-frame.png",
+  friendship: FIGURE_LAB_TEAM_GIFT_IMAGE,
   transformation: "/home/birthday-frame.png",
   "final-cta": FIGURE_LAB_TEAM_GIFT_IMAGE,
 };
@@ -190,17 +191,29 @@ function mapCategories(collections: Collection[]): HomeCategory[] {
   }));
 }
 
-function mapBanners(banners: Banner[]): HomeMediaMap {
-  const bannerByTitle = new Map(
-    banners
-      .filter((banner) => banner.title)
-      .map((banner) => [banner.title?.trim().toLowerCase(), banner] as const),
-  );
-  const isDevelopment = process.env.NODE_ENV !== "production";
+function getBannerSystemKey(banner: Banner): string | null {
+  const sourceKey = toNonEmptyString(banner.sourceKey)?.toLowerCase() ?? null;
+  const title = toNonEmptyString(banner.title)?.toLowerCase() ?? null;
 
+  // Imported legacy banners keep the semantic homepage slot in `title` while
+  // `sourceKey` is a media hash (for example `home-ab12cd34`). Newer records
+  // store the slot directly in `sourceKey`. Support both shapes so a media hash
+  // can never override the actual homepage placement.
+  if (sourceKey?.startsWith("homepage:")) return sourceKey;
+  if (title?.startsWith("homepage:")) return title;
+
+  return sourceKey ?? title;
+}
+
+function mapBanners(banners: Banner[]): HomeMediaMap {
+  const bannerBySystemKey = new Map(
+    banners
+      .map((banner) => [getBannerSystemKey(banner), banner] as const)
+      .filter((entry): entry is [string, Banner] => entry[0] !== null),
+  );
   return (Object.keys(BANNER_TITLES) as HomeMediaSlot[]).reduce<HomeMediaMap>(
     (media, slot) => {
-      const banner = bannerByTitle.get(BANNER_TITLES[slot]);
+      const banner = bannerBySystemKey.get(BANNER_TITLES[slot]);
       const apiSource = getSafeApiMediaUrl(banner?.imageUrl);
 
       if (apiSource) {
@@ -210,15 +223,13 @@ function mapBanners(banners: Banner[]): HomeMediaMap {
           slot,
           source: "api",
         };
-      } else if (isDevelopment) {
-        media[slot] = {
-          src: DEVELOPMENT_MEDIA[slot],
-          alt: `${MEDIA_ALT[slot]} (${vi.home.media.developmentBadge})`,
-          slot,
-          source: "development-fallback",
-        };
       } else {
-        media[slot] = null;
+        media[slot] = {
+          src: STATIC_FALLBACK_MEDIA[slot],
+          alt: MEDIA_ALT[slot],
+          slot,
+          source: "static",
+        };
       }
 
       return media;
@@ -254,23 +265,16 @@ function mapHeroSlides(
       ];
     });
   const bannerSlides = [...banners]
-    .filter((banner) =>
-      banner.title?.trim().toLowerCase().startsWith("homepage:"),
-    )
+    .filter((banner) => getBannerSystemKey(banner) === BANNER_TITLES.hero)
     .sort((left, right) => left.sortOrder - right.sortOrder)
     .flatMap((banner) => {
       const src = getSafeApiMediaUrl(banner.imageUrl);
       if (!src) return [];
 
-      const title = banner.title?.trim().toLowerCase() ?? "";
-      const slot = (Object.entries(BANNER_TITLES).find(
-        ([, expectedTitle]) => expectedTitle === title,
-      )?.[0] ?? "hero") as HomeMediaSlot;
-
       return [
         {
           src,
-          alt: MEDIA_ALT[slot],
+          alt: MEDIA_ALT.hero,
           slot: "hero" as const,
           source: "api" as const,
         },

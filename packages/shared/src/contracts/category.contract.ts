@@ -1,6 +1,10 @@
-import type { ProductStatus } from '../constants/status';
-import type { URLString } from '../types/common';
-import type { AccessoryCategory, Collection, TemplateCategory } from '../types/category';
+import type { ProductStatus } from "../constants/status";
+import type { URLString } from "../types/common";
+import type {
+  AccessoryCategory,
+  Collection,
+  TemplateCategory,
+} from "../types/category";
 
 export type TemplateCategoryContract = TemplateCategory;
 export type AccessoryCategoryContract = AccessoryCategory;
@@ -11,14 +15,17 @@ export type CreateCategoryRequestContract = {
   slug?: string;
 };
 
-export type UpdateCategoryRequestContract = Partial<CreateCategoryRequestContract>;
+export type UpdateCategoryRequestContract =
+  Partial<CreateCategoryRequestContract>;
 
 export type CreateCollectionRequestContract = {
   name: string;
   slug?: string;
   description?: string;
   imageUrl?: URLString;
+  sortOrder?: number;
   status?: ProductStatus;
 };
 
-export type UpdateCollectionRequestContract = Partial<CreateCollectionRequestContract>;
+export type UpdateCollectionRequestContract =
+  Partial<CreateCollectionRequestContract>;

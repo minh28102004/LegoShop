@@ -5,7 +5,12 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { OrderStatus, Prisma, ProductStatus } from '@prisma/client';
+import {
+  FrameOptionType,
+  OrderStatus,
+  Prisma,
+  ProductStatus,
+} from '@prisma/client';
 import { PRODUCT_TYPE } from '@lego-shop/shared';
 import {
   buildAdminListMeta,
@@ -106,7 +111,14 @@ export class ProductsService {
     }
 
     if (query.category?.trim()) {
-      filters.push({ category: query.category.trim() });
+      const normalizedCategory = query.category
+        .trim()
+        .toLowerCase()
+        .replace(/[\s_]+/g, '-')
+        .replace(/^-+|-+$/g, '');
+      filters.push({
+        category: { equals: normalizedCategory, mode: 'insensitive' },
+      });
     }
     if (query.availability?.trim()) {
       filters.push({ availability: query.availability.trim() });
@@ -371,6 +383,11 @@ export class ProductsService {
     `);
 
     const search = query.search?.trim().toLocaleLowerCase('vi');
+    const normalizedCategory = query.category
+      ?.trim()
+      .toLowerCase()
+      .replace(/[\s_]+/g, '-')
+      .replace(/^-+|-+$/g, '');
     const collectionValues = new Set(
       [
         query.collection?.trim(),
@@ -431,8 +448,8 @@ export class ProductsService {
           return false;
         }
         if (
-          query.category?.trim() &&
-          row.collectionSlug !== query.category.trim()
+          normalizedCategory &&
+          row.collectionSlug?.toLocaleLowerCase('vi') !== normalizedCategory
         ) {
           return false;
         }
@@ -584,7 +601,6 @@ export class ProductsService {
     ] = await Promise.all([
       this.prisma.frameSize.findMany({
         where: {
-          status: ProductStatus.active,
           ...(configuredFrameSizeIds.length > 0
             ? { id: { in: configuredFrameSizeIds } }
             : {}),
@@ -600,13 +616,12 @@ export class ProductsService {
       }),
       this.prisma.accessory.findMany({
         where: {
-          ...this.publicAccessoryVisibility(previewSeedTag),
           id: { in: configuredAccessories.map((item) => item.id) },
         },
         orderBy: { sortOrder: 'asc' },
       }),
       this.prisma.accessory.findMany({
-        where: this.publicAccessoryVisibility(previewSeedTag),
+        where: {},
         orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
         take: 48,
       }),
@@ -645,7 +660,7 @@ export class ProductsService {
             {
               id: entity.id,
               name: entity.name,
-              price: configured.price ?? entity.price,
+              price: entity.price,
               imageUrl: entity.imageUrl ?? configured.imageUrl,
               quantity: configured.quantity,
             },
@@ -911,7 +926,7 @@ export class ProductsService {
           id: entity.id,
           type,
           name: entity.name,
-          price: configured.price ?? entity.price,
+          price: entity.price,
           quantity: configured.quantity,
           imageUrl: entity.imageUrl ?? configured.imageUrl,
         },
@@ -929,7 +944,7 @@ export class ProductsService {
       id: entity.id,
       type,
       name: entity.name,
-      price: configured.price ?? entity.price,
+      price: entity.price,
       quantity: configured.quantity,
       imageUrl: entity.imageUrl ?? configured.imageUrl,
     };
@@ -953,19 +968,6 @@ export class ProductsService {
         },
       ],
     };
-  }
-
-  private publicAccessoryVisibility(
-    previewSeedTag?: string,
-  ): Prisma.AccessoryWhereInput {
-    return previewSeedTag
-      ? {
-          OR: [
-            { status: ProductStatus.active },
-            { status: ProductStatus.inactive, seedTag: previewSeedTag },
-          ],
-        }
-      : { status: ProductStatus.active };
   }
 
   private isSelectedPreviewProduct(
@@ -1088,14 +1090,19 @@ export class ProductsService {
       throw new ConflictException('Product slug already exists');
     }
 
-    await this.validateComponentConfig(dto.componentConfig, dto.basePrice);
+    await this.validateComponentConfig(
+      dto.componentConfig,
+      dto.basePrice,
+      dto.published ?? true,
+    );
+    await this.assertCollectionExists(dto.collectionId, dto.published ?? true);
     await this.validateProductCatalogConfiguration({
       productType: dto.productType,
       basePrice: dto.basePrice,
       compareAtPrice: dto.compareAtPrice,
       characterPresetId: dto.characterPresetId,
       thumbnailUrl: dto.thumbnailUrl,
-      published: dto.published,
+      published: dto.published ?? true,
     });
 
     return this.prisma.product.create({
@@ -1140,6 +1147,7 @@ export class ProductsService {
         componentConfig: true,
         thumbnailUrl: true,
         published: true,
+        collectionId: true,
       },
     });
 
@@ -1150,6 +1158,13 @@ export class ProductsService {
     await this.validateComponentConfig(
       dto.componentConfig ?? existingProduct.componentConfig,
       dto.basePrice ?? existingProduct.basePrice,
+      dto.published !== undefined ? dto.published : existingProduct.published,
+    );
+    await this.assertCollectionExists(
+      dto.collectionId !== undefined
+        ? dto.collectionId || null
+        : existingProduct.collectionId,
+      dto.published !== undefined ? dto.published : existingProduct.published,
     );
     await this.validateProductCatalogConfiguration({
       productType: dto.productType ?? existingProduct.productType,
@@ -1287,16 +1302,9 @@ export class ProductsService {
       preset.hatPart,
       ...preset.accessories.map((entry) => entry.part),
     ].filter((part) => part !== null);
-    if (
-      allParts.some(
-        (part) =>
-          part.status !== ProductStatus.active ||
-          !part.isActive ||
-          part.availability !== 'available',
-      )
-    ) {
+    if (allParts.some((part) => part.availability !== 'available')) {
       throw new BadRequestException(
-        'Every character product component must be active and available',
+        'Every character product component must be available',
       );
     }
   }
@@ -1320,7 +1328,7 @@ export class ProductsService {
 
     if (existingProduct._count.orderItems > 0) {
       throw new ConflictException(
-        `Product is referenced by ${existingProduct._count.orderItems} order item(s). Disable it instead of deleting it.`,
+        `Product is referenced by ${existingProduct._count.orderItems} order item(s). Unpublish it instead of deleting it.`,
       );
     }
 
@@ -1334,7 +1342,11 @@ export class ProductsService {
     };
   }
 
-  private async validateComponentConfig(value: unknown, basePrice: number) {
+  private async validateComponentConfig(
+    value: unknown,
+    basePrice: number,
+    requireActive = false,
+  ) {
     if (value === undefined || value === null) return;
     const config = this.asRecord(value);
     if (!config) {
@@ -1357,27 +1369,48 @@ export class ProductsService {
         throw new BadRequestException(`Product ${key} must be an array`);
       }
 
-      return raw.map((item, index) => {
-        const id = this.readString(this.asRecord(item)?.id);
+      const ids = raw.map((item, index) => {
+        const record = this.asRecord(item);
+        const id = this.readString(record?.id);
         if (!id) {
           throw new BadRequestException(
             `Product ${key}[${index}].id is required`,
           );
         }
+        const quantity = record?.quantity;
+        if (
+          quantity !== undefined &&
+          (typeof quantity !== 'number' ||
+            !Number.isInteger(quantity) ||
+            quantity < 1)
+        ) {
+          throw new BadRequestException(
+            `Product ${key}[${index}].quantity must be a positive integer`,
+          );
+        }
         return id;
       });
+      if (new Set(ids).size !== ids.length) {
+        throw new BadRequestException(
+          `Product ${key} cannot contain duplicate references`,
+        );
+      }
+      return ids;
     };
 
     const characterIds = readRequiredPartIds('characters');
     const accessoryIds = readRequiredPartIds('accessories');
-    const frameIds = (['frame', 'frameColor'] as const).flatMap((key) => {
-      if (config[key] === undefined) return [];
-      const id = this.readString(this.asRecord(config[key])?.id);
-      if (!id) {
-        throw new BadRequestException(`Product ${key}.id is required`);
-      }
-      return [id];
-    });
+    const frameReferences = (['frame', 'frameColor'] as const).flatMap(
+      (key) => {
+        if (config[key] === undefined) return [];
+        const id = this.readString(this.asRecord(config[key])?.id);
+        if (!id) {
+          throw new BadRequestException(`Product ${key}.id is required`);
+        }
+        return [{ id, key }];
+      },
+    );
+    const frameIds = frameReferences.map((item) => item.id);
     const backgroundId =
       config.background === undefined
         ? null
@@ -1386,34 +1419,159 @@ export class ProductsService {
       throw new BadRequestException('Product background.id is required');
     }
 
-    const [characterRows, accessoryRows, frameRows, backgroundRow] =
-      await Promise.all([
-        this.prisma.character.findMany({
-          where: { id: { in: characterIds } },
-          select: { id: true },
-        }),
-        this.prisma.accessory.findMany({
-          where: { id: { in: accessoryIds } },
-          select: { id: true },
-        }),
-        this.prisma.frameOption.findMany({
-          where: { id: { in: frameIds } },
-          select: { id: true },
-        }),
-        backgroundId
-          ? this.prisma.frameBackground.findUnique({
-              where: { id: backgroundId },
-              select: { id: true },
-            })
-          : Promise.resolve(null),
-      ]);
+    const frameSizeIds = Array.isArray(config.frameSizeIds)
+      ? config.frameSizeIds.map((id, index) => {
+          const value = this.readString(id);
+          if (!value) {
+            throw new BadRequestException(
+              `Product frameSizeIds[${index}] must be a valid ID`,
+            );
+          }
+          return value;
+        })
+      : [];
+    if (
+      config.frameSizeIds !== undefined &&
+      !Array.isArray(config.frameSizeIds)
+    ) {
+      throw new BadRequestException('Product frameSizeIds must be an array');
+    }
+    const recommendedFrameSizeId = this.readString(
+      config.recommendedFrameSizeId,
+    );
+    if (
+      config.recommendedFrameSizeId !== undefined &&
+      !recommendedFrameSizeId
+    ) {
+      throw new BadRequestException(
+        'Product recommendedFrameSizeId must be a valid ID',
+      );
+    }
+    if (
+      recommendedFrameSizeId &&
+      frameSizeIds.length > 0 &&
+      !frameSizeIds.includes(recommendedFrameSizeId)
+    ) {
+      throw new BadRequestException(
+        'Product recommendedFrameSizeId must belong to frameSizeIds',
+      );
+    }
+
+    const [
+      characterRows,
+      accessoryRows,
+      frameRows,
+      backgroundRow,
+      frameSizeRows,
+    ] = await Promise.all([
+      this.prisma.character.findMany({
+        where: { id: { in: characterIds } },
+        select: { id: true, status: true },
+      }),
+      this.prisma.accessory.findMany({
+        where: { id: { in: accessoryIds } },
+        select: { id: true, status: true },
+      }),
+      this.prisma.frameOption.findMany({
+        where: { id: { in: frameIds } },
+        select: { id: true, status: true, type: true },
+      }),
+      backgroundId
+        ? this.prisma.frameBackground.findUnique({
+            where: { id: backgroundId },
+            select: {
+              id: true,
+              status: true,
+              frameOptionIds: true,
+            },
+          })
+        : Promise.resolve(null),
+      this.prisma.frameSize.findMany({
+        where: {
+          id: {
+            in: [
+              ...frameSizeIds,
+              ...(recommendedFrameSizeId ? [recommendedFrameSizeId] : []),
+            ],
+          },
+        },
+        select: { id: true, status: true },
+      }),
+    ]);
 
     this.assertAllReferencesExist('characters', characterIds, characterRows);
     this.assertAllReferencesExist('accessories', accessoryIds, accessoryRows);
     this.assertAllReferencesExist('frame options', frameIds, frameRows);
+    this.assertAllReferencesExist(
+      'frame sizes',
+      [
+        ...frameSizeIds,
+        ...(recommendedFrameSizeId ? [recommendedFrameSizeId] : []),
+      ],
+      frameSizeRows,
+    );
     if (backgroundId && !backgroundRow) {
       throw new BadRequestException(
         `Product background reference not found: ${backgroundId}`,
+      );
+    }
+
+    for (const reference of frameReferences) {
+      const row = frameRows.find((option) => option.id === reference.id);
+      const expectedType =
+        reference.key === 'frame'
+          ? FrameOptionType.size
+          : FrameOptionType.color;
+      if (row && row.type !== expectedType) {
+        throw new BadRequestException(
+          `Product ${reference.key} must reference a ${expectedType} option`,
+        );
+      }
+    }
+
+    const configuredFrameId = frameReferences.find(
+      (reference) => reference.key === 'frame',
+    )?.id;
+    if (
+      configuredFrameId &&
+      backgroundRow?.frameOptionIds.length &&
+      !backgroundRow.frameOptionIds.includes(configuredFrameId)
+    ) {
+      throw new BadRequestException(
+        'Product background is not compatible with the configured frame size',
+      );
+    }
+
+    if (requireActive) {
+      const inactiveReference = [
+        ...characterRows,
+        ...(backgroundRow ? [backgroundRow] : []),
+      ].find((row) => row.status !== ProductStatus.active);
+      if (inactiveReference) {
+        throw new BadRequestException(
+          `Published product reference is inactive: ${inactiveReference.id}`,
+        );
+      }
+    }
+  }
+
+  private async assertCollectionExists(
+    collectionId?: string | null,
+    requireActive = false,
+  ) {
+    if (!collectionId) return;
+    const collection = await this.prisma.collection.findUnique({
+      where: { id: collectionId },
+      select: { id: true, status: true },
+    });
+    if (!collection) {
+      throw new BadRequestException(
+        `Product collection reference not found: ${collectionId}`,
+      );
+    }
+    if (requireActive && collection.status !== ProductStatus.active) {
+      throw new BadRequestException(
+        `Published product collection is inactive: ${collectionId}`,
       );
     }
   }
@@ -1642,7 +1800,7 @@ export class ProductsService {
     return {
       id: entity?.id ?? configured?.id ?? '',
       name: entity?.name ?? configured?.name ?? '',
-      price: configured?.price ?? entity?.price ?? 0,
+      price: entity?.price ?? configured?.price ?? 0,
       originalPrice:
         configured?.originalPrice ??
         this.readNumber(metadata?.originalPrice ?? metadata?.originalPriceVnd),

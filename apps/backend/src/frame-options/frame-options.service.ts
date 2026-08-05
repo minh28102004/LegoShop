@@ -16,6 +16,7 @@ import {
   resolveDateRange,
   resolveSorts,
 } from '../common/admin-query/admin-query.util';
+import { countJsonCatalogReferences } from '../common/catalog-reference.util';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateFrameOptionDto } from './dto/create-frame-option.dto';
 import { FrameOptionsQueryDto } from './dto/frame-options-query.dto';
@@ -56,7 +57,6 @@ export class FrameOptionsService {
 
     const options = await this.prisma.frameOption.findMany({
       where: {
-        status: ProductStatus.active,
         ...(type ? { type } : {}),
       },
       orderBy: [{ type: 'asc' }, { sortOrder: 'asc' }, { createdAt: 'desc' }],
@@ -169,6 +169,7 @@ export class FrameOptionsService {
     this.assertQuantityRange(dto.minQuantity, dto.maxQuantity);
 
     const type = dto.type ?? FrameOptionType.size;
+    this.assertSizeDimensions(type, dto.widthCm, dto.heightCm);
     const generatedLabel = this.buildFrameOptionLabel(dto);
     const name = dto.name ?? generatedLabel;
     const label = dto.label ?? generatedLabel;
@@ -223,7 +224,14 @@ export class FrameOptionsService {
   async updateOption(id: string, dto: UpdateFrameOptionDto) {
     const existingOption = await this.prisma.frameOption.findUnique({
       where: { id },
-      select: { id: true, minQuantity: true, maxQuantity: true },
+      select: {
+        id: true,
+        type: true,
+        widthCm: true,
+        heightCm: true,
+        minQuantity: true,
+        maxQuantity: true,
+      },
     });
 
     if (!existingOption) {
@@ -233,6 +241,11 @@ export class FrameOptionsService {
     this.assertQuantityRange(
       dto.minQuantity ?? existingOption.minQuantity,
       dto.maxQuantity ?? existingOption.maxQuantity,
+    );
+    this.assertSizeDimensions(
+      dto.type ?? existingOption.type,
+      dto.widthCm ?? existingOption.widthCm ?? undefined,
+      dto.heightCm ?? existingOption.heightCm ?? undefined,
     );
 
     const data: Prisma.FrameOptionUpdateInput = {};
@@ -285,6 +298,32 @@ export class FrameOptionsService {
       throw new NotFoundException('Frame option not found');
     }
 
+    const [backgroundCount, directOrderCount, products, orderItems, designs] =
+      await Promise.all([
+        this.prisma.frameBackground.count({
+          where: { frameOptionIds: { has: id } },
+        }),
+        this.prisma.orderItem.count({
+          where: { OR: [{ frameOptionId: id }, { frameSizeId: id }] },
+        }),
+        this.prisma.product.findMany({ select: { componentConfig: true } }),
+        this.prisma.orderItem.findMany({
+          select: { designData: true, componentSnapshot: true },
+        }),
+        this.prisma.userDesign.findMany({ select: { designData: true } }),
+      ]);
+    const referenceCount =
+      backgroundCount +
+      directOrderCount +
+      countJsonCatalogReferences(products, id) +
+      countJsonCatalogReferences(orderItems, id) +
+      countJsonCatalogReferences(designs, id);
+    if (referenceCount > 0) {
+      throw new ConflictException(
+        `Frame option is referenced by ${referenceCount} background, product, order, or design record(s). Remove those references before deleting it.`,
+      );
+    }
+
     await this.prisma.frameOption.delete({
       where: { id },
     });
@@ -303,6 +342,19 @@ export class FrameOptionsService {
     ) {
       throw new BadRequestException(
         'maxQuantity must be greater than or equal to minQuantity',
+      );
+    }
+  }
+
+  private assertSizeDimensions(
+    type: FrameOptionType,
+    widthCm?: number,
+    heightCm?: number,
+  ) {
+    if (type !== FrameOptionType.size) return;
+    if (!widthCm || !heightCm || widthCm <= 0 || heightCm <= 0) {
+      throw new BadRequestException(
+        'Frame size options require positive widthCm and heightCm values',
       );
     }
   }

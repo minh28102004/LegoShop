@@ -114,4 +114,47 @@ describe('ProductsService', () => {
       }),
     ).rejects.toBeInstanceOf(BadRequestException);
   });
+
+  it('requires a thumbnail when a product is published by default', async () => {
+    const prisma = createPrismaMock();
+    const service = new ProductsService(prisma as never);
+
+    await expect(
+      service.createProduct({
+        name: 'Published without media',
+        basePrice: 100_000,
+      }),
+    ).rejects.toThrow('Published products must include a thumbnail');
+  });
+
+  it('rejects duplicate catalog references in product composition', async () => {
+    const prisma = createPrismaMock();
+    const service = new ProductsService(prisma as never);
+
+    await expect(
+      service.createProduct({
+        name: 'Duplicate accessories',
+        basePrice: 100_000,
+        published: false,
+        componentConfig: {
+          accessories: [
+            {
+              id: 'accessory-1',
+              type: 'accessory',
+              name: 'Accessory one',
+              quantity: 1,
+            },
+            {
+              id: 'accessory-1',
+              type: 'accessory',
+              name: 'Accessory one',
+              quantity: 1,
+            },
+          ],
+        },
+      }),
+    ).rejects.toThrow(
+      'Product accessories cannot contain duplicate references',
+    );
+  });
 });

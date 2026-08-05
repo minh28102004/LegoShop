@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { Prisma, ProductStatus } from '@prisma/client';
 import {
   buildAdminListMeta,
@@ -13,11 +18,8 @@ import {
   splitCsv,
 } from '../common/admin-query/admin-query.util';
 import { AdminListQueryDto } from '../common/dto/admin-list-query.dto';
+import { countJsonCatalogReferences } from '../common/catalog-reference.util';
 import { PrismaService } from '../prisma/prisma.service';
-import {
-  stagedSampleMediaPublicStatus,
-  stagedSampleMediaSeedTag,
-} from '../common/sample-media-preview';
 import { CreateAccessoryDto } from './dto/create-accessory.dto';
 import { UpdateAccessoryDto } from './dto/update-accessory.dto';
 
@@ -26,17 +28,8 @@ export class AccessoriesService {
   constructor(private readonly prisma: PrismaService) {}
 
   async findPublicAccessories(categoryId?: string) {
-    const previewSeedTag = stagedSampleMediaSeedTag();
     const accessories = await this.prisma.accessory.findMany({
       where: {
-        ...(previewSeedTag
-          ? {
-              OR: [
-                { status: ProductStatus.active },
-                { status: ProductStatus.inactive, seedTag: previewSeedTag },
-              ],
-            }
-          : { status: ProductStatus.active }),
         ...(categoryId ? { categoryId } : {}),
       },
       select: {
@@ -66,29 +59,12 @@ export class AccessoriesService {
       },
       orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }],
     });
-    return accessories.map(({ seedTag, ...accessory }) => ({
-      ...accessory,
-      status: stagedSampleMediaPublicStatus(
-        accessory.status,
-        Boolean(previewSeedTag && seedTag === previewSeedTag),
-      ),
-    }));
+    return accessories.map(({ seedTag: _seedTag, ...accessory }) => accessory);
   }
 
   async findPublicAccessoryById(id: string) {
-    const previewSeedTag = stagedSampleMediaSeedTag();
     const accessory = await this.prisma.accessory.findFirst({
-      where: {
-        id,
-        ...(previewSeedTag
-          ? {
-              OR: [
-                { status: ProductStatus.active },
-                { status: ProductStatus.inactive, seedTag: previewSeedTag },
-              ],
-            }
-          : { status: ProductStatus.active }),
-      },
+      where: { id },
       select: {
         id: true,
         name: true,
@@ -120,14 +96,8 @@ export class AccessoriesService {
       throw new NotFoundException('Accessory not found');
     }
 
-    const { seedTag, ...publicAccessory } = accessory;
-    return {
-      ...publicAccessory,
-      status: stagedSampleMediaPublicStatus(
-        publicAccessory.status,
-        Boolean(previewSeedTag && seedTag === previewSeedTag),
-      ),
-    };
+    const { seedTag: _seedTag, ...publicAccessory } = accessory;
+    return publicAccessory;
   }
 
   async findAdminAccessories(query?: AdminListQueryDto) {
@@ -227,7 +197,8 @@ export class AccessoriesService {
     return accessory;
   }
 
-  createAccessory(dto: CreateAccessoryDto) {
+  async createAccessory(dto: CreateAccessoryDto) {
+    await this.assertCategoryExists(dto.categoryId);
     return this.prisma.accessory.create({
       data: {
         name: dto.name,
@@ -252,6 +223,8 @@ export class AccessoriesService {
     if (!existingAccessory) {
       throw new NotFoundException('Accessory not found');
     }
+
+    await this.assertCategoryExists(dto.categoryId);
 
     const data: {
       name?: string;
@@ -288,6 +261,27 @@ export class AccessoriesService {
       throw new NotFoundException('Accessory not found');
     }
 
+    const [products, orderItems, designs] = await Promise.all([
+      this.prisma.product.findMany({ select: { componentConfig: true } }),
+      this.prisma.orderItem.findMany({
+        select: {
+          accessories: true,
+          designData: true,
+          componentSnapshot: true,
+        },
+      }),
+      this.prisma.userDesign.findMany({ select: { designData: true } }),
+    ]);
+    const referenceCount =
+      countJsonCatalogReferences(products, id) +
+      countJsonCatalogReferences(orderItems, id) +
+      countJsonCatalogReferences(designs, id);
+    if (referenceCount > 0) {
+      throw new ConflictException(
+        `Accessory is referenced by ${referenceCount} product, order, or design record(s). Remove those references before deleting it.`,
+      );
+    }
+
     await this.prisma.accessory.delete({
       where: { id },
     });
@@ -296,5 +290,18 @@ export class AccessoriesService {
       success: true,
       message: 'Accessory deleted successfully',
     };
+  }
+
+  private async assertCategoryExists(categoryId?: string) {
+    if (!categoryId) return;
+    const category = await this.prisma.accessoryCategory.findUnique({
+      where: { id: categoryId },
+      select: { id: true },
+    });
+    if (!category) {
+      throw new BadRequestException(
+        `Accessory category reference not found: ${categoryId}`,
+      );
+    }
   }
 }

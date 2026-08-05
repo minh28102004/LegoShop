@@ -51,25 +51,25 @@ import type {
   UpdateTemplateRequestContract,
   UpdateVoucherRequestContract,
   Voucher,
-} from '@lego-shop/shared';
-import type { ApiRequester, QueryParams } from '../client';
+} from "@lego-shop/shared";
+import type { ApiRequester, QueryParams } from "../client";
 
 export const ADMIN_RESOURCE_PATHS = {
-  products: 'admin/products',
-  templates: 'admin/templates',
-  'frame-options': 'admin/frame-options',
-  'template-categories': 'admin/template-categories',
-  accessories: 'admin/accessories',
-  characters: 'admin/characters',
-  'character-parts': 'admin/character-parts',
-  'character-presets': 'admin/character-presets',
-  'accessory-categories': 'admin/accessory-categories',
-  banners: 'admin/banners',
-  'frame-backgrounds': 'admin/frame-backgrounds',
-  collections: 'admin/collections',
-  'frame-sizes': 'admin/frame-sizes',
-  'frame-colors': 'admin/frame-colors',
-  vouchers: 'admin/vouchers',
+  products: "admin/products",
+  templates: "admin/templates",
+  "frame-options": "admin/frame-options",
+  "template-categories": "admin/template-categories",
+  accessories: "admin/accessories",
+  characters: "admin/characters",
+  "character-parts": "admin/character-parts",
+  "character-presets": "admin/character-presets",
+  "accessory-categories": "admin/accessory-categories",
+  banners: "admin/banners",
+  "frame-backgrounds": "admin/frame-backgrounds",
+  collections: "admin/collections",
+  "frame-sizes": "admin/frame-sizes",
+  "frame-colors": "admin/frame-colors",
+  vouchers: "admin/vouchers",
 } as const;
 
 export type AdminResourceKey = keyof typeof ADMIN_RESOURCE_PATHS;
@@ -77,58 +77,59 @@ export type AdminResourceKey = keyof typeof ADMIN_RESOURCE_PATHS;
 export type AdminResourceMap = {
   products: Product;
   templates: Template;
-  'frame-options': FrameOption;
-  'template-categories': TemplateCategory;
+  "frame-options": FrameOption;
+  "template-categories": TemplateCategory;
   accessories: Accessory;
   characters: Character;
-  'character-parts': CharacterPartContract;
-  'character-presets': CharacterPresetContract;
-  'accessory-categories': AccessoryCategory;
+  "character-parts": CharacterPartContract;
+  "character-presets": CharacterPresetContract;
+  "accessory-categories": AccessoryCategory;
   banners: Banner;
-  'frame-backgrounds': FrameBackground;
+  "frame-backgrounds": FrameBackground;
   collections: Collection;
-  'frame-sizes': FrameSize;
-  'frame-colors': FrameColor;
+  "frame-sizes": FrameSize;
+  "frame-colors": FrameColor;
   vouchers: Voucher;
 };
 
 export type AdminCreateResourcePayloadMap = {
   products: CreateProductRequestContract;
   templates: CreateTemplateRequestContract;
-  'frame-options': CreateFrameOptionRequestContract;
-  'template-categories': CreateCategoryRequestContract;
+  "frame-options": CreateFrameOptionRequestContract;
+  "template-categories": CreateCategoryRequestContract;
   accessories: CreateAccessoryRequestContract;
   characters: CreateCharacterRequestContract;
-  'character-parts': CreateCharacterPartRequestContract;
-  'character-presets': CreateCharacterPresetRequestContract;
-  'accessory-categories': CreateCategoryRequestContract;
+  "character-parts": CreateCharacterPartRequestContract;
+  "character-presets": CreateCharacterPresetRequestContract;
+  "accessory-categories": CreateCategoryRequestContract;
   banners: CreateBannerRequestContract;
-  'frame-backgrounds': CreateFrameBackgroundRequestContract;
+  "frame-backgrounds": CreateFrameBackgroundRequestContract;
   collections: CreateCollectionRequestContract;
-  'frame-sizes': CreateFrameSizeRequestContract;
-  'frame-colors': CreateFrameColorRequestContract;
+  "frame-sizes": CreateFrameSizeRequestContract;
+  "frame-colors": CreateFrameColorRequestContract;
   vouchers: CreateVoucherRequestContract;
 };
 
 export type AdminUpdateResourcePayloadMap = {
   products: UpdateProductRequestContract;
   templates: UpdateTemplateRequestContract;
-  'frame-options': UpdateFrameOptionRequestContract;
-  'template-categories': UpdateCategoryRequestContract;
+  "frame-options": UpdateFrameOptionRequestContract;
+  "template-categories": UpdateCategoryRequestContract;
   accessories: UpdateAccessoryRequestContract;
   characters: UpdateCharacterRequestContract;
-  'character-parts': UpdateCharacterPartRequestContract;
-  'character-presets': UpdateCharacterPresetRequestContract;
-  'accessory-categories': UpdateCategoryRequestContract;
+  "character-parts": UpdateCharacterPartRequestContract;
+  "character-presets": UpdateCharacterPresetRequestContract;
+  "accessory-categories": UpdateCategoryRequestContract;
   banners: UpdateBannerRequestContract;
-  'frame-backgrounds': UpdateFrameBackgroundRequestContract;
+  "frame-backgrounds": UpdateFrameBackgroundRequestContract;
   collections: UpdateCollectionRequestContract;
-  'frame-sizes': UpdateFrameSizeRequestContract;
-  'frame-colors': UpdateFrameColorRequestContract;
+  "frame-sizes": UpdateFrameSizeRequestContract;
+  "frame-colors": UpdateFrameColorRequestContract;
   vouchers: UpdateVoucherRequestContract;
 };
 
-export type AdminListResourceResponse<TResource> = TResource[] | PaginatedResponse<TResource>;
+export type AdminListResourceResponse<TResource> =
+  TResource[] | PaginatedResponse<TResource>;
 
 export type AdminDashboardStats = {
   totalOrders: number;
@@ -138,12 +139,24 @@ export type AdminDashboardStats = {
   paidOrders: number;
   processingOrders: number;
   recentOrders: Array<
-    Pick<Order, 'id' | 'orderCode' | 'customerName' | 'totalAmount' | 'orderStatus' | 'paymentStatus' | 'createdAt'>
+    Pick<
+      Order,
+      | "id"
+      | "orderCode"
+      | "customerName"
+      | "totalAmount"
+      | "orderStatus"
+      | "paymentStatus"
+      | "createdAt"
+    >
   >;
-  topProducts: Array<{
-    productName: string;
-    quantity: number;
-    revenue: number;
+  revenueTrend: Array<{
+    date: string;
+    amount: number;
+  }>;
+  orderStatusDistribution: Array<{
+    status: Order["orderStatus"];
+    count: number;
   }>;
 };
 
@@ -159,7 +172,10 @@ export function createAdminApi(request: ApiRequester) {
       });
     },
 
-    getResource<TKey extends AdminResourceKey>(key: TKey, id: string): Promise<AdminResourceMap[TKey]> {
+    getResource<TKey extends AdminResourceKey>(
+      key: TKey,
+      id: string,
+    ): Promise<AdminResourceMap[TKey]> {
       return request(`${ADMIN_RESOURCE_PATHS[key]}/${encodeURIComponent(id)}`, {
         auth: true,
       });
@@ -171,7 +187,7 @@ export function createAdminApi(request: ApiRequester) {
     ): Promise<AdminResourceMap[TKey]> {
       return request(ADMIN_RESOURCE_PATHS[key], {
         auth: true,
-        method: 'POST',
+        method: "POST",
         body: payload,
       });
     },
@@ -183,7 +199,7 @@ export function createAdminApi(request: ApiRequester) {
     ): Promise<AdminResourceMap[TKey]> {
       return request(`${ADMIN_RESOURCE_PATHS[key]}/${encodeURIComponent(id)}`, {
         auth: true,
-        method: 'PATCH',
+        method: "PATCH",
         body: payload,
       });
     },
@@ -191,12 +207,12 @@ export function createAdminApi(request: ApiRequester) {
     deleteResource(key: AdminResourceKey, id: string): Promise<unknown> {
       return request(`${ADMIN_RESOURCE_PATHS[key]}/${encodeURIComponent(id)}`, {
         auth: true,
-        method: 'DELETE',
+        method: "DELETE",
       });
     },
 
     listOrders(query?: QueryParams): Promise<AdminListResourceResponse<Order>> {
-      return request('admin/orders', {
+      return request("admin/orders", {
         auth: true,
         query,
       });
@@ -208,32 +224,43 @@ export function createAdminApi(request: ApiRequester) {
       });
     },
 
-    updateOrderStatus(id: string, payload: UpdateOrderStatusRequestContract): Promise<Order> {
+    updateOrderStatus(
+      id: string,
+      payload: UpdateOrderStatusRequestContract,
+    ): Promise<Order> {
       return request(`admin/orders/${encodeURIComponent(id)}/status`, {
         auth: true,
-        method: 'PATCH',
+        method: "PATCH",
         body: payload,
       });
     },
 
-    updateOrderPaymentStatus(id: string, payload: UpdatePaymentStatusRequestContract): Promise<Order> {
+    updateOrderPaymentStatus(
+      id: string,
+      payload: UpdatePaymentStatusRequestContract,
+    ): Promise<Order> {
       return request(`admin/orders/${encodeURIComponent(id)}/payment-status`, {
         auth: true,
-        method: 'PATCH',
+        method: "PATCH",
         body: payload,
       });
     },
 
-    updateOrderShippingStatus(id: string, payload: UpdateShippingStatusRequestContract): Promise<Order> {
+    updateOrderShippingStatus(
+      id: string,
+      payload: UpdateShippingStatusRequestContract,
+    ): Promise<Order> {
       return request(`admin/orders/${encodeURIComponent(id)}/shipping-status`, {
         auth: true,
-        method: 'PATCH',
+        method: "PATCH",
         body: payload,
       });
     },
 
-    listBusinessInquiries(query?: QueryParams): Promise<AdminListResourceResponse<BusinessInquiryContract>> {
-      return request('admin/business-inquiries', {
+    listBusinessInquiries(
+      query?: QueryParams,
+    ): Promise<AdminListResourceResponse<BusinessInquiryContract>> {
+      return request("admin/business-inquiries", {
         auth: true,
         query,
       });
@@ -249,29 +276,34 @@ export function createAdminApi(request: ApiRequester) {
       id: string,
       payload: UpdateBusinessInquiryStatusRequestContract,
     ): Promise<BusinessInquiryContract> {
-      return request(`admin/business-inquiries/${encodeURIComponent(id)}/status`, {
-        auth: true,
-        method: 'PATCH',
-        body: payload,
-      });
+      return request(
+        `admin/business-inquiries/${encodeURIComponent(id)}/status`,
+        {
+          auth: true,
+          method: "PATCH",
+          body: payload,
+        },
+      );
     },
 
     getPaymentSettings(): Promise<PaymentSettingsContract> {
-      return request('admin/payment-settings', {
+      return request("admin/payment-settings", {
         auth: true,
       });
     },
 
-    updatePaymentSettings(payload: UpdatePaymentSettingsRequestContract): Promise<PaymentSettingsContract> {
-      return request('admin/payment-settings', {
+    updatePaymentSettings(
+      payload: UpdatePaymentSettingsRequestContract,
+    ): Promise<PaymentSettingsContract> {
+      return request("admin/payment-settings", {
         auth: true,
-        method: 'PATCH',
+        method: "PATCH",
         body: payload,
       });
     },
 
     getDashboardStats(): Promise<AdminDashboardStats> {
-      return request('admin-dashboard/stats', {
+      return request("admin-dashboard/stats", {
         auth: true,
       });
     },

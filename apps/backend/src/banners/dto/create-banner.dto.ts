@@ -11,6 +11,7 @@ import {
   IsNotEmpty,
   IsOptional,
   IsString,
+  Matches,
 } from 'class-validator';
 
 export class CreateBannerDto implements CreateBannerRequestContract {
@@ -24,6 +25,16 @@ export class CreateBannerDto implements CreateBannerRequestContract {
   @IsString()
   @IsNotEmpty()
   title?: string;
+
+  @ApiPropertyOptional({ example: 'homepage:hero' })
+  @Transform(({ value }: { value: unknown }) =>
+    typeof value === 'string' ? value.trim().toLowerCase() : value,
+  )
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  @Matches(/^[a-z0-9][a-z0-9:_-]*$/)
+  sourceKey?: string;
 
   @ApiProperty({
     example: 'https://example.com/banner.jpg',

@@ -25,6 +25,16 @@ const trimOptionalString = ({ value }: { value: unknown }) => {
   return trimmed.length > 0 ? trimmed : undefined;
 };
 
+const normalizeOptionalCategory = ({ value }: { value: unknown }) => {
+  if (typeof value !== 'string') return value;
+  const normalized = value
+    .trim()
+    .toLowerCase()
+    .replace(/[\s_]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+  return normalized.length > 0 ? normalized : undefined;
+};
+
 const parseJsonValue = ({ value }: { value: unknown }): unknown => {
   if (typeof value !== 'string') return value;
   const trimmed = value.trim();
@@ -87,6 +97,18 @@ export class CreateFrameBackgroundDto implements CreateFrameBackgroundRequestCon
   @IsString()
   @IsNotEmpty()
   imageUrl: string;
+
+  @ApiPropertyOptional({ example: '/shared/images/bg_template/1-thumb.png' })
+  @Transform(trimOptionalString)
+  @IsOptional()
+  @IsString()
+  thumbnailUrl?: string;
+
+  @ApiPropertyOptional({ example: 'graduation' })
+  @Transform(normalizeOptionalCategory)
+  @IsOptional()
+  @IsString()
+  category?: string;
 
   @ApiPropertyOptional({
     example: [

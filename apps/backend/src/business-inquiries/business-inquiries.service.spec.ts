@@ -8,6 +8,9 @@ describe('BusinessInquiriesService', () => {
     frameSize: {
       findFirst: jest.fn(),
     },
+    businessInquiry: {
+      create: jest.fn(),
+    },
   };
 
   beforeEach(async () => {
@@ -57,5 +60,29 @@ describe('BusinessInquiriesService', () => {
       savings: 1_000_000,
     });
     expect(quote.quotedAt).toEqual(expect.any(String));
+  });
+
+  it('normalizes contact data before creating an operational inquiry', async () => {
+    prisma.businessInquiry.create.mockImplementation(({ data }) =>
+      Promise.resolve({ id: 'inquiry-1', status: 'new', ...data }),
+    );
+
+    await service.createBusinessInquiry({
+      companyName: ' Figure Co ',
+      contactName: ' Lan ',
+      email: 'SALES@EXAMPLE.COM ',
+      phone: '+84 912 345 678',
+      message: ' Cần tư vấn 30 bộ ',
+    });
+
+    expect(prisma.businessInquiry.create).toHaveBeenCalledWith({
+      data: {
+        companyName: 'Figure Co',
+        contactName: 'Lan',
+        email: 'sales@example.com',
+        phone: '0912345678',
+        message: 'Cần tư vấn 30 bộ',
+      },
+    });
   });
 });

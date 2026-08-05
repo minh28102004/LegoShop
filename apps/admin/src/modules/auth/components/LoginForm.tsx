@@ -235,6 +235,7 @@ export default function LoginForm() {
                         alt='Graduation frame template preview'
                         width={1000}
                         height={1000}
+                        priority
                         sizes='(min-width: 1024px) 72px, 20vw'
                         className='h-full w-full object-cover object-[50%_26%]'
                       />

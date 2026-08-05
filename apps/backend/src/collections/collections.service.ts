@@ -210,6 +210,7 @@ export class CollectionsService {
         slug,
         description: dto.description,
         imageUrl: dto.imageUrl,
+        sortOrder: dto.sortOrder,
         status: dto.status,
       },
     });
@@ -230,12 +231,14 @@ export class CollectionsService {
       slug?: string;
       description?: string;
       imageUrl?: string;
+      sortOrder?: number;
       status?: ProductStatus;
     } = {};
 
     if (dto.name !== undefined) data.name = dto.name;
     if (dto.description !== undefined) data.description = dto.description;
     if (dto.imageUrl !== undefined) data.imageUrl = dto.imageUrl;
+    if (dto.sortOrder !== undefined) data.sortOrder = dto.sortOrder;
     if (dto.status !== undefined) data.status = dto.status;
 
     if (dto.slug !== undefined) {
@@ -261,11 +264,20 @@ export class CollectionsService {
   async deleteCollection(id: string) {
     const existingCollection = await this.prisma.collection.findUnique({
       where: { id },
-      select: { id: true },
+      select: {
+        id: true,
+        _count: { select: { products: true } },
+      },
     });
 
     if (!existingCollection) {
       throw new NotFoundException('Collection not found');
+    }
+
+    if (existingCollection._count.products > 0) {
+      throw new ConflictException(
+        `Collection contains ${existingCollection._count.products} product(s). Reassign the products or disable the collection instead of deleting it.`,
+      );
     }
 
     await this.prisma.collection.delete({

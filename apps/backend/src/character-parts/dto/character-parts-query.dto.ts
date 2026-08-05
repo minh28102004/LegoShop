@@ -6,7 +6,7 @@ import { IsEnum, IsInt, IsOptional, Max, Min } from 'class-validator';
 import { AdminListQueryDto } from '../../common/dto/admin-list-query.dto';
 
 export class CharacterPartsQueryDto extends AdminListQueryDto {
-  @ApiPropertyOptional({ example: 100, default: 100, maximum: 200 })
+  @ApiPropertyOptional({ example: 200, default: 100, maximum: 200 })
   @Type(() => Number)
   @IsOptional()
   @IsInt()

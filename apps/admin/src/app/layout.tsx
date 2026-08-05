@@ -3,8 +3,8 @@ import Providers from '@/app/providers';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'Lego Shop Admin',
-  description: 'Administration dashboard for Lego Shop',
+  title: 'Figure Lab Admin',
+  description: 'Hệ thống quản trị Figure Lab',
 };
 
 export default function RootLayout({

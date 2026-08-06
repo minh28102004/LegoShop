@@ -36,14 +36,16 @@ export function Testimonials({ content }: TestimonialsProps) {
         <div className="grid auto-rows-fr gap-4 md:grid-cols-2 xl:grid-cols-4 xl:gap-5">
           {content.items.map((item, index) => (
             <ScrollReveal
-              key={item.name}
+              key={item.id ?? `${item.name}-${index}`}
               delay={index * 0.06}
               className="h-full"
             >
               <article className="group relative flex h-full flex-col rounded-[22px] border border-border bg-white p-6 shadow-sm transition-all duration-300 ease-out hover:-translate-y-1 hover:border-primary/25 hover:shadow-[0_16px_34px_-28px_rgba(16,36,62,0.34)] motion-reduce:transform-none sm:p-7">
-                <span className="mb-4 inline-flex w-fit rounded-full border border-primary/15 bg-primary-light/45 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.06em] text-primary-dark">
-                  {content.sampleLabel}
-                </span>
+                {item.isSample ? (
+                  <span className="mb-4 inline-flex w-fit rounded-full border border-primary/15 bg-primary-light/45 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.06em] text-primary-dark">
+                    {content.sampleLabel}
+                  </span>
+                ) : null}
                 <span className="absolute right-6 top-6 inline-flex h-10 w-10 items-center justify-center rounded-[14px] bg-accent-soft text-accent-dark transition-colors duration-300 group-hover:bg-accent">
                   <Quote className="h-5 w-5" fill="currentColor" />
                 </span>
@@ -58,6 +60,22 @@ export function Testimonials({ content }: TestimonialsProps) {
                     />
                   ))}
                 </div>
+                {item.images?.[0] ? (
+                  <div className="relative mt-4 overflow-hidden rounded-[16px] border border-border bg-[#f8fafc]">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={item.images[0]}
+                      alt={`${item.name} - ${item.productType}`}
+                      loading="lazy"
+                      className="h-44 w-full object-cover object-top sm:h-48"
+                    />
+                    {item.images.length > 1 ? (
+                      <span className="absolute bottom-2 right-2 rounded-full bg-navy/85 px-2.5 py-1 text-[11px] font-semibold text-white">
+                        +{item.images.length - 1}
+                      </span>
+                    ) : null}
+                  </div>
+                ) : null}
                 <p className="mt-4 flex-1 text-[15px] leading-[1.7] text-text-secondary sm:text-[15.5px]">
                   “{item.quote}”
                 </p>

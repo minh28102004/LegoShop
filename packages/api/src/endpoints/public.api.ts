@@ -5,6 +5,7 @@ import type {
   CartQuoteRequestContract,
   CartQuoteResponseContract,
   CheckoutSettingsContract,
+  Feedback,
   HomepageMedia,
   PaymentSettingsContract,
 } from "@lego-shop/shared";
@@ -18,6 +19,10 @@ export function createPublicApi(request: ApiRequester) {
 
     listHomepageMedia(): Promise<HomepageMedia[]> {
       return request("public/homepage-media");
+    },
+
+    listFeedback(): Promise<Feedback[]> {
+      return request("public/feedback");
     },
 
     getPaymentSettings(): Promise<PaymentSettingsContract> {

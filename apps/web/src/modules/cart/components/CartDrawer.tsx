@@ -33,6 +33,10 @@ import { selectActiveModal, useUIStore } from "@/features/ui/store";
 import { resolveApiAssetUrl } from "@/lib/api/assets";
 import { AnimatePresence, motion } from "framer-motion";
 import { useCartText } from "@/lib/i18n/useI18n";
+import {
+  ExplodedCharacterParts,
+  type ExplodedCharacterPart,
+} from "@/modules/lego-frame/components/character-builder/CharacterPreview";
 
 export type CartDrawerProps = Omit<
   React.ComponentPropsWithoutRef<typeof motion.div>,
@@ -129,13 +133,80 @@ function getItemSummary(parts: CartItemPart[], itemQuantity: number) {
   );
 }
 
-function CartPreviewImage({ src, alt }: { src: string | null; alt: string }) {
+function readRecord(value: unknown): Record<string, unknown> | null {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
+}
+
+function toExplodedCharacterPart(value: unknown): ExplodedCharacterPart | null {
+  const part = readRecord(value);
+  if (!part) return null;
+  const id = typeof part.id === "string" ? part.id : "";
+  const type = typeof part.type === "string" ? part.type : "";
+  const imageUrl = typeof part.imageUrl === "string" ? part.imageUrl : "";
+  if (
+    !id ||
+    !imageUrl ||
+    !["FACE", "HAIR", "TORSO", "LEGS", "HAT", "ACCESSORY"].includes(type)
+  ) {
+    return null;
+  }
+
+  return { id, type: type as ExplodedCharacterPart["type"], imageUrl };
+}
+
+function getCartCharacterParts(item: SimpleCartItem): ExplodedCharacterPart[] {
+  if (
+    item.lineItemType !== "custom_character" &&
+    item.designData.type !== "CUSTOM_CHARACTER"
+  ) {
+    return [];
+  }
+
+  const primaryCharacter = readRecord(item.designData.character);
+  const firstCharacter = Array.isArray(item.designData.characters)
+    ? readRecord(item.designData.characters[0])
+    : null;
+  const characterParts = readRecord(
+    primaryCharacter?.characterParts ?? firstCharacter?.characterParts,
+  );
+  if (!characterParts) return [];
+
+  return ["LEGS", "TORSO", "FACE", "HAIR", "HAT", "ACCESSORY"].flatMap(
+    (type) => {
+      const value = characterParts[type];
+      const values = Array.isArray(value) ? value : [value];
+      return values
+        .map(toExplodedCharacterPart)
+        .filter((part): part is ExplodedCharacterPart => Boolean(part));
+    },
+  );
+}
+
+function CartPreviewImage({
+  src,
+  alt,
+  characterParts,
+}: {
+  src: string | null;
+  alt: string;
+  characterParts?: ExplodedCharacterPart[];
+}) {
   const [errored, setErrored] = React.useState(false);
+  const showCharacter = Boolean(characterParts?.length);
   const showImage = Boolean(src) && !errored;
 
   return (
-    <div className="relative aspect-square h-[100px] shrink-0 overflow-hidden rounded-sm border border-[#d9e6f0] bg-white">
-      {showImage ? (
+    <div
+      className={cn(
+        "relative h-[100px] shrink-0 overflow-hidden rounded-sm border border-[#d9e6f0] bg-white",
+        showCharacter ? "w-[112px] bg-[#f4faff]" : "aspect-square",
+      )}
+    >
+      {showCharacter ? (
+        <ExplodedCharacterParts parts={characterParts ?? []} />
+      ) : showImage ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img
           src={src ?? ""}
@@ -274,6 +345,10 @@ function CartItemRow({
   const productName = safeText(item.productName, text.productFallback);
   const previewUrl = resolveApiAssetUrl(item.previewUrl);
   const parts = React.useMemo(() => getCartItemParts(item), [item]);
+  const characterPreviewParts = React.useMemo(
+    () => getCartCharacterParts(item),
+    [item],
+  );
   const summary = React.useMemo(
     () => getItemSummary(parts, item.quantity),
     [item.quantity, parts],
@@ -319,7 +394,11 @@ function CartItemRow({
       )}
     >
       <div className="flex items-start gap-3">
-        <CartPreviewImage src={previewUrl} alt={productName} />
+        <CartPreviewImage
+          src={previewUrl}
+          alt={productName}
+          characterParts={characterPreviewParts}
+        />
 
         <div className="min-w-0 flex-1">
           <div className="flex min-w-0 items-start justify-between gap-2">
@@ -332,14 +411,20 @@ function CartItemRow({
               </h3>
 
               <div className="mt-2 flex flex-wrap gap-1.5">
-                {lineItemBadge ? <OptionChip>{lineItemBadge}</OptionChip> : null}
+                {lineItemBadge ? (
+                  <OptionChip>{lineItemBadge}</OptionChip>
+                ) : null}
                 {frameLabel ? <OptionChip>{frameLabel}</OptionChip> : null}
                 {frameColor ? <OptionChip>{frameColor}</OptionChip> : null}
                 {summary.characters > 0 ? (
-                  <OptionChip>{text.characterCount(summary.characters)}</OptionChip>
+                  <OptionChip>
+                    {text.characterCount(summary.characters)}
+                  </OptionChip>
                 ) : null}
                 {summary.accessories > 0 ? (
-                  <OptionChip>{text.charmCount(summary.accessories)}</OptionChip>
+                  <OptionChip>
+                    {text.charmCount(summary.accessories)}
+                  </OptionChip>
                 ) : null}
               </div>
             </div>
@@ -546,10 +631,7 @@ export const CartDrawer = React.forwardRef<HTMLDivElement, CartDrawerProps>(
             <header className="flex min-h-[76px] shrink-0 items-center justify-between border-b border-[#e0eaf1] bg-white/95 px-4 backdrop-blur-xl sm:px-6">
               <div className="flex min-w-0 items-center gap-1.5">
                 <div className="grid h-12 w-12 shrink-0 place-items-center">
-                  <span
-                    aria-hidden="true"
-                    className="text-[36px] leading-none"
-                  >
+                  <span aria-hidden="true" className="text-[36px] leading-none">
                     🛒
                   </span>
                 </div>
@@ -682,9 +764,7 @@ export const CartDrawer = React.forwardRef<HTMLDivElement, CartDrawerProps>(
                       aria-hidden="true"
                     />
 
-                    <span className="relative z-10">
-                      {text.checkoutShort}
-                    </span>
+                    <span className="relative z-10">{text.checkoutShort}</span>
 
                     <ArrowRight
                       className="relative z-10 h-4 w-4 transition-transform duration-300 group-hover:translate-x-1"

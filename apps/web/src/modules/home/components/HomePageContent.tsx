@@ -49,7 +49,10 @@ export function HomePageContent({ data }: HomePageContentProps) {
   const content = dictionary.home;
   const media = (Object.keys(data.media) as HomeMediaSlot[]).reduce(
     (localized, slot) => {
-      localized[slot] = localizeMedia(data.media[slot], content.media.alt[slot]);
+      localized[slot] = localizeMedia(
+        data.media[slot],
+        content.media.alt[slot],
+      );
       return localized;
     },
     { ...data.media },
@@ -69,14 +72,15 @@ export function HomePageContent({ data }: HomePageContentProps) {
     ],
     5,
   );
+  const testimonials = {
+    ...content.testimonials,
+    items:
+      data.feedback.length > 0 ? data.feedback : content.testimonials.items,
+  };
 
   return (
     <div className="overflow-x-clip bg-white">
-      <HeroSection
-        hero={content.hero}
-        media={media.hero}
-        slides={heroSlides}
-      />
+      <HeroSection hero={content.hero} media={media.hero} slides={heroSlides} />
       <StorySection
         story={content.story}
         media={media.story}
@@ -87,9 +91,7 @@ export function HomePageContent({ data }: HomePageContentProps) {
         media={media.friendship}
         mediaLabels={content.media}
       />
-      <TransformationSection
-        content={content.transformation}
-      />
+      <TransformationSection content={content.transformation} />
       <FeaturedProducts
         content={content.products}
         products={data.products}
@@ -101,7 +103,7 @@ export function HomePageContent({ data }: HomePageContentProps) {
         content={content.categories}
         state={data.categoryState}
       />
-      <Testimonials content={content.testimonials} />
+      <Testimonials content={testimonials} />
       <FinalCtaSection
         cta={content.finalCta}
         media={finalCtaMedia}

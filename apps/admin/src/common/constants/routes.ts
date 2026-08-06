@@ -10,6 +10,7 @@ export const ADMIN_ROUTES = {
   characters: '/characters',
   characterPresets: '/character-presets',
   banners: '/banners',
+  feedback: '/feedback',
   frameBackgrounds: '/frame-backgrounds',
   collections: '/collections',
   orders: '/orders',
@@ -32,6 +33,7 @@ export type AdminNavIcon =
   | 'accessories'
   | 'characters'
   | 'banners'
+  | 'feedback'
   | 'frameBackgrounds'
   | 'collections'
   | 'orders'
@@ -122,6 +124,12 @@ export const ADMIN_NAV_SECTIONS: AdminNavSection[] = [
         href: ADMIN_ROUTES.banners,
         labelKey: 'sidebar.banners',
         icon: 'banners',
+      },
+      {
+        id: 'feedback',
+        href: ADMIN_ROUTES.feedback,
+        labelKey: 'sidebar.feedback',
+        icon: 'feedback',
       },
     ],
   },

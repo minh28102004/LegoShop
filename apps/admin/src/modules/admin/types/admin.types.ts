@@ -13,6 +13,7 @@ import type {
   FrameOption as SharedFrameOption,
   FrameOptionType,
   FrameSize as SharedFrameSize,
+  Feedback as SharedFeedback,
   InquiryStatus,
   Order as SharedOrder,
   OrderItem as SharedOrderItem,
@@ -46,6 +47,7 @@ export type AccessoryCategory = SharedAccessoryCategory;
 export type Template = SharedTemplate;
 export type FrameOption = SharedFrameOption;
 export type FrameSize = SharedFrameSize;
+export type Feedback = SharedFeedback;
 export type FrameColor = SharedFrameColor;
 export type Accessory = SharedAccessory;
 export type Character = SharedCharacter;

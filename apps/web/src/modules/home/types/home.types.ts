@@ -4,11 +4,7 @@ export type HomeCta = {
 };
 
 export type HomeMediaSlot =
-  | "hero"
-  | "story"
-  | "friendship"
-  | "transformation"
-  | "final-cta";
+  "hero" | "story" | "friendship" | "transformation" | "final-cta";
 
 export type HomeMediaAsset = {
   src: string;
@@ -120,12 +116,14 @@ export type HomeCategory = {
 };
 
 export type HomeTestimonial = {
+  id?: string;
   name: string;
   productType: string;
   quote: string;
   rating: number;
-  isSample: true;
-  seedTag: string;
+  images?: string[];
+  isSample?: boolean;
+  seedTag?: string;
 };
 
 export type HomeFinalCta = {
@@ -217,6 +215,8 @@ export type HomePageData = {
   productState: HomeResourceState;
   categories: HomeCategory[];
   categoryState: HomeResourceState;
+  feedback: HomeTestimonial[];
+  feedbackState: HomeResourceState;
   media: HomeMediaMap;
   heroSlides: HomeMediaAsset[];
   bannerState: HomeResourceState;

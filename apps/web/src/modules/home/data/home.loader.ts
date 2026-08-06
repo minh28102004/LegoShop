@@ -1,6 +1,7 @@
 import type {
   Banner,
   Collection,
+  Feedback,
   HomepageMedia,
   Product,
 } from "@lego-shop/shared";
@@ -20,6 +21,7 @@ import type {
   HomeMediaSlot,
   HomePageData,
   HomeResourceState,
+  HomeTestimonial,
 } from "@/modules/home/types/home.types";
 
 const MAX_FEATURED_PRODUCTS = 4;
@@ -266,6 +268,32 @@ function mapCategories(
     }));
 }
 
+function mapFeedback(feedback: Feedback[]): HomeTestimonial[] {
+  return feedback.flatMap((item) => {
+    const id = toNonEmptyString(item.id);
+    const name = toNonEmptyString(item.customerName);
+    const productType = toNonEmptyString(item.productType);
+    const quote = toNonEmptyString(item.quote);
+
+    if (!id || !name || !productType || !quote) return [];
+
+    return [
+      {
+        id,
+        name,
+        productType,
+        quote,
+        rating: Math.min(5, Math.max(1, Math.round(item.rating))),
+        images: Array.isArray(item.images)
+          ? item.images
+              .map(getSafeApiMediaUrl)
+              .filter((image): image is string => image !== null)
+          : [],
+      },
+    ];
+  });
+}
+
 function getBannerSystemKey(banner: Banner): string | null {
   const sourceKey = toNonEmptyString(banner.sourceKey)?.toLowerCase() ?? null;
   const title = toNonEmptyString(banner.title)?.toLowerCase() ?? null;
@@ -376,15 +404,21 @@ function mapHeroSlides(
 }
 
 export async function loadHomePageData(): Promise<HomePageData> {
-  const [productResult, categoryResult, bannerResult, homepageMediaResult] =
-    await Promise.all([
-      loadList("products", () => publicApiClient.products.listProducts()),
-      loadList("collections", () => publicApiClient.products.listCollections()),
-      loadList("banners", () => publicApiClient.public.listBanners()),
-      loadList("homepage media gallery", () =>
-        publicApiClient.public.listHomepageMedia(),
-      ),
-    ]);
+  const [
+    productResult,
+    categoryResult,
+    bannerResult,
+    homepageMediaResult,
+    feedbackResult,
+  ] = await Promise.all([
+    loadList("products", () => publicApiClient.products.listProducts()),
+    loadList("collections", () => publicApiClient.products.listCollections()),
+    loadList("banners", () => publicApiClient.public.listBanners()),
+    loadList("homepage media gallery", () =>
+      publicApiClient.public.listHomepageMedia(),
+    ),
+    loadList("customer feedback", () => publicApiClient.public.listFeedback()),
+  ]);
 
   const media = mapBanners(bannerResult.items);
 
@@ -393,6 +427,8 @@ export async function loadHomePageData(): Promise<HomePageData> {
     productState: productResult.state,
     categories: mapCategories(categoryResult.items, productResult.items),
     categoryState: categoryResult.state,
+    feedback: mapFeedback(feedbackResult.items),
+    feedbackState: feedbackResult.state,
     media,
     heroSlides: mapHeroSlides(homepageMediaResult.items, bannerResult.items),
     bannerState:

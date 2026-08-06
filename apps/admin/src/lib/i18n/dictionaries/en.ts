@@ -95,6 +95,7 @@ export const en = {
     characterPresets: "Character Presets",
     accessoryCategories: "Accessory Categories",
     banners: "Banners",
+    feedback: "Customer Feedback",
     frameBackgrounds: "Frame Image Backgrounds",
     collections: "Collections",
     orders: "Orders",
@@ -114,6 +115,8 @@ export const en = {
     characters:
       "Manage FACE, HAIR, TORSO, and LEGS parts for LEGO character building.",
     banners: "Control homepage and campaign banners.",
+    feedback:
+      "Create customer feedback from Zalo message screenshots and control homepage visibility.",
     frameBackgrounds:
       "Manage shared image backgrounds used inside frame designs.",
     collections: "Organize product collections.",
@@ -177,6 +180,22 @@ export const en = {
     sortOrder: "Sort order",
     status: "Status",
     createBanner: "Create banner",
+  },
+  feedbackPage: {
+    title: "Customer Feedback",
+    description:
+      "Create customer feedback from Zalo message screenshots and control homepage visibility.",
+    singularTitle: "Feedback",
+    customerName: "Customer name",
+    productType: "Product / occasion",
+    quote: "Feedback content",
+    rating: "Rating",
+    images: "Zalo message screenshots",
+    imagesHelp:
+      "Upload 1–8 message screenshots. Review and hide private information before publishing.",
+    sortOrder: "Display order",
+    status: "Status",
+    createFeedback: "Create feedback",
   },
   frameBackgroundsPage: {
     thumbnail: "Thumbnail",

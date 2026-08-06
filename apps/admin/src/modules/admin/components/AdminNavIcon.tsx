@@ -68,6 +68,18 @@ export default function AdminNavIcon({ name, className }: AdminNavIconProps) {
           <path d='M3 10H21' stroke='currentColor' strokeWidth='1.8' />
         </svg>
       );
+    case 'feedback':
+      return (
+        <svg viewBox='0 0 24 24' fill='none' className={iconClass} aria-hidden='true'>
+          <path
+            d='M5 5.5H19V15.5H10L6 19V15.5H5C3.9 15.5 3 14.6 3 13.5V7.5C3 6.4 3.9 5.5 5 5.5Z'
+            stroke='currentColor'
+            strokeWidth='1.8'
+            strokeLinejoin='round'
+          />
+          <path d='M7 9H17M7 12H14' stroke='currentColor' strokeWidth='1.8' strokeLinecap='round' />
+        </svg>
+      );
     case 'frameBackgrounds':
       return (
         <svg viewBox='0 0 24 24' fill='none' className={iconClass} aria-hidden='true'>

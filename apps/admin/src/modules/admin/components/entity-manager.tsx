@@ -174,6 +174,7 @@ const ENTITY_DATE_FILTER_RESOURCES = new Set<ResourceKey>([
   "character-presets",
   "accessory-categories",
   "banners",
+  "feedback",
   "frame-backgrounds",
   "collections",
   "vouchers",
@@ -501,8 +502,7 @@ const ENTITY_TABLE_POLICIES: Partial<Record<ResourceKey, EntityTablePolicy>> = {
       },
       {
         key: "updatedAt",
-        className:
-          "w-[19%] min-w-[170px] whitespace-nowrap text-center",
+        className: "w-[19%] min-w-[170px] whitespace-nowrap text-center",
         sortable: true,
       },
     ],
@@ -530,8 +530,7 @@ const ENTITY_TABLE_POLICIES: Partial<Record<ResourceKey, EntityTablePolicy>> = {
       },
       {
         key: "updatedAt",
-        className:
-          "w-[25%] min-w-[170px] whitespace-nowrap text-center",
+        className: "w-[25%] min-w-[170px] whitespace-nowrap text-center",
         sortable: true,
       },
     ],
@@ -564,8 +563,7 @@ const ENTITY_TABLE_POLICIES: Partial<Record<ResourceKey, EntityTablePolicy>> = {
       },
       {
         key: "updatedAt",
-        className:
-          "w-[17%] min-w-[170px] whitespace-nowrap text-center",
+        className: "w-[17%] min-w-[170px] whitespace-nowrap text-center",
         sortable: true,
       },
     ],
@@ -597,8 +595,7 @@ const ENTITY_TABLE_POLICIES: Partial<Record<ResourceKey, EntityTablePolicy>> = {
       },
       {
         key: "updatedAt",
-        className:
-          "w-[19%] min-w-[170px] whitespace-nowrap text-center",
+        className: "w-[19%] min-w-[170px] whitespace-nowrap text-center",
         sortable: true,
       },
     ],
@@ -627,8 +624,7 @@ const ENTITY_TABLE_POLICIES: Partial<Record<ResourceKey, EntityTablePolicy>> = {
       },
       {
         key: "updatedAt",
-        className:
-          "w-[22%] min-w-[170px] whitespace-nowrap text-center",
+        className: "w-[22%] min-w-[170px] whitespace-nowrap text-center",
         sortable: true,
       },
     ],
@@ -662,8 +658,7 @@ const ENTITY_TABLE_POLICIES: Partial<Record<ResourceKey, EntityTablePolicy>> = {
       },
       {
         key: "updatedAt",
-        className:
-          "w-[17%] min-w-[170px] whitespace-nowrap text-center",
+        className: "w-[17%] min-w-[170px] whitespace-nowrap text-center",
         sortable: true,
       },
     ],
@@ -697,8 +692,41 @@ const ENTITY_TABLE_POLICIES: Partial<Record<ResourceKey, EntityTablePolicy>> = {
       },
       {
         key: "updatedAt",
-        className:
-          "w-[19%] min-w-[170px] whitespace-nowrap text-center",
+        className: "w-[19%] min-w-[170px] whitespace-nowrap text-center",
+        sortable: true,
+      },
+    ],
+  },
+  feedback: {
+    minWidth: "1080px",
+    columns: [
+      {
+        key: "customerName",
+        className: "w-[19%] min-w-[190px] text-left",
+        sortable: true,
+      },
+      {
+        key: "productType",
+        className: "w-[20%] min-w-[210px] text-left",
+        sortable: true,
+      },
+      {
+        key: "images",
+        className: "w-[13%] min-w-[120px] text-center",
+      },
+      {
+        key: "rating",
+        className: "w-[10%] min-w-[105px] text-center",
+        sortable: true,
+      },
+      {
+        key: "sortOrder",
+        className: "w-[10%] min-w-[105px] text-center",
+        sortable: true,
+      },
+      {
+        key: "status",
+        className: "w-[14%] min-w-[130px] text-center",
         sortable: true,
       },
     ],
@@ -757,8 +785,7 @@ const ENTITY_TABLE_POLICIES: Partial<Record<ResourceKey, EntityTablePolicy>> = {
       },
       {
         key: "updatedAt",
-        className:
-          "w-[17%] min-w-[170px] whitespace-nowrap text-center",
+        className: "w-[17%] min-w-[170px] whitespace-nowrap text-center",
         sortable: true,
       },
     ],
@@ -886,6 +913,7 @@ function getEntityModalWidthClass(resource: ResourceKey) {
   if (
     resource === "accessories" ||
     resource === "banners" ||
+    resource === "feedback" ||
     resource === "characters" ||
     resource === "collections" ||
     resource === "frame-options" ||
@@ -947,6 +975,15 @@ const ENTITY_SORT_FIELDS = {
   banners: [
     "title",
     "sourceKey",
+    "sortOrder",
+    "status",
+    "createdAt",
+    "updatedAt",
+  ],
+  feedback: [
+    "customerName",
+    "productType",
+    "rating",
     "sortOrder",
     "status",
     "createdAt",
@@ -1552,6 +1589,7 @@ function getEntityEmptyMessage(resource: ResourceKey, locale: string) {
       "character-presets": "Chưa có mẫu nhân vật nào.",
       "accessory-categories": "Không có danh mục phụ kiện nào.",
       banners: "Không có banner nào.",
+      feedback: "Chưa có phản hồi khách hàng nào.",
       "frame-backgrounds": "Chưa có nền ảnh khung nào.",
       collections: "Không có bộ sưu tập nào.",
       "frame-options": "Chưa có khung tranh nào.",
@@ -1569,6 +1607,7 @@ function getEntityEmptyMessage(resource: ResourceKey, locale: string) {
       "character-presets": "No character presets found.",
       "accessory-categories": "No accessory categories found.",
       banners: "No banners found.",
+      feedback: "No customer feedback found.",
       "frame-backgrounds": "No frame image backgrounds found.",
       collections: "No collections found.",
       "frame-options": "No picture frames found.",
@@ -1593,6 +1632,7 @@ function getEntityNoun(resource: ResourceKey, locale: string, count?: number) {
       "character-presets": "mẫu nhân vật",
       "accessory-categories": "danh mục phụ kiện",
       banners: "banner",
+      feedback: "phản hồi khách hàng",
       "frame-backgrounds": "nền ảnh khung",
       collections: "bộ sưu tập",
       "frame-options": "khung tranh",
@@ -1613,6 +1653,7 @@ function getEntityNoun(resource: ResourceKey, locale: string, count?: number) {
       "accessory-categories":
         count === 1 ? "accessory category" : "accessory categories",
       banners: count === 1 ? "banner" : "banners",
+      feedback: count === 1 ? "feedback entry" : "feedback entries",
       "frame-backgrounds":
         count === 1 ? "frame image background" : "frame image backgrounds",
       collections: count === 1 ? "collection" : "collections",
@@ -1716,6 +1757,7 @@ function getEntityIconName(resource: ResourceKey): AdminNavIconName {
     "character-presets": "characters",
     "accessory-categories": "accessories",
     banners: "banners",
+    feedback: "feedback",
     "frame-backgrounds": "frameBackgrounds",
     collections: "collections",
     "frame-options": "frameOptions",
@@ -3624,9 +3666,7 @@ export default function EntityManager<K extends ResourceKey>({
                 >
                   <FormGrid
                     className={
-                      resource === "products"
-                        ? "!gap-x-5 !gap-y-4"
-                        : undefined
+                      resource === "products" ? "!gap-x-5 !gap-y-4" : undefined
                     }
                   >
                     {section.fields.map((field) => {

@@ -18,6 +18,7 @@ import type {
   CreateFrameColorRequestContract,
   CreateFrameOptionRequestContract,
   CreateFrameSizeRequestContract,
+  CreateFeedbackRequestContract,
   CreateProductRequestContract,
   CreateTemplateRequestContract,
   CreateVoucherRequestContract,
@@ -25,6 +26,7 @@ import type {
   FrameColor,
   FrameOption,
   FrameSize,
+  Feedback,
   Order,
   PaginatedResponse,
   PaymentSettingsContract,
@@ -43,6 +45,7 @@ import type {
   UpdateFrameColorRequestContract,
   UpdateFrameOptionRequestContract,
   UpdateFrameSizeRequestContract,
+  UpdateFeedbackRequestContract,
   UpdateOrderStatusRequestContract,
   UpdatePaymentSettingsRequestContract,
   UpdatePaymentStatusRequestContract,
@@ -70,6 +73,7 @@ export const ADMIN_RESOURCE_PATHS = {
   "frame-sizes": "admin/frame-sizes",
   "frame-colors": "admin/frame-colors",
   vouchers: "admin/vouchers",
+  feedback: "admin/feedback",
 } as const;
 
 export type AdminResourceKey = keyof typeof ADMIN_RESOURCE_PATHS;
@@ -90,6 +94,7 @@ export type AdminResourceMap = {
   "frame-sizes": FrameSize;
   "frame-colors": FrameColor;
   vouchers: Voucher;
+  feedback: Feedback;
 };
 
 export type AdminCreateResourcePayloadMap = {
@@ -108,6 +113,7 @@ export type AdminCreateResourcePayloadMap = {
   "frame-sizes": CreateFrameSizeRequestContract;
   "frame-colors": CreateFrameColorRequestContract;
   vouchers: CreateVoucherRequestContract;
+  feedback: CreateFeedbackRequestContract;
 };
 
 export type AdminUpdateResourcePayloadMap = {
@@ -126,6 +132,7 @@ export type AdminUpdateResourcePayloadMap = {
   "frame-sizes": UpdateFrameSizeRequestContract;
   "frame-colors": UpdateFrameColorRequestContract;
   vouchers: UpdateVoucherRequestContract;
+  feedback: UpdateFeedbackRequestContract;
 };
 
 export type AdminListResourceResponse<TResource> =

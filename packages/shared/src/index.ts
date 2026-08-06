@@ -8,6 +8,7 @@ export type * from './types/cart';
 export type * from './types/category';
 export type * from './types/common';
 export type * from './types/design';
+export type * from './types/feedback';
 export type * from './types/inquiry';
 export type * from './types/order';
 export type * from './types/payment';
@@ -18,6 +19,7 @@ export type * from './types/voucher';
 
 export type * from './contracts/auth.contract';
 export type * from './contracts/cart.contract';
+export type * from './contracts/feedback.contract';
 export type * from './contracts/category.contract';
 export type * from './contracts/inquiry.contract';
 export type * from './contracts/order.contract';

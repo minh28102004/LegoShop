@@ -29,6 +29,7 @@ import { VouchersModule } from './vouchers/vouchers.module';
 import { CharactersModule } from './characters/characters.module';
 import { CharacterPartsModule } from './character-parts/character-parts.module';
 import { CharacterPresetsModule } from './character-presets/character-presets.module';
+import { FeedbackModule } from './feedback/feedback.module';
 
 @Module({
   imports: [
@@ -63,6 +64,7 @@ import { CharacterPresetsModule } from './character-presets/character-presets.mo
     CharactersModule,
     CharacterPartsModule,
     CharacterPresetsModule,
+    FeedbackModule,
   ],
   controllers: [AppController],
   providers: [AppService],

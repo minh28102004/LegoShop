@@ -45,6 +45,7 @@ import {
   STUDIO_STEP_INDEX,
   type StudioStep,
 } from "../state/studio.types";
+import { ExplodedCharacterParts } from "../../lego-frame/components/character-builder/CharacterPreview";
 
 const getFrameColorHex = (name: string, apiHex?: string | null): string => {
   if (apiHex && apiHex.startsWith("#")) return apiHex;
@@ -454,9 +455,7 @@ function Step2Content({
       setActiveTemplate(null);
       clearContentValues();
     } catch {
-      setUploadError(
-        text.canvas.uploadError,
-      );
+      setUploadError(text.canvas.uploadError);
     } finally {
       setIsUploadingBackground(false);
     }
@@ -1811,10 +1810,6 @@ const COLOR_FILTER_TABS: ReadonlyArray<CharacterPartTab> = [
   "HAT",
 ];
 
-function getCharacterPartImage(part?: ApiCharacterPart | null) {
-  return part?.imageUrl || "";
-}
-
 function getCharacterBuilderInitialSelection(
   character: StudioElement | null,
   characterIndex: number,
@@ -2403,22 +2398,9 @@ function CharacterBuilderPreview({
 
   return (
     <div className="rounded-[24px] border border-[#e4edf5] bg-white p-5">
-      <div className="relative mx-auto h-72 w-44 overflow-visible rounded-[22px] bg-[#f4faff]">
+      <div className="relative mx-auto h-72 w-full max-w-[260px] overflow-visible rounded-[22px] bg-[#f4faff]">
         {layers.length > 0 ? (
-          layers.map((part) => (
-            <Image
-              key={`${part.type}-${part.id}`}
-              src={getCharacterPartImage(part)}
-              alt=""
-              fill
-              unoptimized
-              sizes="176px"
-              className="object-contain"
-              onError={(event) => {
-                event.currentTarget.style.display = "none";
-              }}
-            />
-          ))
+          <ExplodedCharacterParts parts={layers} />
         ) : (
           <div className="grid h-full place-items-center text-xs font-bold text-slate-400">
             {text.panels.characterShort}

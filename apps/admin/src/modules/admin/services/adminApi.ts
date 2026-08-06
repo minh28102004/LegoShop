@@ -24,6 +24,7 @@ import type {
   FrameColor,
   FrameOption,
   FrameSize,
+  Feedback,
   InquiryStatus,
   Order,
   OrderStatus,
@@ -53,7 +54,8 @@ export type ResourceKey =
   | 'collections'
   | 'frame-sizes'
   | 'frame-colors'
-  | 'vouchers';
+  | 'vouchers'
+  | 'feedback';
 
 const ADMIN_RESOURCE_ENDPOINTS: Record<ResourceKey, string> = {
   products: ADMIN_RESOURCE_PATHS.products,
@@ -71,6 +73,7 @@ const ADMIN_RESOURCE_ENDPOINTS: Record<ResourceKey, string> = {
   'frame-sizes': ADMIN_RESOURCE_PATHS['frame-sizes'],
   'frame-colors': ADMIN_RESOURCE_PATHS['frame-colors'],
   vouchers: ADMIN_RESOURCE_PATHS.vouchers,
+  feedback: ADMIN_RESOURCE_PATHS.feedback,
 };
 
 export type ResourceDataMap = {
@@ -89,6 +92,7 @@ export type ResourceDataMap = {
   'frame-sizes': FrameSize;
   'frame-colors': FrameColor;
   vouchers: Voucher;
+  feedback: Feedback;
 };
 
 export type ResourceListParams = {
@@ -303,6 +307,11 @@ export async function updatePaymentSettings(payload: Partial<PaymentSettings>) {
 }
 
 export async function getDashboardStats() {
-  return withAdminAuth(adminApiClient.admin.getDashboardStats()) as Promise<DashboardStats>;
+  const stats = await withAdminAuth(adminApiClient.admin.getDashboardStats());
+  return {
+    ...stats,
+    revenueTrend: 'revenueTrend' in stats ? stats.revenueTrend : [],
+    orderStatusDistribution:
+      'orderStatusDistribution' in stats ? stats.orderStatusDistribution : [],
+  } satisfies DashboardStats;
 }
-

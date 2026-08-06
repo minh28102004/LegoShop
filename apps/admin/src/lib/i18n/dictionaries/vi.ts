@@ -94,6 +94,7 @@ export const vi = {
     characterPresets: "Mẫu nhân vật có sẵn",
     accessoryCategories: "Danh mục phụ kiện",
     banners: "Banner",
+    feedback: "Phản hồi khách hàng",
     frameBackgrounds: "Nền ảnh khung",
     collections: "Bộ sưu tập",
     orders: "Đơn hàng",
@@ -113,6 +114,8 @@ export const vi = {
     characters:
       "Quản lý các bộ phận FACE, HAIR, TORSO, LEGS để ghép nhân vật LEGO.",
     banners: "Điều chỉnh banner hiển thị và chiến dịch.",
+    feedback:
+      "Tạo phản hồi từ ảnh chụp tin nhắn Zalo và kiểm soát nội dung hiển thị trên trang chủ.",
     frameBackgrounds: "Quản lý nền ảnh khung dùng chung trong thiết kế khung.",
     collections: "Tổ chức bộ sưu tập sản phẩm.",
     orders: "Theo dõi và xử lý đơn hàng.",
@@ -175,6 +178,22 @@ export const vi = {
     sortOrder: "Thứ tự",
     status: "Trạng thái",
     createBanner: "Tạo banner",
+  },
+  feedbackPage: {
+    title: "Phản hồi khách hàng",
+    description:
+      "Tạo phản hồi từ ảnh chụp tin nhắn Zalo và kiểm soát nội dung hiển thị trên trang chủ.",
+    singularTitle: "Phản hồi",
+    customerName: "Tên khách hàng",
+    productType: "Sản phẩm / dịp",
+    quote: "Nội dung phản hồi",
+    rating: "Số sao",
+    images: "Ảnh tin nhắn Zalo",
+    imagesHelp:
+      "Tải lên 1–8 ảnh chụp tin nhắn. Hãy kiểm tra và che thông tin riêng tư trước khi bật hiển thị.",
+    sortOrder: "Thứ tự hiển thị",
+    status: "Trạng thái",
+    createFeedback: "Tạo phản hồi",
   },
   frameBackgroundsPage: {
     thumbnail: "Ảnh thu nhỏ",

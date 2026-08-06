@@ -10,7 +10,6 @@ import { resolveApiAssetUrl } from "@/lib/api/assets";
 
 import {
   getCharacterPartImageUrl,
-  isCatalogSlotPart,
   isLayerCompatiblePart,
 } from "./catalog-part-metadata";
 import { CHARACTER_LAYER_ORDER, PROGRESS_PART_TYPES } from "./types";
@@ -43,6 +42,11 @@ type PreviewCanvasSize = {
   width: number;
   height: number;
 };
+
+export type ExplodedCharacterPart = Pick<
+  CharacterPart,
+  "id" | "type" | "imageUrl"
+>;
 
 type VisibleBoundsTarget = {
   centerX: number;
@@ -162,47 +166,46 @@ const CANVAS_PART_LAYER_CONFIG: Record<CharacterPartType, PartLayerConfig> = {
 };
 
 // Catalog product photos use different camera angles and source canvases.
-// Their visible pixels are normalized into slightly overlapping assembly
-// zones so the neck, waist and head connections read as one minifigure.
+// Their visible pixels are normalized into fixed, separated assembly zones.
 const EXPLODED_PART_LAYER_CONFIG: Record<CharacterPartType, PartLayerConfig> = {
   FACE: {
     zIndex: 30,
-    top: "17.5%",
-    left: "38%",
-    width: "24%",
-    height: "22%",
+    top: "22.5%",
+    left: "35%",
+    width: "30%",
+    height: "16%",
     scale: 1,
   },
   HAIR: {
     zIndex: 40,
-    top: "7.5%",
-    left: "35%",
-    width: "30%",
-    height: "19%",
+    top: "3.5%",
+    left: "31%",
+    width: "38%",
+    height: "17%",
     scale: 1,
   },
   HAT: {
     zIndex: 50,
-    top: "6.5%",
-    left: "36.5%",
-    width: "27%",
+    top: "3.5%",
+    left: "33%",
+    width: "34%",
     height: "17%",
     scale: 1,
   },
   TORSO: {
     zIndex: 20,
-    top: "31%",
-    left: "31%",
-    width: "38%",
-    height: "28%",
+    top: "40%",
+    left: "27%",
+    width: "46%",
+    height: "24%",
     scale: 1,
   },
   LEGS: {
     zIndex: 10,
-    top: "52.5%",
-    left: "33%",
-    width: "34%",
-    height: "28%",
+    top: "67%",
+    left: "29%",
+    width: "42%",
+    height: "23%",
     scale: 1,
   },
   ACCESSORY: {
@@ -351,17 +354,27 @@ function getExplodedPlacementStyle(
   type: Exclude<CharacterPartType, "ACCESSORY">,
   bounds: NormalizedImageBounds,
   canvasSize: PreviewCanvasSize,
+  separateHeadwear = false,
 ): CSSProperties {
-  const target: VisibleBoundsTarget =
-    type === "FACE"
-      ? { centerX: 0.5, centerY: 0.285, maxWidth: 0.24, maxHeight: 0.22 }
+  const target: VisibleBoundsTarget = separateHeadwear
+    ? type === "HAT"
+      ? { centerX: 0.5, centerY: 0.07, maxWidth: 0.32, maxHeight: 0.11 }
+      : type === "HAIR"
+        ? { centerX: 0.5, centerY: 0.2, maxWidth: 0.35, maxHeight: 0.12 }
+        : type === "FACE"
+          ? { centerX: 0.5, centerY: 0.34, maxWidth: 0.29, maxHeight: 0.14 }
+          : type === "TORSO"
+            ? { centerX: 0.5, centerY: 0.535, maxWidth: 0.44, maxHeight: 0.22 }
+            : { centerX: 0.5, centerY: 0.77, maxWidth: 0.41, maxHeight: 0.21 }
+    : type === "FACE"
+      ? { centerX: 0.5, centerY: 0.305, maxWidth: 0.3, maxHeight: 0.16 }
       : type === "TORSO"
-        ? { centerX: 0.5, centerY: 0.45, maxWidth: 0.38, maxHeight: 0.28 }
+        ? { centerX: 0.5, centerY: 0.52, maxWidth: 0.46, maxHeight: 0.24 }
         : type === "LEGS"
-          ? { centerX: 0.5, centerY: 0.665, maxWidth: 0.34, maxHeight: 0.28 }
+          ? { centerX: 0.5, centerY: 0.785, maxWidth: 0.42, maxHeight: 0.23 }
           : type === "HAT"
-            ? { centerX: 0.5, centerY: 0.15, maxWidth: 0.27, maxHeight: 0.17 }
-            : { centerX: 0.5, centerY: 0.17, maxWidth: 0.3, maxHeight: 0.19 };
+            ? { centerX: 0.5, centerY: 0.12, maxWidth: 0.34, maxHeight: 0.17 }
+            : { centerX: 0.5, centerY: 0.12, maxWidth: 0.38, maxHeight: 0.17 };
 
   return fitVisibleBoundsToTarget(bounds, canvasSize, target);
 }
@@ -519,9 +532,9 @@ function CatalogAccessoryLayer({
 }: {
   canvasSize: PreviewCanvasSize;
   index: number;
-  part: CharacterPart;
+  part: ExplodedCharacterPart;
 }) {
-  const src = resolveApiAssetUrl(getCharacterPartImageUrl(part, false));
+  const src = resolveApiAssetUrl(part.imageUrl);
   const [visibleBounds, setVisibleBounds] = useState(
     () => visibleImageBoundsCache.get(src) ?? null,
   );
@@ -577,6 +590,162 @@ function CatalogAccessoryLayer({
         }}
       />
     </motion.div>
+  );
+}
+
+function ExplodedPartLayer({
+  canvasSize,
+  part,
+  separateHeadwear,
+}: {
+  canvasSize: PreviewCanvasSize;
+  part: ExplodedCharacterPart & {
+    type: Exclude<CharacterPartType, "ACCESSORY">;
+  };
+  separateHeadwear: boolean;
+}) {
+  const src = resolveApiAssetUrl(part.imageUrl);
+  const [visibleBounds, setVisibleBounds] = useState(
+    () => visibleImageBoundsCache.get(src) ?? null,
+  );
+  if (!src) return null;
+
+  const displaySrc = visibleBounds?.processedUrl ?? src;
+  const layer = EXPLODED_PART_LAYER_CONFIG[part.type];
+  const normalizedPlacement =
+    visibleBounds && canvasSize.width > 0 && canvasSize.height > 0
+      ? getExplodedPlacementStyle(
+          part.type,
+          visibleBounds,
+          canvasSize,
+          separateHeadwear,
+        )
+      : null;
+  const fallbackPlacement = separateHeadwear
+    ? part.type === "HAT"
+      ? { top: "1.5%", left: "34%", width: "32%", height: "11%" }
+      : part.type === "HAIR"
+        ? { top: "14%", left: "32.5%", width: "35%", height: "12%" }
+        : part.type === "FACE"
+          ? { top: "27%", left: "35.5%", width: "29%", height: "14%" }
+          : part.type === "TORSO"
+            ? { top: "42.5%", left: "28%", width: "44%", height: "22%" }
+            : { top: "66.5%", left: "29.5%", width: "41%", height: "21%" }
+    : {
+        height: layer.height,
+        top: layer.top,
+        left: layer.left,
+        width: layer.width,
+      };
+
+  return (
+    <div
+      className="pointer-events-none absolute inset-0"
+      style={{ zIndex: layer.zIndex }}
+    >
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={displaySrc}
+        alt=""
+        crossOrigin="anonymous"
+        className="pointer-events-none absolute max-w-none object-contain"
+        style={{
+          ...(normalizedPlacement ?? fallbackPlacement),
+          clipPath: visibleBounds
+            ? getVisibleBoundsClipPath(visibleBounds)
+            : undefined,
+          filter: "drop-shadow(0 10px 12px rgba(20, 51, 75, 0.1))",
+          mixBlendMode:
+            !normalizedPlacement || visibleBounds?.opaqueBackground
+              ? "multiply"
+              : undefined,
+        }}
+        onLoad={(event) => {
+          if (visibleImageBoundsCache.has(src)) return;
+          const nextBounds = scanVisibleImageBounds(event.currentTarget);
+          if (!nextBounds) return;
+          visibleImageBoundsCache.set(src, nextBounds);
+          setVisibleBounds(nextBounds);
+        }}
+        onError={(event) => {
+          event.currentTarget.style.display = "none";
+        }}
+      />
+    </div>
+  );
+}
+
+export function ExplodedCharacterParts({
+  parts,
+}: {
+  parts: ExplodedCharacterPart[];
+}) {
+  const compositionRef = useRef<HTMLDivElement>(null);
+  const [canvasSize, setCanvasSize] = useState<PreviewCanvasSize>({
+    width: 0,
+    height: 0,
+  });
+
+  useEffect(() => {
+    const composition = compositionRef.current;
+    if (!composition) return;
+
+    const updateCanvasSize = () => {
+      const nextWidth = composition.clientWidth;
+      const nextHeight = composition.clientHeight;
+      setCanvasSize((current) =>
+        current.width === nextWidth && current.height === nextHeight
+          ? current
+          : { width: nextWidth, height: nextHeight },
+      );
+    };
+    const observer = new ResizeObserver(updateCanvasSize);
+    observer.observe(composition);
+    updateCanvasSize();
+
+    return () => observer.disconnect();
+  }, []);
+
+  const orderedParts = CHARACTER_LAYER_ORDER.flatMap((type) =>
+    parts.filter((part) => part.type === type),
+  );
+  const bodyParts = orderedParts.filter(
+    (
+      part,
+    ): part is ExplodedCharacterPart & {
+      type: Exclude<CharacterPartType, "ACCESSORY">;
+    } => part.type !== "ACCESSORY",
+  );
+  const accessoryParts = orderedParts.filter(
+    (part) => part.type === "ACCESSORY",
+  );
+  const separateHeadwear =
+    bodyParts.some((part) => part.type === "HAIR") &&
+    bodyParts.some((part) => part.type === "HAT");
+
+  return (
+    <div
+      ref={compositionRef}
+      data-character-exploded-preview="true"
+      className="relative h-full w-full overflow-visible"
+    >
+      {bodyParts.map((part) => (
+        <ExplodedPartLayer
+          key={`${part.type}-${part.id}`}
+          canvasSize={canvasSize}
+          part={part}
+          separateHeadwear={separateHeadwear}
+        />
+      ))}
+      {accessoryParts.map((part, index) => (
+        <CatalogAccessoryLayer
+          key={`${part.type}-${part.id}`}
+          canvasSize={canvasSize}
+          index={index}
+          part={part}
+        />
+      ))}
+    </div>
   );
 }
 
@@ -643,14 +812,20 @@ export function CharacterPreview({
   const canvasLayerParts = orderedParts.filter(
     (part) => part.type !== "ACCESSORY" && isLayerCompatiblePart(part),
   );
-  const catalogSlotParts = orderedParts.filter(
-    (part) => part.type !== "ACCESSORY" && isCatalogSlotPart(part),
+  // Every independently selected body part gets its own visual slot. This
+  // keeps mixed catalog images readable even when their source canvases and
+  // photographed scales differ.
+  const useExplodedView = orderedParts.some(
+    (part) => part.type !== "ACCESSORY",
   );
-  const useExplodedView = catalogSlotParts.length > 0;
-  const previewParts = orderedParts.filter((part) => part.type !== "ACCESSORY");
   const accessoryParts = orderedParts.filter(
     (part) => part.type === "ACCESSORY",
   );
+  const explodedParts = orderedParts.map((part) => ({
+    id: part.id,
+    type: part.type,
+    imageUrl: getCharacterPartImageUrl(part, flipped),
+  }));
 
   return (
     <section className="grid h-full min-h-0 min-w-0 grid-rows-[auto_minmax(0,1fr)_auto] gap-3">
@@ -685,15 +860,7 @@ export function CharacterPreview({
             }}
           >
             {useExplodedView ? (
-              previewParts.map((part) => (
-                <CharacterLayer
-                  key={`${part.id}-${flipped ? "reverse" : "front"}`}
-                  canvasSize={canvasSize}
-                  compositionMode="exploded"
-                  part={part}
-                  reverse={flipped}
-                />
-              ))
+              <ExplodedCharacterParts parts={explodedParts} />
             ) : (
               <>
                 <CharacterMannequin />
@@ -710,14 +877,16 @@ export function CharacterPreview({
             )}
           </div>
         </motion.div>
-        {accessoryParts.map((part, index) => (
-          <CatalogAccessoryLayer
-            key={part.id}
-            canvasSize={canvasSize}
-            index={index}
-            part={part}
-          />
-        ))}
+        {!useExplodedView
+          ? accessoryParts.map((part, index) => (
+              <CatalogAccessoryLayer
+                key={part.id}
+                canvasSize={canvasSize}
+                index={index}
+                part={part}
+              />
+            ))
+          : null}
 
         {orderedParts.length === 0 ? (
           <p className="absolute inset-x-6 bottom-20 text-center text-sm font-semibold text-slate-500">

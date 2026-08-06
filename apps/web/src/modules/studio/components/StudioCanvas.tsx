@@ -23,6 +23,7 @@ import { Dropdown } from "@lego-shop/ui";
 import { DecorativeIcon } from "@/components/shared/FeatureIcon";
 import { DECORATIVE_ICON_PATHS } from "@/config/icons";
 import { uploadCustomerImage } from "@/lib/api/uploads";
+import { ExplodedCharacterParts } from "../../lego-frame/components/character-builder/CharacterPreview";
 import { useStudioI18n } from "../hooks/useStudioI18n";
 import {
   useStudio,
@@ -140,26 +141,17 @@ function CharacterLayeredPreview({ element }: { element: StudioElement }) {
   const layers = [legs, torso, face, hair, hat, ...accessories].filter(
     (part): part is StudioCharacterPartSnapshot => Boolean(part?.imageUrl),
   );
+  const explodedParts = layers.map((part) => ({
+    id: part.id,
+    type: part.type,
+    imageUrl: part.imageUrl ?? "",
+  }));
 
   if (layers.length === 0) return null;
 
   return (
     <div className="pointer-events-none relative h-full w-full overflow-visible">
-      {layers.map((part) => (
-        <Image
-          key={`${part.type}-${part.id}`}
-          src={part.imageUrl ?? ""}
-          alt=""
-          fill
-          unoptimized
-          sizes="160px"
-          className="object-contain"
-          draggable={false}
-          onError={(event) => {
-            event.currentTarget.style.display = "none";
-          }}
-        />
-      ))}
+      <ExplodedCharacterParts parts={explodedParts} />
 
       <span className="absolute left-1/2 top-full mt-1 -translate-x-1/2 rounded-full bg-white/92 px-1.5 py-0.5 text-[9px] font-medium text-zinc-900 shadow-sm">
         {element.content}
@@ -675,9 +667,7 @@ export function StudioCanvas() {
       setCustomBackgroundUrl(uploaded.url);
       setCustomBackgroundOriginalName(uploaded.originalName);
     } catch {
-      setUploadError(
-        text.canvas.uploadError,
-      );
+      setUploadError(text.canvas.uploadError);
     } finally {
       setUploadingBackground(false);
     }

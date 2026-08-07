@@ -48,7 +48,7 @@ const SAFE_PATH_SEGMENT = /^[a-z0-9][a-z0-9_-]*$/i;
 const SAFE_FILE_NAME = /^[a-z0-9][a-z0-9._-]*$/i;
 const CUSTOMER_MAX_BYTES = 5 * 1024 * 1024;
 const ADMIN_MAX_BYTES = 10 * 1024 * 1024;
-type SampleMediaStorageProvider = 'filesystem' | 'supabase';
+type UploadStorageProvider = 'filesystem' | 'supabase';
 
 function findBackendRoot(start: string): string | undefined {
   let cursor = resolve(start);
@@ -132,7 +132,7 @@ export class UploadsService {
   private readonly uploadDir = resolveUploadDirectory();
   private supabaseClient?: SupabaseClient;
 
-  saveImage(
+  async saveImage(
     file: UploadedImageFile | undefined,
     baseUrl: string,
     scope: UploadImageScope = 'customer',
@@ -143,13 +143,18 @@ export class UploadsService {
 
     this.assertAllowedImage(file, scope);
 
+    const extension = this.guessExtension(file.mimetype);
+    const fileName = `${Date.now()}-${randomUUID()}${extension}`;
+
+    if (this.storageProvider() === 'supabase') {
+      return this.storeUploadedImageInSupabase(file, scope, fileName);
+    }
+
     const scopedDir = join(this.uploadDir, scope);
     if (!existsSync(scopedDir)) {
       mkdirSync(scopedDir, { recursive: true });
     }
 
-    const extension = this.guessExtension(file.mimetype);
-    const fileName = `${Date.now()}-${randomUUID()}${extension}`;
     const targetPath = join(scopedDir, fileName);
 
     writeFileSync(targetPath, file.buffer);
@@ -187,7 +192,7 @@ export class UploadsService {
       );
     }
 
-    if (this.sampleMediaStorageProvider() === 'supabase') {
+    if (this.storageProvider() === 'supabase') {
       return this.storeProcessedImageInSupabase({ ...input, folder, fileName });
     }
 
@@ -225,7 +230,7 @@ export class UploadsService {
   }
 
   async storedFileExists(storagePath: string): Promise<boolean> {
-    if (this.sampleMediaStorageProvider() === 'supabase') {
+    if (this.storageProvider() === 'supabase') {
       const objectPath = this.storagePathToObjectPath(storagePath);
       const slash = objectPath.lastIndexOf('/');
       const folder = slash >= 0 ? objectPath.slice(0, slash) : '';
@@ -248,7 +253,7 @@ export class UploadsService {
   }
 
   async deleteStoredFile(storagePath: string): Promise<boolean> {
-    if (this.sampleMediaStorageProvider() === 'supabase') {
+    if (this.storageProvider() === 'supabase') {
       const objectPath = this.storagePathToObjectPath(storagePath);
       const existed = await this.storedFileExists(storagePath);
       if (!existed) return false;
@@ -327,8 +332,34 @@ export class UploadsService {
     };
   }
 
-  private sampleMediaStorageProvider(): SampleMediaStorageProvider {
-    const value = (process.env.SAMPLE_MEDIA_STORAGE_PROVIDER ?? 'filesystem')
+  private async storeUploadedImageInSupabase(
+    file: UploadedImageFile,
+    scope: UploadImageScope,
+    fileName: string,
+  ) {
+    const objectPath = `uploads/${scope}/${fileName}`;
+    const bucket = this.supabaseBucket();
+    const { error } = await bucket.upload(objectPath, file.buffer, {
+      cacheControl: '31536000',
+      contentType: file.mimetype,
+      upsert: false,
+    });
+
+    if (error) {
+      throw new Error(`Supabase storage upload failed: ${error.message}`);
+    }
+
+    return {
+      url: bucket.getPublicUrl(objectPath).data.publicUrl,
+      fileName,
+      originalName: file.originalname,
+    };
+  }
+
+  private storageProvider(): UploadStorageProvider {
+    const defaultProvider =
+      process.env.NODE_ENV === 'production' ? 'supabase' : 'filesystem';
+    const value = (process.env.SAMPLE_MEDIA_STORAGE_PROVIDER ?? defaultProvider)
       .trim()
       .toLowerCase();
     if (value === 'filesystem' || value === 'supabase') return value;

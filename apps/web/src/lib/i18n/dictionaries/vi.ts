@@ -629,6 +629,11 @@ export const vi = {
         "Bốn tình huống minh họa dùng để trải nghiệm bố cục; đây không phải đánh giá khách hàng production.",
       sampleLabel: "Dữ liệu mẫu",
       ratingSuffix: "trên 5 sao",
+      openImage: "Mở ảnh phản hồi",
+      imagePreview: "Ảnh phản hồi",
+      previousImage: "Ảnh trước",
+      nextImage: "Ảnh tiếp theo",
+      closeImage: "Đóng ảnh",
       items: [
         {
           name: "Ngọc Mai",

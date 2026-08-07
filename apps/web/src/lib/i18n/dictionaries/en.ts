@@ -630,6 +630,11 @@ export const en = {
         "Four illustrative scenarios used to preview the layout; these are not production customer reviews.",
       sampleLabel: "Sample content",
       ratingSuffix: "out of 5 stars",
+      openImage: "Open feedback image",
+      imagePreview: "Feedback image",
+      previousImage: "Previous image",
+      nextImage: "Next image",
+      closeImage: "Close image",
       items: [
         {
           name: "Ngọc Mai",

@@ -190,6 +190,11 @@ export type HomeTestimonialsContent = {
   subtitle: string;
   sampleLabel: string;
   ratingSuffix: string;
+  openImage: string;
+  imagePreview: string;
+  previousImage: string;
+  nextImage: string;
+  closeImage: string;
   items: HomeTestimonial[];
 };
 

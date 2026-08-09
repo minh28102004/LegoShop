@@ -34,4 +34,5 @@ export * from './utils/discount';
 export * from './utils/formatCurrency';
 export * from './utils/formatDate';
 export * from './utils/phone';
+export * from './utils/shipping';
 export * from './utils/slugify';

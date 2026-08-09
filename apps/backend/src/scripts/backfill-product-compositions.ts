@@ -106,7 +106,7 @@ async function main() {
             update: { status: ProductStatus.active },
             create: {
               id: DEFAULT_CHARACTER_ID,
-              name: 'Nhân vật LEGO tùy chỉnh',
+              name: 'Nhân vật mô hình tùy chỉnh',
               price: 50_000,
               sortOrder: 0,
               status: ProductStatus.active,
@@ -114,7 +114,7 @@ async function main() {
           })
         : {
             id: DEFAULT_CHARACTER_ID,
-            name: 'Nhân vật LEGO tùy chỉnh',
+            name: 'Nhân vật mô hình tùy chỉnh',
             price: 50_000,
             imageUrl: null,
           });

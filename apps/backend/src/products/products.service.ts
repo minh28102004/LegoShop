@@ -1260,7 +1260,7 @@ export class ProductsService {
     if (input.productType !== PRODUCT_TYPE.LEGO_CHARACTER) return;
     if (!input.characterPresetId) {
       throw new BadRequestException(
-        'LEGO character products must reference a character preset',
+        'Minifigure products must reference a character preset',
       );
     }
 

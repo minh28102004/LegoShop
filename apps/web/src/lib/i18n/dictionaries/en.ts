@@ -110,7 +110,7 @@ export const en = {
         "custom figure gifts",
         "museum box",
         "love notes box",
-        "LEGO frame",
+        "minifigure frame",
         "corporate gift box",
       ],
     },
@@ -166,14 +166,14 @@ export const en = {
         description: "Create a complete personalized display gift.",
       },
       character: {
-        title: "Build a LEGO character",
+        title: "Build a minifigure",
         description: "Combine a face, hair, outfit, and accessories.",
       },
     },
     collectionMenu: {
       open: "Open Collection choices",
       templates: "Design templates",
-      characters: "LEGO characters",
+      characters: "Minifigures",
       parts: "Individual parts",
     },
   },
@@ -304,7 +304,7 @@ export const en = {
         duration: "1.1s loop",
       },
       bounceBlocks: {
-        title: "Bouncing LEGO Blocks",
+        title: "Bouncing building blocks",
         description: "Micro-loading feedback for the add-to-cart button.",
         duration: "750ms loop",
       },
@@ -371,7 +371,7 @@ export const en = {
     reset: "Start over",
     resetConfirm: "Select again to reset",
     eyebrow: "Character builder",
-    title: "Build a LEGO character of your own",
+    title: "Build a minifigure of your own",
     description:
       "Choose each character layer. Individual pieces are also available in the Individual parts tab.",
     name: "Character name",
@@ -400,9 +400,9 @@ export const en = {
     randomize: "Randomize",
     randomizing: "Building...",
     missingParts: "Choose a face, torso, and legs before adding to cart.",
-    customCharacter: "Custom LEGO character",
-    characterBody: "LEGO character body",
-    customFrameLabel: "Custom-built LEGO character",
+    customCharacter: "Custom minifigure",
+    characterBody: "Minifigure body",
+    customFrameLabel: "Custom-built minifigure",
     steps: ["Start", "Face", "Hair & hat", "Outfit", "Accessories", "Finish"],
     previousStep: "Back",
     nextStep: "Continue",
@@ -471,6 +471,7 @@ export const en = {
         },
       ],
       commitmentsLabel: "Service commitments",
+      visitorCount: "3K views",
       sliderLabels: {
         gallery: "Figure Lab image collection",
         previous: "Previous image",
@@ -749,7 +750,7 @@ export const en = {
       "Choose a design template, build a character, or shop individual parts.",
     tabs: {
       templates: "Design templates",
-      characters: "LEGO characters",
+      characters: "Minifigures",
       parts: "Individual parts",
     },
     allCollections: "All",
@@ -817,7 +818,7 @@ export const en = {
     page: (page: number, total: number) => `Page ${page} of ${total}`,
     consultationOpened: "Consultation opened for",
     characterProduct: {
-      typeBadge: "Standalone LEGO character",
+      typeBadge: "Standalone minifigure",
       featured: "Featured",
       componentCount: (count: number) =>
         `${count} ${count === 1 ? "component" : "components"}`,
@@ -829,7 +830,7 @@ export const en = {
       customize: "Customize character",
       close: "Close character details",
       fallbackDescription:
-        "A ready-built LEGO character that you can buy now or customize further.",
+        "A ready-built minifigure that you can buy now or customize further.",
       emptyTitle: "No matching characters yet",
       emptyDescription:
         "Try another search term or filter to discover more characters.",
@@ -859,9 +860,9 @@ export const en = {
       "We will contact you with the fee; payment is made directly to the carrier.",
     customized: "Personalized",
     finished: "Finished product",
-    standaloneCharacter: "Standalone LEGO character",
-    customCharacter: "Custom LEGO character",
-    retailPart: "Individual LEGO part",
+    standaloneCharacter: "Standalone minifigure",
+    customCharacter: "Custom minifigure",
+    retailPart: "Individual minifigure part",
     viewConfiguration: "View configuration",
     collapse: "Collapse",
     configurationTitle: "Configuration details",
@@ -988,7 +989,7 @@ export const en = {
       "Select each address level in order to reduce delivery errors.",
     deliveryTitle: "Delivery & payment",
     deliveryDescription:
-      "Only methods currently supported by the shop are shown.",
+      "Delivery is estimated automatically from the recipient address.",
     extrasTitle: "Finishing touches",
     extrasDescription: "Add gift wrapping or Polaroid prints if needed.",
     noteTitle: "Note for Figure Lab",
@@ -1014,20 +1015,22 @@ export const en = {
       days > 0
         ? `The earliest delivery date in the current production schedule is ${days} days from today.`
         : "Choose a suitable date; we will confirm the production schedule before starting.",
-    shippingMethod: "Delivery method",
+    shippingMethod: "Automatic delivery fee",
+    shippingPending: "Enter an address to see the delivery fee",
+    shippingDetected: "We detected the delivery area from your address.",
     paymentMethod: "Payment method",
     shippingNoticeTitle: "Estimated shipping is included",
     shippingNotice:
-      "The rate for your selected area is added directly to the order total.",
+      "There is no area to choose manually. The matching fee is added to your order as soon as the address is complete.",
     shippingEstimate: (amount: string) => `Estimated fee ${amount}`,
     shipping: {
       hcm_inner: {
         label: "HCMC inner districts",
-        detail: "Central and inner-city districts",
+        detail: "Inner-city districts and Thu Duc City",
       },
       hcm_outer: {
         label: "HCMC outer districts",
-        detail: "Thu Duc City and areas farther from the centre",
+        detail: "Binh Chanh, Can Gio, Cu Chi, Hoc Mon and Nha Be",
       },
       nationwide: {
         label: "Other provinces",
@@ -1054,8 +1057,8 @@ export const en = {
     validItem: "Ready to order",
     productTypes: {
       customFrame: "Custom gift frame",
-      customCharacter: "Custom LEGO character",
-      standaloneCharacter: "LEGO character",
+      customCharacter: "Custom minifigure",
+      standaloneCharacter: "Minifigure",
       retailPart: "Individual component",
       finishedProduct: "Complete design",
     },
@@ -1371,7 +1374,7 @@ export const en = {
       frameLabel: "1. FRAME SIZE",
       frameLoading: "Loading frame sizes from the system…",
       frameError: "Frame sizes are temporarily unavailable.",
-      characterLabel: "2. LEGO CHARACTERS PER SET",
+      characterLabel: "2. MINIFIGURES PER SET",
       characterUnit: "Character",
       charmLabel: "3. ACCESSORY (CHARM) LEVEL",
       charmBasic: "Basic",
@@ -1837,7 +1840,7 @@ export const en = {
       eyebrow: "Figure Lab Studio",
       landingTitle: "One Studio, two ways to begin",
       landingDescription:
-        "Design a complete gift frame or build a standalone LEGO character that feels uniquely yours.",
+        "Design a complete gift frame or build a standalone minifigure that feels uniquely yours.",
       openChooser: "Choose a Studio mode",
       modalTitle: "What would you like to create today?",
       modalDescription:
@@ -1857,9 +1860,9 @@ export const en = {
         cta: "Start designing a frame",
       },
       character: {
-        title: "Build a LEGO character",
+        title: "Build a minifigure",
         description:
-          "Combine individual parts to create a LEGO character in your own style.",
+          "Combine individual parts to create a minifigure in your own style.",
         steps: [
           "Choose a face",
           "Choose hair",
@@ -1867,14 +1870,14 @@ export const en = {
           "Choose legs",
           "Choose a hat and accessories",
         ],
-        cta: "Build a LEGO character",
+        cta: "Build a minifigure",
       },
     },
     characterShell: {
       eyebrow: "Character Builder",
-      title: "Build a LEGO character",
+      title: "Build a minifigure",
       description:
-        "Build a LEGO character by hand in a style that is entirely your own.",
+        "Build a minifigure by hand in a style that is entirely your own.",
       status: "In development",
       backToStudio: "Choose another mode",
       previewLabel: "Preview area",
@@ -2043,18 +2046,18 @@ export const en = {
       clearAll: "Clear all",
       customImage: "Custom image",
       customBackground: "Custom background",
-      customProduct: "Custom LEGO frame",
+      customProduct: "Custom minifigure frame",
       accessoryFallback: "Accessory",
       characterFallback: (index: number) => `Character ${index}`,
       clearImage: "Clear image",
       imageUploadHint: "JPG, PNG or WEBP. Up to 10 MB.",
-      characters: "LEGO characters",
+      characters: "Minifigures",
       manageCharacters: "Manage characters",
       randomCharacter: "Randomize",
       randomCharacterTitle: "Create a random character",
       addCharacter: "Add character",
       addShort: "Add",
-      createCharacter: "Create a LEGO character",
+      createCharacter: "Create a minifigure",
       editCharacter: "Edit character",
       removeCharacterTitle: "Remove character",
       removeCharacter: (name: string) => `Remove ${name} from the design?`,

@@ -19,7 +19,10 @@ import {
   ProductStatus,
   ShippingStatus,
 } from '@prisma/client';
-import { normalizeVietnamesePhone } from '@lego-shop/shared';
+import {
+  normalizeVietnamesePhone,
+  resolveCheckoutShippingMethod,
+} from '@lego-shop/shared';
 import { PaymentSettingsService } from '../payment-settings/payment-settings.service';
 import {
   PayosPaymentItem,
@@ -162,6 +165,9 @@ type OrderPricingSummary = {
 
 type CheckoutPricingSelection = {
   shippingMethod?: string;
+  province?: string;
+  city?: string;
+  district?: string;
   voucherCode?: string;
   giftPackage?: boolean;
   polaroidOption?: string;
@@ -424,10 +430,13 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
     const resolvedItems = itemResults.flatMap((result) =>
       result.resolved ? [result.resolved] : [],
     );
+    const hasShippingAddress = Boolean(
+      dto.province?.trim() && dto.district?.trim(),
+    );
     const pricing = await this.createPricingSummary(
       dto,
       resolvedItems,
-      Boolean(dto.shippingMethod),
+      hasShippingAddress || Boolean(dto.shippingMethod),
     );
 
     return {
@@ -437,7 +446,8 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
       polaroidFee: pricing.polaroidFee,
       addOnTotal: pricing.giftFee + pricing.polaroidFee,
       discount: pricing.discountAmount,
-      shipping: pricing.shippingFee,
+      shipping:
+        hasShippingAddress || dto.shippingMethod ? pricing.shippingFee : null,
       total: pricing.totalAmount,
       valid: items.every((item) => item.valid),
       quotedAt: new Date().toISOString(),
@@ -1156,7 +1166,7 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
         lineItemType: 'frame',
         productType: 'custom_frame',
         customName: this.readString(item.customName),
-        productName: item.productName || 'Khung LEGO tuy chinh',
+        productName: item.productName || 'Khung minifigure tuy chinh',
         quantity: item.quantity,
         price: serverComputedPrice,
         frameOptionId,
@@ -1376,7 +1386,7 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
             ? item.designData.character.name
             : undefined,
         ),
-      productName: item.productName || 'Nhan vat LEGO tuy rap',
+      productName: item.productName || 'Nhan vat mo hinh tuy rap',
       quantity: item.quantity,
       price,
       note: item.note,
@@ -1453,8 +1463,11 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
       0,
     );
     const itemCount = items.reduce((sum, item) => sum + item.quantity, 0);
-    const shippingMethod = (dto.shippingMethod ??
-      SHIPPING_OPTIONS[0].id) as CheckoutShippingMethod;
+    const shippingMethod = (
+      dto.province || dto.city
+        ? resolveCheckoutShippingMethod(dto.province ?? dto.city, dto.district)
+        : (dto.shippingMethod ?? SHIPPING_OPTIONS[0].id)
+    ) as CheckoutShippingMethod;
     const shippingFee = includeShipping
       ? this.getShippingFee(shippingMethod)
       : 0;

@@ -133,7 +133,7 @@ async function bootstrap() {
   );
 
   const swaggerConfig = new DocumentBuilder()
-    .setTitle('Lego Shop API')
+    .setTitle('Figure Lab API')
     .setDescription('API for customer website, admin, orders and payments')
     .setVersion('1.0')
     .addBearerAuth()

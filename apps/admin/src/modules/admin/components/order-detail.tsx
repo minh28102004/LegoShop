@@ -110,6 +110,30 @@ function readString(value: unknown) {
   return typeof value === "string" && value.trim() ? value.trim() : null;
 }
 
+function getComponentSnapshotParts(value: JsonObject | null) {
+  if (!value || !Array.isArray(value.parts)) return [];
+  return value.parts.flatMap((entry) => {
+    if (!isJsonObject(entry)) return [];
+    const id = readString(entry.id);
+    const name = readString(entry.name);
+    const type = readString(entry.type);
+    if (!id || !name || !type) return [];
+    return [
+      {
+        id,
+        name,
+        type,
+        imageUrl: readString(entry.imageUrl),
+      },
+    ];
+  });
+}
+
+function getComponentSnapshotPreset(value: JsonObject | null) {
+  if (!value || !isJsonObject(value.preset)) return null;
+  return readString(value.preset.name);
+}
+
 function getDesignBackgroundLabel(value: JsonObject | null) {
   if (!value) return null;
   if (isCustomFrameDesignData(value)) {
@@ -280,6 +304,7 @@ export default function OrderDetail({ orderId }: Props) {
   const [saving, setSaving] = useState(false);
   const [previewItem, setPreviewItem] = useState<{
     designData: JsonObject | null;
+    componentSnapshot: JsonObject | null;
     productName: string;
     previewUrl?: string | null;
   } | null>(null);
@@ -362,26 +387,58 @@ export default function OrderDetail({ orderId }: Props) {
   }
 
   const designItems = order.items.filter(
-    (item) => item.previewUrl || isJsonObject(item.designData),
+    (item) =>
+      item.previewUrl ||
+      isJsonObject(item.designData) ||
+      isJsonObject(item.componentSnapshot),
   );
 
   return (
     <PageShell>
-      <Card className="p-5 sm:p-6">
-        <SectionHeader
-          icon={<AdminNavIcon name="orders" className="h-6 w-6" />}
-          title={order.orderCode}
-          description={order.customerName}
-          actions={
-            <>
-              <StatusBadge value={order.orderStatus} t={t} />
-              <StatusBadge value={order.paymentStatus} t={t} />
-              <StatusBadge value={order.shippingStatus} t={t} />
-            </>
-          }
-        />
+      <Card className="overflow-hidden p-0">
+        <div className="border-b border-sky-100 bg-gradient-to-r from-sky-50 via-white to-emerald-50 p-5 sm:p-6">
+          <SectionHeader
+            icon={<AdminNavIcon name="orders" className="h-6 w-6" />}
+            title={order.orderCode}
+            description={`${t("orderDetail.overview")} · ${order.customerName}`}
+            actions={
+              <>
+                <StatusBadge value={order.orderStatus} t={t} />
+                <StatusBadge value={order.paymentStatus} t={t} />
+                <StatusBadge value={order.shippingStatus} t={t} />
+              </>
+            }
+          />
 
-        <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          <div className="mt-5 grid overflow-hidden rounded-2xl border border-white/80 bg-white/85 shadow-sm sm:grid-cols-3">
+            <div className="border-b border-slate-100 p-4 sm:border-b-0 sm:border-r">
+              <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-slate-400">
+                {t("orderDetail.total")}
+              </p>
+              <p className="mt-1 text-xl font-extrabold tabular-nums text-sky-700">
+                {formatVnd(order.totalAmount, locale)}
+              </p>
+            </div>
+            <div className="border-b border-slate-100 p-4 sm:border-b-0 sm:border-r">
+              <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-slate-400">
+                {t("orderDetail.itemCount")}
+              </p>
+              <p className="mt-1 text-lg font-bold tabular-nums text-slate-900">
+                {order.items.reduce((sum, item) => sum + item.quantity, 0)}
+              </p>
+            </div>
+            <div className="p-4">
+              <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-slate-400">
+                {t("orderDetail.createdAt")}
+              </p>
+              <p className="mt-1 text-sm font-bold text-slate-900">
+                {formatDateTime(order.createdAt, locale)}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid gap-3 bg-white p-5 sm:p-6 md:grid-cols-2 xl:grid-cols-4">
           <div className="rounded-[22px] border border-[var(--admin-border)] bg-slate-50 p-4">
             <p className="text-[12px] font-semibold uppercase tracking-[0.12em] text-slate-500">
               {t("orderDetail.customer")}
@@ -687,6 +744,9 @@ export default function OrderDetail({ orderId }: Props) {
                             onClick={() =>
                               setPreviewItem({
                                 designData: item.designData ?? null,
+                                componentSnapshot: isJsonObject(item.componentSnapshot)
+                                  ? item.componentSnapshot
+                                  : null,
                                 productName: item.productName,
                                 previewUrl: item.previewUrl,
                               })
@@ -696,8 +756,26 @@ export default function OrderDetail({ orderId }: Props) {
                             {t("orderDetail.viewDesign")}
                           </button>
                         ) : null}
-                        {!item.previewUrl && !isJsonObject(item.designData) ? (
+                        {!item.previewUrl &&
+                        !isJsonObject(item.designData) &&
+                        !isJsonObject(item.componentSnapshot) ? (
                           <span className="text-slate-400">-</span>
+                        ) : null}
+                        {!isJsonObject(item.designData) &&
+                        isJsonObject(item.componentSnapshot) ? (
+                          <button
+                            onClick={() =>
+                              setPreviewItem({
+                                designData: null,
+                                componentSnapshot: item.componentSnapshot ?? null,
+                                productName: item.productName,
+                                previewUrl: item.previewUrl,
+                              })
+                            }
+                            className="cursor-pointer text-sm font-bold text-emerald-600 underline underline-offset-4 hover:text-emerald-700"
+                          >
+                            {t("orderDetail.viewData")}
+                          </button>
                         ) : null}
                       </div>
                     </TableCell>
@@ -714,6 +792,11 @@ export default function OrderDetail({ orderId }: Props) {
               const designData = isJsonObject(item.designData)
                 ? item.designData
                 : null;
+              const componentSnapshot = isJsonObject(item.componentSnapshot)
+                ? item.componentSnapshot
+                : null;
+              const snapshotParts = getComponentSnapshotParts(componentSnapshot);
+              const snapshotPreset = getComponentSnapshotPreset(componentSnapshot);
               const backgroundLabel = getDesignBackgroundLabel(designData);
               const contentEntries = getDesignContentEntries(designData);
               const uploadedImages = getDesignUploadedImages(designData);
@@ -729,6 +812,7 @@ export default function OrderDetail({ orderId }: Props) {
                     <div className="h-40 w-full shrink-0 overflow-hidden rounded-2xl border border-slate-200 bg-white sm:w-40">
                       <AdminDesignPreview
                         designData={designData}
+                        componentSnapshot={componentSnapshot}
                         previewUrl={item.previewUrl}
                         productName={item.productName}
                         characterParts={characterParts}
@@ -749,11 +833,12 @@ export default function OrderDetail({ orderId }: Props) {
                               .join(" · ") || "-"}
                           </p>
                         </div>
-                        {designData ? (
+                        {designData || componentSnapshot ? (
                           <button
                             onClick={() =>
                               setPreviewItem({
                                 designData,
+                                componentSnapshot,
                                 productName: item.productName,
                                 previewUrl: item.previewUrl,
                               })
@@ -777,11 +862,47 @@ export default function OrderDetail({ orderId }: Props) {
                             {t("orderDetail.components")}:
                           </span>{" "}
                           {t("orderDetail.designComponents", {
-                            characters: stats.characters,
+                            characters:
+                              stats.characters || (snapshotParts.length > 0 ? 1 : 0),
                             accessories: stats.accessories,
                             images: stats.uploadedImages,
                           })}
                         </p>
+                        {snapshotPreset ? (
+                          <p>
+                            <span className="font-bold text-slate-700">
+                              Preset:
+                            </span>{" "}
+                            {snapshotPreset}
+                          </p>
+                        ) : null}
+                        {snapshotParts.length > 0 ? (
+                          <div className="grid gap-2 rounded-xl bg-white p-3 sm:grid-cols-2">
+                            {snapshotParts.map((part) => (
+                              <div
+                                key={`${part.type}-${part.id}`}
+                                className="flex min-w-0 items-center gap-2 rounded-lg border border-slate-100 p-2"
+                              >
+                                {part.imageUrl ? (
+                                  // eslint-disable-next-line @next/next/no-img-element
+                                  <img
+                                    src={resolveApiAssetUrl(part.imageUrl)}
+                                    alt=""
+                                    className="h-9 w-9 shrink-0 rounded-lg bg-slate-50 object-contain"
+                                  />
+                                ) : null}
+                                <div className="min-w-0">
+                                  <p className="truncate font-semibold text-slate-700">
+                                    {part.name}
+                                  </p>
+                                  <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                                    {part.type}
+                                  </p>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : null}
                         {item.note ? (
                           <p className="whitespace-pre-line">
                             <span className="font-bold text-slate-700">
@@ -995,6 +1116,7 @@ export default function OrderDetail({ orderId }: Props) {
         isOpen={!!previewItem}
         onClose={() => setPreviewItem(null)}
         designData={previewItem?.designData ?? null}
+        componentSnapshot={previewItem?.componentSnapshot ?? null}
         productName={previewItem?.productName || ""}
         previewUrl={previewItem?.previewUrl}
         characterParts={characterParts}

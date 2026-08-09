@@ -55,7 +55,7 @@ export type CreateOrderRequest = {
   ward?: string;
   receiveDate?: ISODateString;
   note?: string;
-  shippingMethod: CheckoutShippingMethod;
+  shippingMethod?: CheckoutShippingMethod;
   voucherCode?: string;
   giftPackage?: boolean;
   polaroidOption?: "none" | "2" | "4";

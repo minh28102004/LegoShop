@@ -488,7 +488,7 @@ export class PaymentsService {
       .replace(/\s+/g, ' ')
       .trim();
 
-    return (normalized || 'LegoShop').slice(0, PAYOS_MAX_DESCRIPTION_LENGTH);
+    return (normalized || 'FigureLab').slice(0, PAYOS_MAX_DESCRIPTION_LENGTH);
   }
 
   private validatePayosOrderCode(orderCode: number): number {

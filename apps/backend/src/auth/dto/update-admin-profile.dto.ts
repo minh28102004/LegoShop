@@ -3,7 +3,7 @@ import { IsOptional, IsString, MaxLength } from 'class-validator';
 
 export class UpdateAdminProfileDto {
   @ApiPropertyOptional({
-    example: 'Lego Shop Admin',
+    example: 'Figure Lab Admin',
   })
   @IsOptional()
   @IsString()

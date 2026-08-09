@@ -72,6 +72,7 @@ type Props = {
   isOpen: boolean;
   onClose: () => void;
   designData: JsonObject | null;
+  componentSnapshot?: JsonObject | null;
   productName: string;
   previewUrl?: string | null;
   characterParts?: CharacterPart[];
@@ -80,6 +81,7 @@ type Props = {
 
 type AdminDesignPreviewProps = {
   designData: JsonObject | null;
+  componentSnapshot?: JsonObject | null;
   previewUrl?: string | null;
   productName: string;
   characterParts?: CharacterPart[];
@@ -90,6 +92,7 @@ type AdminDesignPreviewProps = {
 
 export function AdminDesignPreview({
   designData,
+  componentSnapshot,
   previewUrl,
   productName,
   characterParts = [],
@@ -111,12 +114,34 @@ export function AdminDesignPreview({
     [accessories],
   );
 
+  const snapshotParts = getPreviewCharacterPartSnapshots(
+    readRecord(componentSnapshot)?.parts,
+  ).sort((left, right) => {
+    const order = ['LEGS', 'TORSO', 'FACE', 'HAIR', 'HAT'];
+    return order.indexOf(left.type) - order.indexOf(right.type);
+  });
+
   if (!isCustomFrameDesignData(designData)) {
     const resolvedPreviewUrl = resolveApiAssetUrl(previewUrl);
 
     return (
       <div className={`flex items-center justify-center overflow-hidden bg-slate-50 ${className}`}>
-        {resolvedPreviewUrl ? (
+        {snapshotParts.length > 0 ? (
+          <div className='relative h-full min-h-[160px] w-full max-w-[260px]'>
+            {snapshotParts.map((part) => (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                key={`${part.type}-${part.id}`}
+                src={part.imageUrl ?? ''}
+                alt={part.name}
+                className='absolute inset-0 h-full w-full object-contain'
+                onError={(event) => {
+                  event.currentTarget.style.display = 'none';
+                }}
+              />
+            ))}
+          </div>
+        ) : resolvedPreviewUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={resolvedPreviewUrl}
@@ -257,13 +282,18 @@ export default function DesignPreviewModal({
   isOpen,
   onClose,
   designData,
+  componentSnapshot,
   productName,
   previewUrl,
   characterParts = [],
   accessories = [],
 }: Props) {
   const { t } = useI18n();
-  const previewData = parseDesignData(designData);
+  const displayData = designData ?? componentSnapshot ?? null;
+  const previewData = parseDesignData(displayData);
+  const snapshotParts = getPreviewCharacterPartSnapshots(
+    readRecord(componentSnapshot)?.parts,
+  );
   const accessoryImageById = useMemo(
     () => new Map(
       accessories
@@ -304,9 +334,10 @@ export default function DesignPreviewModal({
           ) : (
             <div className='grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]'>
               <div className='space-y-6'>
-                {previewData.schema === 'v1' ? (
+                {previewData.schema === 'v1' || snapshotParts.length > 0 ? (
                   <AdminDesignPreview
                     designData={designData}
+                    componentSnapshot={componentSnapshot}
                     previewUrl={previewUrl ?? previewData.previewUrl}
                     productName={productName}
                     characterParts={characterParts}
@@ -336,12 +367,30 @@ export default function DesignPreviewModal({
                     {t('designPreview.rawData')}
                   </div>
                   <pre className='overflow-x-auto bg-slate-50 p-4 font-mono text-xs text-slate-600'>
-                    {JSON.stringify(designData, null, 2)}
+                    {JSON.stringify(displayData, null, 2)}
                   </pre>
                 </div>
               </div>
 
               <aside className='space-y-4'>
+                {snapshotParts.length > 0 ? (
+                  <Panel title={t('designPreview.components')}>
+                    <div className='space-y-2'>
+                      {snapshotParts.map((part) => (
+                        <div key={`${part.type}-${part.id}`} className='flex items-center gap-2 text-sm text-slate-700'>
+                          {part.imageUrl ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={part.imageUrl} alt='' className='h-9 w-9 rounded-lg bg-slate-50 object-contain' />
+                          ) : null}
+                          <div className='min-w-0'>
+                            <p className='truncate font-semibold'>{part.name}</p>
+                            <p className='text-[10px] font-bold uppercase tracking-wider text-slate-400'>{part.type}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </Panel>
+                ) : null}
                 <InfoCard label={t('designPreview.frameSize')} value={previewData.frameSize || '-'} />
                 <InfoCard label={t('designPreview.background')} value={previewData.backgroundLabel || '-'} />
                 <InfoCard

@@ -175,12 +175,13 @@ export class CreateOrderDto {
   @IsString()
   voucherCode?: string;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     enum: SHIPPING_METHODS,
     example: 'hcm_inner',
   })
+  @IsOptional()
   @IsIn(SHIPPING_METHODS)
-  shippingMethod: (typeof SHIPPING_METHODS)[number];
+  shippingMethod?: (typeof SHIPPING_METHODS)[number];
 
   @ApiPropertyOptional({
     example: true,

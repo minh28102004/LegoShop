@@ -138,6 +138,22 @@ export class CartQuoteDto implements CartQuoteRequestContract {
   @IsIn(SHIPPING_METHODS)
   shippingMethod?: (typeof SHIPPING_METHODS)[number];
 
+  @ApiPropertyOptional({ example: 'Thành phố Hồ Chí Minh' })
+  @Transform(({ value }: { value: unknown }) =>
+    typeof value === 'string' ? value.trim() : value,
+  )
+  @IsOptional()
+  @IsString()
+  province?: string;
+
+  @ApiPropertyOptional({ example: 'Thành phố Thủ Đức' })
+  @Transform(({ value }: { value: unknown }) =>
+    typeof value === 'string' ? value.trim() : value,
+  )
+  @IsOptional()
+  @IsString()
+  district?: string;
+
   @ApiPropertyOptional({ enum: [PaymentMethod.PAYOS] })
   @IsOptional()
   @IsIn([PaymentMethod.PAYOS])

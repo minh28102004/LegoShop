@@ -110,7 +110,7 @@ export const vi = {
         "figure quà tặng",
         "museum box",
         "love notes box",
-        "khung tranh lego",
+        "khung tranh minifigure",
         "gift box doanh nghiệp",
       ],
     },
@@ -167,14 +167,14 @@ export const vi = {
         description: "Tạo một khung quà cá nhân hóa hoàn chỉnh.",
       },
       character: {
-        title: "Tạo nhân vật LEGO",
+        title: "Tạo nhân vật mô hình",
         description: "Ghép khuôn mặt, tóc, trang phục và phụ kiện.",
       },
     },
     collectionMenu: {
       open: "Mở lựa chọn Bộ sưu tập",
       templates: "Mẫu thiết kế",
-      characters: "Nhân vật LEGO",
+      characters: "Nhân vật mô hình",
       parts: "Thành phần lẻ",
     },
   },
@@ -306,7 +306,7 @@ export const vi = {
         duration: "Vòng lặp 1,1 giây",
       },
       bounceBlocks: {
-        title: "Khối LEGO nảy",
+        title: "Khối xếp hình nảy",
         description: "Hiệu ứng tải nhỏ cho nút thêm vào giỏ hàng.",
         duration: "Vòng lặp 750 mili giây",
       },
@@ -373,7 +373,7 @@ export const vi = {
     reset: "Làm lại",
     resetConfirm: "Nhấn lần nữa để làm lại",
     eyebrow: "Tạo nhân vật",
-    title: "Ráp một nhân vật LEGO của riêng bạn",
+    title: "Ráp một nhân vật mô hình của riêng bạn",
     description:
       "Chọn từng lớp của nhân vật. Bạn cũng có thể mua riêng từng thành phần trong tab Thành phần lẻ.",
     name: "Tên nhân vật",
@@ -401,9 +401,9 @@ export const vi = {
     randomize: "Ngẫu nhiên",
     randomizing: "Đang lắp...",
     missingParts: "Hãy chọn đủ khuôn mặt, áo và quần trước khi thêm vào giỏ.",
-    customCharacter: "Nhân vật LEGO tự ráp",
-    characterBody: "Thân nhân vật LEGO",
-    customFrameLabel: "Nhân vật LEGO ráp riêng",
+    customCharacter: "Nhân vật mô hình tự ráp",
+    characterBody: "Thân nhân vật mô hình",
+    customFrameLabel: "Nhân vật mô hình ráp riêng",
     steps: [
       "Bắt đầu",
       "Khuôn mặt",
@@ -471,6 +471,7 @@ export const vi = {
         },
       ],
       commitmentsLabel: "Cam kết dịch vụ",
+      visitorCount: "3K lượt xem",
       sliderLabels: {
         gallery: "Bộ sưu tập hình ảnh Figure Lab",
         previous: "Ảnh trước",
@@ -748,7 +749,7 @@ export const vi = {
       "Chọn mẫu thiết kế, tạo nhân vật hoặc mua từng thành phần riêng.",
     tabs: {
       templates: "Mẫu thiết kế",
-      characters: "Nhân vật LEGO",
+      characters: "Nhân vật mô hình",
       parts: "Thành phần lẻ",
     },
     allCollections: "Tất cả",
@@ -815,7 +816,7 @@ export const vi = {
     page: (page: number, total: number) => `Trang ${page} / ${total}`,
     consultationOpened: "Đã mở tư vấn cho mẫu",
     characterProduct: {
-      typeBadge: "Nhân vật LEGO",
+      typeBadge: "Nhân vật mô hình",
       featured: "Nổi bật",
       componentCount: (count: number) => `${count} bộ phận`,
       accessoryCount: (count: number) => `${count} phụ kiện`,
@@ -825,7 +826,7 @@ export const vi = {
       customize: "Tùy chỉnh nhân vật",
       close: "Đóng chi tiết nhân vật",
       fallbackDescription:
-        "Nhân vật LEGO đã ráp sẵn, có thể mua ngay hoặc tiếp tục tùy chỉnh.",
+        "Nhân vật mô hình đã ráp sẵn, có thể mua ngay hoặc tiếp tục tùy chỉnh.",
       emptyTitle: "Chưa có nhân vật phù hợp",
       emptyDescription:
         "Hãy thử từ khóa hoặc bộ lọc khác để khám phá thêm nhân vật.",
@@ -855,9 +856,9 @@ export const vi = {
       "Shop sẽ liên hệ báo phí; khách thanh toán trực tiếp cho đơn vị vận chuyển.",
     customized: "Đã cá nhân hóa",
     finished: "Sản phẩm hoàn thiện",
-    standaloneCharacter: "Nhân vật LEGO",
+    standaloneCharacter: "Nhân vật mô hình",
     customCharacter: "Nhân vật tùy chỉnh",
-    retailPart: "Thành phần LEGO lẻ",
+    retailPart: "Thành phần mô hình lẻ",
     viewConfiguration: "Xem cấu hình",
     collapse: "Thu gọn",
     configurationTitle: "Chi tiết cấu hình",
@@ -978,7 +979,7 @@ export const vi = {
     addressDescription: "Chọn địa chỉ theo thứ tự để hạn chế sai sót khi giao.",
     deliveryTitle: "Vận chuyển & thanh toán",
     deliveryDescription:
-      "Chỉ những phương thức đang được shop hỗ trợ mới xuất hiện.",
+      "Phí giao hàng được tự động ước tính theo địa chỉ nhận hàng.",
     extrasTitle: "Hoàn thiện món quà",
     extrasDescription: "Thêm gói quà hoặc ảnh Polaroid nếu bạn cần.",
     noteTitle: "Lời nhắn cho shop",
@@ -1003,20 +1004,22 @@ export const vi = {
       days > 0
         ? `Ngày nhận sớm nhất theo lịch sản xuất hiện tại là sau ${days} ngày.`
         : "Chọn ngày phù hợp; shop sẽ xác nhận lại lịch sản xuất trước khi thực hiện.",
-    shippingMethod: "Phương thức vận chuyển",
+    shippingMethod: "Phí giao hàng tự động",
+    shippingPending: "Nhập địa chỉ để xem phí giao hàng",
+    shippingDetected: "Hệ thống đã nhận diện khu vực từ địa chỉ của bạn.",
     paymentMethod: "Phương thức thanh toán",
     shippingNoticeTitle: "Phí vận chuyển đã được tạm tính",
     shippingNotice:
-      "Mức phí theo khu vực bạn chọn được cộng trực tiếp vào tổng đơn hàng.",
+      "Bạn không cần chọn nội thành, ngoại thành hay tỉnh. Mức phí tương ứng sẽ được cộng ngay vào tổng đơn.",
     shippingEstimate: (amount: string) => `Phí dự kiến ${amount}`,
     shipping: {
       hcm_inner: {
         label: "Nội thành TP.HCM",
-        detail: "Khu vực trung tâm và các quận nội thành",
+        detail: "Các quận nội thành và TP. Thủ Đức",
       },
       hcm_outer: {
         label: "Ngoại thành TP.HCM",
-        detail: "TP. Thủ Đức, huyện và khu vực xa trung tâm",
+        detail: "Bình Chánh, Cần Giờ, Củ Chi, Hóc Môn và Nhà Bè",
       },
       nationwide: {
         label: "Tỉnh / thành khác",
@@ -1043,8 +1046,8 @@ export const vi = {
     validItem: "Sẵn sàng đặt hàng",
     productTypes: {
       customFrame: "Khung quà tùy chỉnh",
-      customCharacter: "Nhân vật LEGO tùy chỉnh",
-      standaloneCharacter: "Nhân vật LEGO",
+      customCharacter: "Nhân vật mô hình tùy chỉnh",
+      standaloneCharacter: "Nhân vật mô hình",
       retailPart: "Thành phần lẻ",
       finishedProduct: "Mẫu thiết kế hoàn chỉnh",
     },
@@ -1361,7 +1364,7 @@ export const vi = {
       frameLabel: "1. KÍCH THƯỚC KHUNG TRANH",
       frameLoading: "Đang lấy kích thước từ hệ thống…",
       frameError: "Chưa tải được kích thước khung.",
-      characterLabel: "2. SỐ NHÂN VẬT LEGO MỖI BỘ",
+      characterLabel: "2. SỐ NHÂN VẬT MÔ HÌNH MỖI BỘ",
       characterUnit: "Nhân vật",
       charmLabel: "3. TRANG TRÍ LINH KIỆN (CHARM)",
       charmBasic: "Basic",
@@ -1823,7 +1826,7 @@ export const vi = {
       eyebrow: "Figure Lab Studio",
       landingTitle: "Một Studio, hai cách bắt đầu",
       landingDescription:
-        "Chọn thiết kế một khung quà hoàn chỉnh hoặc tạo riêng nhân vật LEGO mang dấu ấn của bạn.",
+        "Chọn thiết kế một khung quà hoàn chỉnh hoặc tạo riêng nhân vật mô hình mang dấu ấn của bạn.",
       openChooser: "Chọn chế độ Studio",
       modalTitle: "Bạn muốn tạo gì hôm nay?",
       modalDescription:
@@ -1843,9 +1846,9 @@ export const vi = {
         cta: "Bắt đầu thiết kế khung",
       },
       character: {
-        title: "Tạo nhân vật LEGO",
+        title: "Tạo nhân vật mô hình",
         description:
-          "Phối từng bộ phận để hoàn thiện một nhân vật LEGO riêng theo phong cách của bạn.",
+          "Phối từng bộ phận để hoàn thiện một nhân vật mô hình riêng theo phong cách của bạn.",
         steps: [
           "Chọn khuôn mặt",
           "Chọn tóc",
@@ -1853,14 +1856,14 @@ export const vi = {
           "Chọn chân",
           "Chọn mũ và phụ kiện",
         ],
-        cta: "Tạo nhân vật LEGO",
+        cta: "Tạo nhân vật mô hình",
       },
     },
     characterShell: {
       eyebrow: "Character Builder",
-      title: "Tạo nhân vật LEGO",
+      title: "Tạo nhân vật mô hình",
       description:
-        "Tự tay lắp ráp nhân vật LEGO theo phong cách của riêng bạn.",
+        "Tự tay lắp ráp nhân vật mô hình theo phong cách của riêng bạn.",
       status: "Đang phát triển",
       backToStudio: "Chọn chế độ khác",
       previewLabel: "Khu vực xem trước",
@@ -2027,18 +2030,18 @@ export const vi = {
       clearAll: "Xóa tất cả",
       customImage: "Ảnh tùy chỉnh",
       customBackground: "Ảnh nền tùy chỉnh",
-      customProduct: "Khung LEGO tùy chỉnh",
+      customProduct: "Khung minifigure tùy chỉnh",
       accessoryFallback: "Phụ kiện",
       characterFallback: (index: number) => `NV ${index}`,
       clearImage: "Xóa ảnh",
       imageUploadHint: "JPG, PNG hoặc WEBP. Tối đa 10 MB.",
-      characters: "Nhân vật LEGO",
+      characters: "Nhân vật mô hình",
       manageCharacters: "Quản lý nhân vật",
       randomCharacter: "Ngẫu nhiên",
       randomCharacterTitle: "Tạo nhanh nhân vật ngẫu nhiên",
       addCharacter: "Thêm nhân vật",
       addShort: "Thêm",
-      createCharacter: "Tạo nhân vật LEGO",
+      createCharacter: "Tạo nhân vật mô hình",
       editCharacter: "Chỉnh sửa nhân vật",
       removeCharacterTitle: "Xóa nhân vật",
       removeCharacter: (name: string) => `Xóa ${name} khỏi thiết kế?`,

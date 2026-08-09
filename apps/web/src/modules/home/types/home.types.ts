@@ -29,6 +29,7 @@ export type HomeHero = {
   chips: string[];
   features: HomeFeatureItem[];
   commitmentsLabel: string;
+  visitorCount: string;
   sliderLabels: HomeHeroSliderLabels;
 };
 

@@ -44,6 +44,8 @@ export type CartQuoteItemRequestContract = {
 export type CartQuoteRequestContract = {
   items: CartQuoteItemRequestContract[];
   shippingMethod?: CheckoutShippingMethod;
+  province?: string;
+  district?: string;
   paymentMethod?: "PAYOS";
   giftPackage?: boolean;
   polaroidOption?: "none" | "2" | "4";

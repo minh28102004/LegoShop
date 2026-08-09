@@ -226,7 +226,7 @@ export default function AccountProfilePage() {
             <Input
               value={name}
               onChange={(event) => setName(event.target.value)}
-              placeholder='Lego Shop Admin'
+              placeholder='Figure Lab Admin'
               size='lg'
             />
           </label>

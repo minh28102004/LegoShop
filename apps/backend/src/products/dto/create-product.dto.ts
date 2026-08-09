@@ -79,7 +79,7 @@ export class CreateProductDto implements CreateProductRequestContract {
   @IsString()
   description?: string;
 
-  @ApiPropertyOptional({ example: 'Nhân vật LEGO tốt nghiệp cá nhân hóa.' })
+  @ApiPropertyOptional({ example: 'Nhân vật mô hình tốt nghiệp cá nhân hóa.' })
   @Transform(trimOptionalString)
   @IsOptional()
   @IsString()

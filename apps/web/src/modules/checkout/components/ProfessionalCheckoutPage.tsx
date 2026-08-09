@@ -3,7 +3,6 @@
 import type {
   ApplyVoucherResponseContract,
   CartQuoteItemResponseContract,
-  CheckoutShippingMethod,
   CheckoutSettingsContract,
   CreateOrderRequestContract,
   JsonObject,
@@ -11,6 +10,7 @@ import type {
 import {
   formatCurrency as formatPrice,
   normalizeVietnamesePhone,
+  resolveCheckoutShippingMethod,
 } from "@lego-shop/shared";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
@@ -76,7 +76,6 @@ type VietnamProvince = {
   name: string;
   districts: VietnamDistrict[];
 };
-type ShippingMethod = CheckoutShippingMethod;
 type PolaroidOption = "none" | "2" | "4";
 type SubmitStatus = "idle" | "checking" | "creating" | "redirecting";
 type FormData = {
@@ -485,8 +484,10 @@ export default function ProfessionalCheckoutPage() {
     null,
   );
   const [settingsError, setSettingsError] = useState(false);
-  const [shippingMethod, setShippingMethod] =
-    useState<ShippingMethod>("hcm_inner");
+  const shippingMethod = useMemo(
+    () => resolveCheckoutShippingMethod(formData.city, formData.district),
+    [formData.city, formData.district],
+  );
   const paymentMethod = "PAYOS" as const;
   const [giftPackage, setGiftPackage] = useState(false);
   const [polaroid, setPolaroid] = useState<PolaroidOption>("none");
@@ -563,11 +564,6 @@ export default function ProfessionalCheckoutPage() {
         if (cancelled) return;
         setSettings(nextSettings);
         setSettingsError(!nextSettings.payment.payosEnabled);
-        setShippingMethod((current) =>
-          nextSettings.shippingMethods.some((option) => option.id === current)
-            ? current
-            : (nextSettings.shippingMethods[0]?.id ?? "hcm_inner"),
-        );
       })
       .catch(() => {
         if (!cancelled) setSettingsError(true);
@@ -586,14 +582,12 @@ export default function ProfessionalCheckoutPage() {
           const parsed = JSON.parse(stored) as {
             version?: number;
             formData?: Partial<FormData>;
-            shippingMethod?: ShippingMethod;
             giftPackage?: boolean;
             polaroid?: PolaroidOption;
             checkoutAttemptId?: string;
           };
           if (parsed.version === 1) {
             setFormData({ ...INITIAL_FORM, ...parsed.formData });
-            if (parsed.shippingMethod) setShippingMethod(parsed.shippingMethod);
             if (typeof parsed.giftPackage === "boolean") {
               setGiftPackage(parsed.giftPackage);
             }
@@ -615,7 +609,6 @@ export default function ProfessionalCheckoutPage() {
       JSON.stringify({
         version: 1,
         formData,
-        shippingMethod,
         paymentMethod,
         giftPackage,
         polaroid,
@@ -628,14 +621,14 @@ export default function ProfessionalCheckoutPage() {
     giftPackage,
     paymentMethod,
     polaroid,
-    shippingMethod,
   ]);
 
   const backendPaymentMethod = "PAYOS" as const;
   const appliedVoucherCode = appliedVoucher?.code;
   const quoteOptions = useMemo(
     () => ({
-      shippingMethod,
+      ...(formData.city ? { province: formData.city } : {}),
+      ...(formData.district ? { district: formData.district } : {}),
       paymentMethod: backendPaymentMethod,
       giftPackage,
       polaroidOption: polaroid,
@@ -646,7 +639,8 @@ export default function ProfessionalCheckoutPage() {
       backendPaymentMethod,
       giftPackage,
       polaroid,
-      shippingMethod,
+      formData.city,
+      formData.district,
     ],
   );
   const {
@@ -713,6 +707,12 @@ export default function ProfessionalCheckoutPage() {
   const polaroidFee = quote?.polaroidFee ?? 0;
   const discount = quote?.discount ?? 0;
   const shippingFee = quote?.shipping ?? 0;
+  const selectedShippingOption = settings?.shippingMethods.find(
+    (option) => option.id === shippingMethod,
+  );
+  const hasShippingAddress = Boolean(
+    formData.city.trim() && formData.district.trim(),
+  );
   const finalTotal = quote?.total ?? 0;
   const amountToPay = finalTotal;
 
@@ -1745,65 +1745,51 @@ export default function ProfessionalCheckoutPage() {
                 onBlur={() => blurField("receiveDate")}
               />
 
-              <fieldset className="mt-5 border-t border-[#e4ebf0] pt-5">
-                <legend className="mb-3 text-sm font-semibold text-slate-800">
+              <div className="mt-5 border-t border-[#e4ebf0] pt-5">
+                <p className="mb-3 text-sm font-semibold text-slate-800">
                   {copy.shippingMethod}
-                </legend>
+                </p>
                 <div
-                  role="radiogroup"
-                  className="grid auto-rows-fr gap-3 md:grid-cols-3"
+                  className={`flex items-start gap-3 rounded-[16px] border p-4 sm:p-[18px] ${
+                    hasShippingAddress
+                      ? "border-[#2f91d0] bg-[#f0f9fe]"
+                      : "border-dashed border-slate-300 bg-slate-50"
+                  }`}
                 >
-                  {(settings?.shippingMethods ?? []).map((option) => {
-                    const { id } = option;
-                    const active = shippingMethod === id;
-                    return (
-                      <button
-                        key={id}
-                        type="button"
-                        role="radio"
-                        aria-checked={active}
-                        onClick={() => setShippingMethod(id)}
-                        onKeyDown={(event) =>
-                          handleRadioKeyDown(
-                            event,
-                            (settings?.shippingMethods ?? []).map(
-                              (item) => item.id,
-                            ),
-                            id,
-                            setShippingMethod,
-                          )
-                        }
-                        className={`business-hover-lift flex h-full items-start gap-3 rounded-[16px] border p-4 text-left outline-none hover:shadow-[0_10px_22px_-20px_rgba(18,45,78,0.28)] focus-visible:ring-3 focus-visible:ring-[#b9def3] sm:p-[18px] ${
-                          active
-                            ? "border-[#2f91d0] bg-[#f0f9fe] shadow-sm"
-                            : "border-[#dce6ed] bg-white hover:border-[#9bcbe8]"
-                        }`}
-                      >
-                        <span
-                          className={`mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full border ${
-                            active
-                              ? "border-[#2f91d0] bg-[#2f91d0] text-white"
-                              : "border-slate-300 bg-white"
-                          }`}
-                        >
-                          {active ? <Check className="h-3 w-3" /> : null}
-                        </span>
-                        <span className="min-w-0 flex-1">
-                          <span className="block text-sm font-semibold text-slate-900">
-                            {copy.shipping[id].label}
-                          </span>
-                          <span className="mt-1 block text-xs leading-5 text-slate-500">
-                            {copy.shipping[id].detail}
-                          </span>
-                          <span className="mt-2 block text-xs font-semibold text-[#176b9f]">
-                            {copy.shippingEstimate(formatPrice(option.fee))}
-                          </span>
-                        </span>
-                      </button>
-                    );
-                  })}
+                  <span
+                    className={`mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full ${
+                      hasShippingAddress
+                        ? "bg-[#2f91d0] text-white"
+                        : "bg-slate-200 text-slate-500"
+                    }`}
+                  >
+                    {hasShippingAddress ? (
+                      <Check className="h-3.5 w-3.5" />
+                    ) : (
+                      <LoaderCircle className="h-3.5 w-3.5" />
+                    )}
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-sm font-semibold text-slate-900">
+                      {hasShippingAddress
+                        ? copy.shipping[shippingMethod].label
+                        : copy.shippingPending}
+                    </span>
+                    <span className="mt-1 block text-xs leading-5 text-slate-500">
+                      {hasShippingAddress
+                        ? copy.shippingDetected
+                        : copy.addressDescription}
+                    </span>
+                    {hasShippingAddress && selectedShippingOption ? (
+                      <span className="mt-2 block text-sm font-bold text-[#176b9f]">
+                        {copy.shippingEstimate(
+                          formatPrice(selectedShippingOption.fee),
+                        )}
+                      </span>
+                    ) : null}
+                  </span>
                 </div>
-              </fieldset>
+              </div>
 
               <div className="mt-4 flex items-start gap-3 rounded-[16px] border border-[#cce7f5] bg-[#eff9fe] p-4">
                 <FluentEmoji name="delivery" className="h-9 w-9" />

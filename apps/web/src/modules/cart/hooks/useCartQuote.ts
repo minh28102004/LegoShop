@@ -38,6 +38,8 @@ function getBackgroundId(item: SimpleCartItem) {
 export type CartQuoteOptions = Pick<
   CartQuoteRequestContract,
   | "shippingMethod"
+  | "province"
+  | "district"
   | "paymentMethod"
   | "giftPackage"
   | "polaroidOption"

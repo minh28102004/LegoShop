@@ -25,7 +25,7 @@ export class AdminListQueryDto {
   @Max(100)
   limit?: number;
 
-  @ApiPropertyOptional({ example: 'lego' })
+  @ApiPropertyOptional({ example: 'figure' })
   @IsOptional()
   @IsString()
   search?: string;

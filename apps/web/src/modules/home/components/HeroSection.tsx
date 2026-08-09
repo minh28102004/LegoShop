@@ -1,6 +1,7 @@
 import {
   ArrowRight,
   Check,
+  Eye,
   MessageSquareText,
   WandSparkles,
 } from "lucide-react";
@@ -115,6 +116,11 @@ export function HeroSection({ hero, media, slides }: HeroSectionProps) {
                 </li>
               ))}
             </ul>
+
+            <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-sky-200 bg-sky-50 px-3.5 py-2 text-sm font-bold text-sky-800 shadow-sm">
+              <Eye className="h-4 w-4" strokeWidth={2} aria-hidden="true" />
+              <span>{hero.visitorCount}</span>
+            </div>
           </ScrollReveal>
 
           <ScrollReveal

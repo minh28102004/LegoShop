@@ -206,7 +206,7 @@ export default function LoginForm() {
                   <div className='relative col-span-7 row-span-2 overflow-hidden rounded-[18px] border border-white/70 bg-white shadow-[0_12px_28px_-24px_rgba(15,23,42,0.42)]'>
                     <Image
                       src='/login-lego-shop-banner.png'
-                      alt='Figure Lab Lego minifigure shop showcase'
+                      alt='Figure Lab personalized minifigure showcase'
                       width={1920}
                       height={768}
                       priority

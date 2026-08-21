@@ -57,10 +57,7 @@ const SHIPPING_FEES: Record<CheckoutShippingMethod, number> =
 type ResolvedOrderItem = {
   productId?: string;
   lineItemType:
-    | 'frame'
-    | 'standalone_character'
-    | 'custom_character'
-    | 'retail_part';
+    'frame' | 'standalone_character' | 'custom_character' | 'retail_part';
   productType?: string;
   customName?: string;
   productName: string;
@@ -1308,7 +1305,9 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
       };
     }
     if (retailType === 'character_part') {
-      const partId = this.readString(item.designData?.sourceId);
+      const partId =
+        this.readString(item.designData?.sourceId) ||
+        this.getLegacyCollectionRetailItemId(item, 'character_part');
       const part = partId ? characterPartsById.get(partId) : undefined;
       if (!part) {
         throw new BadRequestException('Character part is not available');
@@ -1611,13 +1610,16 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
     return (
       item.frameOptionId ||
       this.readString(item.designData?.frameOptionId) ||
+      this.getLegacyCollectionRetailItemId(item, 'frame') ||
       item.frameSizeId
     );
   }
 
   private getBackgroundId(item: CreateOrderItemDto): string | undefined {
     const rawBackgroundId =
-      item.backgroundId || this.readString(item.designData?.backgroundId);
+      item.backgroundId ||
+      this.readString(item.designData?.backgroundId) ||
+      this.getLegacyCollectionRetailItemId(item, 'background');
 
     if (!rawBackgroundId) {
       return undefined;
@@ -1627,10 +1629,38 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
   }
 
   private isRetailOrderItem(item: CreateOrderItemDto) {
+    const retailType = this.readString(item.designData?.retailType);
     return (
-      this.readString(item.designData?.type) === 'RETAIL_ITEM' &&
-      this.readString(item.designData?.retailType) !== 'product'
+      retailType !== 'product' &&
+      (this.readString(item.designData?.type) === 'RETAIL_ITEM' ||
+        (this.readString(item.designData?.source) === 'collection-retail' &&
+          ['frame', 'background', 'accessory', 'character_part'].includes(
+            retailType ?? '',
+          )))
     );
+  }
+
+  private getLegacyCollectionRetailItemId(
+    item: CreateOrderItemDto,
+    retailType: 'frame' | 'background' | 'accessory' | 'character_part',
+  ): string | undefined {
+    if (
+      this.readString(item.designData?.source) !== 'collection-retail' ||
+      this.readString(item.designData?.retailType) !== retailType
+    ) {
+      return undefined;
+    }
+
+    const configuredId =
+      this.readString(item.designData?.sourceId) ||
+      this.readString(item.designData?.retailItemId);
+    if (configuredId) return configuredId;
+
+    const legacyFrameSizeId = item.frameSizeId;
+    const prefix = `${retailType}:`;
+    return legacyFrameSizeId?.startsWith(prefix)
+      ? legacyFrameSizeId.slice(prefix.length)
+      : undefined;
   }
 
   private isCustomCharacterOrderItem(item: CreateOrderItemDto) {
@@ -1876,6 +1906,14 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
 
   private getAccessoryQuantityMap(item: CreateOrderItemDto) {
     const quantities = new Map<string, number>();
+    const legacyRetailAccessoryId = this.getLegacyCollectionRetailItemId(
+      item,
+      'accessory',
+    );
+    if (legacyRetailAccessoryId) {
+      quantities.set(legacyRetailAccessoryId, 1);
+      return quantities;
+    }
     const designAccessories = item.designData?.accessories;
 
     if (Array.isArray(designAccessories) && designAccessories.length > 0) {

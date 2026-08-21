@@ -89,7 +89,7 @@ type CartStore = CartState & CartActions;
 
 const CART_STORAGE_KEY = "legoshop-cart-v2";
 const CART_BACKUP_STORAGE_KEY = `${CART_STORAGE_KEY}-backup`;
-const CART_STORAGE_VERSION = 4;
+const CART_STORAGE_VERSION = 5;
 const MAX_CART_QUANTITY = 10;
 let hydrationPromise: Promise<void> | null = null;
 
@@ -127,9 +127,7 @@ function readPrice(value: unknown) {
 
 function readQuantity(value: unknown) {
   const quantity =
-    typeof value === "number" && Number.isFinite(value)
-      ? Math.round(value)
-      : 1;
+    typeof value === "number" && Number.isFinite(value) ? Math.round(value) : 1;
   return Math.min(MAX_CART_QUANTITY, Math.max(1, quantity));
 }
 
@@ -212,6 +210,63 @@ function normalizePart(value: unknown): CartItemPart | null {
   };
 }
 
+const COLLECTION_RETAIL_TYPES = new Set([
+  "frame",
+  "background",
+  "accessory",
+  "character_part",
+]);
+
+function normalizeLegacyCollectionRetailItem(item: SimpleCartItem) {
+  const designData = item.designData;
+  if (
+    readString(designData.source) !== "collection-retail" ||
+    !COLLECTION_RETAIL_TYPES.has(readString(designData.retailType))
+  ) {
+    return;
+  }
+
+  const retailType = readString(designData.retailType) as
+    "frame" | "background" | "accessory" | "character_part";
+  const legacyPrefixedId = readString(item.frameSizeId);
+  const sourceId =
+    readString(designData.sourceId).trim() ||
+    readString(designData.retailItemId).trim() ||
+    (legacyPrefixedId.startsWith(`${retailType}:`)
+      ? legacyPrefixedId.slice(retailType.length + 1)
+      : "");
+  if (!sourceId) return;
+
+  item.designData = {
+    ...designData,
+    type: "RETAIL_ITEM",
+    retailType,
+    sourceId,
+    retailItemId: sourceId,
+  };
+  item.lineItemType = retailType === "frame" ? "frame" : "retail_part";
+  item.productType = retailType === "frame" ? "frame_template" : "loose_part";
+
+  if (retailType === "frame") {
+    item.frameOptionId = sourceId;
+    item.frameSizeId = sourceId;
+    return;
+  }
+
+  delete item.frameOptionId;
+  item.frameSizeId = "";
+  if (retailType === "accessory" && !item.accessories?.length) {
+    item.accessories = [
+      {
+        id: sourceId,
+        name: item.productName,
+        price: item.unitPrice,
+        quantity: 1,
+      },
+    ];
+  }
+}
+
 function normalizeCartItem(value: unknown): SimpleCartItem | null {
   if (!isRecord(value)) return null;
 
@@ -240,8 +295,7 @@ function normalizeCartItem(value: unknown): SimpleCartItem | null {
       typeof value.previewUrl === "string" && value.previewUrl.trim()
         ? value.previewUrl.trim()
         : null,
-    addedAt:
-      readString(value.addedAt).trim() || new Date().toISOString(),
+    addedAt: readString(value.addedAt).trim() || new Date().toISOString(),
   };
 
   const productType = readString(value.productType).trim();
@@ -282,6 +336,8 @@ function normalizeCartItem(value: unknown): SimpleCartItem | null {
   } else {
     delete normalized.parts;
   }
+
+  normalizeLegacyCollectionRetailItem(normalized);
 
   return normalized;
 }
@@ -366,9 +422,7 @@ export const useCartStore = create<CartStore>()(
         set((state) => {
           const signature = getItemSignature(itemData);
           const existing = signature
-            ? state.items.find(
-                (item) => getItemSignature(item) === signature,
-              )
+            ? state.items.find((item) => getItemSignature(item) === signature)
             : undefined;
 
           if (existing) {

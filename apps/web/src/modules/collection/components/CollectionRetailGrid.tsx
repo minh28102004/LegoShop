@@ -82,12 +82,30 @@ export function CollectionRetailGrid({
                   const type = cartPartType(item.type);
                   useCartStore.getState().addItem({
                     productId: null,
+                    lineItemType:
+                      item.type === "frame" ? "frame" : "retail_part",
+                    productType:
+                      item.type === "frame" ? "frame_template" : "loose_part",
                     productName: item.name,
                     quantity: 1,
                     unitPrice: item.price,
-                    frameSizeId: `${item.type}:${item.id}`,
+                    ...(item.type === "frame"
+                      ? { frameOptionId: item.id, frameSizeId: item.id }
+                      : { frameSizeId: "" }),
                     frameSizeLabel: item.name,
                     frameColorName: "",
+                    ...(item.type === "accessory"
+                      ? {
+                          accessories: [
+                            {
+                              id: item.id,
+                              name: item.name,
+                              price: item.price,
+                              quantity: 1,
+                            },
+                          ],
+                        }
+                      : {}),
                     parts: [
                       {
                         id: item.id,
@@ -100,9 +118,12 @@ export function CollectionRetailGrid({
                       },
                     ],
                     designData: {
+                      type: "RETAIL_ITEM",
                       source: "collection-retail",
                       retailType: item.type,
+                      sourceId: item.id,
                       retailItemId: item.id,
+                      imageUrl: item.imageUrl,
                     },
                     previewUrl: item.imageUrl,
                   });

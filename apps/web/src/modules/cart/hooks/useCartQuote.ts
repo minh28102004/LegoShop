@@ -19,9 +19,11 @@ function getFrameOptionId(item: SimpleCartItem) {
   return (
     item.frameOptionId ??
     readString(item.designData?.frameOptionId) ??
-    (item.designData?.type === "RETAIL_ITEM"
+    (item.designData?.type === "RETAIL_ITEM" &&
+    item.designData.retailType === "frame"
       ? readString(item.designData.sourceId)
-      : undefined)
+      : undefined) ??
+    (item.frameSizeId || undefined)
   );
 }
 

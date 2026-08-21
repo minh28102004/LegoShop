@@ -89,7 +89,7 @@ type CartStore = CartState & CartActions;
 
 const CART_STORAGE_KEY = "legoshop-cart-v2";
 const CART_BACKUP_STORAGE_KEY = `${CART_STORAGE_KEY}-backup`;
-const CART_STORAGE_VERSION = 5;
+const CART_STORAGE_VERSION = 6;
 const MAX_CART_QUANTITY = 10;
 let hydrationPromise: Promise<void> | null = null;
 
@@ -217,21 +217,38 @@ const COLLECTION_RETAIL_TYPES = new Set([
   "character_part",
 ]);
 
-function normalizeLegacyCollectionRetailItem(item: SimpleCartItem) {
+function normalizeRetailCartItem(item: SimpleCartItem) {
   const designData = item.designData;
+  const configuredRetailType = readString(designData.retailType);
+  const standalonePart =
+    !item.productId && item.parts?.length === 1 ? item.parts[0] : undefined;
+  const inferredRetailType = standalonePart?.type;
+  const legacyPrefixedId = readString(item.frameSizeId);
+  const prefixedRetailType = Array.from(COLLECTION_RETAIL_TYPES).find((type) =>
+    legacyPrefixedId.startsWith(`${type}:`),
+  );
+  const retailType = COLLECTION_RETAIL_TYPES.has(configuredRetailType)
+    ? configuredRetailType
+    : inferredRetailType && COLLECTION_RETAIL_TYPES.has(inferredRetailType)
+      ? inferredRetailType
+      : prefixedRetailType;
+  const isStoredRetailItem = designData.type === "RETAIL_ITEM";
+  const isLegacyCollectionRetail =
+    readString(designData.source) === "collection-retail";
   if (
-    readString(designData.source) !== "collection-retail" ||
-    !COLLECTION_RETAIL_TYPES.has(readString(designData.retailType))
+    !retailType ||
+    (!isStoredRetailItem &&
+      !isLegacyCollectionRetail &&
+      !standalonePart &&
+      !prefixedRetailType)
   ) {
     return;
   }
 
-  const retailType = readString(designData.retailType) as
-    "frame" | "background" | "accessory" | "character_part";
-  const legacyPrefixedId = readString(item.frameSizeId);
   const sourceId =
     readString(designData.sourceId).trim() ||
     readString(designData.retailItemId).trim() ||
+    standalonePart?.id ||
     (legacyPrefixedId.startsWith(`${retailType}:`)
       ? legacyPrefixedId.slice(retailType.length + 1)
       : "");
@@ -337,7 +354,7 @@ function normalizeCartItem(value: unknown): SimpleCartItem | null {
     delete normalized.parts;
   }
 
-  normalizeLegacyCollectionRetailItem(normalized);
+  normalizeRetailCartItem(normalized);
 
   return normalized;
 }

@@ -19,7 +19,14 @@ import {
   CreditCard,
 } from "lucide-react";
 
-import { formatCurrency as formatPrice } from "@lego-shop/shared";
+import {
+  formatCurrency as formatPrice,
+  getCharacterPreviewParts,
+} from "@lego-shop/shared";
+import {
+  CharacterPartsPreview,
+  type CharacterPartsPreviewPart,
+} from "@lego-shop/ui";
 import { Badge } from "@/components/ui/Badge";
 import { ROUTES, UI_MODAL_IDS } from "@/config/routes";
 import { getCartItemParts } from "@/features/cart/cart-parts";
@@ -33,10 +40,6 @@ import { selectActiveModal, useUIStore } from "@/features/ui/store";
 import { resolveApiAssetUrl } from "@/lib/api/assets";
 import { AnimatePresence, motion } from "framer-motion";
 import { useCartText } from "@/lib/i18n/useI18n";
-import {
-  ExplodedCharacterParts,
-  type ExplodedCharacterPart,
-} from "@/modules/lego-frame/components/character-builder/CharacterPreview";
 
 export type CartDrawerProps = Omit<
   React.ComponentPropsWithoutRef<typeof motion.div>,
@@ -133,30 +136,7 @@ function getItemSummary(parts: CartItemPart[], itemQuantity: number) {
   );
 }
 
-function readRecord(value: unknown): Record<string, unknown> | null {
-  return Boolean(value) && typeof value === "object" && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : null;
-}
-
-function toExplodedCharacterPart(value: unknown): ExplodedCharacterPart | null {
-  const part = readRecord(value);
-  if (!part) return null;
-  const id = typeof part.id === "string" ? part.id : "";
-  const type = typeof part.type === "string" ? part.type : "";
-  const imageUrl = typeof part.imageUrl === "string" ? part.imageUrl : "";
-  if (
-    !id ||
-    !imageUrl ||
-    !["FACE", "HAIR", "TORSO", "LEGS", "HAT", "ACCESSORY"].includes(type)
-  ) {
-    return null;
-  }
-
-  return { id, type: type as ExplodedCharacterPart["type"], imageUrl };
-}
-
-function getCartCharacterParts(item: SimpleCartItem): ExplodedCharacterPart[] {
+function getCartCharacterParts(item: SimpleCartItem): CharacterPartsPreviewPart[] {
   if (
     item.lineItemType !== "custom_character" &&
     item.designData.type !== "CUSTOM_CHARACTER"
@@ -164,24 +144,10 @@ function getCartCharacterParts(item: SimpleCartItem): ExplodedCharacterPart[] {
     return [];
   }
 
-  const primaryCharacter = readRecord(item.designData.character);
-  const firstCharacter = Array.isArray(item.designData.characters)
-    ? readRecord(item.designData.characters[0])
-    : null;
-  const characterParts = readRecord(
-    primaryCharacter?.characterParts ?? firstCharacter?.characterParts,
-  );
-  if (!characterParts) return [];
-
-  return ["LEGS", "TORSO", "FACE", "HAIR", "HAT", "ACCESSORY"].flatMap(
-    (type) => {
-      const value = characterParts[type];
-      const values = Array.isArray(value) ? value : [value];
-      return values
-        .map(toExplodedCharacterPart)
-        .filter((part): part is ExplodedCharacterPart => Boolean(part));
-    },
-  );
+  return getCharacterPreviewParts(item.designData).flatMap((part) => {
+    const imageUrl = resolveApiAssetUrl(part.imageUrl);
+    return imageUrl ? [{ id: part.id, type: part.type, imageUrl }] : [];
+  });
 }
 
 function CartPreviewImage({
@@ -191,7 +157,7 @@ function CartPreviewImage({
 }: {
   src: string | null;
   alt: string;
-  characterParts?: ExplodedCharacterPart[];
+  characterParts?: CharacterPartsPreviewPart[];
 }) {
   const [errored, setErrored] = React.useState(false);
   const showCharacter = Boolean(characterParts?.length);
@@ -205,7 +171,7 @@ function CartPreviewImage({
       )}
     >
       {showCharacter ? (
-        <ExplodedCharacterParts parts={characterParts ?? []} />
+        <CharacterPartsPreview parts={characterParts ?? []} label={alt} />
       ) : showImage ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img

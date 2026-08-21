@@ -2,7 +2,15 @@
 
 import { PackageCheck, X } from 'lucide-react';
 import { useMemo, type CSSProperties, type ReactNode } from 'react';
-import type { CustomFrameDesignData, JsonObject } from '@lego-shop/shared';
+import {
+  getCharacterPreviewParts,
+  type CustomFrameDesignData,
+  type JsonObject,
+} from '@lego-shop/shared';
+import {
+  CharacterPartsPreview,
+  type CharacterPartsPreviewPart,
+} from '@lego-shop/ui';
 import { resolveApiAssetUrl } from '@/lib/api';
 import { useI18n } from '@/lib/i18n/I18nProvider';
 import type { Accessory, CharacterPart } from '@/modules/admin/types/admin.types';
@@ -114,33 +122,23 @@ export function AdminDesignPreview({
     [accessories],
   );
 
-  const snapshotParts = getPreviewCharacterPartSnapshots(
-    readRecord(componentSnapshot)?.parts,
-  ).sort((left, right) => {
-    const order = ['LEGS', 'TORSO', 'FACE', 'HAIR', 'HAT'];
-    return order.indexOf(left.type) - order.indexOf(right.type);
-  });
+  const characterPreviewParts: CharacterPartsPreviewPart[] =
+    getCharacterPreviewParts(designData, componentSnapshot).flatMap((part) => {
+      const imageUrl = resolveApiAssetUrl(part.imageUrl);
+      return imageUrl ? [{ id: part.id, type: part.type, imageUrl }] : [];
+    });
 
   if (!isCustomFrameDesignData(designData)) {
     const resolvedPreviewUrl = resolveApiAssetUrl(previewUrl);
 
     return (
       <div className={`flex items-center justify-center overflow-hidden bg-slate-50 ${className}`}>
-        {snapshotParts.length > 0 ? (
-          <div className='relative h-full min-h-[160px] w-full max-w-[260px]'>
-            {snapshotParts.map((part) => (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                key={`${part.type}-${part.id}`}
-                src={part.imageUrl ?? ''}
-                alt={part.name}
-                className='absolute inset-0 h-full w-full object-contain'
-                onError={(event) => {
-                  event.currentTarget.style.display = 'none';
-                }}
-              />
-            ))}
-          </div>
+        {characterPreviewParts.length > 0 ? (
+          <CharacterPartsPreview
+            parts={characterPreviewParts}
+            label={productName}
+            className='min-h-[160px] max-w-[260px]'
+          />
         ) : resolvedPreviewUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img

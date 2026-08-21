@@ -9,9 +9,14 @@ import type {
 } from "@lego-shop/shared";
 import {
   formatCurrency as formatPrice,
+  getCharacterPreviewParts,
   normalizeVietnamesePhone,
   resolveCheckoutShippingMethod,
 } from "@lego-shop/shared";
+import {
+  CharacterPartsPreview,
+  type CharacterPartsPreviewPart,
+} from "@lego-shop/ui";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
   AlertCircle,
@@ -47,6 +52,7 @@ import { ROUTES } from "@/config/routes";
 import { getCartItemParts } from "@/features/cart/cart-parts";
 import { useCart } from "@/features/cart/hooks/useCart";
 import type { SimpleCartItem } from "@/features/cart/store";
+import { resolveApiAssetUrl } from "@/lib/api/assets";
 import { publicApiClient } from "@/lib/api/public-client";
 import { useI18n } from "@/lib/i18n/useI18n";
 import { getLocalizedApiError } from "@/lib/i18n/errors";
@@ -195,6 +201,22 @@ function hasUnpersistedDesignImage(item: SimpleCartItem) {
   );
 }
 
+function getCheckoutCharacterParts(
+  item: SimpleCartItem,
+): CharacterPartsPreviewPart[] {
+  if (
+    item.lineItemType !== "custom_character" &&
+    item.designData.type !== "CUSTOM_CHARACTER"
+  ) {
+    return [];
+  }
+
+  return getCharacterPreviewParts(item.designData).flatMap((part) => {
+    const imageUrl = resolveApiAssetUrl(part.imageUrl);
+    return imageUrl ? [{ id: part.id, type: part.type, imageUrl }] : [];
+  });
+}
+
 function formatLocalDate(date: Date) {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
@@ -326,16 +348,21 @@ function TextareaField({
 function ProductImage({
   image,
   alt,
+  characterParts = [],
   onClick,
 }: {
   image: CartItemImage | null;
   alt: string;
+  characterParts?: CharacterPartsPreviewPart[];
   onClick?: (() => void) | undefined;
 }) {
+  const showCharacter = characterParts.length > 0;
   const content = (
     <span className="relative block h-16 w-16 overflow-hidden rounded-[14px] border border-[#dde7ee] bg-[#f3f7fa]">
       <PackageCheck className="absolute left-1/2 top-1/2 h-6 w-6 -translate-x-1/2 -translate-y-1/2 text-slate-300" />
-      {image ? (
+      {showCharacter ? (
+        <CharacterPartsPreview parts={characterParts} label={alt} />
+      ) : image ? (
         // Cart previews may come from data/blob/API URLs and need a native
         // error fallback, so they intentionally bypass next/image.
         // eslint-disable-next-line @next/next/no-img-element
@@ -352,7 +379,7 @@ function ProductImage({
       ) : null}
     </span>
   );
-  return onClick && image ? (
+  return onClick && (image || showCharacter) ? (
     <button
       type="button"
       onClick={onClick}
@@ -1044,6 +1071,7 @@ export default function ProfessionalCheckoutPage() {
       <div className="divide-y divide-[#e7edf2]">
         {compactSummaryItems.map((item) => {
           const image = resolveCartItemImage(item);
+          const characterParts = getCheckoutCharacterParts(item);
           const quoteItem = quoteItemById.get(item.id);
           const invalid = quoteItem?.valid === false;
           const valid = quoteItem?.valid === true;
@@ -1057,6 +1085,7 @@ export default function ProfessionalCheckoutPage() {
                 <ProductImage
                   image={image}
                   alt={sanitizeCartText(item.productName)}
+                  characterParts={characterParts}
                 />
                 <div className="min-w-0 flex-1">
                   <div className="flex items-start justify-between gap-3">
@@ -1122,6 +1151,7 @@ export default function ProfessionalCheckoutPage() {
     <div className="space-y-3">
       {items.map((item) => {
         const image = resolveCartItemImage(item);
+        const characterParts = getCheckoutCharacterParts(item);
         const quoteItem = quoteItemById.get(item.id);
         const priceChange = activePriceChanges[item.id];
         const invalid = quoteItem?.valid === false;
@@ -1159,7 +1189,8 @@ export default function ProfessionalCheckoutPage() {
               <ProductImage
                 image={image}
                 alt={sanitizeCartText(item.productName)}
-                {...(image
+                characterParts={characterParts}
+                {...(image || characterParts.length > 0
                   ? {
                       onClick: () => {
                         setOrderDetailsOpen(false);
@@ -1467,6 +1498,9 @@ export default function ProfessionalCheckoutPage() {
     </div>
   );
   const previewImage = previewItem ? resolveCartItemImage(previewItem) : null;
+  const previewCharacterParts = previewItem
+    ? getCheckoutCharacterParts(previewItem)
+    : [];
 
   if (!hasHydrated) {
     return (
@@ -2093,7 +2127,12 @@ export default function ProfessionalCheckoutPage() {
         </button>
         {previewItem ? (
           <div className="relative mx-auto aspect-square max-h-[70dvh] overflow-hidden rounded-[18px] bg-white">
-            {previewImage ? (
+            {previewCharacterParts.length > 0 ? (
+              <CharacterPartsPreview
+                parts={previewCharacterParts}
+                label={sanitizeCartText(previewItem.productName)}
+              />
+            ) : previewImage ? (
               // The lightbox uses the same dynamic cart preview source.
               // eslint-disable-next-line @next/next/no-img-element
               <img

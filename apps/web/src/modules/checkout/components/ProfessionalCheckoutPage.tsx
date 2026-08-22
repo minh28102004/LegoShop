@@ -909,15 +909,6 @@ export default function ProfessionalCheckoutPage() {
       retry();
       return;
     }
-    if (priceChangeSignature && !priceConfirmed) {
-      setSubmitError(copy.priceChangeDescription);
-      document.getElementById("checkout-price-change")?.scrollIntoView({
-        behavior: shouldReduceMotion ? "auto" : "smooth",
-        block: "center",
-      });
-      return;
-    }
-
     submitLockRef.current = true;
     setSubmitStatus("checking");
     try {
@@ -929,26 +920,25 @@ export default function ProfessionalCheckoutPage() {
         retry();
         return;
       }
-      const changed = Object.fromEntries(
+      const changedPrices: Record<string, number> = Object.fromEntries(
         revalidated.items
-          .filter((item) =>
-            item.warnings.some((warning) => warning.code === "PRICE_CHANGED"),
-          )
-          .map((item) => [item.cartItemId, item]),
+          .filter((item) => item.valid)
+          .map((item) => [item.cartItemId, item.unitPrice]),
       );
-      if (Object.keys(changed).length > 0) {
-        setManualPriceChanges((current) => ({ ...current, ...changed }));
-        updateQuotedPrices(
-          Object.fromEntries(
-            revalidated.items
-              .filter((item) => item.valid)
-              .map((item) => [item.cartItemId, item.unitPrice]),
-          ),
-        );
+      const checkoutItems = items.map((item) => {
+        const nextPrice = changedPrices[item.id];
+        return nextPrice === undefined
+          ? item
+          : {
+              ...item,
+              unitPrice: nextPrice,
+              totalPrice: nextPrice * item.quantity,
+            };
+      });
+      if (Object.keys(changedPrices).length > 0) {
+        updateQuotedPrices(changedPrices);
+        setManualPriceChanges({});
         setConfirmedPriceSignature("");
-        setSubmitError(copy.priceChangeDescription);
-        retry();
-        return;
       }
 
       setSubmitStatus("creating");
@@ -983,7 +973,7 @@ export default function ProfessionalCheckoutPage() {
         giftPackage,
         polaroidOption: polaroid,
         paymentMethod: backendPaymentMethod,
-        items: items.map((item) => {
+        items: checkoutItems.map((item) => {
           const frameOptionId = getCartItemFrameOptionId(item);
           const backgroundId = getCartItemBackgroundId(item);
           return {

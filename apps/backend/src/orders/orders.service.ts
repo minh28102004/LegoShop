@@ -123,6 +123,7 @@ type ResolvedOrderProduct = {
 
 type ResolvedProductFrameSize = {
   id: string;
+  label?: string;
   price: number;
 };
 
@@ -996,7 +997,7 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
       }),
       this.prisma.frameSize.findMany({
         where: { status: ProductStatus.active },
-        select: { id: true, price: true },
+        select: { id: true, label: true, price: true },
       }),
       this.prisma.character.findMany({
         where: { status: ProductStatus.active },
@@ -1019,6 +1020,20 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
         },
       ]),
     );
+    // Cart items created before FrameOption was introduced kept the legacy
+    // FrameSize id. Keep those ids resolvable so an existing cart can be
+    // repriced automatically instead of being marked as invalid.
+    for (const frameSize of productFrameSizes) {
+      if (frameOptionsById.has(frameSize.id)) continue;
+      frameOptionsById.set(frameSize.id, {
+        id: frameSize.id,
+        label: frameSize.label ?? frameSize.id,
+        price: frameSize.price,
+        stock: null,
+        minQuantity: 1,
+        maxQuantity: 99,
+      });
+    }
     const backgroundsById = new Map(
       backgrounds.map((background) => [background.id, background]),
     );

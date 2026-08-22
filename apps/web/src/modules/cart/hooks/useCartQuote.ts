@@ -148,10 +148,18 @@ export function useCartQuote(
     const timer = window.setTimeout(
       () => {
         if (cachedQuote) {
+          const prices: Record<string, number> = {};
+          cachedQuote.items.forEach((item) => {
+            if (item.valid) prices[item.cartItemId] = item.unitPrice;
+          });
+          // Server pricing is authoritative; once applied locally, do not
+          // keep showing a stale "price changed" confirmation banner.
+          setPriceChanges({});
           setQuote(cachedQuote);
           setQuotedKey(quoteKey);
           setStatus("success");
           hasSettledQuote.current = true;
+          updateQuotedPrices(prices);
           return;
         }
 
@@ -161,21 +169,12 @@ export function useCartQuote(
           .then((nextQuote) => {
             if (currentSequence !== sequence.current) return;
             const prices: Record<string, number> = {};
-            const changedItems: Record<string, CartQuoteItemResponseContract> =
-              {};
             nextQuote.items.forEach((item) => {
               if (item.valid) prices[item.cartItemId] = item.unitPrice;
-              if (
-                item.warnings.some(
-                  (warning) => warning.code === "PRICE_CHANGED",
-                )
-              ) {
-                changedItems[item.cartItemId] = item;
-              }
             });
-            if (Object.keys(changedItems).length > 0) {
-              setPriceChanges((current) => ({ ...current, ...changedItems }));
-            }
+            // Prices are applied immediately below, so a second manual
+            // confirmation would only make checkout appear stuck.
+            setPriceChanges({});
             setQuote(nextQuote);
             setQuotedKey(quoteKey);
             setStatus("success");

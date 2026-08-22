@@ -113,11 +113,14 @@ export function useStudioData(frameSize: string) {
           throw optionsResult.reason;
         }
 
-        const optionFrameSizes = frameOptions
-          .filter((option) => option.type === "size")
+        const sizeOptions = frameOptions.filter(
+          (option) => option.type === "size",
+        );
+        const optionFrameSizes = sizeOptions
+          .filter((option) => option.stock === null || option.stock > 0)
           .map((option) => mapFrameOptionSize(option, locale));
         const activeFrameSizes =
-          optionFrameSizes.length > 0
+          sizeOptions.length > 0
             ? optionFrameSizes
             : legacySizes.map((size) => mapLegacyFrameSize(size, locale));
 

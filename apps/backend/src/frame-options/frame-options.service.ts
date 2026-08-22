@@ -58,6 +58,7 @@ export class FrameOptionsService {
     const options = await this.prisma.frameOption.findMany({
       where: {
         ...(type ? { type } : {}),
+        OR: [{ stock: null }, { stock: { gt: 0 } }],
       },
       orderBy: [{ type: 'asc' }, { sortOrder: 'asc' }, { createdAt: 'desc' }],
     });

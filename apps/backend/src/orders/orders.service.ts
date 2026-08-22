@@ -404,6 +404,10 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
         } catch (error) {
           const message =
             error instanceof Error ? error.message : 'Cart item is invalid';
+          const unavailable =
+            message.includes('not available') ||
+            message.includes('not have enough') ||
+            message.includes('enough inventory');
           return {
             resolved: null,
             response: {
@@ -415,7 +419,9 @@ export class OrdersService implements OnModuleInit, OnModuleDestroy {
               lineTotal: item.priceSnapshot * item.quantity,
               warnings: [
                 {
-                  code: 'INVALID_CONFIGURATION' as const,
+                  code: unavailable
+                    ? ('ITEM_UNAVAILABLE' as const)
+                    : ('INVALID_CONFIGURATION' as const),
                   message,
                 },
               ],

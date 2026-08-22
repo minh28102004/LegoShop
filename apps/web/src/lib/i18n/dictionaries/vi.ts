@@ -1098,6 +1098,8 @@ export const vi = {
       "Vui lòng kiểm tra giá mới và xác nhận trước khi đặt hàng.",
     confirmPrice: "Tôi đã kiểm tra giá mới",
     invalidItem: "Sản phẩm này cần được cập nhật trước khi đặt hàng.",
+    unavailableItem:
+      "Kích thước khung này đã hết hàng. Vui lòng sửa thiết kế và chọn kích thước khác.",
     invalidOrderTotal:
       "Đơn hàng chưa có tổng tiền hợp lệ. Vui lòng cập nhật hoặc xóa sản phẩm lỗi trước khi tiếp tục.",
     removeItem: "Xóa sản phẩm",

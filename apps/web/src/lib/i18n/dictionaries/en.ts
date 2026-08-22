@@ -1110,6 +1110,8 @@ export const en = {
       "Review the updated price and confirm it before placing the order.",
     confirmPrice: "I have reviewed the new price",
     invalidItem: "This item must be updated before the order can be placed.",
+    unavailableItem:
+      "This frame size is out of stock. Edit the design and choose another size.",
     invalidOrderTotal:
       "This order does not have a valid total yet. Update or remove invalid items before continuing.",
     removeItem: "Remove item",

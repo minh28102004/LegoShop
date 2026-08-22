@@ -1040,8 +1040,9 @@ export default function ProfessionalCheckoutPage() {
           ? copy.redirecting
           : ctaLabel;
   const hasActivePriceChanges = Boolean(priceChangeSignature);
+  const hasInvalidItems = quote?.items.some((item) => !item.valid) ?? false;
   const hasInvalidOrderTotal =
-    quoteStatus === "success" && (!quote?.valid || finalTotal <= 0);
+    quoteStatus === "success" && !hasInvalidItems && finalTotal <= 0;
   const placeOrderDisabled =
     submitStatus !== "idle" ||
     quoteStatus !== "success" ||
@@ -1065,6 +1066,11 @@ export default function ProfessionalCheckoutPage() {
           const quoteItem = quoteItemById.get(item.id);
           const invalid = quoteItem?.valid === false;
           const valid = quoteItem?.valid === true;
+          const invalidMessage = quoteItem?.warnings.some(
+            (warning) => warning.code === "ITEM_UNAVAILABLE",
+          )
+            ? copy.unavailableItem
+            : copy.invalidItem;
           const lineTotal = quoteItem?.valid
             ? quoteItem.lineTotal
             : item.totalPrice;
@@ -1096,7 +1102,7 @@ export default function ProfessionalCheckoutPage() {
                   {invalid ? (
                     <p className="mt-2 inline-flex items-center gap-1.5 text-[11px] font-semibold leading-4 text-amber-700">
                       <AlertCircle className="h-3.5 w-3.5 shrink-0" />
-                      {copy.invalidItem}
+                      {invalidMessage}
                     </p>
                   ) : valid ? (
                     <p className="mt-2 inline-flex items-center gap-1.5 text-[11px] font-semibold text-emerald-700">
@@ -1146,6 +1152,11 @@ export default function ProfessionalCheckoutPage() {
         const priceChange = activePriceChanges[item.id];
         const invalid = quoteItem?.valid === false;
         const valid = quoteItem?.valid === true;
+        const invalidMessage = quoteItem?.warnings.some(
+          (warning) => warning.code === "ITEM_UNAVAILABLE",
+        )
+          ? copy.unavailableItem
+          : copy.invalidItem;
         const parts = getCartItemParts(item);
         const configurationExpanded = expandedConfigurationIds.has(item.id);
         const visibleParts = configurationExpanded ? parts : parts.slice(0, 2);
@@ -1231,7 +1242,7 @@ export default function ProfessionalCheckoutPage() {
                       ) : (
                         <Check className="h-3 w-3" />
                       )}
-                      {invalid ? copy.invalidItem : copy.validItem}
+                      {invalid ? invalidMessage : copy.validItem}
                     </span>
                   ) : null}
                 </div>
@@ -1253,7 +1264,7 @@ export default function ProfessionalCheckoutPage() {
 
             {invalid ? (
               <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs leading-5 text-amber-800">
-                <p className="font-semibold">{copy.invalidItem}</p>
+                <p className="font-semibold">{invalidMessage}</p>
               </div>
             ) : null}
 

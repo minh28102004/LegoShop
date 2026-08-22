@@ -155,6 +155,66 @@ describe('OrdersService', () => {
     });
   });
 
+  it('quotes an out-of-stock custom frame as unavailable', async () => {
+    productFindMany.mockResolvedValueOnce([]);
+    frameOptionFindMany.mockResolvedValueOnce([
+      {
+        id: 'frame-30x30',
+        name: '30x30',
+        label: '30x30',
+        widthCm: 30,
+        heightCm: 30,
+        price: 10_000,
+        stock: 0,
+        minQuantity: 1,
+        maxQuantity: 99,
+      },
+    ]);
+    frameBackgroundFindMany.mockResolvedValueOnce([]);
+    accessoryFindMany.mockResolvedValueOnce([]);
+    characterPartFindMany.mockResolvedValueOnce([]);
+    frameSizeFindMany.mockResolvedValueOnce([]);
+    characterFindMany.mockResolvedValueOnce([]);
+
+    const response = await service.quoteCart({
+      items: [
+        {
+          cartItemId: 'cart-frame-1',
+          productName: 'Khung minifigure tuy chinh',
+          quantity: 1,
+          priceSnapshot: 10_000,
+          frameOptionId: 'frame-30x30',
+          frameSizeId: 'frame-30x30',
+          designData: {
+            type: 'CUSTOM_FRAME',
+            frameOptionId: 'frame-30x30',
+            characters: [],
+          },
+        },
+      ],
+    });
+
+    expect(response).toEqual(
+      expect.objectContaining({
+        valid: false,
+        subtotal: 0,
+        total: 0,
+        items: [
+          expect.objectContaining({
+            cartItemId: 'cart-frame-1',
+            valid: false,
+            warnings: [
+              expect.objectContaining({
+                code: 'ITEM_UNAVAILABLE',
+                message: 'Frame option does not have enough stock',
+              }),
+            ],
+          }),
+        ],
+      }),
+    );
+  });
+
   it('quotes a staged preview product with a virtual configured character', async () => {
     const previousIncludePreview = process.env.INCLUDE_STAGED_SAMPLE_MEDIA;
     const previousSeedTag = process.env.STAGED_SAMPLE_MEDIA_SEED_TAG;

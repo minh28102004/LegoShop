@@ -2,7 +2,7 @@ import { FrameOptionType, ProductStatus } from '@prisma/client';
 import { FrameOptionsService } from './frame-options.service';
 
 describe('FrameOptionsService', () => {
-  it('serves size options regardless of the legacy status field', async () => {
+  it('serves in-stock size options regardless of the legacy status field', async () => {
     const frame = {
       id: 'frame-20x20',
       type: FrameOptionType.size,
@@ -33,7 +33,12 @@ describe('FrameOptionsService', () => {
       service.findPublicOptions(FrameOptionType.size),
     ).resolves.toEqual([expect.objectContaining({ id: frame.id })]);
     expect(prisma.frameOption.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({ where: { type: FrameOptionType.size } }),
+      expect.objectContaining({
+        where: {
+          type: FrameOptionType.size,
+          OR: [{ stock: null }, { stock: { gt: 0 } }],
+        },
+      }),
     );
   });
 });
